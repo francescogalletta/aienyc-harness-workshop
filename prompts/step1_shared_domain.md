@@ -6,7 +6,7 @@ this repository.
 ---
 
 You are building step 1 of a small agent harness. Step 0 is already built
-under `harness/`. The repository holds the contract, the tests, and three
+under `harness/`. The repository holds the contract, the tests, and the
 given files for this step. Your job is to write the code that makes the
 step 1 tests pass without breaking step 0.
 
@@ -22,18 +22,20 @@ Then build what section 4 describes:
 
 - three new settings in `harness/config.py`
 - `harness/grounding/__init__.py`
-- `harness/grounding/research.py` (lookups, the saved-file researcher, the researcher table)
+- `harness/grounding/research.py` (lookups, the researchers and their table, the research desk, the research plan)
+- `harness/migrations/0002_lookups.sql`
 - `harness/grounding/claude_code_research.py` (web lookups through Claude Code)
 - `harness/grounding/brief.py` (the brief's shape, checks and output)
 - `harness/grounding/interview.py` (the interview loop)
-- the `ground` command in `harness/__main__.py`
+- `harness/ui/__init__.py`, `harness/ui/session.py` and `harness/ui/server.py` (the web interface's backend)
+- the `ground` and `ui` commands in `harness/__main__.py`
 - the small change to `harness/model/claude_code_provider.py` that section 4.2 asks for
 
 Rules:
 
 - Do not edit `SPEC.md`, anything under `tests/`, `data/`, `prompts/` or
-  `reference/`, or the two given files `harness/grounding/interviewer.md` and
-  `harness/grounding/researcher.md`. If you believe one of them is wrong,
+  `reference/`, or the given files: the three `.md` files in
+  `harness/grounding/` and `harness/ui/grounding.html`. If you believe one of them is wrong,
   stop and say so instead of changing it.
 - Build only step 1. Do not start on anything in section 5 of `SPEC.md`.
 - Use only the Python standard library.

@@ -50,6 +50,7 @@ harness/           the harness (built by the prompts)
   model/           the only place a provider SDK may be imported
   migrations/      numbered .sql files, applied in order
   grounding/       step 1: the interview, the lookups and the brief
+  ui/              the local web interface
 reference/         saved reference terms for offline lookups (given)
 brief/             the domain brief, written by the interview
 tests/stepN/       acceptance tests for step N (given, never edited)
@@ -395,9 +396,14 @@ The harness, not the prompt, enforces four things in this step: one question
 at a time, real lookups behind every cited source, a brief that passes its
 checks, and the person's own confirmation before the brief is saved.
 
-Two files in `harness/grounding/` are **given** and must not be rewritten:
-`interviewer.md` (the interviewer's instructions) and `researcher.md` (the
-researcher's instructions). The file `reference/terms.json` is also given.
+Four files are **given** and must not be rewritten: in `harness/grounding/`,
+`interviewer.md`, `researcher.md` and `planner.md` (the instructions of the
+interviewer, the web researcher and the research planner), and
+`harness/ui/grounding.html` (the web page). The file `reference/terms.json`
+is also given.
+
+Sections 4.1 to 4.5 describe the interview itself. Sections 4.6 and 4.7 add
+to them: where they differ, the later section wins.
 
 ### 4.1 Settings
 
@@ -405,7 +411,7 @@ researcher's instructions). The file `reference/terms.json` is also given.
 
 | Variable | Default | Field | Meaning |
 | --- | --- | --- | --- |
-| `HARNESS_RESEARCHER` | `reference` | `researcher: str` | A name from the researcher table (4.2) |
+| `HARNESS_RESEARCHER` | `auto` | `researcher: str` | A name from the researcher table (4.2 and 4.6) |
 | `HARNESS_REFERENCE` | `reference/terms.json` | `reference_path: Path` | The saved reference file |
 | `HARNESS_BRIEF_DIR` | `brief` | `brief_dir: Path` | Where the brief is written |
 
@@ -718,6 +724,182 @@ in the terminal, with the configured model and researcher. The state file is
   even when the first model call fails.
 
 `check` and `events` behave as before.
+
+### 4.6 The research desk: fewer, faster lookups
+
+Lookups are slow and easy to repeat. Three things keep them down. They sit
+between the interview and the researcher, in `harness/grounding/research.py`.
+
+**More researchers.** `Lookup` gains a last field, `origin: str = ""`, naming
+the researcher that answered (`reference`, `wikipedia` or `claude_code`).
+`as_dict()` includes it. `ReferenceResearcher` and `ClaudeCodeResearcher` set
+it on every lookup they return, found or not.
+
+`WikipediaResearcher(fetch=None, timeout=15)` looks a term up on Wikipedia
+with one request and no model. `fetch(url) -> str` returns the response
+body; the default uses `urllib.request` with the header
+`User-Agent: finance-harness-workshop/0.1 (local research tool)`. It requests
+
+```
+https://en.wikipedia.org/w/api.php?action=query&format=json&redirects=1&generator=search&gsrlimit=1&gsrsearch=<query>&prop=extracts|info|pageprops&exintro=1&explaintext=1&inprop=url&ppprop=disambiguation
+```
+
+with the query URL-encoded, and reads the single page under
+`query.pages`. The lookup is found when that page has a non-empty `extract`
+and no `pageprops.disambiguation`. Then `name` is the page `title`,
+`definition` is the first three sentences of the extract (cut at 500
+characters), and the one source is `{"title": "<title> (Wikipedia)", "url": <fullurl>}`.
+Anything else is not found. Only the query is sent, which keeps ground
+rule 6.
+
+`ChainResearcher(researchers)` asks each researcher in turn and returns the
+first lookup that is found. A researcher that raises is skipped. If none
+finds the term it returns `Lookup(query, False)`, unless every one of them
+raised, in which case it raises `RuntimeError` with the last reason.
+
+The researcher table holds `reference`, `wikipedia`, `claude_code` and
+`auto`. `auto` is a chain of `reference` then `wikipedia`: the checked file
+first, the web only when the file does not know the term.
+`HARNESS_RESEARCHER` now defaults to `auto`.
+
+**A desk that remembers.** `ResearchDesk(researcher, conn)` is what the
+interview talks to.
+
+- `look_up(query) -> dict` returns a research entry:
+  `{"query", "status", "name", "definition", "sources", "origin", "planned", "cached"}`.
+  `status` is `found`, `not_found` or `failed`. A failed entry also has
+  `error`, the reason on one line. `planned` is false unless the plan set it.
+- Before asking the researcher it looks in the table `lookups`, added by the
+  migration `0002_lookups.sql`:
+  `lookups(key TEXT PRIMARY KEY, query, name, definition, sources, origin, looked_up_at)`,
+  where `key` is the query lower-cased with runs of spaces, hyphens and
+  underscores as one space, and `sources` is JSON. A hit is returned with
+  `"cached": true` and the researcher is not called. Only found lookups are
+  stored, each under the key of its query **and** the key of its name, so
+  asking for a concept by its standard name later is also a hit.
+- `look_up_many(queries) -> list[dict]` runs them side by side and keeps
+  their order.
+
+**A plan made up front.** `plan_research(model, desk, opening, say=print) -> list[dict]`
+makes one model call with the text of the given file `planner.md` as system
+prompt, the opening statement as the user message, and one tool,
+`plan_research`, whose argument `terms` is a list of strings. It keeps at
+most six terms, drops any that are empty, longer than `MAX_QUERY_LENGTH` or
+repeated, says `  (reading up on: a, b, c)`, looks them all up with
+`look_up_many`, and returns the entries with `planned` set to true. If the
+model calls no tool, or the call fails, the plan is empty: the interview
+goes ahead without it.
+
+**In the interview** (changes to 4.4):
+
+- `run_interview` takes a `ResearchDesk` as `researcher`, and a new option
+  `plan: bool = True`.
+- `state` gains `"research"` (a list of research entries, in the order first
+  asked) and `"proposed"` (the brief awaiting confirmation, else `None`).
+  `state["lookups"]` stays: the found entries as lookup dicts, for
+  `validate_brief`.
+- When `plan` is true and the state holds only the opening message and no
+  research, the plan runs first. A `grounding.research_plan` event (actor
+  `agent`, payload `{"terms": [...]}`) is recorded, and one line is added to
+  the end of the opening message, after a blank line:
+  `[harness] Already read up on, ready for look_up: a, b. No source found for: c.`
+  The second sentence is left out when every term was found, and the whole
+  line when the plan is empty.
+- A `look_up` for a term already in `state["research"]` (same key as an
+  earlier query, or as the name of a found entry) is **not** run again:
+  - found earlier: the same result is returned, with `"repeat": true`;
+  - not found or failed earlier: an error result,
+    `No source was found for "<query>" earlier. Do not look it up again.`
+  Neither says anything to the person nor records an event.
+- At most `MAX_LOOKUPS = 12` different terms are looked up by the
+  interviewer in one interview, not counting the plan. After that a new
+  term gets the error result
+  `The lookup limit for this interview is used up. Carry on with what you have.`
+- A not-found result is the lookup as JSON with one more key, `"note"`:
+  `No source found. Try the usual standard name once, or leave this term without a source.`
+- While the person is asked to confirm, `state["proposed"]` holds the brief.
+  It is set back to `None` afterwards.
+- The person accepts with `/accept`. `CONFIRM` becomes
+  `Type /accept to accept this brief, or say what should change.`
+  The older answers (`yes` and so on) still count as accepting.
+
+### 4.7 The web interface: `harness/ui/`
+
+The interview also runs in a local web page, which shows the conversation
+next to the shared understanding as it builds up: what is being read, how
+the person's words map to standard terms, the assumptions, the open
+questions and the plan. Nothing in the page is written by a model at display
+time: it shows the interview state and the brief.
+
+`harness/ui/grounding.html` is **given**: one self-contained file, no
+network resources. It contains the placeholder `__HARNESS_TOKEN__` once.
+
+`harness/ui/session.py` has `GroundingSession(config, conn, model_factory=get_model,
+desk_factory=None)`. It runs `run_interview` on a background thread and
+turns its blocking `ask` into something a page can drive.
+
+- `snapshot() -> dict` returns the state the page draws, described below.
+- `start(opening)` begins a new interview. `answer(text)` answers the
+  waiting question. `accept()` and `request_changes(text)` answer the
+  confirm question. `wrap()` and `stop()` send `/wrap` and `/quit`. Each
+  returns `True` if it applied, and `False` if nothing was waiting for it
+  (for example an answer when no question is pending).
+- On creation, if the state file exists the interview resumes at once. If
+  there is none but a saved brief exists in `config.brief_dir`, the session
+  starts in phase `saved` showing that brief. Otherwise the phase is `start`.
+- `start` is allowed in the phases `start`, `saved`, `stopped` and `failed`.
+
+The snapshot:
+
+```
+{
+  "phase":       "start" | "working" | "question" | "confirm" | "saved" | "stopped" | "failed",
+  "note":        "",          # what the harness is doing while working, e.g. "thinking", "looking up: x"
+  "transcript":  [{"who": "you" | "harness", "text": "..."}],
+  "pending":     null | "the question waiting for an answer",
+  "research":    [research entries, as in state["research"]],
+  "brief":       null | the brief being confirmed, or the saved one,
+  "brief_status": null | "proposed" | "confirmed" | "draft",
+  "saved":       null | {"status", "json", "page"},
+  "questions":   0,
+  "max_questions": 12,
+  "error":       null | "reason, on one line",
+  "session_id":  ""
+}
+```
+
+`phase` is `working` whenever the harness is busy and no input is wanted,
+`question` when `pending` holds a question, and `confirm` when a brief
+awaits the person's decision (then `brief_status` is `proposed`). The
+transcript holds what the person and the harness said to each other, without
+`[harness]` lines, the confirm question or the terminal summary. A research
+entry being looked up right now has the status `looking`.
+
+`harness/ui/server.py` has `make_server(session, port=8765, page_path=None)`,
+which returns a `http.server.ThreadingHTTPServer` bound to `127.0.0.1`, and
+`TOKEN_HEADER = "X-Harness-Token"`. A random token is made per server and is
+available as `server.token`.
+
+| Request | Does |
+| --- | --- |
+| `GET /` | The page, with `__HARNESS_TOKEN__` replaced by the token |
+| `GET /api/state` | The snapshot |
+| `POST /api/start` `{"opening"}` | `start` |
+| `POST /api/answer` `{"text"}` | `answer` |
+| `POST /api/accept` `{}` | `accept` |
+| `POST /api/changes` `{"text"}` | `request_changes` |
+| `POST /api/wrap` `{}` | `wrap` |
+| `POST /api/stop` `{}` | `stop` |
+
+Every `/api/` request must carry the token in the `X-Harness-Token` header;
+without it the reply is 403. A POST returns the new snapshot with status 200
+when it applied and 409 when it did not. An empty `opening` or `text` is
+400. Unknown paths are 404. All bodies are JSON. The server writes no
+request log to the terminal.
+
+`python -m harness ui [--port 8765] [--no-browser] [--max-questions N]`
+starts the server, prints the address, opens it in the browser unless told
+not to, and runs until interrupted.
 
 ## 5. Steps 2 to 5 (draft)
 

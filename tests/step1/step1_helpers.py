@@ -41,3 +41,12 @@ def lookups_made():
     return [{"query": "cash flow forecast", "found": True, "name": "cash flow forecast",
              "definition": "A plan of the money expected in and out over a future period.",
              "sources": [{"title": "Example: cash flow forecast", "url": SOURCE}]}]
+
+
+PLAN = {"tool_calls": [{"name": "plan_research", "arguments": {"terms": ["cash flow forecast"]}}]}
+LOOK_UP = {"tool_calls": [{"name": "look_up", "arguments": {"query": "cash flow forecast"}}]}
+
+
+def write(brief=None):
+    """A scripted model turn that submits a brief."""
+    return {"tool_calls": [{"name": "write_brief", "arguments": brief or make_brief()}]}
