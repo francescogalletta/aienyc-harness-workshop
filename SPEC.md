@@ -620,9 +620,10 @@ The loop repeats these steps. When `state_path` is given, the state is saved
 there as JSON at the start of every pass.
 
 1. **If the last message is the assistant's and has no tool calls**, a
-   question is waiting. Ask it. Add one to `questions` and record the answer.
-   - `/quit` stops the interview: the state is saved and the function
-     returns `None`.
+   question is waiting. Ask it.
+   - `/quit` stops the interview at once: nothing is counted or recorded,
+     the state is saved and the function returns `None`.
+   - Any other answer adds one to `questions` and is recorded as typed.
    - `/wrap` is replaced by the wrap-up message below.
    - When `questions` has reached `max_questions`, a blank line and the limit
      message are added after the answer.
@@ -630,8 +631,9 @@ there as JSON at the start of every pass.
 2. **Otherwise call the model**, after `say("  (thinking)")`.
 3. **If it called tools**, its text is not shown to the person. All `look_up`
    calls of the turn run side by side, and their results keep the order they
-   were asked in. Only the first `write_brief` of a turn is handled. Any
-   other tool gets an error result. The assistant message and every tool
+   were asked in. Lookups run before a `write_brief` of the same turn, so
+   their sources count. Only the first `write_brief` of a turn is handled.
+   Any other call gets an error result. The assistant message and every tool
    result are added to the messages together, after all of them are ready,
    so that a saved state never holds half a turn.
 4. **If its text is empty**, add the empty-reply message as a user message.
@@ -643,7 +645,7 @@ there as JSON at the start of every pass.
 
 **A lookup** with an empty query, or one longer than `MAX_QUERY_LENGTH`,
 gets an error result saying so (it contains `at most 100 characters`) and is
-not run. Otherwise `say("  (looking up: <query>)")`, then run it. A result is
+neither run nor recorded. Otherwise `say("  (looking up: <query>)")`, then run it. A result is
 the lookup as JSON; it is added to `state["lookups"]`. If the researcher
 raises, the result is an error, `The lookup failed: <reason on one line>`.
 
@@ -711,7 +713,9 @@ in the terminal, with the configured model and researcher. The state file is
   `python -m harness ground --resume`, and exits 0.
 - If the interview fails, for example because the model cannot be reached,
   it prints one line with the reason and one line mentioning `--resume` to
-  standard error, with no traceback, and exits 1. The state is already saved.
+  standard error, with no traceback, and exits 1. The command saves the
+  state file as soon as it has the opening statement, so `--resume` works
+  even when the first model call fails.
 
 `check` and `events` behave as before.
 

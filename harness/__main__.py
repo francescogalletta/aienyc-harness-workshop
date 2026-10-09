@@ -79,6 +79,8 @@ def ground(resume: bool, max_questions: int) -> int:
         if not opening or opening == "/quit":
             return 1
         state = new_state(uuid.uuid4().hex, opening)
+        state_path.parent.mkdir(parents=True, exist_ok=True)
+        state_path.write_text(json.dumps(state, indent=2), encoding="utf-8")   # resumable from here on
         db.record_event(conn, session_id=state["session_id"], kind="grounding.answer",
                         actor="person", payload={"text": opening})
 
