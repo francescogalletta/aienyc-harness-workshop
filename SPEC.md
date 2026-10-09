@@ -15,7 +15,8 @@ Status of each section:
 | 1. Ground rules | Fixed |
 | 2. Layout | Fixed |
 | 3. Step 0: setup | Fixed, covered by `tests/step0` |
-| 4. Steps 1 to 5 | Draft. Each is fixed when its step is built and its tests are written. |
+| 4. Step 1: shared domain | Fixed, covered by `tests/step1` |
+| 5. Steps 2 to 5 | Draft. Each is fixed when its step is built and its tests are written. |
 
 ## 1. Ground rules
 
@@ -30,7 +31,7 @@ These hold for every step.
    `harness/model/` may import a provider SDK. Everything else talks to the
    `Model` interface in section 3.2.
 4. **The harness is not tied to an input format.** Raw files are read through
-   source adapters that map them to a canonical shape (section 4, step 2).
+   source adapters that map them to a canonical shape (section 5, step 2).
    No calculation reads a raw file.
 5. **Everything that matters is written to the database.** Nothing the person
    may need to inspect lives only in memory or only in the chat.
@@ -48,6 +49,9 @@ prompts/           one build prompt per step
 harness/           the harness (built by the prompts)
   model/           the only place a provider SDK may be imported
   migrations/      numbered .sql files, applied in order
+  grounding/       step 1: the interview, the lookups and the brief
+reference/         saved reference terms for offline lookups (given)
+brief/             the domain brief, written by the interview
 tests/stepN/       acceptance tests for step N (given, never edited)
 tests/data/        tests for the example data (given)
 data/generate.py   seeded generator for the example data (given)
@@ -380,20 +384,342 @@ breaks become spaces):
 - tools were offered but there is no `structured_output`: the message
   contains `structured`.
 
-## 4. Steps 1 to 5 (draft)
+## 4. Step 1: shared domain
+
+Step 1 builds the grounding interview. Before anything is calculated, the
+harness and the person agree on the goal, the words, the person's
+particulars and the plan. The result is the **domain brief**, which every
+later step reads.
+
+The harness, not the prompt, enforces four things in this step: one question
+at a time, real lookups behind every cited source, a brief that passes its
+checks, and the person's own confirmation before the brief is saved.
+
+Two files in `harness/grounding/` are **given** and must not be rewritten:
+`interviewer.md` (the interviewer's instructions) and `researcher.md` (the
+researcher's instructions). The file `reference/terms.json` is also given.
+
+### 4.1 Settings
+
+`Config` gains three fields, read like the others:
+
+| Variable | Default | Field | Meaning |
+| --- | --- | --- | --- |
+| `HARNESS_RESEARCHER` | `reference` | `researcher: str` | A name from the researcher table (4.2) |
+| `HARNESS_REFERENCE` | `reference/terms.json` | `reference_path: Path` | The saved reference file |
+| `HARNESS_BRIEF_DIR` | `brief` | `brief_dir: Path` | Where the brief is written |
+
+### 4.2 Lookups: `harness/grounding/research.py`
+
+The interviewer never reads the web. It hands a short term to a
+**researcher** and gets back a definition and its sources.
+
+```python
+@dataclass(frozen=True)
+class Lookup:
+    query: str
+    found: bool
+    name: str = ""
+    definition: str = ""
+    sources: tuple[dict, ...] = ()      # each {"title": ..., "url": ...}
+
+    def as_dict(self) -> dict: ...      # the five fields, with sources as a list
+
+class Researcher(Protocol):
+    def look_up(self, query: str) -> Lookup: ...
+```
+
+`MAX_QUERY_LENGTH = 100`.
+
+`ReferenceResearcher(path)` answers from a JSON file: a list of entries
+`{"term", "aliases", "definition", "sources"}`. A query matches an entry when
+it equals the term or one of its aliases, after both are lower-cased and
+every run of spaces, hyphens and underscores is treated as one space. A match
+returns `Lookup(query, True, name=<term>, definition, sources)`. No match
+returns `Lookup(query, False)`. The file is read on every lookup.
+
+`RESEARCHERS` is a dict from name to a function that takes the `Config` and
+returns a researcher, exactly like the provider table (3.7). It holds
+`reference` (a `ReferenceResearcher` on `config.reference_path`) and
+`claude_code` (a `ClaudeCodeResearcher(config.model_name)`, imported inside
+the function). `get_researcher(name: str | None = None)` works like
+`get_model`: the configured researcher when no name is given, and a
+`ValueError` naming the unknown researcher and listing the known ones.
+
+**The Claude Code researcher** lives in
+`harness/grounding/claude_code_research.py`. To share code with the model
+adapter, step 1 turns that adapter's default runner into a module-level
+function in `harness/model/claude_code_provider.py`:
+`run_command(argv, stdin_text, timeout) -> (returncode, stdout, stderr)`,
+with the behaviour 3.8 describes. The researcher imports `run_command` and
+`parse_output` from that file. This is the one allowed import from inside
+`harness/model/`.
+
+`ClaudeCodeResearcher(model_name, runner=None, command="claude", timeout=300)`
+takes the same arguments as the adapter. `look_up(query)` runs:
+
+```
+<command> -p --safe-mode --tools WebSearch --allowedTools WebSearch
+          --disallowedTools "mcp__*" --strict-mcp-config --no-chrome
+          --disable-slash-commands --no-session-persistence --output-format json
+          --model <model_name> --system-prompt-file <file> --json-schema <schema>
+```
+
+- The system prompt file holds the text of `researcher.md`, unchanged.
+- Standard input is the query and nothing else. This is ground rule 6:
+  nothing the person said reaches the web.
+- The schema requires `found` (boolean), `name`, `definition` (strings) and
+  `sources` (a list of objects with `title` and `url`).
+- The reply is read from `structured_output` through `parse_output`. With no
+  structured reply it raises `RuntimeError` containing `structured`.
+- Sources without a `url` are dropped. The lookup counts as found only when
+  the reply says so **and** at least one source remains. When it is not
+  found, `sources` is empty.
+
+### 4.3 The brief: `harness/grounding/brief.py`
+
+A brief is a dict with these keys, all required:
+
+| Key | Holds |
+| --- | --- |
+| `goal` | One sentence |
+| `mode` | `ongoing` or `one_off` |
+| `scope` | `{"in": [text], "out": [text]}` |
+| `glossary` | List of `{"term", "definition", "person_says"?, "source"?}` |
+| `particulars` | List of `{"what", "handling"}` |
+| `inputs` | List of `{"name", "description"}` |
+| `process` | List of steps: `{"id", "name", "kind", "needs", "produces", "method"?, "formula"?, "cadence"?}` |
+| `definition_of_done` | List of sentences |
+| `open_questions` | List of sentences |
+
+`kind` is `calculation`, `judgment` or `input`. `needs` lists step ids and
+input names. `BRIEF_SCHEMA` is this shape as JSON Schema, with a short
+description on the fields a model could misread; it is the input schema of
+the `write_brief` tool.
+
+**`validate_brief(brief, lookups) -> list[str]`** returns what is wrong; an
+empty list means the brief is acceptable. `lookups` is the list of lookup
+dicts made in this interview. Terms and methods are compared after
+lower-casing and treating runs of spaces, hyphens and underscores as one
+space. The checks run in three stages, and a stage that finds errors returns
+them without running the next.
+
+Stage 1:
+
+| Problem | Message |
+| --- | --- |
+| Not a dict | `the brief must be an object` (the only error returned) |
+| A required key is absent | `missing: <key>`, one per key, in the order of the table above |
+
+Stage 2:
+
+| Problem | Message contains |
+| --- | --- |
+| `goal` is not a non-empty string | `goal` |
+| `mode` is not one of the two | `mode` |
+| `scope.in` is missing or empty | `scope.in` |
+| `scope.out` is not a list | `scope.out` |
+| `definition_of_done` or `open_questions` is not a list of strings | the key |
+| `definition_of_done` is empty | `definition_of_done` |
+| `glossary`, `particulars`, `inputs` or `process` is not a list of objects | the key |
+
+Stage 3:
+
+| Problem | Message contains |
+| --- | --- |
+| A glossary entry lacks a term or a definition | `glossary` |
+| A glossary `source` is not a URL returned by one of `lookups` | the term, the URL and `look_up` |
+| A particular lacks `what` or `handling` | `particular` |
+| An input lacks a name or description | `input` |
+| Two inputs share a name | `input names must be unique` |
+| `process` is empty | `process` |
+| Two steps share an id | `unique` |
+| A step lacks an id, name or `produces` | the step id in quotes, and `produces` |
+| A step's `kind` is not one of the three | the step id in quotes, and `kind` |
+| A step needs something that is neither a step id nor an input name | both names in quotes |
+| A step needs itself | `cannot need itself` |
+| A calculation has no `formula` | the step id in quotes, and `formula` |
+| A calculation's `method` is neither a glossary term nor `arithmetic` | the step id in quotes, and `method` |
+| A calculation's `method` is a glossary term that has no source | the step id in quotes, and `no source` |
+
+A step id "in quotes" means single quotes, as in `process step 's3'`.
+
+The last two rules are the point of this step. A calculation must apply a
+standard method that was really looked up, or declare itself plain
+arithmetic and say what the arithmetic is. A source cannot be invented.
+
+**`render_brief(brief, meta) -> str`** builds the page from the brief alone,
+with no model. The same input always gives the same page. It contains, in
+this order:
+
+- the title `# Domain brief`;
+- a status line: `Confirmed by the person` when `meta["status"]` is
+  `confirmed`, otherwise `Draft, not confirmed`, followed by
+  `meta["written_at"]` and the session id;
+- when `meta["errors"]` is present, each error as a `- ` bullet;
+- the sections `## Goal`, `## Scope`, `## Glossary`,
+  `## What is particular to you`, `## Inputs`, `## Process`,
+  `## Definition of done` and `## Open questions`;
+- in the glossary table, a source is written `[source](<url>)` and a missing
+  one as `not looked up`;
+- the process table has a column for each step's formula;
+- after the process table, a Mermaid diagram of what feeds what:
+
+````
+```mermaid
+flowchart TD
+    in1(["<first input name>"]):::input
+    st1["<first step name>"]:::<kind>
+    in1 --> st1
+    classDef calculation stroke-width:3px
+    classDef judgment stroke-dasharray:5 5
+    classDef input stroke-dasharray:2 2
+```
+````
+
+Inputs are numbered `in1`, `in2`, ... and steps `st1`, `st2`, ... in the
+order they appear. Every input line comes first, then every step line, then
+one arrow per need, in step order. A double quote inside a label becomes a
+single quote.
+
+**`summarise_brief(brief) -> str`** is the same brief as plain text for a
+terminal, shown before the person confirms. It uses no `|` and no `#`. It
+starts with `PROPOSED BRIEF`, then `Goal (ongoing): <goal>` (or
+`Goal (one-off): ...`), the scope, the terms, the particulars, the inputs,
+the steps, the definition of done and any open questions. A term the person
+has their own word for shows `(you call it: <words>)`; a term with no source
+shows `[not looked up]`. A step is written
+`<id> [<kind>] <name> (needs: a, b) -> <produces>`, and a calculation adds a
+line `method: <method>; formula: <formula>`.
+
+**`save_brief(brief, folder, meta) -> (json_path, page_path)`** creates the
+folder and writes `domain_brief.json` (the brief plus a `meta` key, indented
+by two spaces) and `domain_brief.md` (the rendered page). It adds
+`written_at` (UTC, ISO 8601) to `meta`.
+
+### 4.4 The interview: `harness/grounding/interview.py`
+
+```python
+new_state(session_id, opening) -> dict
+run_interview(*, model, researcher, ask, conn, state, brief_dir,
+              state_path=None, max_questions=12, say=print) -> dict | None
+```
+
+`ask(text)` shows text to the person and returns what they typed. `say(text)`
+shows text that needs no answer. `state` is everything needed to carry on
+later: `{"session_id", "messages", "lookups", "questions", "rejections"}`.
+`new_state` starts it with the person's opening statement as the first user
+message, and zero counts.
+
+The model is called with the text of `interviewer.md` as its system prompt,
+after `{max_questions}` is replaced by the number, and with exactly two
+tools, in this order: `look_up` (one argument, `query`) and `write_brief`
+(whose input schema is `BRIEF_SCHEMA`).
+
+The loop repeats these steps. When `state_path` is given, the state is saved
+there as JSON at the start of every pass.
+
+1. **If the last message is the assistant's and has no tool calls**, a
+   question is waiting. Ask it. Add one to `questions` and record the answer.
+   - `/quit` stops the interview: the state is saved and the function
+     returns `None`.
+   - `/wrap` is replaced by the wrap-up message below.
+   - When `questions` has reached `max_questions`, a blank line and the limit
+     message are added after the answer.
+   The result is added as a user message.
+2. **Otherwise call the model**, after `say("  (thinking)")`.
+3. **If it called tools**, its text is not shown to the person. All `look_up`
+   calls of the turn run side by side, and their results keep the order they
+   were asked in. Only the first `write_brief` of a turn is handled. Any
+   other tool gets an error result. The assistant message and every tool
+   result are added to the messages together, after all of them are ready,
+   so that a saved state never holds half a turn.
+4. **If its text is empty**, add the empty-reply message as a user message.
+5. **If its text holds more than one `?`** and the previous reply was not
+   already sent back for this, record a `grounding.correction` event, add the
+   text as an assistant message and the one-question message as a user
+   message. The person never sees that text.
+6. **Otherwise** record it as a question and add it as an assistant message.
+
+**A lookup** with an empty query, or one longer than `MAX_QUERY_LENGTH`,
+gets an error result saying so (it contains `at most 100 characters`) and is
+not run. Otherwise `say("  (looking up: <query>)")`, then run it. A result is
+the lookup as JSON; it is added to `state["lookups"]`. If the researcher
+raises, the result is an error, `The lookup failed: <reason on one line>`.
+
+**A brief** is checked with `validate_brief(brief, state["lookups"])`.
+
+- With errors: add one to `rejections` and record them. The tool result is an
+  error that starts `The brief was not accepted.` and lists each error as a
+  `- ` bullet. On the third rejection the brief is saved anyway with status
+  `draft` and the errors in `meta`, and the interview ends.
+- Without errors: `say(summarise_brief(brief))`, then ask the confirm
+  question. If the answer, lower-cased, is one of `yes`, `y`, `yes.`, `ok`,
+  `okay`, `si`, `sí`, the brief is saved with status `confirmed` and the
+  interview ends. Any other answer is recorded, and the tool result is
+  `The person did not confirm the brief. They said: <answer>` (not an error).
+  A `/quit` here stops the interview before the turn is added.
+
+When the interview ends with a saved brief, the state file is deleted and
+the function returns `{"status": ..., "json": <path>, "page": <path>}`, both
+paths as strings. `meta` holds `session_id`, `lookups` and `status`.
+
+The fixed messages:
+
+```
+ONE_QUESTION  = "[harness] That reply held more than one question. Ask one question at a time: send only the most important one now."
+WRAP_UP       = "[harness] The person wants to finish now. Call write_brief with what you have, and list what is still unresolved under open_questions."
+LIMIT_REACHED = "[harness] You have reached the question limit. Call write_brief now, and list what is still unresolved under open_questions."
+EMPTY_REPLY   = "[harness] Your reply was empty. Ask your next question, or call write_brief."
+CONFIRM       = "Is this right? Type yes to accept it, or say what should change."
+```
+
+**Events.** Every one carries the interview's session id.
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `grounding.question` | `agent` | `{"text"}` |
+| `grounding.answer` | `person` | `{"text"}`, as typed |
+| `grounding.lookup` | `agent` | the lookup dict, or `{"query", "error"}` |
+| `grounding.correction` | `harness` | `{"reason", "text"}` |
+| `grounding.brief_rejected` | `harness` | `{"errors"}` |
+| `grounding.brief_changes` | `person` | `{"text"}` |
+| `grounding.brief_written` | `harness` | `{"status", "json", "page"}` |
+
+`harness/grounding/__init__.py` exports `BRIEF_SCHEMA`, `Lookup`, `Quit`,
+`ReferenceResearcher`, `Researcher`, `get_researcher`, `new_state`,
+`render_brief`, `run_interview`, `save_brief`, `summarise_brief` and
+`validate_brief`. `Quit` is the exception used inside the loop for `/quit`.
+
+### 4.5 Command line
+
+`python -m harness ground [--resume] [--max-questions N]` runs the interview
+in the terminal, with the configured model and researcher. The state file is
+`grounding_state.json`, next to the database.
+
+- A new interview prints how to answer, then asks
+  `What do you want this harness to help you with?` and uses the reply as the
+  opening statement, recorded as a `grounding.answer` event. An empty reply
+  exits 1.
+- `--resume` loads the state file. With none, it prints a line containing
+  `no interview to resume` to standard error and exits 1.
+- A question is printed with a blank line before and after, and the answer is
+  read after a `> ` prompt. If the input ends, that counts as `/quit`.
+- When the brief is saved it prints `Brief saved (<status>):` and both paths.
+  It exits 0 for a confirmed brief and 1 for a draft.
+- When the person stops, it prints a line telling them to carry on with
+  `python -m harness ground --resume`, and exits 0.
+- If the interview fails, for example because the model cannot be reached,
+  it prints one line with the reason and one line mentioning `--resume` to
+  standard error, with no traceback, and exits 1. The state is already saved.
+
+`check` and `events` behave as before.
+
+## 5. Steps 2 to 5 (draft)
 
 Each step adds modules and tables without changing what earlier steps built.
 New tables arrive as new migration files. The detail below is the intended
 shape; it becomes fixed when the step is built.
-
-**Step 1, shared domain.** `harness/grounding/`: an interview loop that asks
-one question at a time, a `Researcher` interface for looking up standard
-definitions (one implementation using the provider's web search, one reading
-a saved reference file for offline runs), and a writer for the domain brief.
-The brief is saved as `brief/domain_brief.md` plus a machine-readable
-`brief/domain_brief.json` with: `goal`, `scope`, `glossary`, `particulars`
-(each with a handling rule), `process` (steps tagged `calculation`,
-`judgment` or `input`, and what feeds what) and `definition_of_done`.
 
 **Step 2, consistency.** `harness/sources/`: adapters that map a raw file to
 canonical records, checked against a schema. `harness/calc/`: a registry of

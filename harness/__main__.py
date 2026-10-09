@@ -1,5 +1,6 @@
-"""Command line: `python -m harness check` and `python -m harness events` (SPEC 3.6)."""
+"""Command line (SPEC 3.6 and 4.5): `python -m harness check`, `events` and `ground`."""
 import argparse
+import json
 import sys
 import uuid
 
@@ -43,11 +44,75 @@ def events() -> int:
     return 0
 
 
+OPENING = ("What do you want this harness to help you with?\n"
+           "Describe it in your own words. A few sentences is plenty.")
+HOW_TO = ("Answer each question and press Enter. Type /wrap to finish with what we have, "
+          "or /quit to stop and carry on later with --resume.")
+
+
+def ground(resume: bool, max_questions: int) -> int:
+    """Run the grounding interview in the terminal and write the domain brief."""
+    from .grounding import get_researcher, new_state, run_interview
+
+    config = load_config()
+    conn = db.connect(config.db_path)
+    db.migrate(conn)
+    state_path = config.db_path.parent / "grounding_state.json"
+
+    def ask(text: str) -> str:
+        print(f"\n{text}\n")
+        try:
+            return input("> ")
+        except EOFError:        # no more input: treat it as stopping for now
+            return "/quit"
+
+    if resume:
+        if not state_path.exists():
+            print("There is no interview to resume. Start one with: python -m harness ground",
+                  file=sys.stderr)
+            return 1
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        print(f"Resuming the interview. {HOW_TO}")
+    else:
+        print(HOW_TO)
+        opening = ask(OPENING).strip()
+        if not opening or opening == "/quit":
+            return 1
+        state = new_state(uuid.uuid4().hex, opening)
+        db.record_event(conn, session_id=state["session_id"], kind="grounding.answer",
+                        actor="person", payload={"text": opening})
+
+    try:
+        saved = run_interview(model=get_model(), researcher=get_researcher(), ask=ask, conn=conn,
+                              state=state, brief_dir=config.brief_dir, state_path=state_path,
+                              max_questions=max_questions)
+    except Exception as error:
+        reason = " ".join(str(error).split())
+        print(f"interview stopped: {type(error).__name__}: {reason}", file=sys.stderr)
+        print("Nothing is lost. Carry on with: python -m harness ground --resume", file=sys.stderr)
+        return 1
+
+    if saved is None:
+        print("\nStopped. Carry on later with: python -m harness ground --resume")
+        return 0
+    print(f"\nBrief saved ({saved['status']}):\n  {saved['page']}\n  {saved['json']}")
+    return 0 if saved["status"] == "confirmed" else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="python -m harness")
-    parser.add_argument("command", choices=["check", "events"])
-    command = parser.parse_args().command
-    return check() if command == "check" else events()
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("check", help="prove the setup works end to end")
+    commands.add_parser("events", help="print the recorded events")
+    grounding = commands.add_parser("ground", help="run the grounding interview")
+    grounding.add_argument("--resume", action="store_true", help="carry on an interview you stopped")
+    grounding.add_argument("--max-questions", type=int, default=12)
+    args = parser.parse_args()
+    if args.command == "check":
+        return check()
+    if args.command == "events":
+        return events()
+    return ground(args.resume, args.max_questions)
 
 
 if __name__ == "__main__":

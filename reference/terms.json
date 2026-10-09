@@ -1,0 +1,86 @@
+[
+  {
+    "term": "cash flow",
+    "aliases": ["cashflow", "personal cash flow"],
+    "definition": "The money moving into and out of your accounts over a period, such as a month. It is not the same as an account balance, which is the amount held at one moment.",
+    "sources": [{"title": "What Is Cash Flow? (Experian)", "url": "https://www.experian.com/blogs/ask-experian/what-is-cash-flow/"}]
+  },
+  {
+    "term": "net cash flow",
+    "aliases": [],
+    "definition": "The cash gained or lost over a set period: total cash in minus total cash out.",
+    "sources": [{"title": "Net cash flow (AccountingTools)", "url": "https://www.accountingtools.com/articles/what-is-net-cash-flow.html"}]
+  },
+  {
+    "term": "cash flow forecast",
+    "aliases": ["cashflow forecast", "cash flow projection", "cash forecast", "cash flow forecasting"],
+    "definition": "A plan that shows how much money is expected to come in and go out over a future period. For each period: closing balance = opening balance + expected money in - expected money out.",
+    "sources": [{"title": "What is a cashflow forecast? (FreeAgent)", "url": "https://www.freeagent.com/en/glossary/cash-flow-forecast"}]
+  },
+  {
+    "term": "budget",
+    "aliases": ["personal budget", "household budget"],
+    "definition": "A way of tracking all the money coming in and how it is spent: list your income, sort your spending into categories, and compare the two.",
+    "sources": [{"title": "Create a household budget for your family (MoneyHelper)", "url": "https://www.moneyhelper.org.uk/en/blog/everyday-money/create-a-household-budget-for-your-family"}]
+  },
+  {
+    "term": "budget variance",
+    "aliases": ["budget variance analysis", "variance analysis", "budget versus actual", "budget vs actual"],
+    "definition": "The difference between the budgeted amount and the actual amount of an income or expense line. Spending less than budgeted is favorable; spending more is unfavorable.",
+    "sources": [{"title": "Budget variance definition (AccountingTools)", "url": "https://www.accountingtools.com/articles/what-is-a-budget-variance.html"}]
+  },
+  {
+    "term": "bank reconciliation",
+    "aliases": ["account reconciliation", "reconciliation"],
+    "definition": "Matching your own record of an account's balance against the bank's statement, and examining any difference between the two.",
+    "sources": [{"title": "Bank reconciliation (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Bank_reconciliation"}]
+  },
+  {
+    "term": "sinking fund",
+    "aliases": ["savings pot"],
+    "definition": "Money set aside over a period of time for a known future expense. In personal budgeting it is a category you pay into regularly for a planned cost.",
+    "sources": [{"title": "Sinking fund (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Sinking_fund"}]
+  },
+  {
+    "term": "emergency fund",
+    "aliases": ["rainy day fund"],
+    "definition": "A cash reserve set aside specifically for unplanned expenses or financial emergencies.",
+    "sources": [{"title": "An essential guide to building an emergency fund (Consumer Financial Protection Bureau)", "url": "https://www.consumerfinance.gov/an-essential-guide-to-building-an-emergency-fund/"}]
+  },
+  {
+    "term": "minimum cash balance",
+    "aliases": ["minimum balance", "cash buffer", "cash cushion"],
+    "definition": "A cash reserve kept on hand to offset unplanned cash outflows: the level you do not want your cash to fall below.",
+    "sources": [{"title": "Minimum cash balance definition (AccountingTools)", "url": "https://www.accountingtools.com/articles/minimum-cash-balance"}]
+  },
+  {
+    "term": "opening balance",
+    "aliases": ["closing balance", "opening and closing balance"],
+    "definition": "The amount in an account at the start of a period. The closing balance of one period is carried forward as the opening balance of the next.",
+    "sources": [{"title": "What Is The Opening Balance (GoCardless)", "url": "https://gocardless.com/guides/posts/what-is-opening-balance/"}]
+  },
+  {
+    "term": "account balance",
+    "aliases": ["balance", "bank balance"],
+    "definition": "The amount of money in an account at a given time.",
+    "sources": [{"title": "Account Balance (Corporate Finance Institute)", "url": "https://corporatefinanceinstitute.com/resources/wealth-management/account-balance/"}]
+  },
+  {
+    "term": "credit card statement balance",
+    "aliases": ["statement balance", "credit card bill"],
+    "definition": "The amount owed on a credit card at the end of a billing cycle. Paying it in full avoids interest.",
+    "sources": [{"title": "What Is the Statement Balance on a Credit Card? (Experian)", "url": "https://www.experian.com/blogs/ask-experian/what-is-statement-balance/"}]
+  },
+  {
+    "term": "fixed and variable expenses",
+    "aliases": ["fixed expenses", "variable expenses", "fixed vs variable expenses", "fixed costs"],
+    "definition": "Fixed expenses do not change from month to month. Variable expenses can change each month depending on your usage.",
+    "sources": [{"title": "Fixed vs Variable Expenses: What's the Difference? (Chase)", "url": "https://www.chase.com/personal/banking/education/budgeting-saving/fixed-and-variable-expenses"}]
+  },
+  {
+    "term": "savings rate",
+    "aliases": ["saving rate", "personal saving rate", "personal savings rate"],
+    "definition": "The share of after-tax income that is saved: saving divided by disposable (after-tax) income.",
+    "sources": [{"title": "Measuring How Much People Save: An Inside Look at the Personal Saving Rate (U.S. Bureau of Economic Analysis)", "url": "https://www.bea.gov/news/blog/2017-08-21/measuring-how-much-people-save-inside-look-personal-saving-rate"}]
+  }
+]

@@ -43,9 +43,9 @@ TOOL_RULES = (
 class ClaudeCodeModel:
     def __init__(self, model_name: str, runner=None, command: str = "claude", timeout: float = 300):
         self.model_name = model_name
-        self.runner = runner or self._run
         self.command = command
         self.timeout = timeout
+        self.runner = runner or (lambda argv, stdin_text: run_command(argv, stdin_text, timeout))
 
     def complete(self, *, system: str, messages: list[dict],
                  tools: Sequence[ToolSpec] = ()) -> ModelResponse:
@@ -80,19 +80,20 @@ class ClaudeCodeModel:
             stop_reason="tool_use" if tool_calls else "end",
             usage={"input_tokens": input_tokens, "output_tokens": usage.get("output_tokens") or 0})
 
-    def _run(self, argv: list[str], stdin_text: str) -> tuple[int, str, str]:
-        try:
-            # Run from the system's temporary folder, so the model is told
-            # nothing about the folder the harness lives in.
-            done = subprocess.run(argv, input=stdin_text, capture_output=True, text=True,
-                                  encoding="utf-8", timeout=self.timeout,
-                                  cwd=tempfile.gettempdir())
-        except FileNotFoundError:
-            raise RuntimeError(f"Claude Code was not found (tried to run {self.command!r}). "
-                               "Install it and sign in, or choose another provider.") from None
-        except subprocess.TimeoutExpired:
-            raise RuntimeError(f"Claude Code gave no reply within {self.timeout:g} seconds") from None
-        return done.returncode, done.stdout, done.stderr
+
+def run_command(argv: list[str], stdin_text: str, timeout: float) -> tuple[int, str, str]:
+    """The default runner: run Claude Code once and hand back what it printed."""
+    try:
+        # Run from the system's temporary folder, so the model is told
+        # nothing about the folder the harness lives in.
+        done = subprocess.run(argv, input=stdin_text, capture_output=True, text=True,
+                              encoding="utf-8", timeout=timeout, cwd=tempfile.gettempdir())
+    except FileNotFoundError:
+        raise RuntimeError(f"Claude Code was not found (tried to run {argv[0]!r}). "
+                           "Install it and sign in, or choose another provider.") from None
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Claude Code gave no reply within {timeout:g} seconds") from None
+    return done.returncode, done.stdout, done.stderr
 
 
 def system_prompt(system: str, tools: Sequence[ToolSpec]) -> str:
