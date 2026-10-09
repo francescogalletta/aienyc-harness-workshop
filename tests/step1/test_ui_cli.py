@@ -25,6 +25,8 @@ def test_ui_starts_serves_and_stops(tmp_path, reference_file):
         first_line = process.stdout.readline()
         address = re.search(r"http://127\.0\.0\.1:\d+/", first_line)
         assert address, first_line + process.stderr.read()
+        # SPEC 7.7: after its first line, `ui` says where what the harness did can be seen, on the same server.
+        second_line = process.stdout.readline()
 
         # The interview is behind the token, which only the page is given.
         with pytest.raises(urllib.error.HTTPError) as refused:
@@ -33,8 +35,9 @@ def test_ui_starts_serves_and_stops(tmp_path, reference_file):
         assert refused.value.code == 403
 
         process.send_signal(signal.SIGINT)
-        _out, err = process.communicate(timeout=10)
+        _, err = process.communicate(timeout=10)
     finally:
         process.kill()
     assert process.returncode == 0 and "Traceback" not in err
+    assert second_line.rstrip("\n") == f"What the harness did is at {address.group()}work"
     assert (tmp_path / "var" / "harness.db").exists()

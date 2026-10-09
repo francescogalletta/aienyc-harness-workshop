@@ -17,7 +17,9 @@ Status of each section:
 | 3. Step 0: setup | Fixed, covered by `tests/step0` |
 | 4. Step 1: shared domain | Fixed, covered by `tests/step1` |
 | 5. Step 2: consistency | Fixed, covered by `tests/step2` |
-| 6. Steps 3 to 5 | Draft. Each is fixed when its step is built and its tests are written. |
+| 6. Seeded examples and replay | Contract for step 3, to be covered by `tests/step3` and `tests/data/test_examples.py` |
+| 7. Step 3: evidence | Contract, to be covered by `tests/step3` |
+| 8. Steps 4 and 5 | Draft. Each is fixed when its step is built and its tests are written. |
 
 ## 1. Ground rules
 
@@ -27,7 +29,8 @@ These hold for every step.
    database, never from the model's own text.**
 2. **The harness is not about weddings.** Nothing under `harness/` may name
    the example domain, its files, or its column names. The example lives in
-   `data/example/` and, from step 1, in the domain brief.
+   `data/example/` and, from step 1, in the domain brief. The seeded
+   examples (section 6) live in `examples/`, which is data.
 3. **The harness is not tied to a model provider.** Only files under
    `harness/model/` may import a provider SDK. Everything else talks to the
    `Model` interface in section 3.2.
@@ -51,14 +54,19 @@ harness/           the harness (built by the prompts)
   model/           the only place a provider SDK may be imported
   migrations/      numbered .sql files, applied in order
   grounding/       step 1: the interview, the lookups and the brief
-  ui/              the local web interface
+  calc/            step 2: modules, the gate, the agent; adoption (section 6)
+  ui/              the local web pages: the interview and the evidence
+  replay.py        scenarios and replay (section 6)
 reference/         saved reference terms for offline lookups (given)
 brief/             the domain brief, written by the interview
+modules/           the modules built from the brief (committed with it)
+examples/<name>/   seeded examples: brief, modules and scenarios (data, section 6)
 tests/stepN/       acceptance tests for step N (given, never edited)
-tests/data/        tests for the example data (given)
+tests/data/        tests for the example data and the seeded examples (given)
 data/generate.py   seeded generator for the example data (given)
 data/example/      the generated example files (given)
-var/               runtime files such as the database (not committed)
+var/               runtime files such as the database (not committed);
+                   var/examples/ and var/replay/ hold scratch databases
 ```
 
 ## 3. Step 0: setup
@@ -2575,17 +2583,1008 @@ Choices made to close gaps in the design, for review:
     `reused` or `not_built` are outcomes the agent carries on from. Only a
     failed check is an error result.
 
-## 6. Steps 3 to 5 (draft)
+## 6. Seeded examples and replay
+
+Testing a change used to need a person typing through a build, about seven
+minutes, and then a conversation. And a fresh clone has module folders but
+an empty database, so nothing is registered. This section fixes both.
+
+- `adopt` registers module folders that are already on disk, after the
+  person accepts worked examples someone else checked, and after their tests
+  pass here.
+- `examples/` holds complete seeded examples: a confirmed brief, built
+  modules and scenarios.
+- A **scenario** is a scripted person and what the harness must see.
+  `replay` runs it against the configured model, in a scratch folder, and
+  checks module runs and numbers, never wording.
+
+Nothing here calls a model except `replay`, which runs `ask` or `build` as
+they are. No table is added. Nothing under `harness/` names an example: the
+examples are data.
+
+**Files.**
+
+| File | Status |
+| --- | --- |
+| `harness/calc/adopt.py` | New (6.3). |
+| `harness/replay.py` | New (6.4, 6.5): scenarios and replay. |
+| `harness/config.py` | Changed (6.2): `HARNESS_EXAMPLE`. |
+| `harness/calc/added.py` | Changed (6.6): `add_step` can keep a given id. |
+| `harness/calc/agent.py` | Changed (6.6): a lenient yes to `REQUEST_QUESTION`. |
+| `harness/__main__.py` | Changed (6.7): `adopt`, `replay`, and a check before `build` and `ask`. |
+| `examples/wedding/`, `examples/moving/` | New data (6.1), written by hand or by a real build. |
+| `tests/step3/` | Acceptance tests for sections 6 and 7. |
+| `tests/data/test_examples.py` | Checks that the shipped examples load, adopt and validate (6.1). |
+
+### 6.1 Examples on disk
+
+An example is one folder, `examples/<name>/`, where `<name>` matches
+`^[a-z][a-z0-9_]*$`. It holds exactly this; nothing else in it is read:
+
+```
+examples/<name>/
+  brief/domain_brief.json     the confirmed brief, with its meta
+  brief/domain_brief.md       render_brief(brief, meta), exactly
+  modules/<module>/           one folder per module, the four files of 5.4
+  scenarios/<scenario>.json   one scenario per file (6.4)
+```
+
+**The brief** must load and pass its checks:
+
+- `domain_brief.json` has the nine keys of 4.3 and a `meta` object with
+  `status` (`"confirmed"`), `session_id` (a string), `written_at` (UTC,
+  ISO 8601) and `lookups` (a list of lookup dicts, as in 4.2; it may be
+  empty).
+- `load_brief(<example>/brief)` returns without error: confirmed, and no
+  step id starts with `added_`.
+- `validate_brief(<the brief without meta>, meta["lookups"])` returns `[]`.
+  So a glossary `source` must be a URL that some lookup in `meta.lookups`
+  returned, and a calculation's `method` must be `arithmetic` or a glossary
+  term with a source. The simplest seeded brief cites no sources and uses
+  `arithmetic` for every calculation.
+- `domain_brief.md` is exactly `render_brief(brief, meta)`.
+
+**The modules** must adopt cleanly (6.3) into an empty database with that
+brief: every folder ends `adopted`. Each module's `step_id` is a calculation
+step of the brief, and every calculation step of the brief has exactly one
+module. Each `golden.json` entry is `{"inputs", "expected", "working",
+"decision"}` as the builder writes it (5.7), with `decision` `accepted` or
+`corrected`. Files are written as 5.4 says.
+
+**The scenarios**: each file passes `validate_scenario` (6.4). Each example
+ships at least one `ask` scenario and at least one `build` scenario.
+
+Two examples ship:
+
+- `examples/wedding/`: the brief is a byte-for-byte copy of `brief/` at the
+  time the example is made (it need not follow later changes to `brief/`).
+  Modules for its calculation steps (`s1`, `s2`, `s3`, `s5`, `s6`).
+- `examples/moving/`: a second, smaller domain: saving for a move to another
+  city (deposit, van, overlapping rent). Two or three calculation steps.
+
+`tests/data/test_examples.py` checks every rule of this section for every
+folder under `examples/`.
+
+### 6.2 Choosing an example: `HARNESS_EXAMPLE`
+
+`Config` gains one field, read like the others:
+
+| Variable | Default | Field | Meaning |
+| --- | --- | --- | --- |
+| `HARNESS_EXAMPLE` | (none) | `example: str \| None` | Play with `examples/<name>/` |
+
+`EXAMPLES_DIR = Path("examples")` is defined in `config.py`. When
+`HARNESS_EXAMPLE` is set, it changes the defaults of three other fields:
+
+| Field | Default with `HARNESS_EXAMPLE=<name>` |
+| --- | --- |
+| `db_path` | `var/examples/<name>/harness.db` |
+| `brief_dir` | `examples/<name>/brief` |
+| `modules_dir` | `examples/<name>/modules` |
+
+A variable set explicitly (`HARNESS_DB`, `HARNESS_BRIEF_DIR`,
+`HARNESS_MODULES_DIR`) still wins over the example. An empty variable
+counts as unset, as before. `load_config` does not check the name.
+
+`main()` checks it once, before any command: when `example` is set and
+`EXAMPLES_DIR / example` is not a folder, or the name does not match
+`^[a-z][a-z0-9_]*$`, it prints `UNKNOWN_EXAMPLE` to standard error and exits
+1.
+
+```
+UNKNOWN_EXAMPLE = "There is no example called '{name}'. The examples are: {names}."
+```
+
+`{names}` is the sorted folder names in `EXAMPLES_DIR`, joined by `, `, or
+`(none)`.
+
+So `HARNESS_EXAMPLE=moving python -m harness adopt`, then
+`HARNESS_EXAMPLE=moving python -m harness ask`, plays with the example. The
+database is kept between runs, under `var/`. Files are not copied: a build
+or an interview run with the example set writes into the example's folders.
+
+### 6.3 Adopting module folders: `harness/calc/adopt.py`
+
+```python
+adopt(*, conn, brief, ask, say=print, session_id, how="asked") -> list[dict]
+candidates(conn) -> list[str]
+```
+
+`brief` is as `load_brief` returns it. `how` is `asked` (the person is
+asked) or `replay` (nobody is asked: 6.5).
+
+**`candidates(conn)`** returns, sorted by name, every folder directly in
+`load_config().modules_dir` whose name does not start with `_` or `.`, and
+that is not a registered module with `file_status` `unchanged`. So it holds
+the folders that are not registered, and the folders of registered modules
+whose files changed or lost a file. A modules folder that does not exist
+gives `[]`. Files that are not folders are ignored.
+
+**A result** is one per candidate, in name order:
+
+```
+{"module": "<folder name>", "step": "<the spec's step_id>" | None, "outcome": "adopted" | "not_adopted", "reason": ""}
+```
+
+`step` is `None` only when the spec could not be read. `reason` is empty for
+`adopted`.
+
+**The flow.**
+
+1. **Check each candidate**, in name order. The first check that fails
+   gives `not_adopted` with its reason, records `calc.adopt_refused`, and
+   calls `say("<name>: not adopted (<reason>)")`:
+
+   | Check | Reason |
+   | --- | --- |
+   | the four files are in the folder | `ADOPT_MISSING`, `{files}` the missing names in the order of 5.4, joined by `, ` |
+   | `spec.json` is JSON, passes `validate_spec`, and its `name` is the folder name | `ADOPT_BAD_SPEC` |
+   | `golden.json` is a JSON list of at least `MIN_CONFIRMED` objects | `ADOPT_BAD_EXAMPLES` |
+   | the spec's `step_id` is the id of a step of the process (5.5) whose `kind` is `calculation`, or matches `^added_[1-9][0-9]*$` | `ADOPT_NO_STEP` |
+   | the step is not mapped (`step_map`) to another module whose files are `unchanged`, and no earlier candidate that passed these checks has the same step | `ADOPT_STEP_TAKEN`, `{other}` that module |
+
+   The candidates that pass are **adoptable**.
+
+2. **Ask once.** With no adoptable candidate, go to the end. Otherwise,
+   when `how` is `asked`: `say(ADOPT_INTRO)`, then one `say` per adoptable
+   candidate, in name order:
+
+   ```
+     <name> for step <step_label(step)>: <n> worked examples (<decision 1>, <decision 2>, ...)
+   ```
+
+   where `<n>` is the length of `golden.json` and each decision is the
+   entry's `decision` when it is a string, else `?`. Then
+   `ask(ADOPT_QUESTION)`. The answer is stripped. An empty answer asks again
+   and records nothing. One of the builder's `ACCEPT_WORDS`, compared
+   lower-cased, accepts. Anything else, `/quit` included, declines. The
+   leniency of 6.6 does not apply here. Record `calc.adopt_decision`
+   (actor `person`).
+
+   When `how` is `replay`, nothing is said or asked: record
+   `calc.adopt_decision` (actor `harness`) with decision `accepted`, text
+   `""` and how `replay`.
+
+   On a decline, every adoptable candidate is `not_adopted` with
+   `REASON_DECLINED`, and `say("<name>: not adopted (<reason>)")` for each.
+   Nothing else is recorded and no test runs.
+
+3. **Adopt each**, in name order:
+   1. `run_tests(conn, name, reason="adopt", session_id=...)` (5.6). If it
+      does not pass: `not_adopted`, `REASON_TESTS`.
+   2. `register(conn, name, step_id=<the spec's step_id>,
+      test_run_id=<that run>, session_id=...)`. `register` re-checks
+      everything itself (5.5): adopt's checks above only decide what to
+      show and what to refuse early. If it raises `ValueError`:
+      `not_adopted`, the reason is its message.
+   3. If the step id starts with `added_` and no added step has that id
+      (`list_added_steps`), re-create it from the spec, so the process stays
+      whole: `add_step(conn, name=<spec description>, formula=<spec
+      formula>, needs=<the spec's input names, each with _ replaced by a
+      space, joined by ", ">, produces=<spec output description>,
+      reason=ADOPTED_STEP.format(module=name), session_id=...,
+      step_id=<the step id>)` (6.6). An added step the database already
+      knows is used as it is.
+   4. Record `calc.module_adopted`. The outcome is `adopted`.
+
+   Each `not_adopted` here records `calc.adopt_refused`. Each result calls
+   `say`: `<name> -> <step_label(step)> (adopted)` or
+   `<name>: not adopted (<reason>)`.
+
+A module that fails is never registered and its step is never re-created.
+One module's failure does not stop the others.
+
+```
+ADOPT_INTRO        = "These module folders are not registered here. Their worked examples were checked by hand, but not by you:"
+ADOPT_QUESTION     = "Adopting a module means trusting worked examples you did not check yourself. Its tests and examples run first, and it is registered only if they pass. Type yes to adopt them. Anything else adopts nothing."
+ADOPT_MISSING      = "missing files: {files}"
+ADOPT_BAD_SPEC     = "spec.json is not a valid spec for this folder"
+ADOPT_BAD_EXAMPLES = "golden.json does not hold at least 2 worked examples"
+ADOPT_NO_STEP      = "the process has no calculation step '{step}'"
+ADOPT_STEP_TAKEN   = "step {step} already has the module '{other}'"
+REASON_DECLINED    = "you did not accept the worked examples"
+REASON_TESTS       = "its tests or worked examples do not pass here"
+ADOPTED_STEP       = "Re-created from the module '{module}' when it was adopted."
+```
+
+`{step}` in `ADOPT_STEP_TAKEN` is `step_label(step)`; in `ADOPT_NO_STEP` it
+is the id as written in the spec.
+
+### 6.4 Scenarios: `harness/replay.py`
+
+A scenario is a JSON object in `examples/<example>/scenarios/<name>.json`:
+
+```
+{"name":        "<the file name without .json>",
+ "kind":        "ask" | "build",
+ "description": "one sentence",                     optional
+ "today":       "YYYY-MM-DD",                       optional; ask only; default: the real date
+ "without":     ["s2"],                             optional; steps whose modules are left out
+ "lines":       ["What I type first", "yes", ...],  what the scripted person types, in order
+ "expect":      {...}}
+```
+
+For example:
+
+```json
+{"name": "upfront_cost",
+ "kind": "ask",
+ "today": "2026-10-09",
+ "lines": ["How much do I need before the move? Deposit 2,000, van 450, two months of overlap at 1,100."],
+ "expect": {"runs": [{"module": "upfront_cost", "inputs": {"deposit": "2000"}}],
+            "shown": ["4,650"], "max_withheld": 0}}
+```
+
+`expect` holds at least one of these keys. The first five are for `ask`,
+the last for `build`:
+
+| Key | Holds | Passes when |
+| --- | --- | --- |
+| `runs` | list of `{"module", "inputs"?}` | for each entry, some `calc_runs` row of the session is for that module and, when `inputs` is given, has each key of `inputs` with a value that `same()` (5.1) accepts. Keys not listed are not compared. |
+| `shown` | list of numbers, as text | each number appears in a reply shown to the person (below) |
+| `not_shown` | list of numbers, as text | no such number appears in any reply shown |
+| `max_withheld` | whole number, 0 or more | the session has at most this many `ask.withheld` events |
+| `max_corrections` | whole number, 0 or more | the session has at most this many `ask.correction` events, of any reason |
+| `steps` | `{"<step id>": "built" \| "reused" \| "kept" \| "not_built"}` | `build` returned a result for that step with that outcome |
+
+**A number appears in a reply** when the reply backs it with the number
+check's own reading (5.8): `unbacked(<the number>, [<reply text>]) == []`.
+So the tolerance is half the precision of the number **as written in the
+scenario**: `"4,583"` is seen in a reply saying `4,583.33`, but `"4,583.33"`
+is not seen in a reply saying `4,583`. `k` and `%` work as in 5.8 (`"50%"`
+is seen in a reply saying `0.5`). The replies shown are the `text` of the
+session's `ask.reply` events. Withheld replies, corrections and request
+blocks do not count.
+
+The scenario's lines are typed by the person. The person's own numbers are
+never checked against them: write expectations about module results.
+
+**`validate_scenario(value, *, stem: str, brief: dict) -> list[str]`**
+returns what is wrong; an empty list means the scenario can run. `stem` is
+the file name without `.json`. `brief` is the example's brief as
+`load_brief` returns it. Two stages; a stage that finds errors returns them
+without running the next.
+
+Stage 1:
+
+| Problem | Message |
+| --- | --- |
+| Not a dict | `the scenario must be an object` (the only error returned) |
+| `name`, `kind`, `lines` or `expect` is absent | `missing: <key>`, one per key, in that order |
+
+Stage 2, in this order:
+
+| Problem | Message |
+| --- | --- |
+| a key other than the seven above | `unknown key: <key>`, one per key, in the order given |
+| `stem` does not match `^[a-z][a-z0-9_]*$`, or `name` is not `stem` | `name must be the file name without .json, in snake_case: '<stem>'` |
+| `kind` is not `ask` or `build` | `kind must be ask or build` |
+| `description` is present and not a string | `description must be a string` |
+| `today` is present and the kind is `build` | `today is only for ask scenarios` |
+| `today` is present and not a valid `YYYY-MM-DD` date | `today must be a date written YYYY-MM-DD` |
+| `without` is present and not a list of strings | `without must be a list of step ids` |
+| an item of `without` is not a calculation step of the brief | `without: '<id>' is not a calculation step of the brief` |
+| `lines` is not a non-empty list of strings that are not empty once stripped | `lines must be a non-empty list of non-empty strings` |
+| `expect` is not an object | `expect must be an object` (no more checks on it) |
+| `expect` is empty | `expect must hold at least one expectation` |
+| a key of `expect` that is not in the table above | `expect: unknown key: <key>` |
+| a key of `expect` for the other kind | `expect.<key> is only for <ask or build> scenarios` |
+| `runs` is not a list, or an entry is not an object with a non-empty string `module`, an optional object `inputs`, and no other key | `expect.runs: entry <k> must be an object with module and, optionally, inputs` (`<k>` from 1; `expect.runs must be a list` when it is not a list) |
+| `shown` or `not_shown` is not a list of strings | `expect.<key> must be a list of numbers written as text` |
+| an item of `shown` or `not_shown` is not exactly one number in the reading of 5.8, not a date, and not exempt (a bare whole number from 0 to 12) | `expect.<key>: '<item>' must be one number the number check reads, not a date and not a bare whole number from 0 to 12` |
+| `max_withheld` or `max_corrections` is not an `int` (not `bool`) of 0 or more | `expect.<key> must be a whole number, 0 or more` |
+| `steps` is not an object | `expect.steps must be an object` |
+| a key of `steps` is not a calculation step of the brief and does not start with `added_` | `expect.steps: '<id>' is not a calculation step of the brief` |
+| a value of `steps` is not one of the four outcomes | `expect.steps: '<id>' must be built, reused, kept or not_built` |
+
+"Exactly one number" means: the text, stripped, is read by the number
+check's reading as exactly one number and no date, and that number's
+written form is the whole stripped text.
+
+**`load_scenarios(example_dir, brief, only=None) -> list[dict]`** reads
+`<example_dir>/scenarios/*.json`, sorted by file name, or only
+`<only>.json` when `only` is given. It raises `ValueError` with one message
+holding every problem, one per line, each `<file name>: <problem>`: a file
+that is not valid JSON (`not valid JSON: <reason>`), and each error of
+`validate_scenario`. With `only` and no such file the message is
+`NO_SCENARIO`; with no scenario files at all it is `NO_SCENARIOS`.
+
+```
+NO_SCENARIO  = "There is no scenario '{scenario}' in {folder}. The scenarios are: {names}."
+NO_SCENARIOS = "There are no scenarios in {folder}."
+```
+
+`{folder}` is the scenarios folder as a path; `{names}` the file names
+without `.json`, sorted, joined by `, `, or `(none)`.
+
+### 6.5 Replay
+
+```python
+run_scenario(scenario, *, example_dir, model, keep=False) -> dict
+check_scenario(conn, session_id, scenario, results=None) -> list[dict]
+```
+
+**`run_scenario`** runs one validated scenario and returns
+
+```
+{"scenario": "<name>", "passed": bool, "checks": [check, ...], "error": None | "<one line>", "folder": None | "<path>"}
+```
+
+`folder` is set only with `keep`. `passed` is true only when `error` is
+`None` and every check passed. It goes like this:
+
+1. **A scratch folder.** `tempfile.mkdtemp(dir="var/replay",
+   prefix="<example name>-<scenario name>-")`, creating `var/replay` first.
+   Into it: `brief/` (a copy of the example's `brief/` files), `modules/`
+   (a copy of every module folder of the example whose spec's `step_id` is
+   not in `without`; folders whose name starts with `_` are not copied) and,
+   later, `harness.db`.
+2. **Point the harness at it.** Set the environment variables `HARNESS_DB`,
+   `HARNESS_BRIEF_DIR` and `HARNESS_MODULES_DIR` to `<folder>/harness.db`,
+   `<folder>/brief` and `<folder>/modules`, and put back their earlier values
+   (or unset them) when the scenario ends, whatever happens. Open the
+   database there and `migrate`. Make a new session id: every event of the
+   scenario carries it.
+3. Record `replay.scenario`.
+4. **Adopt silently.** `brief = load_brief(<folder>/brief)`, then
+   `adopt(conn=..., brief=..., ask=<never called>, say=<collects>,
+   session_id=..., how="replay")`. If any result is `not_adopted`, the
+   `error` is `<module> was not adopted: <reason>` for the first one, and
+   steps 5 and 6 are skipped.
+5. **Run**, with the scripted person: `ask(text)` returns the next line, in
+   order; once the lines run out it returns `/quit`, every time. `say`
+   collects what is shown and prints nothing.
+   - `ask`: `run_agent(model=model, conn=conn, brief=brief, ask=ask,
+     say=say, session_id=..., question="", today=<the scenario's today, or
+     date.today()>)`. So the first line answers `OPENING`.
+   - `build`: `results = build(model=model, conn=conn, brief=brief,
+     ask=ask, say=say, session_id=...)`.
+   An exception raised here sets `error` to
+   `<Type>: <reason on one line>` and skips step 6.
+6. **Check**: `checks = check_scenario(conn, session_id, scenario,
+   results)`.
+7. Record `replay.checked`. Close the database. Without `keep`, remove the
+   folder.
+
+**`check_scenario`** returns one check per expectation, in this order:
+each `runs` entry, each `shown` item, each `not_shown` item,
+`max_withheld`, `max_corrections`, then each `steps` entry in the object's
+order. A check is `{"what": str, "passed": bool, "seen": str}`:
+
+| Expectation | `what` | `seen` |
+| --- | --- | --- |
+| `runs` entry | `ran <module>`, or `ran <module> with <json.dumps(inputs, ensure_ascii=False)>` | `run <id>: <json.dumps(inputs of that run, ensure_ascii=False)>` for every run of that module in the session, by id, joined by `; `; or `no run of <module>` |
+| `shown` item | `shows <item>` | `in reply <k> of <n>` (the first reply that backs it, from 1), or `in none of <n> replies` |
+| `not_shown` item | `does not show <item>` | the same two forms |
+| `max_withheld` | `at most <N> replies withheld` | `<count> withheld` |
+| `max_corrections` | `at most <N> corrections` | `<count> corrections` |
+| `steps` entry | `step <step_label(id)> <outcome>` | the outcome of its result, with ` (<reason>)` added for `not_built`; or `not handled` |
+
+`<n>` is the number of `ask.reply` events in the session.
+
+**The command** (6.7) calls `get_model()` afresh for each scenario, so a
+scripted model starts its script again each time. Tests call
+`run_scenario` with a `ScriptedModel`.
+
+### 6.6 Changes to step 2
+
+**A lenient yes to a build request.** At `REQUEST_QUESTION` (5.9) only, an
+answer accepts when, lower-cased, it is one of `ACCEPT_WORDS`, **or** its
+first word is one once the characters `.`, `,`, `!`, `;` and `:` are
+removed from the end of that word. Words are split on white space. So
+`yes use those`, `Yes, please`, `ok!` and `/accept now` accept; `yeah`,
+`no`, `not now` and `later` decline. `agent.py` defines
+`says_yes(answer: str) -> bool` for this. Nowhere else is lenient: the
+interview, the plan check, the worked examples, a transcribed answer and
+`adopt` keep the strict comparison.
+
+**`add_step` can keep an id.** `add_step(conn, *, name, formula, needs,
+produces, reason, session_id, step_id=None)`. With `step_id` (which must
+match `^added_[1-9][0-9]*$`, else `ValueError`), the row is inserted with
+that number as its `id`; if an added step already has it, `ValueError`.
+Everything else is as before, `calc.step_added` included. Later added steps
+are numbered after the highest id used.
+
+**`test_runs.reason`** may also be `adopt`.
+
+**`build` and `ask` check for module folders that are not registered.**
+After the brief loads, and before anything else, `build` (without
+`--rebuild`) and `ask` look for folders in `candidates(conn)` that are **not
+registered** at all. If there are any, they print `UNADOPTED` to standard
+error and exit 1. A fresh clone is told to adopt instead of rebuilding over
+the committed modules. Registered modules whose files changed are not
+counted: `build` rebuilds those, as before (5.7).
+
+```
+UNADOPTED = "The modules folder has modules that are not registered here: {names}. Adopt them first with: python -m harness adopt"
+```
+
+`{names}` is the folder names, sorted, joined by `, `. It is defined in
+`__main__.py`.
+
+### 6.7 Command line
+
+**`python -m harness adopt`** runs `migrate`, makes a new session id, and
+runs `load_brief` on the brief folder (a missing, draft or reserved-id brief
+prints the message to standard error and exits 1). With no candidate it
+prints `NOTHING_TO_ADOPT` and exits 0. Otherwise it runs `adopt` with the
+terminal `ask` of 5.10 (the end of input counts as `/quit`, which declines)
+and `print`. Then it prints `ALL_ADOPTED` and exits 0 when every result is
+`adopted`, or prints `SOME_NOT_ADOPTED` and exits 1. No model is used.
+
+```
+NOTHING_TO_ADOPT = "Every module folder is already registered."
+ALL_ADOPTED      = "Every module folder is registered now."
+SOME_NOT_ADOPTED = "Some module folders are not registered. Fix them, or rebuild their steps with: python -m harness build"
+```
+
+**`python -m harness replay EXAMPLE [SCENARIO] [--keep]`** replays the
+scenarios of `examples/EXAMPLE/` with the configured model.
+
+- An unknown example (as in 6.2) prints `UNKNOWN_EXAMPLE` to standard error
+  and exits 1. A brief that does not load prints its message the same way.
+- `load_scenarios` problems are printed to standard error, one per line,
+  and it exits 1 before any scenario runs.
+- For each scenario, in file-name order, it prints:
+
+  ```
+  Scenario <name> (<kind>)
+    PASS  <what> (seen: <seen>)            one line per check, FAIL instead of PASS when it failed
+    ERROR  <error>                          instead of the checks, when there is an error
+    kept: <folder>                          with --keep only
+    open it with: HARNESS_DB=<folder>/harness.db HARNESS_BRIEF_DIR=<folder>/brief HARNESS_MODULES_DIR=<folder>/modules python -m harness work
+  ```
+
+  The last two lines are printed with `--keep` only. The marks are two
+  spaces, then `PASS`, `FAIL` or `ERROR`, then two spaces.
+- The last line is `REPLAY_DONE`, and it exits 0 when every scenario passed,
+  1 otherwise.
+
+```
+REPLAY_DONE = "{passed} of {total} scenarios passed."
+```
+
+`check`, `events`, `ground`, `ui`, `build`, `modules` and `ask` behave as
+before, apart from 6.6.
+
+### 6.8 Events
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `calc.adopt_refused` | `harness` | `{"module", "step", "reason"}`; `step` is `null` when the spec could not be read |
+| `calc.adopt_decision` | `person`, or `harness` for replay | `{"modules", "decision", "text", "how"}`; `modules` the adoptable names, in order; `decision` `accepted` or `declined`; `text` the stripped answer (`""` for replay); `how` `asked` or `replay` |
+| `calc.module_adopted` | `harness` | `{"module", "step", "fingerprint", "test_run_id", "how"}` |
+| `replay.scenario` | `harness` | `{"example", "scenario", "kind", "lines", "expect", "without"}`; `without` is `[]` when absent |
+| `replay.checked` | `harness` | `{"scenario", "passed", "error", "checks"}` |
+
+`calc.tests_run` has `reason` `adopt` for the runs of 6.3.
+
+For one `adopt` call, the events come in this order: `calc.adopt_refused`
+for each candidate that fails a check, in name order; then
+`calc.adopt_decision`, when something is adoptable; then, on an accept, for
+each adoptable candidate in name order, `calc.tests_run` and either
+`calc.adopt_refused` or `calc.module_registered`, `calc.step_added` (only
+when the step was re-created) and `calc.module_adopted`.
+
+A replay session holds, in order: `replay.scenario`, the events of
+`adopt`, the events of `ask` or `build`, and `replay.checked`. The scripted
+person's lines are recorded as the person's, as any typed line is; the
+`replay.scenario` event at the start of the session says they were
+scripted.
+
+### 6.9 Decisions
+
+1. `adopt` asks once per run, not once per module. The person accepts
+   examples someone else confirmed, as a whole; the tests then decide
+   module by module.
+2. `adopt` checks what it needs to show and refuses early, but
+   `register` re-checks everything (5.5). Its `ValueError` is the reason
+   shown.
+3. A module is registered before its added step is re-created, so a
+   module that fails never leaves a step behind. A re-created step keeps
+   its id (`added_<n>`), so `--rebuild` and `replace` still find it. An
+   added step the database already knows is trusted to be the same step.
+4. A step already served by another working module is not taken over by
+   adoption. Two folders for one step: the first by name wins.
+5. A registered module whose files changed is a candidate too: adopting it
+   registers the files on disk, after the person's yes and a passing run.
+6. `build` and `ask` refuse while unregistered module folders sit in the
+   modules folder, so a fresh clone never rebuilds over committed modules.
+7. `HARNESS_EXAMPLE` changes three defaults. A variable set explicitly
+   wins, so a test or a replay can still point anywhere.
+8. In example mode the database lives under `var/examples/<name>/` and is
+   kept; the files are not copied. A build or an interview there writes
+   into `examples/`, and git shows it.
+9. Scenarios check module runs and numbers, never wording. A number is
+   matched with the number check's reading, at the precision the scenario
+   writes it.
+10. `runs` compares only the inputs a scenario lists, with `same()` (half a
+    cent). Text compares exactly.
+11. `replay` uses a fresh scratch folder per scenario, under `var/replay/`,
+    with a copy of the brief and of the modules, and the three environment
+    variables pointing at it. The person's lines run out into `/quit`,
+    which ends a build or a conversation the normal way.
+12. `without` leaves out the modules of some steps, so a `build` scenario
+    builds them, and an `ask` scenario can make the agent ask for one.
+13. Only `REQUEST_QUESTION` takes a lenient yes. The worked examples stay
+    strict, because a yes there is a check by hand.
+14. No new table: adoption is recorded as events and test runs.
+
+## 7. Step 3: evidence
+
+Trust is earned, not assumed. Everything is already recorded in the local
+database. Step 3 adds a "show your work" page that reads it, and nothing
+else: no model writes any of it, at any time. It shows the conversations as
+they happened, where every number in a reply came from, each calculation run
+and the test run it relied on, each module with its examples, code and
+build history, and the raw event log. Tests passing is shown by running the
+tests, on request, not from a stored flag.
+
+The page is read-only. Its one action, "Run the tests now", makes a fresh,
+recorded test run.
+
+**Files.**
+
+| File | Status |
+| --- | --- |
+| `harness/calc/provenance.py` | Changed (7.1): `trace`. |
+| `harness/calc/agent.py` | Changed (7.2): the `ask.started` event. |
+| `harness/ui/evidence.py` | New (7.3): reads the evidence. |
+| `harness/ui/server.py` | Changed (7.5): the evidence API and `/work`. |
+| `harness/ui/evidence.html` | **Given** (7.6): the evidence page. Written once from this contract; a build does not write it. |
+| `harness/ui/grounding.html` | Given, with one change (7.6): a link to `/work`. |
+| `harness/__main__.py` | Changed (7.7): `work`, and one more line from `ui`. |
+| `tests/step3/` | Acceptance tests for sections 6 and 7. |
+| `README.md`, `BUILD_PLAN.md`, `prompts/step3_evidence.md` | Written by the implementer after the step is built. |
+
+No migration is added.
+
+### 7.1 Where each number came from: `trace`
+
+In `harness/calc/provenance.py`:
+
+```python
+SOURCE_LABELS = ("run", "input", "note", "brief", "person", "today")
+SMALL_LABEL = "small"
+NONE_LABEL = "none"
+
+trace(text: str, sources: list[tuple[str, int | None, object]]) -> list[dict]
+```
+
+The existing constant `SMALL = 12` stays as it is.
+
+`sources` is a list of `(label, ref, value)`. `label` is one of
+`SOURCE_LABELS`. `ref` is the run id for a `run`, else `None`. `value` is
+read as in `unbacked`: text as it is, anything else through
+`json.dumps(value, ensure_ascii=False)`.
+
+`trace` returns one item per date or number in `text`, in order of
+appearance, with the same reading as 5.8 (dates first, then numbers; every
+occurrence, not once per value):
+
+```
+{"text": "4,583.33", "start": 17, "end": 25, "source": "run", "run_id": 3}
+```
+
+- `text` is the date or number as written (with its currency sign, `k` or
+  `%`). `start` and `end` are its place in `text`, as Python string
+  indexes: `text[start:end]` is it. They count Unicode code points.
+- `source` is one of `SOURCE_LABELS`, `small` or `none`. `run_id` is the
+  run's id when `source` is `run`, else `null`.
+
+**A number**:
+
+1. Exempt (a bare whole number from 0 to 12, as in 5.8): `small`. No source
+   is looked at, because the number check never checks it.
+2. Otherwise, take the labels in the order of `SOURCE_LABELS`. The first
+   label with at least one source that backs the number (5.8: some known
+   value within half its precision; for a percentage, also its value divided
+   by 100) is its `source`. Each source is tried on its own.
+3. Within that label, `run_id` is the `ref` of the **last** source in the
+   list that backs it.
+4. No source backs it: `none`.
+
+**A date**: each part above 12 is labelled like a whole number written
+bare, with precision 1, by steps 2 to 4. Parts of 12 or below are not
+looked at. If any labelled part is `none`, the date is `none`. Otherwise
+the date's `source` is, among its parts' labels, the one that comes last in
+`SOURCE_LABELS`, and `run_id` is that of the first part (year, month, day)
+with that label. The year is always above 12, so a date always has a
+labelled part.
+
+So the items labelled `none` are exactly the occurrences of the numbers
+that `unbacked(text, [value for each source])` returns.
+
+### 7.2 What the conversation records: `ask.started`
+
+`run_agent` records one more event when it starts, before anything is
+asked: `ask.started`, actor `harness`, payload `{"today": "YYYY-MM-DD"}`,
+the date the conversation uses (5.9). It is the only change to `run_agent`
+in this step. Without it, the date of a conversation could not be known
+afterwards, and the date is a source for the number check.
+
+### 7.3 Reading the evidence: `harness/ui/evidence.py`
+
+Six functions, each taking an open connection. Five only read. Each
+returns exactly the JSON body of its endpoint (7.4). They read
+`load_config()` at the time of the call, for the brief folder and the
+modules folder.
+
+```python
+summary(conn, *, interview: bool) -> dict
+conversation(conn, session_id: str) -> dict | None
+run(conn, run_id: int) -> dict | None
+module(conn, name: str) -> dict | None
+events_page(conn, *, kind=None, session=None, before=None, limit=200) -> dict
+test_now(conn, name: str, *, session_id: str) -> dict | None
+```
+
+`None` means not found (404).
+
+**The brief**, wherever it is needed, is `<brief_dir>/domain_brief.json`
+read as JSON, whatever its status: `meta` is taken off. A missing or
+unreadable file means no brief. **The process** is the brief's `process`
+(empty with no brief), then `list_added_steps(conn)`. A **step reference**
+is `{"id", "label": step_label(id), "in_brief": <id is a step id of the
+brief's process>}`.
+
+A **test run** is a `test_runs` row as
+`{"id", "ts", "reason", "passed": true|false, "fingerprint"}`, with
+`"report"` (the report as JSON) added where this section says so. An
+**event** is an `events` row as
+`{"id", "ts", "session_id", "kind", "actor", "payload"}`, the payload as
+JSON.
+
+A **conversation** is a session with at least one `ask.message` event.
+
+**Sources of a reply.** To trace the numbers of an event `E` of session
+`S` (7.4), the sources are, in this order:
+
+| Label | `ref` | Value | Taken from |
+| --- | --- | --- | --- |
+| `run` | the run id | `{"inputs", "output"}` of the payload | `calc.run` events of `S` before `E`, by id |
+| `input` | `None` | the payload's `value` | `ask.input_saved` events of any session before `E` |
+| `note` | `None` | the payload's `text` | `calc.note_saved` events of any session before `E` |
+| `brief` | `None` | the brief | read now |
+| `person` | `None` | the payload's `text` | `ask.message` and `ask.module_decision` events of `S` before `E`, by id |
+| `today` | `None` | the conversation's date | the `today` of the `ask.started` event of `S`; with none, the date part (first ten characters) of the `ts` of the first event of `S` |
+
+"Before `E`" means with a smaller event id. These are the sources the
+number check used when the reply was made (5.9), rebuilt from the record.
+So a reply that was shown has no number labelled `none`, unless the brief
+has changed since.
+
+### 7.4 The API
+
+Every path below starts with `/api/work/`. Every request needs the token
+header, as in 4.7 (403 without it). Bodies are JSON. Errors are
+`{"error": "<one line>"}`. Lists have no limit unless one is stated. All
+booleans are JSON `true` or `false`. Times are as stored (UTC, ISO 8601).
+
+| Request | Function | Errors |
+| --- | --- | --- |
+| `GET /api/work/summary` | `summary` | none |
+| `GET /api/work/conversation?session=S` | `conversation` | 400 `session is required`; 404 `there is no conversation 'S'` |
+| `GET /api/work/run?id=N` | `run` | 400 `id must be a whole number`; 404 `there is no run N` |
+| `GET /api/work/module?name=X` | `module` | 400 `name is required`; 404 the gate's `NOT_REGISTERED` |
+| `GET /api/work/events?kind=K&session=S&before=N&limit=L` | `events_page` | 400 `before must be a whole number`, `limit must be a whole number from 1 to 1000` |
+| `POST /api/work/test` `{"module": X}` | `test_now` | 400 `the body must be a JSON object`, `module must not be empty`; 404 the gate's `NOT_REGISTERED` |
+
+Query parameters are read with `urllib.parse.parse_qs`; an empty value
+counts as absent. A GET to the POST path, or a POST to a GET path, is 404.
+
+**`GET /api/work/summary`**: what the page needs to start.
+
+```
+{"interview": true,                     the interview is served at / by this server
+ "database": "var/harness.db",          str(config.db_path)
+ "brief": null | {"goal": "...", "status": "confirmed"},     status is meta.status, or null
+ "process": [{"id", "label", "in_brief", "name", "kind", "module": null | "name"}],
+ "modules": [{"name", "steps": [step reference], "fingerprint", "registered_at",
+              "file_status": "unchanged" | "changed" | "missing",
+              "last_test": test run}],
+ "conversations": [{"session_id", "started", "ended", "first_message",
+                    "messages", "replies", "withheld", "corrections", "runs",
+                    "replay": null | {"example", "scenario"}}],
+ "runs": [{"id", "ts", "session_id", "module", "output"}],
+ "sessions": [{"session_id", "started", "ended", "events", "first_kind"}],
+ "kinds": ["ask.message", ...]}
+```
+
+- `process`: the process in order. `module` is the step's module in
+  `step_map`, or `null`.
+- `modules`: every registered module, by name. `steps` from `get_module`,
+  in its order. `last_test` is the module's latest `test_runs` row (highest
+  id), without `report`. Nothing is run here.
+- `conversations`: newest first, by the id of the session's first event.
+  `started` and `ended` are the `ts` of its first and last event (any
+  kind). `first_message` is the `text` of its first `ask.message`.
+  `messages`, `replies`, `withheld` and `corrections` count its
+  `ask.message`, `ask.reply`, `ask.withheld` and `ask.correction` events.
+  `runs` counts its `calc_runs` rows. `replay` is from its
+  `replay.scenario` event (`example` and `scenario` of the payload).
+- `runs`: every `calc_runs` row, newest first (by id), `output` as JSON.
+- `sessions`: every session in `events`, newest first (by the id of its
+  first event). `events` is its number of events; `first_kind` the kind of
+  its first event.
+- `kinds`: every distinct event kind, sorted.
+
+**`GET /api/work/conversation?session=S`**: one conversation, as it
+happened.
+
+```
+{"session_id": "S",
+ "today": "YYYY-MM-DD",
+ "replay": null | {"example", "scenario"},
+ "events": [{"id", "ts", "kind", "actor", "payload", "numbers": null | [trace item]}]}
+```
+
+`events` is every event of the session, oldest first, with no limit. The
+build events of a build inside the conversation are among them. `numbers`
+is `trace(<field>, <sources of a reply for that event>)` (7.3) for these
+events, and `null` for every other:
+
+| Kind | Field traced |
+| --- | --- |
+| `ask.reply` | `payload.text` (shown to the person) |
+| `ask.withheld` | `payload.text` (not shown) |
+| `ask.correction` with `reason` `reply` | `payload.text` (not shown) |
+| `ask.module_requested` | `payload.request` (shown to the person) |
+
+`start` and `end` in a trace item index that field.
+
+**`GET /api/work/run?id=N`**: one calculation run.
+
+```
+{"id", "ts", "session_id", "module", "fingerprint", "inputs", "assumptions", "expected", "output",
+ "test_run": test run,
+ "registered_now": true | false}
+```
+
+All from the `calc_runs` row: `inputs`, `assumptions` and `output` as JSON,
+`expected` as text. `test_run` is the row `test_run_id` names, without
+`report`. `registered_now` is true when the module is registered now with
+the run's fingerprint.
+
+**`GET /api/work/module?name=X`**: one registered module.
+
+```
+{"name", "fingerprint", "registered_at", "session_id",
+ "spec": {...},
+ "plan": "<plan_words(spec)>",
+ "steps": [step reference],
+ "file_status": "unchanged" | "changed" | "missing",
+ "files": {"spec.json": str | null, "golden.json": str | null, "module.py": str | null, "tests.py": str | null},
+ "examples": null | [{"inputs", "expected", "working", "decision"}],
+ "adopted": null | {"ts", "how": "asked" | "replay", "session_id"},
+ "registered_test": test run,
+ "last_test": test run with "report",
+ "runs": [{"id", "ts", "session_id", "inputs", "output"}],
+ "history": [event]}
+```
+
+- `spec`, `fingerprint`, `registered_at`, `session_id` and `steps` are the
+  registered ones (`get_module`, and the `modules` row). `plan` is the
+  builder's `plan_words` (5.7) of that spec.
+- `files` is each file's text as it is on disk now (UTF-8), or `null` when
+  it is missing.
+- `examples` is `golden.json` on disk, parsed, when it is a list; else
+  `null`. Each entry is as written; who decided is the person of the build
+  (see `history`), or someone else when `adopted` is set.
+- `adopted` is from the latest `calc.module_adopted` event for this module
+  whose `fingerprint` is the registered one, or `null`.
+- `registered_test` is the run named by the module's `test_run_id`,
+  without `report`. `last_test` is its latest `test_runs` row, with
+  `report`.
+- `runs` are its `calc_runs` rows, newest first.
+- `history` is the build that registered it: take the latest
+  `calc.module_registered` event for this module. History is every event of
+  that event's session, with an id up to and including it, that is about
+  this build: its `payload.module` is `X`, or its `payload.step` is the
+  registered step id (or, for `calc.step_added`, `payload.step.id` is), or
+  its `payload.modules` is a list holding `X`. Oldest first. For an adopted
+  module this is the adoption, not the build elsewhere.
+
+**`GET /api/work/events`**: the raw event log, newest first.
+
+```
+{"events": [event], "more": true | false}
+```
+
+- `kind`: an exact kind, or, when it ends with `.`, a prefix (`ask.`).
+- `session`: an exact session id.
+- `before`: only events with an id below it.
+- `limit`: default 200, from 1 to 1000.
+- `more` is true when older matching events exist beyond `limit`. The page
+  gets the next page with `before=<the last id it got>`.
+
+**`POST /api/work/test`** `{"module": "X"}`: the one write. It runs
+`run_tests(conn, X, reason="status", session_id=<the server's evidence
+session id>)` (5.6) now, which records a `test_runs` row and
+`calc.tests_run` like any other, and answers 200 with
+
+```
+{"module": "X", "file_status": "unchanged" | "changed" | "missing", "test_run": test run with "report"}
+```
+
+`file_status` is taken after the run. The request returns when the run
+ends (up to 30 seconds, 5.6).
+
+### 7.5 Server and pages
+
+`harness/ui/server.py` changes:
+
+- `make_server(session, port=8765, page_path=None, work_page_path=None)`.
+  `session` may be `None`. `WORK_PAGE` is `harness/ui/evidence.html`, the
+  default for `work_page_path`. A random evidence session id
+  (`uuid.uuid4().hex`) is made per server, as `server.work_session_id`; the
+  test runs of `POST /api/work/test` carry it.
+- `GET /work` serves the evidence page with `__HARNESS_TOKEN__` replaced by
+  the token, exactly like `GET /`. It needs no token.
+- `GET /` with no session answers 303 with `Location: /work`. With no
+  session, `/api/state` and the six interview POSTs answer 404.
+- Every `/api/work/` request opens its own connection with `db.connect()`
+  (an SQLite connection belongs to one thread) and closes it before
+  answering. It does not migrate: the commands do that once, at the start.
+- Everything else is as in 4.7: 127.0.0.1 only, the token header, JSON
+  bodies, no request log.
+
+### 7.6 The pages (given)
+
+**`harness/ui/evidence.html`** is given: written once by a designer, from
+this section and 7.4 only. A build never writes it. It is one
+self-contained file with no network resources: no `http://` or `https://`
+address, no external script, style or font. It contains the placeholder
+`__HARNESS_TOKEN__` exactly once.
+
+What it must do, as a checklist a reviewer can tick:
+
+1. Sends the token in the `X-Harness-Token` header on every `/api/`
+   request. Calls only the paths of 7.4. The only POST is
+   `/api/work/test`.
+2. On load, gets `/api/work/summary` and offers four views: Conversations,
+   Runs, Modules (with the process) and Everything. A link
+   to the interview (`/`) is shown only when `interview` is true.
+3. Shows `database` and the brief's goal and status, or that there is no
+   brief.
+4. **Conversations**: lists `conversations` in the order given, each with
+   `started`, `first_message`, the four counts and `runs`, and a mark when
+   `replay` is set (example and scenario). Opening one gets
+   `/api/work/conversation`.
+5. **A conversation** shows `today` and every event in order. It shows
+   plainly, by kind: `ask.message` as the person's; `ask.reply` as shown to
+   the person; `ask.withheld` as **not shown**, with its `numbers` from the
+   payload as the reason; `ask.correction` as not shown, with its `reason`
+   and `numbers`; `ask.module_requested` (the `request` block, as shown),
+   `ask.module_decision`, `ask.module_outcome` and `ask.request_refused`;
+   `ask.input_saved`; `calc.run` (module and output, opening the run);
+   `calc.refused` and `calc.run_failed` (the reason); `ask.stopped`. Every
+   other kind (a build inside the conversation, for example) is shown
+   compactly with its kind, and its payload on demand.
+6. **Every traced number** is marked in place in its text, using `start`
+   and `end` as code-point indexes (in JavaScript, index
+   `Array.from(text)`, not the string itself). Each mark shows its `source`
+   label; a legend explains the eight labels in plain words (`run`: a
+   tested module's run; `input`: a saved input; `note`: a note from a
+   build; `brief`: the brief; `person`: the person's own words; `today`:
+   today's date; `small`: a small whole number, never checked; `none`: no
+   source). `none` stands out. A `run` mark is a link that opens that run.
+7. **Runs**: lists `runs`; opening one gets `/api/work/run` and shows the
+   module, `ts`, `inputs`, `assumptions`, `expected` (labelled as what was
+   expected before the run), `output`, `fingerprint`, the test run it relied
+   on (passed or failed, and when), and whether `registered_now`. The
+   module name opens the module.
+8. **Modules**: lists `process` with each step's label, name, kind and
+   module (marking steps not in the brief and calculation steps with no
+   module), and `modules` with `file_status` and `last_test`. Opening a
+   module gets `/api/work/module` and shows: its steps (marking those not in
+   the brief), `plan` as preformatted text, the spec's formula, inputs and
+   output, `examples` with each `decision`, a notice when `adopted` is set
+   (when, and whether asked or by replay), `files` as preformatted text,
+   `file_status`, `registered_test`, `last_test`, `runs` (each opening its
+   run) and `history` in order.
+9. **Run the tests now**: a button on a module. It posts
+   `/api/work/test`, shows that it is running and disables itself until the
+   answer, which can take 30 seconds. Then it shows passed or failed, each
+   failing test with its `error`, each failing example by index (with `got`
+   or `error`), and the report's `error` when there is one; then it gets
+   the module again.
+10. **Everything**: gets `/api/work/events`, newest first, with a kind
+    filter (the `kinds` of the summary, and the prefixes before their first
+    dot, each with a `.`) and a session filter (the `sessions` of the
+    summary). "Load more" gets the next page with `before` while `more` is
+    true. Each event shows `id`, `ts`, `kind`, `actor`, `session_id` and its
+    payload.
+11. Puts every text from the API in the page as text, never as HTML.
+12. Works on an empty database: every view says there is nothing yet.
+13. Shows the `error` of any answer that is not 200, and the status code.
+14. Uses no model and no text of its own about the person's figures: every
+    figure on the page comes from the API.
+
+**`harness/ui/grounding.html`** gets one change: a link to `/work`, labelled
+`Show your work`. Nothing else in it changes.
+
+### 7.7 Command line
+
+**`python -m harness work [--port 8765] [--no-browser]`** runs `migrate`,
+starts `make_server(None, port)`, prints
+`The evidence page is at http://127.0.0.1:<port>/work` and
+`Press Ctrl+C to stop.`, opens the page in the browser unless told not to,
+and runs until interrupted. It never calls a model and never resumes an
+interview. A port that cannot be used prints
+`could not start on port <port>: <reason>` to standard error and exits 1,
+as `ui` does. Interrupted, it prints `Stopped.` and exits 0.
+
+**`python -m harness ui`** now serves both pages. After its first line it
+prints `What the harness did is at http://127.0.0.1:<port>/work`. Everything
+else is as before.
+
+### 7.8 Events
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `ask.started` | `harness` | `{"today"}`, `YYYY-MM-DD`; the first event of every `run_agent` session |
+
+The page records nothing itself. `POST /api/work/test` records the test
+run's `calc.tests_run` (reason `status`), with the server's evidence session
+id.
+
+### 7.9 Decisions
+
+1. One server, two pages: `/` for the interview and `/work` for the
+   evidence. `ui` serves both; `work` serves only the evidence, with no
+   interview session, so it can never call a model.
+2. Five read endpoints and one POST. One summary feeds every list; one
+   endpoint per thing opened (a conversation, a run, a module); one
+   endpoint for the raw log. Ids go in the query string.
+3. The transcript is the session's events, as recorded, with the numbers of
+   shown and withheld texts traced. The page decides how to draw each kind.
+4. `trace` lives next to `unbacked` and uses the same reading, so what the
+   page marks and what the check enforced cannot drift apart. The labels
+   come in a fixed order: `run`, `input`, `note`, `brief`, `person`,
+   `today`. Within `run`, the latest run wins.
+5. A small whole number is `small`, never matched to a source, because the
+   number check never checks it.
+6. A date takes the label of its parts above 12 that comes last in the
+   order: it is only as backed as its least-backed part.
+7. The sources of a reply are rebuilt from events recorded before it, not
+   from tables as they are now. Only the brief is read as it is now.
+8. `ask.started` records the date of a conversation, because the date is a
+   source.
+9. A module's build history is the events of the session that registered
+   it, about this module or its step, up to the registration.
+10. "Run the tests now" records an ordinary test run (`status`), under one
+    session id per server. Tests passing is always from running code.
+11. Offsets in a trace count code points; the page indexes
+    `Array.from(text)`.
+12. The page is given, like the interview page: written once from the API,
+    never by a build.
+
+## 8. Steps 4 and 5 (draft)
 
 Each step adds modules and tables without changing what earlier steps built.
 New tables arrive as new migration files. The detail below is the intended
 shape; it becomes fixed when the step is built.
-
-**Step 3, evidence.** Every model call, tool call and agent choice is
-recorded as an event. `harness/evidence/`: a small local web page with three
-views read straight from the database: the process end to end, one
-calculation step by step, and module test status. No model call is involved
-in rendering any of it.
 
 **Step 4, human in the loop.** `harness/side/`: a sub-agent with its own
 context that holds a clarification with the person and returns only a

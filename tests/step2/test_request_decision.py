@@ -104,13 +104,66 @@ def test_an_accept_word_accepts_whatever_its_case(chat, both, conn, word):
     assert actor == "person" and decision == {"decision": "accepted", "text": word.strip()}
 
 
-@pytest.mark.parametrize("answer", ["no", "not now", "yes please", "yeah", "/skip", "/accept now", "n", "later"])
+@pytest.mark.parametrize("answer", ["no", "not now", "yeah", "/skip", "n", "later", "yes?", "sure", "maybe yes",
+                                    "nope, yes", "yes-ish", "yesplease", "y_es"])
 def test_any_other_answer_declines(chat, both, conn, answer):
     model, person = declined(chat, request_module("new"), [answer, "/quit"])
     assert len(model.calls) == 2 and person.asked == [REQUEST_QUESTION, "Understood."]
     assert events(conn, "ask.module_decision") == [("ask.module_decision", "person", {
         "decision": "declined", "text": answer})]
     assert rows(conn, "added_steps") == []
+
+
+# SPEC 6.6: at this question only, an answer accepts when its first word is an accept word, once the characters
+# . , ! ; : are taken off the end of that word.
+@pytest.mark.parametrize("answer", ["yes please", "Yes, please", "ok!", "/accept now", "yes use those", "YES.",
+                                    "Okay; go on", "sí, claro", "y: now", "yes...", "yes,,", "  yes   please  ",
+                                    "\tyes\tplease", "Y! go", "/accept."])
+def test_a_first_word_that_is_an_accept_word_accepts(chat, both, conn, answer):
+    model, person = chat([request_module("new"), reuse_module("monthly_surplus"), REPLY], [answer, "/quit"])
+    assert events(conn, "ask.module_decision") == [("ask.module_decision", "person", {
+        "decision": "accepted", "text": answer.strip()})]
+    assert [r["name"] for r in rows(conn, "added_steps")] == [h.NEW_TEXTS["works_out"]]       # the build started
+    assert model.roles()[:2] == ["analyst", "spec_writer"]
+
+
+def test_a_lenient_yes_to_a_request_is_not_a_message_of_the_person(chat, both, conn):
+    chat([request_module("new"), reuse_module("monthly_surplus"), REPLY], ["yes use those", "/quit"])
+    assert payloads(conn, "ask.message") == [{"text": h.QUESTION}]
+
+
+@pytest.mark.parametrize("answer, accepted", [
+    ("yes", True), ("Yes", True), ("YES.", True), ("y", True), ("ok", True), ("okay", True), ("si", True),
+    ("sí", True), ("/accept", True), ("/ACCEPT", True), ("yes please", True), ("Yes, please", True), ("ok!", True),
+    ("/accept now", True), ("yes use those", True), ("y; ok", True), ("yes!!", True), ("yes.,", True),
+    ("sí:", True), ("  yes please", True), ("yes\nplease", True), ("\t/accept\tnow", True),
+    ("yeah", False), ("no", False), ("not now", False), ("later", False), ("", False), ("   ", False),
+    ("yes?", False), ("ok?", False), ("!yes", False), (".yes", False), ("noyes", False), ("yes-please", False),
+    ("no, yes", False), ("please yes", False), ("/skip", False), ("/quit", False), ("yess", False)])
+def test_says_yes(agent, answer, accepted):
+    assert agent.says_yes(answer) is accepted
+
+
+def test_says_yes_does_not_change_the_accept_words(agent):
+    from harness.calc import builder
+    assert builder.ACCEPT_WORDS == ACCEPT_WORDS
+    for word in ACCEPT_WORDS:
+        assert agent.says_yes(word) and agent.says_yes(word.upper())
+
+
+# SPEC 6.6: nowhere else is the answer lenient. A plan answered "yes please" is feedback, an example answered
+# "yes please" is free text for the example helper.
+def test_the_plan_check_stays_strict(build_one, conn):
+    result, model, person = build_one([h.propose_spec(), h.propose_spec(h.revised_spec())], ["yes please", "/quit"])
+    assert payloads(conn, "calc.plan_decision")[0] == {"step": "s1", "round": 1, "decision": "feedback", "text": "yes please"}
+    assert result["outcome"] == "not_built"
+
+
+def test_a_worked_example_stays_strict(build_one, conn):
+    script = [h.propose_spec(), h.propose_examples(), h.respond("skip")]
+    result, model, person = build_one(script, ["yes", "yes please", "/quit"])
+    assert payloads(conn, "calc.example_reply") == [{"module": "monthly_surplus", "index": 1, "text": "yes please"}]
+    assert payloads(conn, "calc.golden_decision")[0]["decision"] == "skipped"
 
 
 def test_the_answer_is_stripped_before_it_is_recorded_and_returned(chat, both, conn):

@@ -75,6 +75,16 @@ def test_run_tests_records_a_row_and_an_event(gate, conn):
     assert db.list_events(conn, kind="calc.tests_run")[-1]["session_id"] == "the-session"
 
 
+@pytest.mark.parametrize("reason", ["build", "gate", "status", "adopt"])
+def test_run_tests_records_the_reason_it_is_given(gate, conn, reason):
+    """SPEC 5.5 and 6.6: a test run's reason is build, gate or status, and also adopt."""
+    install_surplus(conn)
+    result = gate.run_tests(conn, "monthly_surplus", reason=reason, session_id=SESSION)
+    [row] = [r for r in rows(conn, "test_runs") if r["id"] == result["test_run_id"]]
+    assert row["reason"] == reason
+    assert [p["reason"] for p in payloads(conn, "calc.tests_run")][-1] == reason
+
+
 def test_run_tests_fails_when_a_worked_example_fails(gate, conn, modules_dir):
     write_files(modules_dir / "monthly_surplus", surplus_files(module_py=WRONG_SURPLUS_PY, tests_py=WRONG_SURPLUS_TESTS))
     result = gate.run_tests(conn, "monthly_surplus", reason="build", session_id=SESSION)

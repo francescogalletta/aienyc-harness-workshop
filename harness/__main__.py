@@ -1,13 +1,14 @@
-"""Command line (SPEC 3.6, 4.5, 4.7 and 5.10): `python -m harness check`, `events`, `ground`, `ui`,
-`build`, `modules` and `ask`."""
+"""Command line (SPEC 3.6, 4.5, 4.7, 5.10, 6.7 and 7.7): `python -m harness check`, `events`, `ground`, `ui`,
+`build`, `modules`, `ask`, `adopt`, `replay` and `work`."""
 import argparse
 import json
+import re
 import sys
 import uuid
 from datetime import date
 
 from . import db
-from .config import load_config
+from .config import EXAMPLES_DIR, UNKNOWN_EXAMPLE, load_config
 from .model import get_model, resolve_provider
 
 
@@ -124,6 +125,7 @@ def ui(port: int, browser: bool, max_questions: int) -> int:
         return 1
     address = f"http://127.0.0.1:{server.server_address[1]}/"
     print(f"The grounding interview is at {address}", flush=True)
+    print(f"What the harness did is at {address}work", flush=True)
     print("Press Ctrl+C to stop. An unfinished interview carries on the next time you run this.", flush=True)
     if browser:
         webbrowser.open(address)
@@ -142,6 +144,13 @@ SOME_MISSING = ("Some calculation steps have no tested module yet. "
 NO_MODULES = "No modules are registered yet. Build them with: python -m harness build"
 NONE_BUILT = "No modules are built yet. Build them first with: python -m harness build"
 OUTCOMES = {"built": "built", "reused": "reused", "kept": "already built"}
+UNADOPTED = ("The modules folder has modules that are not registered here: {names}. "
+             "Adopt them first with: python -m harness adopt")
+NOTHING_TO_ADOPT = "Every module folder is already registered."
+ALL_ADOPTED = "Every module folder is registered now."
+SOME_NOT_ADOPTED = ("Some module folders are not registered. Fix them, or rebuild their steps with: "
+                    "python -m harness build")
+REPLAY_DONE = "{passed} of {total} scenarios passed."
 
 
 def terminal_ask(text: str) -> str:
@@ -151,6 +160,17 @@ def terminal_ask(text: str) -> str:
         return input("> ")
     except EOFError:
         return "/quit"
+
+
+def unadopted(conn) -> bool:
+    """Refuse while module folders sit unregistered in the modules folder (SPEC 6.6). True if it did."""
+    from .calc.adopt import candidates
+    from .calc.registry import get_module
+
+    names = [name for name in candidates(conn) if get_module(conn, name) is None]
+    if names:
+        print(UNADOPTED.format(names=", ".join(names)), file=sys.stderr)
+    return bool(names)
 
 
 def build(rebuild: str | None) -> int:
@@ -166,6 +186,8 @@ def build(rebuild: str | None) -> int:
         brief = load_brief(config.brief_dir)
     except ValueError as error:
         print(error, file=sys.stderr)
+        return 1
+    if rebuild is None and unadopted(conn):
         return 1
     calculations = [step for step in process_steps(conn, brief) if step.get("kind") == "calculation"]
     if not calculations and rebuild is None:
@@ -238,6 +260,8 @@ def ask_about_plan(words: list[str]) -> int:
     except ValueError as error:
         print(error, file=sys.stderr)
         return 1
+    if unadopted(conn):
+        return 1
     if not list_modules(conn):
         print(NONE_BUILT, file=sys.stderr)
         return 1
@@ -252,7 +276,110 @@ def ask_about_plan(words: list[str]) -> int:
     return 0
 
 
+def adopt_modules() -> int:
+    """Register module folders that are already on disk, after the person's yes (SPEC 6.7)."""
+    from .calc.adopt import adopt, candidates
+    from .calc.builder import load_brief
+
+    config = load_config()
+    conn = db.connect(config.db_path)
+    db.migrate(conn)
+    session_id = uuid.uuid4().hex
+    try:
+        brief = load_brief(config.brief_dir)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 1
+    if not candidates(conn):
+        print(NOTHING_TO_ADOPT)
+        return 0
+    results = adopt(conn=conn, brief=brief, ask=terminal_ask, say=print, session_id=session_id)
+    if all(result["outcome"] == "adopted" for result in results):
+        print(ALL_ADOPTED)
+        return 0
+    print(SOME_NOT_ADOPTED)
+    return 1
+
+
+def known_example(name: str) -> bool:
+    return bool(re.match(r"^[a-z][a-z0-9_]*$", name)) and (EXAMPLES_DIR / name).is_dir()
+
+
+def unknown_example(name: str) -> None:
+    names = sorted(path.name for path in EXAMPLES_DIR.iterdir() if path.is_dir()) if EXAMPLES_DIR.is_dir() else []
+    print(UNKNOWN_EXAMPLE.format(name=name, names=", ".join(names) or "(none)"), file=sys.stderr)
+
+
+def replay_scenarios(example: str, scenario: str | None, keep: bool) -> int:
+    """Run the scenarios of an example against the configured model (SPEC 6.7)."""
+    from .calc.builder import load_brief
+    from .replay import load_scenarios, run_scenario
+
+    if not known_example(example):
+        unknown_example(example)
+        return 1
+    folder = EXAMPLES_DIR / example
+    try:
+        scenarios = load_scenarios(folder, load_brief(folder / "brief"), only=scenario)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 1
+    passed = 0
+    for each in scenarios:
+        print(f"Scenario {each['name']} ({each['kind']})")
+        try:
+            result = run_scenario(each, example_dir=folder, model=get_model(), keep=keep)
+        except Exception as error:
+            reason = " ".join(str(error).split())
+            result = {"passed": False, "checks": [], "error": f"{type(error).__name__}: {reason}", "folder": None}
+        if result["error"] is not None:
+            print(f"  ERROR  {result['error']}")
+        for check in result["checks"]:
+            print(f"  {'PASS' if check['passed'] else 'FAIL'}  {check['what']} (seen: {check['seen']})")
+        if keep and result["folder"]:
+            where = result["folder"]
+            print(f"  kept: {where}")
+            print(f"  open it with: HARNESS_DB={where}/harness.db HARNESS_BRIEF_DIR={where}/brief "
+                  f"HARNESS_MODULES_DIR={where}/modules python -m harness work")
+        passed += result["passed"]
+    print(REPLAY_DONE.format(passed=passed, total=len(scenarios)))
+    return 0 if passed == len(scenarios) else 1
+
+
+def work(port: int, browser: bool) -> int:
+    """Serve the evidence page, with no model and no interview, until interrupted (SPEC 7.7)."""
+    import webbrowser
+
+    from .ui.server import make_server
+
+    conn = db.connect(load_config().db_path)
+    db.migrate(conn)
+    conn.close()
+    try:
+        server = make_server(None, port)
+    except OSError as error:
+        reason = " ".join(str(error).split())
+        print(f"could not start on port {port}: {reason}", file=sys.stderr)
+        return 1
+    address = f"http://127.0.0.1:{server.server_address[1]}/work"
+    print(f"The evidence page is at {address}", flush=True)
+    print("Press Ctrl+C to stop.", flush=True)
+    if browser:
+        webbrowser.open(address)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopped.")
+    finally:
+        server.server_close()
+    return 0
+
+
 def main() -> int:
+    config = load_config()
+    if config.example is not None and not known_example(config.example):
+        unknown_example(config.example)
+        return 1
     parser = argparse.ArgumentParser(prog="python -m harness")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="prove the setup works end to end")
@@ -269,6 +396,14 @@ def main() -> int:
     commands.add_parser("modules", help="list the registered modules and test them now")
     asking = commands.add_parser("ask", help="ask a question about your plan")
     asking.add_argument("question", nargs="*")
+    commands.add_parser("adopt", help="register module folders that are already on disk")
+    replaying = commands.add_parser("replay", help="replay the scenarios of an example")
+    replaying.add_argument("example")
+    replaying.add_argument("scenario", nargs="?")
+    replaying.add_argument("--keep", action="store_true", help="keep the scratch folder of each scenario")
+    evidence = commands.add_parser("work", help="show what the harness did, in a local web page")
+    evidence.add_argument("--port", type=int, default=8765)
+    evidence.add_argument("--no-browser", action="store_true", help="do not open the page in the browser")
     args = parser.parse_args()
     if args.command == "check":
         return check()
@@ -282,6 +417,12 @@ def main() -> int:
         return ask_about_plan(args.question)
     if args.command == "ui":
         return ui(args.port, not args.no_browser, args.max_questions)
+    if args.command == "adopt":
+        return adopt_modules()
+    if args.command == "replay":
+        return replay_scenarios(args.example, args.scenario, args.keep)
+    if args.command == "work":
+        return work(args.port, not args.no_browser)
     return ground(args.resume, args.max_questions)
 
 

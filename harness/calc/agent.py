@@ -89,6 +89,14 @@ ALREADY_BUILT = ("Step '{target}' already has the module '{module}', with unchan
 NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
+def says_yes(answer: str) -> bool:
+    """Is this a yes to a build request? Lenient, here only: the first word may carry `.,!;:` (SPEC 6.6)."""
+    if answer.lower() in ACCEPT_WORDS:
+        return True
+    words = answer.split()
+    return bool(words) and words[0].lower().rstrip(".,!;:") in ACCEPT_WORDS
+
+
 def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None) -> None:
     """Answer the person's questions until they type /quit.
 
@@ -97,6 +105,8 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
     """
     today = today or date.today()
     today_text = today.isoformat()
+    db.record_event(conn, session_id=session_id, kind="ask.started", actor="harness",
+                    payload={"today": today_text})         # the date is a source for the number check (SPEC 7.2)
     system = _system_prompt(conn, brief, today_text)
     typed = []          # every message the person typed in this session, as typed
     decided = []        # every answer to REQUEST_QUESTION in this session
@@ -204,7 +214,7 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
             answer = ask(REQUEST_QUESTION).strip()
             if answer:
                 break
-        decision = "accepted" if answer.lower() in ACCEPT_WORDS else "declined"
+        decision = "accepted" if says_yes(answer) else "declined"
         decided.append(answer)
         record("ask.module_decision", "person", {"decision": decision, "text": answer})
 

@@ -9,7 +9,7 @@ import step2_helpers as h
 from step2_helpers import DAY, QUESTION, SESSION, Person, TracingModel, make_brief
 
 SETTINGS = ("HARNESS_DB", "HARNESS_MODEL_PROVIDER", "HARNESS_MODEL", "HARNESS_SCRIPT",
-            "HARNESS_RESEARCHER", "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR")
+            "HARNESS_RESEARCHER", "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR", "HARNESS_EXAMPLE")
 
 
 @pytest.fixture(autouse=True)

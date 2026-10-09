@@ -5,9 +5,12 @@ from harness.config import load_config
 
 
 def test_defaults(monkeypatch):
+    # HARNESS_EXAMPLE changes the default database (SPEC 6.2), so a shell that sets it would fail this test.
     monkeypatch.delenv("HARNESS_DB", raising=False)
+    monkeypatch.delenv("HARNESS_EXAMPLE", raising=False)
     config = load_config()
     assert config.db_path == Path("var/harness.db")
+    assert config.example is None
     assert config.model_provider == "auto"
     assert config.model_name == "claude-sonnet-5-5"
     assert config.script_path is None

@@ -12,7 +12,7 @@ def clean_environment(monkeypatch, tmp_path):
     The researcher is the saved reference file, so that no test reaches the web.
     """
     for name in ("HARNESS_DB", "HARNESS_MODEL_PROVIDER", "HARNESS_MODEL", "HARNESS_SCRIPT",
-                 "HARNESS_RESEARCHER", "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR"):
+                 "HARNESS_RESEARCHER", "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR", "HARNESS_EXAMPLE"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HARNESS_DB", str(tmp_path / "harness.db"))
     monkeypatch.setenv("HARNESS_BRIEF_DIR", str(tmp_path / "brief"))

@@ -9,6 +9,9 @@ import re
 from decimal import Decimal
 
 SMALL = 12      # a bare whole number from 0 to this is never checked
+SOURCE_LABELS = ("run", "input", "note", "brief", "person", "today")     # where a number may come from (SPEC 7.1)
+SMALL_LABEL = "small"
+NONE_LABEL = "none"
 
 DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 NUMBER = re.compile(r"(?<![\w.])([$€£]?)(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(k|K|%)?(?![\w%])")
@@ -74,3 +77,39 @@ def unbacked(text: str, sources: list) -> list[str]:
         if not backed and item["written"] not in missing:
             missing.append(item["written"])
     return missing
+
+
+def trace(text: str, sources: list[tuple[str, int | None, object]]) -> list[dict]:
+    """Where each date and number in `text` came from (SPEC 7.1), with the reading of `unbacked`.
+
+    `sources` holds `(label, ref, value)`, the label one of `SOURCE_LABELS`, `ref` a run id or None.
+    """
+    known = [(label, ref, _known(value)) for label, ref, value in sources]
+
+    def label_of(value: Decimal, precision: Decimal, percent: bool) -> tuple[str, int | None]:
+        for label in SOURCE_LABELS:
+            refs = [ref for each, ref, values in known if each == label
+                    and (_near(values, value, precision) or (percent and _near(values, value / 100, precision / 100)))]
+            if refs:
+                return label, refs[-1]          # the latest source of that label wins
+        return NONE_LABEL, None
+
+    items = []
+    for item in _read(text):
+        if item["parts"]:
+            parts = [label_of(Decimal(part), Decimal(1), False) for part in item["parts"] if part > SMALL]
+            if not parts:                       # a year of 12 or below: nothing was ever checked
+                label, run_id = SMALL_LABEL, None
+            elif any(label == NONE_LABEL for label, _ in parts):
+                label, run_id = NONE_LABEL, None
+            else:
+                label = max((found for found, _ in parts), key=SOURCE_LABELS.index)
+                run_id = next(ref for found, ref in parts if found == label)
+        elif item["exempt"]:
+            label, run_id = SMALL_LABEL, None
+        else:
+            label, run_id = label_of(item["value"], item["precision"], item["percent"])
+        written = item["written"]
+        items.append({"text": written, "start": item["position"], "end": item["position"] + len(written),
+                      "source": label, "run_id": run_id if label == "run" else None})
+    return items
