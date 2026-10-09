@@ -16,7 +16,8 @@ Status of each section:
 | 2. Layout | Fixed |
 | 3. Step 0: setup | Fixed, covered by `tests/step0` |
 | 4. Step 1: shared domain | Fixed, covered by `tests/step1` |
-| 5. Steps 2 to 5 | Draft. Each is fixed when its step is built and its tests are written. |
+| 5. Step 2: consistency | Fixed, covered by `tests/step2` |
+| 6. Steps 3 to 5 | Draft. Each is fixed when its step is built and its tests are written. |
 
 ## 1. Ground rules
 
@@ -31,8 +32,8 @@ These hold for every step.
    `harness/model/` may import a provider SDK. Everything else talks to the
    `Model` interface in section 3.2.
 4. **The harness is not tied to an input format.** Raw files are read through
-   source adapters that map them to a canonical shape (section 5, step 2).
-   No calculation reads a raw file.
+   source adapters that map them to a canonical shape (these come in a later
+   step; section 5 has none). No calculation reads a raw file.
 5. **Everything that matters is written to the database.** Nothing the person
    may need to inspect lives only in memory or only in the chat.
 6. **The model that reads web pages never holds the person's financial data.**
@@ -901,20 +902,945 @@ request log to the terminal.
 starts the server, prints the address, opens it in the browser unless told
 not to, and runs until interrupted.
 
-## 5. Steps 2 to 5 (draft)
+## 5. Step 2: consistency
+
+Every number the person sees comes from fixed, tested code. Code is never
+written while a question is being answered. It is written only by an
+explicit build, from the brief, with unit tests and worked examples the
+person has checked by hand. A module is reused before a new one is written.
+
+The harness, not the prompt, enforces five things in this step:
+
+1. A module is registered only when its unit tests and the person's worked
+   examples pass on exactly the files being registered.
+2. A calculation runs only through the gate, which refuses a module that is
+   not registered, whose files have changed, whose tests fail right now, or
+   whose inputs do not fit its spec.
+3. The code writer never sees the worked examples. They are the independent
+   check.
+4. The agent that answers questions cannot put a number in front of the
+   person, or into a module, unless that number came from a module result,
+   a saved input, the brief or the person's own words.
+5. Every build, test run, calculation and refusal is recorded.
+
+Step 2 adds only this. There are no source adapters (ground rule 4 waits for
+a later step), no gates beyond the person checking worked examples, no
+evidence page and no outside references. Terminal only. Standard library
+only: no dependency is added.
+
+**Files.**
+
+| File | Status |
+| --- | --- |
+| `harness/calc/__init__.py` | New. A docstring only; code imports from the files below. |
+| `harness/calc/values.py` | Given (5.1). |
+| `harness/calc/safety.py` | Given, with one change (5.2). |
+| `harness/calc/runner.py` | Given, with one change (5.3). |
+| `harness/calc/registry.py` | New (5.4, 5.5). |
+| `harness/calc/gate.py` | New (5.6). |
+| `harness/calc/builder.py` | New (5.7). |
+| `harness/calc/provenance.py` | New (5.8). |
+| `harness/calc/agent.py` | New (5.9). |
+| `harness/calc/spec_writer.md`, `example_writer.md`, `module_writer.md`, `analyst.md` | Given. The instructions of the four model roles. Never rewritten by a build. |
+| `harness/migrations/0003_calc.sql` | Given (5.5). |
+| `harness/config.py`, `harness/__main__.py` | Changed (5.4, 5.10). |
+| `modules/` | Created by `build`: one folder per module. Commit it with the brief. |
+
+Nothing under `harness/` names the example domain. Modules are built from
+whatever brief is in the brief folder.
+
+### 5.1 Values: `harness/calc/values.py` (given)
+
+Everything that crosses between the harness and a module travels as JSON.
+Exact numbers travel as text, so `0.1 + 0.2` is never
+`0.30000000000000004` on the way.
+
+`TYPES = ("number", "integer", "date", "text", "boolean", "list", "object")`
+are the types an input or an output may have.
+
+- `from_json(value, kind)` turns a JSON value into what `calculate`
+  receives: `number` becomes `Decimal` (from a JSON number or text; commas
+  are removed), `integer` becomes `int`, `date` becomes `datetime.date` (from
+  `YYYY-MM-DD`), `text` stays `str`, `boolean` stays `bool`. `list` and
+  `object` are passed through **as they are**: the values inside them are not
+  converted. A value that does not fit raises `ValueError` with a plain
+  message such as `expected a number, got 'abc'`.
+- `to_json(value)` turns what a module returned into JSON: `Decimal` and
+  `int` become text (`"30000"`, `"4583.33"`), `date` becomes `YYYY-MM-DD`,
+  lists, tuples and dicts are converted item by item. A `float` is converted
+  through its `repr`. Anything else raises `ValueError`.
+- `same(expected, actual) -> bool` compares two JSON values. Numbers, as JSON
+  numbers or as text, match when they differ by at most `TOLERANCE`
+  (`Decimal("0.005")`, half a cent). Lists match item by item, objects key by
+  key with the same keys. Booleans match only booleans.
+
+### 5.2 Safety check: `harness/calc/safety.py` (given, one change)
+
+`check_code(source, also_allow=()) -> list[str]` reads model-written code
+before the harness runs it, and returns why it is refused, one line each,
+each starting `line N: `. An empty list means it may run. It is a check on
+the code, not a sandbox.
+
+It refuses:
+
+- code that is not valid Python;
+- an import of anything outside `ALLOWED_IMPORTS` (`decimal`, `datetime`,
+  `math`, `fractions`, `calendar`, `statistics`) and `also_allow`, and any
+  relative import;
+- the names in `FORBIDDEN_NAMES` (among them `open`, `eval`, `exec`,
+  `getattr`, `print`, `type`, `input`, `__import__`);
+- any attribute that starts with `__`;
+- `global`, `nonlocal`, `class`, `async def`, `with`, `try`, `while` and
+  `lambda`.
+
+**Change.** Add `FORBIDDEN_ATTRIBUTES = {"today", "now", "utcnow"}`. Reaching
+any of them (as in `date.today()`) is refused with
+`line N: uses '<attribute>', which makes the answer depend on when it runs`.
+A calculation must give the same answer every time, so today's date is an
+input like any other.
+
+`tests.py` is checked with `also_allow=("module",)`, so that it can import
+the module it tests.
+
+### 5.3 Runner: `harness/calc/runner.py` (given, one change)
+
+The runner runs one module in a process of its own, so that a module that
+misbehaves cannot disturb the harness, and what it prints is never mistaken
+for a result.
+
+```
+<python> -I harness/calc/runner.py <module folder>      one JSON request on standard input:
+    {"action": "test"}                                  run the unit tests and the worked examples
+    {"action": "call", "inputs": {...}}                 run calculate(**inputs)
+```
+
+It writes one JSON object to standard output:
+
+- `{"ok": true, "output": <JSON>}` for a call;
+- `{"ok": true, "report": <report>}` for a test run;
+- `{"ok": false, "error": "<Type>: <message>"}` when the module cannot be
+  loaded, the call fails, or the module raises.
+
+A **report** is
+
+```
+{"tests":  [{"name": "test_x", "passed": true} | {"name", "passed": false, "error": "<traceback>"}],
+ "golden": [{"index": 1, "passed": true, "got": <JSON>} | {"index", "passed": false, "got"} | {"index", "passed": false, "error"}],
+ "passed": true | false}
+```
+
+`tests` holds every top-level callable in `tests.py` whose name starts with
+`test_`, in name order. `golden` holds each example of `golden.json` in
+order, numbered from 1, checked with `same(expected, got)`. `passed` is true
+only when there is at least one test, every test passed, and every example
+passed.
+
+A call checks the inputs against `spec.json`: no input missing, none extra,
+each converted with `from_json`. Anything printed by the module is thrown
+away.
+
+**Change.** After `calculate` returns, `call` checks the result against the
+spec: `from_json(result_as_json, spec["output"]["type"])`. If that fails it
+raises `ValueError("the result does not fit the spec: <reason>")`. So a
+module that returns a list where its spec promises a number fails its worked
+examples, and the gate never hands out such a result.
+
+### 5.4 Modules on disk
+
+`Config` gains one field, read like the others:
+
+| Variable | Default | Field | Meaning |
+| --- | --- | --- | --- |
+| `HARNESS_MODULES_DIR` | `modules` | `modules_dir: Path` | Where the module folders live |
+
+Every function below that needs the folder reads `load_config().modules_dir`
+at the time of the call.
+
+A module named `N` lives in `<modules_dir>/N/` and holds exactly four files:
+
+| File | Holds |
+| --- | --- |
+| `spec.json` | The spec, below |
+| `golden.json` | The worked examples the person confirmed |
+| `module.py` | One top-level function `calculate`, whose parameters are the spec's input names |
+| `tests.py` | Plain `test_*` functions with `assert`, and `from module import calculate` |
+
+The harness removes `__pycache__` from a module folder after each runner
+process, so the folder holds exactly these four files.
+
+`spec.json` and `golden.json` are written as
+`json.dumps(value, indent=2, ensure_ascii=False) + "\n"`, in UTF-8.
+`module.py` and `tests.py` are written exactly as the model sent them, in
+UTF-8.
+
+**The spec** is an object with exactly these keys, in this order:
+
+```
+{"name":        "snake_case name of what it works out",
+ "description": "one sentence",
+ "step_id":     "the id of the brief step it was built for",
+ "method":      "the step's method, as in the brief",
+ "formula":     "one plain line, using the input names",
+ "inputs":      [{"name": "snake_case", "type": <one of TYPES>, "description": "..."}],
+ "output":      {"type": <one of TYPES>, "description": "..."}}
+```
+
+Keys the model sends beyond these, at either level, are dropped before the
+spec is checked or written.
+
+**`validate_spec(spec) -> list[str]`**, in `registry.py`, returns what is
+wrong; an empty list means the spec is acceptable. It runs in two stages; a
+stage that finds errors returns them without running the next.
+
+Stage 1:
+
+| Problem | Message |
+| --- | --- |
+| Not a dict | `the spec must be an object` (the only error returned) |
+| A key is absent | `missing: <key>`, one per key, in the order above |
+
+Stage 2:
+
+| Problem | Message contains |
+| --- | --- |
+| `name` does not match `^[a-z][a-z0-9_]{0,39}$` | `name` |
+| `description`, `step_id`, `method` or `formula` is not a non-empty string | the key |
+| `inputs` is not a non-empty list | `inputs` |
+| An input is not an object with `name`, `type` and `description` | `input` |
+| An input name does not match `^[a-z][a-z0-9_]*$`, or is a Python keyword | the name in single quotes, and `name` |
+| Two inputs share a name | `unique` |
+| An input type is not one of `TYPES` | the name in single quotes, and `type` |
+| An input description is not a non-empty string | the name in single quotes, and `description` |
+| `output` is not an object whose `type` is one of `TYPES` and whose `description` is a non-empty string | `output` |
+
+**`input_problems(spec, inputs) -> list[str]`**, in `registry.py`, says
+whether a set of inputs fits a spec. It is used by the builder for the
+worked examples and by the gate for every call. If `inputs` is not a dict it
+returns `["the inputs must be an object"]`. Otherwise, in this order: one
+`missing input '<name>'` per spec input that is absent (spec order), one
+`unexpected input '<name>'` per extra key (in the order given), and one
+`input '<name>': <reason>` per value that `from_json` refuses (spec order).
+
+**The fingerprint** of a module folder is the SHA-256 of its four files, in
+the fixed order `spec.json`, `golden.json`, `module.py`, `tests.py`. For each
+file, the hash is fed the bytes of `f"{file name}\n{length in bytes}\n"`
+(UTF-8) and then the file's raw bytes. The fingerprint is the hex digest, 64
+characters. `fingerprint(folder) -> str | None` returns `None` when the
+folder or any of the four files is missing. The folder's own name and path
+are not part of it, so the same files give the same fingerprint wherever
+they are.
+
+### 5.5 Registry: `harness/calc/registry.py` and `0003_calc.sql`
+
+The migration `0003_calc.sql` creates five tables:
+
+| Table | Columns | One row per |
+| --- | --- | --- |
+| `test_runs` | `id`, `ts`, `module`, `fingerprint`, `reason` (`build`, `gate` or `status`), `passed` (1 or 0), `report` (JSON) | test run, whatever the result |
+| `modules` | `name` (key), `fingerprint`, `spec` (JSON), `test_run_id`, `registered_at`, `session_id` | registered module |
+| `step_modules` | `step_id` (key), `module` | brief step that has a module |
+| `calc_runs` | `id`, `ts`, `session_id`, `module`, `fingerprint`, `test_run_id`, `inputs` (JSON), `assumptions` (JSON list), `expected` (text), `output` (JSON) | calculation the gate ran |
+| `inputs` | `name` (key), `value` (JSON), `note`, `ts`, `session_id` | input the person gave, kept between sessions |
+
+All times are UTC, ISO 8601, as in `record_event`. `modules.test_run_id`
+and `calc_runs.test_run_id` refer to `test_runs.id`; `step_modules.module`
+refers to `modules.name`. A rebuild replaces a module's row; the
+`test_runs` and `calc_runs` rows that name the old fingerprint stay, so
+history is never lost.
+
+Functions, all taking an open connection:
+
+- `module_dir(name) -> Path`: `load_config().modules_dir / name`.
+- `get_module(conn, name) -> dict | None`: the registered module as
+  `{"name", "fingerprint", "spec" (a dict), "test_run_id", "registered_at", "steps"}`,
+  where `steps` is the sorted list of step ids mapped to it; `None` if it is
+  not registered.
+- `list_modules(conn) -> list[dict]`: every registered module, in that shape,
+  ordered by name.
+- `step_map(conn) -> dict[str, str]`: step id to module name, ordered by
+  step id.
+- `file_status(conn, name) -> str`: `missing` when `fingerprint` of its
+  folder is `None`, `unchanged` when it equals the registered fingerprint,
+  `changed` otherwise. An unregistered name raises `ValueError`.
+- `map_step(conn, step_id, name) -> None`: inserts or replaces the
+  `step_modules` row. The module must be registered, else `ValueError`.
+  It records no event (the builder does).
+- `register(conn, name, *, step_id, test_run_id, session_id) -> str`.
+
+**`register`** is the only way a module enters the registry. It checks, in
+this order, and raises `ValueError` with a plain reason at the first failure:
+
+1. all four files are in `module_dir(name)`;
+2. `check_code` finds nothing in `module.py`, nor in `tests.py` with
+   `also_allow=("module",)`;
+3. `spec.json` passes `validate_spec` and its `name` is `name`;
+4. `golden.json` is a list of at least `MIN_CONFIRMED = 2` examples
+   (`MIN_CONFIRMED` is defined in `registry.py`; the builder imports it);
+5. the test run `test_run_id` exists, is for `name`, passed, and its
+   fingerprint equals the folder's fingerprint now.
+
+Then, in one transaction, it inserts or updates the `modules` row (with the
+spec as JSON, `registered_at` now) and inserts or replaces the
+`step_modules` row for `step_id`. Use `INSERT ... ON CONFLICT ... DO UPDATE`,
+not `INSERT OR REPLACE`, so that foreign keys hold. It records
+`calc.module_registered` and returns the fingerprint.
+
+### 5.6 Gate: `harness/calc/gate.py`
+
+The gate is the only way a calculation runs.
+
+`TIMEOUT = 30` seconds, for every runner process.
+
+**`run_tests(conn, name, *, reason, session_id, folder=None) -> dict`** runs
+the unit tests and the worked examples of the module in `folder` (default
+`module_dir(name)`). It takes the folder's fingerprint first. If that is
+`None` the runner is not started and the report is
+`{"tests": [], "golden": [], "passed": false, "error": "files missing"}`.
+Otherwise it starts `[sys.executable, "-I", <path of runner.py>, <folder>]`
+with `{"action": "test"}` on standard input and `TIMEOUT`. The report is the
+runner's report, or, when the runner did not give one,
+`{"tests": [], "golden": [], "passed": false, "error": <reason>}` where the
+reason is the runner's `error`, `the tests did not finish within 30 seconds`,
+or `the runner gave no readable answer: <standard error, on one line>`.
+
+It always inserts a `test_runs` row (fingerprint `""` when files are
+missing), records `calc.tests_run`, and returns
+`{"test_run_id", "passed", "fingerprint", "report"}`.
+
+**`call(conn, name, inputs, *, assumptions, expected, session_id) -> dict`**
+runs a registered module. It checks, in this order, and at the first failure
+records `calc.refused` and raises `Refused` (a subclass of `Exception`) whose
+message is the reason:
+
+| Check | Reason |
+| --- | --- |
+| `name` is registered | `NOT_REGISTERED` |
+| `file_status` is `unchanged` | `FILES_CHANGED` |
+| `assumptions` is a list of strings (it may be empty) and `expected` is a string that is not empty once stripped of spaces and line breaks (so `"  "` is empty) | `NO_EXPECTATION` |
+| `input_problems(spec, inputs)` is empty | `BAD_INPUTS`, with the problems joined by `; ` |
+| `run_tests(..., reason="gate")` passes now | `TESTS_FAIL` |
+
+Then it runs the module with `{"action": "call", "inputs": inputs}` and
+`TIMEOUT`. If the runner answers `ok: false`, times out or gives no readable
+answer, the gate records `calc.run_failed` (and not `calc.refused`) and
+raises `Refused` with `RUN_FAILED`. The error in it is the runner's `error`,
+`the module did not finish within 30 seconds`, or
+`the runner gave no readable answer: <standard error, on one line>`.
+Otherwise it inserts a `calc_runs` row (the inputs as given,
+the assumptions, the expectation, the output, the registered fingerprint and
+the test run it just made), records `calc.run`, and returns
+`{"run_id", "module", "output", "test_run_id", "fingerprint"}`.
+
+```
+NOT_REGISTERED = "There is no registered module called '{name}'."
+FILES_CHANGED  = "The files of '{name}' are not the ones that passed their tests. Rebuild it with: python -m harness build --rebuild {name}"
+NO_EXPECTATION = "Before running '{name}', give the assumptions (a list of sentences, which may be empty) and say what you expect the result to be."
+BAD_INPUTS     = "The inputs do not fit '{name}': {problems}"
+TESTS_FAIL     = "The tests of '{name}' do not pass right now, so it will not run."
+RUN_FAILED     = "'{name}' stopped with an error: {error}"
+```
+
+### 5.7 Builder: `harness/calc/builder.py`
+
+The builder turns each calculation step of the brief into a registered
+module, or records why it could not.
+
+```python
+load_brief(folder) -> dict
+build(*, model, conn, brief, ask, say=print, session_id, rebuild=None) -> list[dict]
+```
+
+**`load_brief(folder)`** reads `<folder>/domain_brief.json`. It raises
+`ValueError(NO_BRIEF)` if the file is missing, and `ValueError(DRAFT_BRIEF)`
+if `meta.status` is not `confirmed`. It returns the brief without its `meta`
+key. `build` and the agent are given a brief in that form (`build` also
+drops `meta` if it is there).
+
+`ask` and `say` work as in the interview (4.4). `build` returns one result
+per step it handled, in brief order:
+
+```
+{"step": "s1", "outcome": "built" | "reused" | "kept" | "not_built", "module": "name" | None, "reason": ""}
+```
+
+`module` is set for `built`, `reused` and `kept`, and is `None` for
+`not_built`. `reason` is empty except for `not_built`, where it is one of the
+`REASON_*` strings below.
+
+**Which steps.** Without `rebuild`, the builder goes through the brief's
+`process` in order and handles each step whose `kind` is `calculation`:
+
+- If `step_map` maps the step to a module whose `file_status` is
+  `unchanged`, the outcome is `kept`. No model is called.
+- If it maps the step to a module whose files are `changed` or `missing`,
+  that module is rebuilt (below), as with `rebuild`.
+- Otherwise a new module is built.
+
+With `rebuild=NAME` only that module is handled. `NAME` must be registered
+(else `ValueError` with the gate's `NOT_REGISTERED` message), and the step is
+the one in its spec's `step_id`, which must be in the brief (else
+`ValueError` naming the step in single quotes). For a rebuild that `build`
+starts itself, the step is the one being handled. A rebuild goes through the
+same three phases.
+Its spec is not offered `reuse_module`, its spec's `name` is set to `NAME`
+whatever the model sent, and its new worked examples replace the old ones.
+
+Every step handled starts with `say(STEP_HEADER)`, with the brief step's
+`id` and `name`; a `kept` step gets it too. A step that fails does not stop
+the build: the next step goes ahead. Steps stay independent: when a step
+needs an earlier step's result, its module takes that result as an ordinary
+input, so it can be built even if the earlier step was not.
+
+**The three phases.** Each phase is a separate conversation with the model:
+its own system prompt, its own messages, starting from one user message.
+Within a phase the model may try up to `MAX_ATTEMPTS = 3` times; every model
+call counts as one attempt. In every phase:
+
+- A reply with no tool call adds the assistant text and the user message
+  `USE_TOOL` (with the phase's tool names, joined by ` or `), and counts.
+- Only the first tool call of a reply is handled. Any other call in the same
+  reply gets the error result `ONE_CALL`. A first call to a tool the phase
+  does not offer gets the error result `There is no tool called <name> here.`
+- A refused call adds the assistant message and an error tool result holding
+  the feedback, and the model is called again.
+
+The user message of each phase is made of sections. A section is a line
+`[<title>]` followed by the value: text as it is, anything else as
+`json.dumps(value, indent=2, ensure_ascii=False)`. Sections are separated by
+one blank line.
+
+**Phase 1, the spec.** System prompt: `spec_writer.md`. Tools, in this order:
+`propose_spec` and `reuse_module` (only `propose_spec` on a rebuild).
+Sections: `step` (the brief step), `brief` (the whole brief), `registered
+modules` (a list of the specs of the registered modules whose files are
+unchanged, ordered by module name, without the one being rebuilt; `[]` when
+there is none), and on a
+rebuild `current spec`.
+
+- `propose_spec(name, description, method, formula, inputs, output)`, with
+  the input schema `SPEC_SCHEMA` below. The harness drops unknown keys,
+  sets `step_id` to the step's id (and `name` on a rebuild), and checks it
+  with `validate_spec`. A new module whose name is already registered also
+  gets the error `NAME_TAKEN`. Errors give the result `SPEC_REJECTED`
+  followed by each error as a `- ` bullet on its own line, and
+  `calc.spec_rejected`. An accepted spec records `calc.spec_proposed` and the
+  builder moves to phase 2.
+- `reuse_module(module, reason)`. Accepted when `module` is registered and
+  its files are unchanged. Then `map_step(conn, step, module)`, record
+  `calc.module_reused`, and the outcome is `reused`: the step is done.
+  Otherwise the result is the error `CANNOT_REUSE`.
+
+Three refused attempts end the step: `not_built`, `REASON_SPEC`.
+
+The tool input schemas, in `builder.py` (each property may also carry a
+`description` for the model; tool descriptions are free text):
+
+```python
+_TEXT = {"type": "string"}
+_TYPE = {"type": "string", "enum": list(TYPES)}
+SPEC_SCHEMA = {"type": "object", "properties": {
+    "name": _TEXT, "description": _TEXT, "method": _TEXT, "formula": _TEXT,
+    "inputs": {"type": "array", "items": {"type": "object", "properties": {
+        "name": _TEXT, "type": _TYPE, "description": _TEXT}, "required": ["name", "type", "description"]}},
+    "output": {"type": "object", "properties": {"type": _TYPE, "description": _TEXT},
+               "required": ["type", "description"]}},
+    "required": ["name", "description", "method", "formula", "inputs", "output"]}
+REUSE_SCHEMA = {"type": "object", "properties": {"module": _TEXT, "reason": _TEXT},
+                "required": ["module", "reason"]}
+EXAMPLES_SCHEMA = {"type": "object", "properties": {"examples": {"type": "array", "items": {
+    "type": "object", "properties": {"inputs": {"type": "object"}, "expected": {}, "working": _TEXT},
+    "required": ["inputs", "expected", "working"]}}}, "required": ["examples"]}
+CODE_SCHEMA = {"type": "object", "properties": {"module_py": _TEXT, "tests_py": _TEXT},
+               "required": ["module_py", "tests_py"]}
+```
+
+The tools are named `propose_spec`, `reuse_module`, `propose_examples` and
+`write_module`.
+
+**Phase 2, the worked examples.** System prompt: `example_writer.md`. One
+tool, `propose_examples(examples)`, where `examples` is a list of objects
+with `inputs` (an object), `expected` (any JSON value) and `working` (a
+string), all required. Sections: `spec`, then `step`.
+
+The examples are refused, with `EXAMPLES_REJECTED` followed by `- ` bullets,
+and `calc.examples_rejected`, when:
+
+- there are fewer than `MIN_EXAMPLES = 3` (`at least 3 examples are needed`);
+- example k is not an object with `inputs`, `expected` and a non-empty
+  `working` (`example k: ...`);
+- `input_problems(spec, inputs)` finds anything (`example k: <problem>`);
+- `from_json(expected, output type)` refuses it
+  (`example k: the expected answer: <reason>`).
+
+Accepted examples record `calc.examples_proposed`. Three refused attempts
+end the step: `not_built`, `REASON_EXAMPLES`.
+
+**The person checks every example.** `say(EXAMPLES_INTRO)`, then for each
+example k of n, `say` this block and `ask(CONFIRM_EXAMPLE)`:
+
+```
+Example k of n
+  <input name>: <value>          one line per input, in spec order
+  Working: <working>
+  Proposed answer: <expected>
+```
+
+A value is shown as it is when it is text, and as compact JSON
+(`json.dumps(value, ensure_ascii=False)`) otherwise. The answer is stripped:
+
+| Answer | Meaning |
+| --- | --- |
+| `/accept` | Confirmed, with the proposed answer. Decision `accepted`. |
+| `/skip` | Left out. Decision `skipped`. |
+| `/quit` | Stop the whole build now (below). |
+| empty | Ask again. |
+| anything else | The corrected answer, read by the output type (below). Decision `corrected`. If it cannot be read, `say(NOT_A_VALUE)` and ask again. |
+
+A typed answer is read like this. For `number` and `integer`, spaces, `,`,
+`$`, `€` and `£` are removed first; a `number` is then read with `Decimal`
+and must be finite, and is kept as `to_json` gives it; an `integer` is read
+with `int` and kept as text. A `date` must be `YYYY-MM-DD`. A `boolean` is
+`yes`, `y` or `true` for true and `no`, `n` or `false` for false, in any
+case. `text` is kept as typed. A `list` or `object` must be JSON of that
+kind.
+
+The person's word is final: the proposed answer is only a suggestion. Each
+decision records `calc.golden_decision`. When fewer than
+`MIN_CONFIRMED = 2` examples are confirmed (accepted or corrected), the step
+ends: `not_built`, `REASON_CONFIRMED`.
+
+**Phase 3, the code.** System prompt: `module_writer.md`. One tool,
+`write_module(module_py, tests_py)`, both strings, both required. One
+section: `spec`. The writer sees the spec and nothing else: never the brief,
+never the worked examples.
+
+Before the first attempt the builder empties the staging folder
+`<modules_dir>/_build/<name>/` and writes `spec.json` (the accepted spec)
+and `golden.json` there. `golden.json` is the list of confirmed examples, in
+the order shown, each `{"inputs", "expected", "working", "decision"}`, where
+`expected` is the person's answer and `decision` is `accepted` or
+`corrected`. (A module name cannot start with `_`, so the staging folder
+never clashes with a module.)
+
+Each attempt records `calc.code_written`, then checks, collecting every
+problem:
+
+- both strings are non-empty;
+- `check_code(module_py)`, each problem prefixed `module.py: `;
+- `check_code(tests_py, also_allow=("module",))`, each prefixed `tests.py: `;
+- `module.py` defines a top-level `def calculate` with no `*args` or
+  `**kwargs`, whose parameter names (positional and keyword-only) are exactly
+  the spec's input names: else
+  `module.py must define calculate with exactly these parameters: <names, in spec order, joined by ", ">`;
+- `tests.py` defines at least one top-level function whose name starts with
+  `test_`: else `tests.py must hold at least one test_ function`.
+
+The empty-file problems are `module.py is empty` and `tests.py is empty`.
+An empty file is valid Python, so the other checks on it still run. If a file
+does not parse, only its syntax problem is reported for it (the `calculate`
+and `test_` checks are skipped). The parameter names are compared as a set,
+so their order does not matter; the message lists them in spec order.
+
+Problems give the result `CODE_REJECTED` followed by `- ` bullets, and
+`calc.code_rejected`. With none, the builder writes `module.py` and
+`tests.py` into the staging folder, `say(RUNNING_TESTS)`, and calls
+`run_tests(conn, name, reason="build", session_id, folder=<staging>)`.
+
+If the run fails, the result is `TESTS_FAILED` followed by these lines, in
+this order:
+
+- when the report has `error`: `- The run stopped: <error>`;
+- per failing unit test: `- <test name> failed:` and then its `error` in
+  full, on the following lines;
+- per failing example: `- ` and `EXAMPLE_FAILED`, with `{index}` the
+  example's position in `golden.json` (the confirmed examples only, from 1,
+  so it differs from the number shown to the person when one was skipped)
+  and the inputs as compact JSON, and when the example has `error`, a space and
+  `It stopped with: <error>`.
+
+The expected answer and the module's actual answer for an example are never
+sent back: the writer learns only which example failed and on what inputs.
+
+If the run passes, the builder removes `<modules_dir>/<name>/` if it exists,
+moves the staging folder there, and calls `register(conn, name,
+step_id=<the step>, test_run_id=<the passing run>, session_id)`. The outcome
+is `built`. (The fingerprint does not depend on the folder, so the run made
+in staging is the run the module is registered on.)
+
+Three failed attempts end the step: `not_built`, `REASON_CODE`. The staging
+folder is left as it is, so the person can look at the last attempt.
+
+**When the code and the examples disagree.** A worked example can be wrong
+too. So when the step ends with `REASON_CODE` and the last run's report has
+failing examples, the builder tells the person (never the writer): it calls
+`say(EXAMPLES_DISAGREE)` once, then for each failing example, in order,
+`say(DISAGREEMENT)` with the example's inputs and the confirmed answer as
+compact JSON, and `{got}` as the code's answer as compact JSON, or
+`an error` when the example has no `got`.
+
+**Partial failure.** Nothing is registered and no step is mapped unless
+phase 3 passes. A failed rebuild leaves the registered module, its files and
+its mapping exactly as they were. Every step that does not end in `built`,
+`reused` or `kept` records `calc.step_not_built`.
+
+**Stopping.** `/quit` (and the end of input, in the terminal) stops the
+build at once. The current step is `not_built` with `REASON_STOPPED`, and the
+steps after it are not in the result. What was registered before stays.
+
+**A model call that raises** is not caught: the exception leaves `build`.
+What was registered before stays.
+
+**The order of model calls**, which a scripted model follows: for each step
+in brief order that is not `kept`, the spec phase (one to three calls); then,
+unless it ended there, the example phase (one to three calls); then the
+person's answers; then, unless it ended there, the code phase (one to three
+calls). A step built at the first try of every phase takes exactly three
+calls: `propose_spec`, `propose_examples`, `write_module`. A reused step
+takes one.
+
+The fixed strings:
+
+```
+MAX_ATTEMPTS = 3
+MIN_EXAMPLES = 3
+MIN_CONFIRMED = 2       # defined in registry.py (5.5); builder.py imports it
+NO_BRIEF          = "There is no brief yet. Write one with: python -m harness ground"
+DRAFT_BRIEF       = "The brief is still a draft. Confirm it first with: python -m harness ground"
+STEP_HEADER       = "Step {id}: {name}"
+USE_TOOL          = "[harness] Reply only by calling {tools}."
+ONE_CALL          = "Only one tool call is handled per reply. This one was ignored."
+SPEC_REJECTED     = "The spec was not accepted. Fix these and propose it again:"
+NAME_TAKEN        = "a module called '{name}' already exists: reuse it, or choose another name"
+CANNOT_REUSE      = "There is no registered module called '{name}' with unchanged files. Propose a spec instead."
+EXAMPLES_REJECTED = "The examples were not accepted. Fix these and propose them again:"
+EXAMPLES_INTRO    = "Check these worked examples for {name}: {description} Your answers become the check its code must pass."
+CONFIRM_EXAMPLE   = "Type /accept if the answer is right, type the right answer, or type /skip to leave this example out. /quit stops the build."
+NOT_A_VALUE       = "That could not be read as {kind}. Type /accept, the right answer, or /skip."
+CODE_REJECTED     = "The code was not accepted. Fix these and write both files again:"
+RUNNING_TESTS     = "  (running the tests)"
+TESTS_FAILED      = "The code was run and did not pass. Fix it and write both files again:"
+EXAMPLE_FAILED    = "Example {index} failed. Its inputs were: {inputs}"
+EXAMPLES_DISAGREE = "The code and these worked examples disagree. One of them is wrong. Check each by hand: if the example was wrong, run the build again and type the right answer."
+DISAGREEMENT      = "  With {inputs} you confirmed {expected}, and the code gives {got}."
+REASON_SPEC       = "no acceptable spec after 3 attempts"
+REASON_EXAMPLES   = "no acceptable examples after 3 attempts"
+REASON_CONFIRMED  = "fewer than 2 examples were confirmed"
+REASON_CODE       = "the code did not pass after 3 attempts"
+REASON_STOPPED    = "stopped by the person"
+KIND_WORDS = {"number": "a number", "integer": "a whole number", "date": "a date (YYYY-MM-DD)",
+              "boolean": "yes or no", "text": "text", "list": "a JSON list", "object": "a JSON object"}
+```
+
+`{kind}` in `NOT_A_VALUE` is the entry of `KIND_WORDS` for the output type.
+
+`MIN_CONFIRMED` lives in `registry.py`, and `builder.py` imports it.
+`ALL_BUILT` and `SOME_MISSING` (5.10) live in `__main__.py`.
+
+### 5.8 Number check: `harness/calc/provenance.py`
+
+The agent must never do arithmetic. The harness checks this on everything
+the agent sends out: every number must already be known. The rule is meant
+to be explained in one minute.
+
+**`unbacked(text: str, sources: list) -> list[str]`** returns the numbers in
+`text` that no source backs, as they are written in `text`, in order of
+appearance, each once. A source that is not a string is first turned into
+text with `json.dumps(value, ensure_ascii=False)`.
+
+**Reading numbers.** The same reading applies to `text` and to every source.
+
+1. Dates first. Every match of `\b\d{4}-\d{2}-\d{2}\b` is a date. It is read
+   as three whole numbers: year, month and day. Its characters are then
+   blanked, so they are not read again.
+2. Then numbers, with this pattern:
+
+   ```
+   (?<![\w.])([$€£]?)(\d{1,3}(?:,\d{3})+|\d+)(?:\.(\d+))?(k|K|%)?(?![\w%])
+   ```
+
+   A currency sign before the number is ignored. Commas between groups of
+   three digits are thousands separators. `k` or `K` multiplies by 1000.
+   `%` marks a percentage. A minus sign is not part of the number: signs
+   are ignored. A number glued to a letter, as in `s1`, `1st` or `3rd`, is
+   not read.
+
+**Precision.** A number's precision is 1 for a whole number, `0.1` for one
+decimal, `0.01` for two, and so on; with `k` it is 1000 times that. So
+`4.6k` means 4600 to the nearest 100.
+
+**Backed.** Each source gives a set of known values: every number read from
+it, every part of every date in it, and for a percentage both its value and
+its value divided by 100 (`50%` gives 50 and 0.5).
+
+A number in `text` is backed when some known value is within half its
+precision of it. For a percentage, either its value or its value divided by
+100 (with the precision divided by 100) may match. So a module result of
+`4583.333` backs `4,583.33`, `4,583` and `4.6k`, but not `4,600`; and a
+result of `0.5` backs `50%`.
+
+A date in `text` is backed when each of its three parts is backed or exempt.
+
+**Exempt.** A whole number from 0 to `SMALL = 12` written bare (no currency
+sign, no decimals, no `k`, no `%`) is never checked. This covers list
+numbering, counts like "3 payments", months and most days in dates.
+
+**What it deliberately does not catch**, to be said out loud in the
+workshop: a small whole number worked out in the head (0 to 12); numbers
+written in words ("three thousand"); `m` or `bn` suffixes and decimal commas
+(`12,5`); a number that is right but used with the wrong meaning, or that
+equals some known number by coincidence; a date whose day is 12 or less
+worked out in the head, as long as its year is known; and anything about
+signs. It is a tripwire for made-up arithmetic, not a proof.
+
+### 5.9 Agent: `harness/calc/agent.py`
+
+The agent answers the person's questions about their plan. It runs modules
+through the gate and saves what the person tells it. It never works a
+number out itself.
+
+```python
+run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None) -> None
+```
+
+`brief` is as `load_brief` returns it. `today` is a `datetime.date`,
+default `date.today()`.
+
+**System prompt.** The text of `analyst.md`, with `{context}` replaced by
+these sections (same format as 5.7), in this order:
+
+| Section | Holds |
+| --- | --- |
+| `today` | `today` as `YYYY-MM-DD` |
+| `goal` | the brief's goal |
+| `particulars` | the brief's particulars |
+| `process` | the brief's process steps |
+| `modules` | for every registered module, by name: `{"steps": [...], "spec": {...}}` |
+| `saved inputs` | every row of `inputs`: `{name: {"value": ..., "note": ...}}`, `{}` when none |
+
+The context is made once, when the session starts.
+
+**Tools**, in this order:
+
+```python
+RUN_MODULE_SCHEMA = {"type": "object", "properties": {
+    "module": {"type": "string"}, "inputs": {"type": "object"},
+    "assumptions": {"type": "array", "items": {"type": "string"}}, "expected": {"type": "string"}},
+    "required": ["module", "inputs", "assumptions", "expected"]}
+SAVE_INPUT_SCHEMA = {"type": "object", "properties": {
+    "name": {"type": "string"}, "value": {"type": "string"}, "note": {"type": "string"}},
+    "required": ["name", "value", "note"]}
+```
+
+named `run_module` and `save_input`. The assumptions and the expectation are
+recorded with the run. They are never shown to the person, so the number
+check does not read them.
+
+**Sources** for the number check, read afresh at each check:
+
+- the brief (as given to `run_agent`);
+- `today` as `YYYY-MM-DD`;
+- every message the person typed in this session, as recorded in
+  `ask.message` (stripped; including `question`);
+- the `value` of every row of `inputs`, from any session;
+- the `inputs` and `output` of every `calc_runs` row of this session.
+
+**The loop.**
+
+1. The first person message is `question`, used as given; if it is empty, it
+   is `ask(OPENING)`, and an empty or `/quit` answer to that ends the session
+   at once. Afterwards, whenever the harness waits for the person, it calls
+   `ask(shown)`, where `shown` is the agent's last reply, `WITHHELD` or
+   `TOO_MANY`. Every answer typed to `ask` is stripped, and the stripped text
+   is what is recorded and used from then on. `/quit` ends the session and
+   `run_agent` returns; an empty answer asks again with the same text.
+   Otherwise every person message, the first one too, records `ask.message`
+   with its text, and is added as a user message, followed by a blank line
+   and `WITHHELD_NOTE` when the previous reply was withheld.
+2. Call the model, after `say("  (thinking)")`, with the two tools. At most
+   `MAX_CALLS = 10` model calls follow one person message. When the limit is
+   reached, record `ask.stopped` and wait for the person with
+   `ask(TOO_MANY)`.
+3. **If it called tools**, its text is not shown, so the number check does
+   not read it. Each call is handled in
+   order, and the assistant message and all results are added together:
+   - `run_module`: if `unbacked(json.dumps(inputs), sources)` is not empty,
+     the result is the error `INPUTS_UNBACKED` and `ask.correction` is
+     recorded (reason `run_module`); the gate is not called. Otherwise
+     `say("  (running <module>)")` and `gate.call(...)`. Success gives the
+     result `json.dumps({"module", "run_id", "output"})`. `Refused` gives an
+     error result holding its message.
+   - `save_input`: the name must match `^[a-z][a-z0-9_]*$` (else the error
+     `BAD_NAME`) and the value must not be empty (else the error
+     `EMPTY_VALUE`). If `unbacked(value, sources)` is not empty, the error
+     `INPUTS_UNBACKED` and `ask.correction` (reason `save_input`). Otherwise
+     the row is inserted or replaced (value stored as `json.dumps(value)`),
+     `ask.input_saved` is recorded, and the result is `SAVED`.
+   - Any other tool gets the error `There is no tool called <name> here.`
+4. **If its text is empty**, add `EMPTY_REPLY` as a user message.
+5. **If its text has unbacked numbers** and no reply to this person message
+   has been sent back yet, record `ask.correction` (reason `reply`), add the
+   text as an assistant message and `NUMBERS_CORRECTION` as a user message.
+   The person sees nothing.
+6. **If its text has unbacked numbers again**, record `ask.withheld`, add the
+   text as an assistant message, and wait for the person with
+   `ask(WITHHELD)`. The reply is never shown.
+7. **Otherwise** record `ask.reply`, add it as an assistant message and wait
+   for the person with `ask(reply)`.
+
+`{numbers}` in the messages below is the list from `unbacked`, joined by
+`, `.
+
+```
+MAX_CALLS = 10
+OPENING            = "What would you like to work out?"
+NUMBERS_CORRECTION = "[harness] Your reply was not shown. These numbers did not come from a module result in this conversation, a saved input, the brief or the person's own words: {numbers}. Do not work numbers out yourself: run a module, or leave the number out. Then reply again."
+WITHHELD           = "(The answer was held back, because it contained numbers that no tested module produced: {numbers}.)"
+WITHHELD_NOTE      = "[harness] Your last reply was not shown to the person, because it contained numbers that no module produced: {numbers}."
+INPUTS_UNBACKED    = "These numbers did not come from the person, the brief, a saved input or a module result: {numbers}. Ask the person, or run the module that produces them."
+EMPTY_REPLY        = "[harness] Your reply was empty. Ask the person for what you need, or give your answer."
+TOO_MANY           = "(The harness stopped working on this, because it took too many steps. Try asking in a simpler way.)"
+BAD_NAME           = "The name must be in snake_case, such as monthly_income."
+EMPTY_VALUE        = "The value is empty."
+SAVED              = "Saved."
+```
+
+### 5.10 Command line
+
+All three commands run `migrate` first and make a new session id.
+
+**`python -m harness build [--rebuild NAME]`** runs `load_brief` on the
+brief folder and then `build` with the configured model. In the terminal,
+`ask` prints a blank line, the text and a blank line, then reads after
+`> `; the end of input counts as `/quit`.
+
+When it returns, it prints a blank line and one line per result:
+
+- `<step> -> <module> (built)`, `(reused)` or `(already built)`;
+- `<step>: not built (<reason>)`.
+
+A brief with no calculation step prints `The brief has no calculation steps.`
+and exits 0. Otherwise, without `--rebuild`, the last line is
+`ALL_BUILT = "Every calculation step has a tested module."` and the exit code
+0 when every calculation step of the brief got a result other than
+`not_built`; otherwise the last line is
+`SOME_MISSING = "Some calculation steps have no tested module yet. Run python -m harness build again to carry on."`
+and the exit code 1. Both strings are defined in `__main__.py`. With
+`--rebuild` there is no last line; it exits 0 when
+the outcome is `built`, and 1 otherwise.
+
+A missing or draft brief, or an unknown `--rebuild` name, prints the
+`ValueError` message to standard error and exits 1. If the build fails (for
+example the model cannot be reached), it prints
+`build stopped: <Type>: <reason on one line>` to standard error, with no
+traceback, and exits 1.
+
+**`python -m harness modules`** prints one line per registered module, by
+name, after making a fresh test run of it now (`reason` `status`, recorded
+like any other):
+
+```
+<name>  steps: <ids>  files: <unchanged|changed|missing>  tests: <passed|failed>  fingerprint: <first 12 characters>
+```
+
+with two spaces between the parts. `<ids>` are the mapped step ids joined
+by `, `, or `-` when there is none; the fingerprint is the registered one. This is "tests passing", from running code,
+not from a stored flag. With no module registered it prints
+`No modules are registered yet. Build them with: python -m harness build`
+and exits 0. Otherwise it exits 0 when every module is `unchanged` and
+`passed`. If not, it adds the line
+`Rebuild a module with: python -m harness build --rebuild NAME` and exits 1.
+
+**`python -m harness ask [QUESTION ...]`** joins the words of `QUESTION` with
+spaces and runs `run_agent` with the configured model, the brief from
+`load_brief`, and today's date. It first prints
+`Ask about your plan. Type /quit to stop.`, but only after the brief and
+registry checks pass. `ask` works as in `build`. A missing or draft brief
+prints the message to standard error and exits 1, as does a registry with no
+module:
+`No modules are built yet. Build them first with: python -m harness build`.
+In both cases nothing else is printed.
+A failure prints `ask stopped: <Type>: <reason on one line>` to standard
+error and exits 1. When the person stops, it exits 0.
+
+`check`, `events`, `ground` and `ui` behave as before.
+
+### 5.11 Events
+
+Every event carries the session id of the command that made it.
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `calc.spec_proposed` | `agent` | `{"step", "spec"}` (the spec as checked) |
+| `calc.spec_rejected` | `harness` | `{"step", "errors"}` |
+| `calc.module_reused` | `agent` | `{"step", "module", "reason"}` |
+| `calc.examples_proposed` | `agent` | `{"module", "examples"}` |
+| `calc.examples_rejected` | `harness` | `{"module", "errors"}` |
+| `calc.golden_decision` | `person` | `{"module", "index", "decision", "expected"}`; `expected` is the confirmed answer, or `null` when skipped |
+| `calc.code_written` | `agent` | `{"module", "attempt", "module_py", "tests_py"}` |
+| `calc.code_rejected` | `harness` | `{"module", "attempt", "problems"}` |
+| `calc.tests_run` | `harness` | `{"module", "test_run_id", "reason", "passed", "fingerprint"}` |
+| `calc.module_registered` | `harness` | `{"module", "step", "fingerprint", "test_run_id"}` |
+| `calc.step_not_built` | `harness` | `{"step", "reason"}` |
+| `calc.refused` | `harness` | `{"module", "reason", "inputs"}` |
+| `calc.run_failed` | `harness` | `{"module", "error", "inputs"}` |
+| `calc.run` | `harness` | `{"module", "run_id", "test_run_id", "inputs", "output"}` |
+| `ask.message` | `person` | `{"text"}`, stripped; every person message, the first too |
+| `ask.reply` | `agent` | `{"text"}` |
+| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module` or `save_input`; `text` is the reply, or the tool arguments as JSON |
+| `ask.withheld` | `harness` | `{"numbers", "text"}` |
+| `ask.input_saved` | `agent` | `{"name", "value", "note"}` |
+| `ask.stopped` | `harness` | `{"reason": "too many steps"}` |
+
+`index` in `calc.golden_decision` counts the examples as shown, from 1.
+`attempt` counts from 1.
+
+### 5.12 Decisions
+
+Choices made to close gaps in the design, for review:
+
+1. `register` re-checks everything itself (files, safety, spec, at least two
+   examples, a passing test run on the same fingerprint), so the rule does
+   not depend on the builder being right.
+2. A build writes into `_build/<name>/` and moves the folder into place only
+   after the tests pass. A failed rebuild leaves the working module alone.
+3. A step whose module's files changed is rebuilt by a plain `build`.
+4. The spec's `step_id` (and `name` on a rebuild) is set by the harness, not
+   the model.
+5. Each phase gets three model calls; a reply with no tool call counts as one.
+6. Code feedback for a failing example gives its inputs and, when it raised,
+   the error. Never the expected or actual answer.
+7. Fewer than two confirmed examples ends the step; the model is not asked
+   for more. Run `build` again.
+8. The gate checks the expectation and the inputs before running the tests,
+   so a bad call does not cost a test run.
+9. A module that raises is a refusal with its own event, `calc.run_failed`;
+   no `calc_runs` row is written.
+10. The number check also applies to `run_module` inputs and `save_input`
+    values, so a worked-out number cannot reach a module or the saved
+    inputs.
+11. A reply that fails the number check twice is withheld, and the model is
+    told so with the person's next message.
+12. Today's date is in the agent's context and counts as a source. Modules
+    may not read the clock (5.2).
+13. The agent's context adds the brief's particulars to its goal and
+    process, so it can state the agreed assumptions.
+14. Rates are fractions (0.5 for 50%), stated in the spec descriptions.
+    Inside `list` and `object` inputs, numbers travel as text and dates as
+    `YYYY-MM-DD`, and the module converts them.
+15. `build` and `ask` refuse a draft brief.
+16. One timeout of 30 seconds for every runner process.
+17. The runner checks that a result fits the spec's output type (5.3).
+18. A worked example can be wrong too. When three code attempts fail and
+    examples are among the failures, the person is shown the inputs, the
+    answer they confirmed and the code's answer (`EXAMPLES_DISAGREE`,
+    `DISAGREEMENT`), so they can find which is wrong. The code writer is
+    never told: the examples stay the independent check.
+
+## 6. Steps 3 to 5 (draft)
 
 Each step adds modules and tables without changing what earlier steps built.
 New tables arrive as new migration files. The detail below is the intended
 shape; it becomes fixed when the step is built.
-
-**Step 2, consistency.** `harness/sources/`: adapters that map a raw file to
-canonical records, checked against a schema. `harness/calc/`: a registry of
-calculation modules, each a pure function with typed inputs and outputs,
-unit tests and golden examples. `harness/gate.py`: runs a module's tests and
-refuses to call it if they fail. `harness/select.py`: turns a request into a
-proposed call (module, inputs, assumptions, expected result). New tables:
-`modules`, `test_runs`, `proposed_calls`, `calc_runs`. Dependencies allowed
-from here: `pandas`, `pandera`, `numpy-financial`.
 
 **Step 3, evidence.** Every model call, tool call and agent choice is
 recorded as an event. `harness/evidence/`: a small local web page with three

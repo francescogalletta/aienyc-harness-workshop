@@ -17,7 +17,7 @@ Every step has the same four parts:
 | --- | --- | --- | --- | --- | --- |
 | 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
 | 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
-| 2 | Consistency | Source adapters, calculation registry, test gate, selection step, new-code path | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
+| 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
 | 3 | Evidence | Event recording everywhere, the evidence interface | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |
 | 4 | Human in the loop | Gates, the side-conversation sub-agent, decision records | An ambiguous input opens a side conversation; the main session receives only the decision | `pytest tests/step4` | `step-4` |
 | 5 | Verification | Reference checks at decision points | The budget says one figure and the bank says another; the harness notices and asks | `pytest tests/step5` | `step-5` |
@@ -28,10 +28,10 @@ Every step has the same four parts:
 | --- | --- | --- | --- | --- |
 | 0 | Fixed (SPEC 3) | Written | Written | Yes |
 | 1 | Fixed (SPEC 4) | Written | Written | Yes |
-| 2 | Draft (SPEC 5) | Not yet | Not yet | No |
-| 3 | Draft (SPEC 5) | Not yet | Not yet | No |
-| 4 | Draft (SPEC 5) | Not yet | Not yet | No |
-| 5 | Draft (SPEC 5) | Not yet | Not yet | No |
+| 2 | Fixed (SPEC 5) | Written | Written | Yes |
+| 3 | Draft (SPEC 6) | Not yet | Not yet | No |
+| 4 | Draft (SPEC 6) | Not yet | Not yet | No |
+| 5 | Draft (SPEC 6) | Not yet | Not yet | No |
 
 ## How a step is prepared
 
@@ -48,6 +48,10 @@ Each step is prepared in this order, and the order matters:
 Step 1 leaves one task for a person: running the grounding interview for
 real on the example. Its output, the domain brief, decides which
 calculations step 2 has to provide.
+
+Step 2 leaves one task for a person: running `build` for real on that brief,
+checking each worked example by hand, and committing `modules/` with the
+brief. Source adapters are not part of step 2; they come in a later step.
 
 ## Running without a live model
 

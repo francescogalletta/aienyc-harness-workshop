@@ -19,6 +19,7 @@ The harness itself knows nothing about weddings. The example lives in
 | `data/` | The example data, its generator, and the facilitator key |
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
 | `brief/` | The domain brief, once you have run the interview |
+| `modules/` | The tested calculation modules, once you have run the build |
 
 ## Set up
 
@@ -139,6 +140,40 @@ Any other model API, a free tier or a local model is one new file under
 `harness/model/providers.py`. Nothing else in the harness changes. `SPEC.md`
 section 3.7 has the recipe, and the Claude Code adapter is a worked example
 of a provider that is not an API at all.
+
+## Build the calculations and ask
+
+Step 2 turns each calculation step of your brief into code that is tested
+before it is allowed to run. You need a confirmed brief first.
+
+```
+export HARNESS_MODEL_PROVIDER=claude_code
+uv run python -m harness build
+```
+
+For each calculation step, in the terminal:
+
+- The harness writes a spec for the calculation, or reuses a module you already have.
+- It proposes worked examples. You check each one by hand: type `/accept`, type the right answer instead, or type `/skip`. `/quit` stops the build.
+- The code is written by a separate model call that never sees your examples or your brief.
+- The harness runs the tests and your examples. Only code that passes is registered.
+
+**Check every proposed answer with a calculator.** The proposed answers can be wrong. In a live run, one proposed answer contradicted its own working, and accepting it made that module fail to build.
+
+```
+uv run python -m harness modules
+uv run python -m harness ask "How much can I put aside each month?"
+```
+
+`modules` lists what is built and runs every module's tests again now.
+`ask` answers from the brief and the tested modules. It asks you for missing
+inputs one at a time and remembers them, and it runs only tested modules. If
+its reply contains a number that no module produced, the reply is held back.
+Type `/quit` to stop.
+
+Code changes in one way only: `uv run python -m harness build --rebuild NAME`.
+If a module's files change any other way, it will not run until it is
+rebuilt. Commit `modules/` together with the brief.
 
 ## Build it yourself
 
