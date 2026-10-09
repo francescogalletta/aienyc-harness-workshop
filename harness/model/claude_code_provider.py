@@ -126,10 +126,13 @@ def render_conversation(messages: list[dict]) -> str:
         if role == "user":
             lines += ["<user>", message["content"], "</user>"]
         elif role == "assistant":
+            calls = message.get("tool_calls") or []
+            if not message["content"] and not calls:
+                continue                    # nothing said, nothing called
             lines.append("<assistant>")
             if message["content"]:
                 lines.append(message["content"])
-            for call in message.get("tool_calls") or []:
+            for call in calls:
                 lines.append(f'<tool_call id="{call["id"]}" name="{call["name"]}">'
                              f'{json.dumps(call["arguments"])}</tool_call>')
             lines.append("</assistant>")
