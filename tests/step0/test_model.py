@@ -109,6 +109,27 @@ def test_all_lists_exactly_the_public_names():
 def test_get_model_unknown_provider():
     with pytest.raises(ValueError, match="carrier-pigeon"):
         get_model("carrier-pigeon")
+    with pytest.raises(ValueError, match="anthropic, claude_code, scripted"):
+        get_model("carrier-pigeon")       # the error lists the providers that do exist
+
+
+def test_a_provider_is_one_entry_in_the_table(monkeypatch):
+    """SPEC 3.7: adding or swapping a provider touches only the provider table."""
+    from harness.model.providers import PROVIDERS
+    assert {"scripted", "anthropic", "claude_code"} <= set(PROVIDERS)
+
+    class Echo:
+        def __init__(self, config):
+            self.config = config
+
+        def complete(self, *, system, messages, tools=()):
+            return ModelResponse(text=f"echo from {self.config.model_name}", tool_calls=(),
+                                 stop_reason="end", usage={"input_tokens": 0, "output_tokens": 0})
+
+    monkeypatch.setitem(PROVIDERS, "echo", Echo)
+    monkeypatch.setenv("HARNESS_MODEL_PROVIDER", "echo")
+    monkeypatch.setenv("HARNESS_MODEL", "my-model")
+    assert get_model().complete(system="", messages=[]).text == "echo from my-model"
 
 
 def test_importing_the_model_package_loads_no_provider_sdk():
