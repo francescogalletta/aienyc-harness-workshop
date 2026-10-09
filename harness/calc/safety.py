@@ -14,6 +14,7 @@ FORBIDDEN_NAMES = {
     "getattr", "setattr", "delattr", "breakpoint", "exit", "quit", "help", "memoryview",
     "print", "type", "super", "classmethod", "staticmethod", "object",
 }
+FORBIDDEN_ATTRIBUTES = {"today", "now", "utcnow"}      # reading the clock makes the answer change
 
 
 def check_code(source: str, also_allow: tuple[str, ...] = ()) -> list[str]:
@@ -37,6 +38,8 @@ def check_code(source: str, also_allow: tuple[str, ...] = ()) -> list[str]:
             problems.append(f"line {line}: uses '{node.id}', which a calculation may not use")
         elif isinstance(node, ast.Attribute) and node.attr.startswith("__"):
             problems.append(f"line {line}: reaches into '{node.attr}', which a calculation may not use")
+        elif isinstance(node, ast.Attribute) and node.attr in FORBIDDEN_ATTRIBUTES:
+            problems.append(f"line {line}: uses '{node.attr}', which makes the answer depend on when it runs")
         elif isinstance(node, (ast.Global, ast.Nonlocal, ast.ClassDef, ast.AsyncFunctionDef,
                                ast.With, ast.AsyncWith, ast.Try, ast.While, ast.Lambda)):
             problems.append(f"line {line}: uses '{type(node).__name__}', which a calculation does not need")

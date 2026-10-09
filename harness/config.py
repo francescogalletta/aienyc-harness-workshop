@@ -1,4 +1,4 @@
-"""Settings, read from environment variables (SPEC 3.1 and 4.1)."""
+"""Settings, read from environment variables (SPEC 3.1, 4.1 and 5.4)."""
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +13,7 @@ class Config:
     researcher: str             # step 1: who looks up standard definitions
     reference_path: Path        # step 1: the saved reference file
     brief_dir: Path             # step 1: where the domain brief is written
+    modules_dir: Path           # step 2: where the module folders live
 
 
 def load_config() -> Config:
@@ -26,4 +27,5 @@ def load_config() -> Config:
         researcher=os.environ.get("HARNESS_RESEARCHER") or "auto",
         reference_path=Path(os.environ.get("HARNESS_REFERENCE") or "reference/terms.json"),
         brief_dir=Path(os.environ.get("HARNESS_BRIEF_DIR") or "brief"),
+        modules_dir=Path(os.environ.get("HARNESS_MODULES_DIR") or "modules"),
     )

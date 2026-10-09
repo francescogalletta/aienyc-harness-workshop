@@ -38,7 +38,12 @@ def call(spec: dict, module, inputs: dict):
             arguments[name] = values.from_json(inputs[name], kind)
         except ValueError as error:
             raise ValueError(f"input '{name}': {error}") from None
-    return values.to_json(module.calculate(**arguments))
+    result = values.to_json(module.calculate(**arguments))
+    try:
+        values.from_json(result, spec["output"]["type"])        # the result must fit the spec (SPEC 5.3)
+    except ValueError as error:
+        raise ValueError(f"the result does not fit the spec: {error}") from None
+    return result
 
 
 def run_tests(folder: Path, spec: dict, module) -> dict:

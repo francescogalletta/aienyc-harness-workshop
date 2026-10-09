@@ -1,8 +1,10 @@
-"""Command line (SPEC 3.6, 4.5 and 4.7): `python -m harness check`, `events`, `ground` and `ui`."""
+"""Command line (SPEC 3.6, 4.5, 4.7 and 5.10): `python -m harness check`, `events`, `ground`, `ui`,
+`build`, `modules` and `ask`."""
 import argparse
 import json
 import sys
 import uuid
+from datetime import date
 
 from . import db
 from .config import load_config
@@ -133,6 +135,120 @@ def ui(port: int, browser: bool, max_questions: int) -> int:
     return 0
 
 
+ALL_BUILT = "Every calculation step has a tested module."
+SOME_MISSING = ("Some calculation steps have no tested module yet. "
+                "Run python -m harness build again to carry on.")
+NO_MODULES = "No modules are registered yet. Build them with: python -m harness build"
+NONE_BUILT = "No modules are built yet. Build them first with: python -m harness build"
+OUTCOMES = {"built": "built", "reused": "reused", "kept": "already built"}
+
+
+def terminal_ask(text: str) -> str:
+    """Show text between blank lines and read the answer. The end of input counts as /quit."""
+    print(f"\n{text}\n")
+    try:
+        return input("> ")
+    except EOFError:
+        return "/quit"
+
+
+def build(rebuild: str | None) -> int:
+    """Build a tested module for each calculation step of the brief (SPEC 5.10)."""
+    from .calc.builder import build as build_modules
+    from .calc.builder import load_brief
+
+    config = load_config()
+    conn = db.connect(config.db_path)
+    db.migrate(conn)
+    try:
+        brief = load_brief(config.brief_dir)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 1
+    calculations = [step for step in brief["process"] if step.get("kind") == "calculation"]
+    if not calculations and rebuild is None:
+        print("The brief has no calculation steps.")
+        return 0
+
+    try:
+        results = build_modules(model=get_model(), conn=conn, brief=brief, ask=terminal_ask,
+                                session_id=uuid.uuid4().hex, rebuild=rebuild)
+    except Exception as error:
+        reason = " ".join(str(error).split())
+        if rebuild is not None and type(error) is ValueError:       # an unknown module, or a step the brief lacks
+            print(reason, file=sys.stderr)
+        else:
+            print(f"build stopped: {type(error).__name__}: {reason}", file=sys.stderr)
+        return 1
+
+    print()
+    for result in results:
+        if result["outcome"] == "not_built":
+            print(f"{result['step']}: not built ({result['reason']})")
+        else:
+            print(f"{result['step']} -> {result['module']} ({OUTCOMES[result['outcome']]})")
+    if rebuild is not None:
+        return 0 if results and results[0]["outcome"] == "built" else 1
+    if len(results) == len(calculations) and all(r["outcome"] != "not_built" for r in results):
+        print(ALL_BUILT)
+        return 0
+    print(SOME_MISSING)
+    return 1
+
+
+def modules() -> int:
+    """List the registered modules, each after a fresh test run (SPEC 5.10)."""
+    from .calc.gate import run_tests
+    from .calc.registry import file_status, list_modules
+
+    conn = db.connect()
+    db.migrate(conn)
+    session_id = uuid.uuid4().hex
+    registered = list_modules(conn)
+    if not registered:
+        print(NO_MODULES)
+        return 0
+    healthy = True
+    for module in registered:
+        status = file_status(conn, module["name"])
+        run = run_tests(conn, module["name"], reason="status", session_id=session_id)
+        healthy = healthy and status == "unchanged" and run["passed"]
+        print(f"{module['name']}  steps: {', '.join(module['steps']) or '-'}  files: {status}  "
+              f"tests: {'passed' if run['passed'] else 'failed'}  fingerprint: {module['fingerprint'][:12]}")
+    if healthy:
+        return 0
+    print("Rebuild a module with: python -m harness build --rebuild NAME")
+    return 1
+
+
+def ask_about_plan(words: list[str]) -> int:
+    """Answer questions about the plan, with tested modules (SPEC 5.10)."""
+    from .calc.agent import run_agent
+    from .calc.builder import load_brief
+    from .calc.registry import list_modules
+
+    config = load_config()
+    conn = db.connect(config.db_path)
+    db.migrate(conn)
+    try:
+        brief = load_brief(config.brief_dir)
+    except ValueError as error:
+        print(error, file=sys.stderr)
+        return 1
+    if not list_modules(conn):
+        print(NONE_BUILT, file=sys.stderr)
+        return 1
+    print("Ask about your plan. Type /quit to stop.")
+    try:
+        run_agent(model=get_model(), conn=conn, brief=brief, ask=terminal_ask,
+                  session_id=uuid.uuid4().hex, question=" ".join(words), today=date.today())
+    except Exception as error:
+        reason = " ".join(str(error).split())
+        print(f"ask stopped: {type(error).__name__}: {reason}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="python -m harness")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -145,11 +261,22 @@ def main() -> int:
     page.add_argument("--port", type=int, default=8765)
     page.add_argument("--no-browser", action="store_true", help="do not open the page in the browser")
     page.add_argument("--max-questions", type=int, default=12)
+    building = commands.add_parser("build", help="build a tested module for each calculation step")
+    building.add_argument("--rebuild", metavar="NAME", help="build this registered module again")
+    commands.add_parser("modules", help="list the registered modules and test them now")
+    asking = commands.add_parser("ask", help="ask a question about your plan")
+    asking.add_argument("question", nargs="*")
     args = parser.parse_args()
     if args.command == "check":
         return check()
     if args.command == "events":
         return events()
+    if args.command == "build":
+        return build(args.rebuild)
+    if args.command == "modules":
+        return modules()
+    if args.command == "ask":
+        return ask_about_plan(args.question)
     if args.command == "ui":
         return ui(args.port, not args.no_browser, args.max_questions)
     return ground(args.resume, args.max_questions)
