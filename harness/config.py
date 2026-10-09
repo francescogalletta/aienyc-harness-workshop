@@ -23,7 +23,7 @@ def load_config() -> Config:
         model_provider=os.environ.get("HARNESS_MODEL_PROVIDER") or "anthropic",
         model_name=os.environ.get("HARNESS_MODEL") or "claude-sonnet-5-5",
         script_path=Path(script) if script else None,
-        researcher=os.environ.get("HARNESS_RESEARCHER") or "reference",
+        researcher=os.environ.get("HARNESS_RESEARCHER") or "auto",
         reference_path=Path(os.environ.get("HARNESS_REFERENCE") or "reference/terms.json"),
         brief_dir=Path(os.environ.get("HARNESS_BRIEF_DIR") or "brief"),
     )

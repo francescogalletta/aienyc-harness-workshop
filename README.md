@@ -98,26 +98,39 @@ and the steps needed, with the ones that must run as code marked.
 
 ```
 export HARNESS_MODEL_PROVIDER=claude_code
-export HARNESS_RESEARCHER=claude_code     # look terms up on the web through Claude Code
-uv run python -m harness ground
+uv run python -m harness ui
 ```
 
-- Answer one question at a time. Expect about a dozen, and a short wait
-  while each term is looked up.
-- Type `/wrap` to finish with what you have, or `/quit` to stop. Carry on
-  later with `uv run python -m harness ground --resume`.
-- At the end you are shown the proposed brief. Type `yes` to accept it, or
-  say what should change.
-- The brief is saved as `brief/domain_brief.md` (for you) and
-  `brief/domain_brief.json` (for the later steps). Everything asked and
-  answered is in the database: `uv run python -m harness events`.
+This opens a page in your browser, served from your own machine. The
+conversation is on the left. On the right, the shared understanding builds
+up as you talk:
 
-Leave `HARNESS_RESEARCHER` unset to look terms up in the saved file
-`reference/terms.json` instead of the web. That works offline and gives the
-same answer every time, but it only knows the terms in the file.
+- **Reading**: what the harness is reading up on, and where each answer came from.
+- **Concept map**: your words next to the standard term, with its source. Terms you had no word for are marked as new to you.
+- **Assumptions**: what is different about you, and how it will be handled.
+- **Open questions**: answer any of them right there once a brief is proposed.
+- **Needed from you**: the figures and dates the steps will ask for when they run.
+- **The plan**: a diagram of the steps. Click one to see its method and formula.
 
-Do not type account numbers or passwords into the interview. It does not
-need amounts either.
+When the harness proposes a brief, press **Accept brief** or **Ask for
+changes**. The brief is saved as `brief/domain_brief.md` and
+`brief/domain_brief.json`. If a brief already exists, the page opens on it.
+
+Everything asked, answered and looked up is in the database:
+`uv run python -m harness events`.
+
+**Lookups.** The harness reads up on a few terms before the first question,
+side by side, and never looks the same term up twice. By default it checks
+the saved file `reference/terms.json` first and asks Wikipedia only for
+terms the file does not know. Only the term itself is sent. Set
+`HARNESS_RESEARCHER=reference` to stay offline, or `claude_code` to use
+Claude Code's web search where that is available.
+
+**In a terminal instead.** `uv run python -m harness ground` runs the same
+interview as text. Type `/accept` to accept the brief, `/wrap` to finish
+with what you have, or `/quit` to stop; `--resume` carries on.
+
+Do not type account numbers or passwords into the interview.
 
 ### Add another provider
 

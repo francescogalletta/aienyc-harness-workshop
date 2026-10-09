@@ -1,18 +1,21 @@
-"""The grounding interview (SPEC 4.4).
+"""The grounding interview (SPEC 4.4 and 4.6).
 
 The model asks, the person answers, and the harness keeps the conversation
 honest: one question at a time, real lookups for standard terms, a brief
 that passes its checks, and the person's own confirmation before anything
 is saved. Everything said is recorded in the database.
+
+Lookups go through a research desk (SPEC 4.6): the terms the request
+depends on are read up on before the first question, and no term is looked
+up twice.
 """
 import json
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from .. import db
 from ..model import ToolSpec
 from .brief import BRIEF_SCHEMA, save_brief, summarise_brief, validate_brief
-from .research import MAX_QUERY_LENGTH
+from .research import MAX_QUERY_LENGTH, as_lookup, plan_research, term_key
 
 INSTRUCTIONS = Path(__file__).with_name("interviewer.md")
 
@@ -37,9 +40,14 @@ WRAP_UP = ("[harness] The person wants to finish now. Call write_brief with what
 LIMIT_REACHED = ("[harness] You have reached the question limit. Call write_brief now, "
                  "and list what is still unresolved under open_questions.")
 EMPTY_REPLY = "[harness] Your reply was empty. Ask your next question, or call write_brief."
-CONFIRM = "Is this right? Type yes to accept it, or say what should change."
-YES = {"yes", "y", "yes.", "ok", "okay", "si", "sí"}
+CONFIRM = "Type /accept to accept this brief, or say what should change."
+ACCEPT = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}
+NOT_CONFIRMED = "The person did not confirm the brief. They said: "
 MAX_REJECTIONS = 3
+
+MAX_LOOKUPS = 12        # different terms the interviewer may look up, not counting the plan
+LOOKUP_LIMIT = "The lookup limit for this interview is used up. Carry on with what you have."
+NOT_FOUND_NOTE = "No source found. Try the usual standard name once, or leave this term without a source."
 
 
 class Quit(Exception):
@@ -47,19 +55,32 @@ class Quit(Exception):
 
 
 def new_state(session_id: str, opening: str) -> dict:
+    """Everything needed to carry on later.
+
+    `research` holds every research entry in the order first asked,
+    `lookups` the found ones as lookup dicts (what `validate_brief` reads),
+    and `proposed` the brief awaiting the person's confirmation, else None.
+    """
     return {"session_id": session_id, "messages": [{"role": "user", "content": opening}],
-            "lookups": [], "questions": 0, "rejections": 0}
+            "lookups": [], "research": [], "proposed": None, "questions": 0, "rejections": 0}
 
 
 def run_interview(*, model, researcher, ask, conn, state: dict, brief_dir,
-                  state_path=None, max_questions: int = 12, say=print) -> dict | None:
+                  state_path=None, max_questions: int = 12, say=print, plan: bool = True) -> dict | None:
     """Run the interview until a brief is saved, or the person stops.
 
+    `researcher` is a `ResearchDesk`.
     `ask(text)` shows text to the person and returns what they typed.
     `say(text)` shows text that needs no answer.
+    `plan` reads up on the terms the opening statement depends on, before the first question.
     Returns the saved brief's details, or None if the person stopped early.
+
+    Another thread may read `state` while this runs (the web page does), so
+    research entries are added or replaced whole, never changed in place.
     """
     system = INSTRUCTIONS.read_text(encoding="utf-8").replace("{max_questions}", str(max_questions))
+    state.setdefault("research", [])        # a state saved before these keys existed
+    state.setdefault("proposed", None)
     session_id, messages = state["session_id"], state["messages"]
     corrected = False       # has this turn already been sent back for asking two questions?
 
@@ -78,6 +99,9 @@ def run_interview(*, model, researcher, ask, conn, state: dict, brief_dir,
         return answer
 
     try:
+        if plan and len(messages) == 1 and not state["research"]:
+            _plan(model, researcher, state, record, say)
+
         while True:
             save_state()
             last = messages[-1]
@@ -141,36 +165,79 @@ def run_interview(*, model, researcher, ask, conn, state: dict, brief_dir,
         return None
 
 
-def _look_up_all(calls, researcher, state, record, say) -> dict:
-    """Run the lookups of one turn side by side. Returns {call id: tool result}."""
-    results, wanted = {}, []
+def _plan(model, desk, state, record, say) -> None:
+    """Read up on the opening statement's terms, and tell the interviewer which are ready."""
+    entries = plan_research(model, desk, state["messages"][0]["content"], say)
+    record("grounding.research_plan", "agent", {"terms": [entry["query"] for entry in entries]})
+    if not entries:
+        return
+    state["research"].extend(entries)
+    state["lookups"].extend(as_lookup(entry) for entry in entries if entry["status"] == "found")
+    ready = [entry["query"] for entry in entries if entry["status"] == "found"]
+    missing = [entry["query"] for entry in entries if entry["status"] != "found"]
+    line = "[harness]"
+    if ready:
+        line += f" Already read up on, ready for look_up: {', '.join(ready)}."
+    if missing:
+        line += f" No source found for: {', '.join(missing)}."
+    state["messages"][0]["content"] += "\n\n" + line
+
+
+def _earlier(state, query: str) -> dict | None:
+    """The research entry that already answers this query: the same term, or a found entry's name."""
+    key = term_key(query)
+    for entry in state["research"]:
+        if key == term_key(entry["query"]) or (entry["status"] == "found" and key == term_key(entry["name"])):
+            return entry
+    return None
+
+
+def _look_up_all(calls, desk, state, record, say) -> dict:
+    """Run the lookups of one turn side by side. Returns {call id: tool result}.
+
+    A term is looked up once in an interview. Asking again gets the earlier
+    answer back without a lookup, and after MAX_LOOKUPS terms no new one is run.
+    """
+    def error(call, text):
+        return {"role": "tool", "tool_call_id": call.id, "is_error": True, "content": text}
+
+    results, new, repeats = {}, {}, []      # new: {term key: (first call to ask, query)}
+    used = sum(1 for entry in state["research"] if not entry["planned"])
     for call in calls:
         query = str(call.arguments.get("query", "")).strip()
         if not query or len(query) > MAX_QUERY_LENGTH:
-            results[call.id] = {
-                "role": "tool", "tool_call_id": call.id, "is_error": True,
-                "content": f"Send only the term to look up, at most {MAX_QUERY_LENGTH} characters."}
+            results[call.id] = error(call, f"Send only the term to look up, at most {MAX_QUERY_LENGTH} characters.")
+        elif _earlier(state, query) or term_key(query) in new:
+            repeats.append((call, query))
+        elif used + len(new) >= MAX_LOOKUPS:
+            results[call.id] = error(call, LOOKUP_LIMIT)
         else:
             say(f"  (looking up: {query})")
-            wanted.append((call, query))
+            new[term_key(query)] = (call, query)
 
-    def look_up(query):
-        try:
-            return researcher.look_up(query).as_dict()
-        except Exception as error:
-            return {"query": query, "error": " ".join(str(error).split())}
-
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        found = list(pool.map(look_up, [query for _call, query in wanted]))
-
-    for (call, query), lookup in zip(wanted, found):     # recorded in the order they were asked
+    entries = desk.look_up_many([query for _call, query in new.values()])
+    for (call, _query), entry in zip(new.values(), entries):       # recorded in the order they were asked
+        state["research"].append(entry)
+        if entry["status"] == "failed":
+            record("grounding.lookup", "agent", {"query": entry["query"], "error": entry["error"]})
+            results[call.id] = error(call, f"The lookup failed: {entry['error']}")
+            continue
+        lookup = as_lookup(entry)
         record("grounding.lookup", "agent", lookup)
-        if "error" in lookup:
-            results[call.id] = {"role": "tool", "tool_call_id": call.id, "is_error": True,
-                                "content": f"The lookup failed: {lookup['error']}"}
-        else:
+        if entry["status"] == "found":
             state["lookups"].append(lookup)
-            results[call.id] = {"role": "tool", "tool_call_id": call.id, "content": json.dumps(lookup)}
+        else:
+            lookup = {**lookup, "note": NOT_FOUND_NOTE}
+        results[call.id] = {"role": "tool", "tool_call_id": call.id, "content": json.dumps(lookup)}
+
+    for call, query in repeats:         # answered from what is known: nothing said, nothing recorded
+        entry = _earlier(state, query)
+        if entry["status"] == "found":
+            results[call.id] = {"role": "tool", "tool_call_id": call.id,
+                                "content": json.dumps({**as_lookup(entry), "repeat": True})}
+        else:
+            results[call.id] = error(
+                call, f'No source was found for "{query}" earlier. Do not look it up again.')
     return results
 
 
@@ -193,14 +260,17 @@ def _write_brief(call, state, record, hear, say, brief_dir):
         return ({"role": "tool", "tool_call_id": call.id, "is_error": True,
                  "content": f"The brief was not accepted. Fix these and submit it again:\n{problems}"}, None)
 
-    say(summarise_brief(brief))
-    answer = hear(CONFIRM)
-    if answer.lower() in YES:
-        paths = save_brief(brief, brief_dir, {**meta, "status": "confirmed"})
-        return _saved(call, state, record, paths, "confirmed")
+    state["proposed"] = brief       # while the person decides, anyone showing the state can show the brief
+    try:
+        say(summarise_brief(brief))
+        answer = hear(CONFIRM)
+        if answer.lower() in ACCEPT:
+            paths = save_brief(brief, brief_dir, {**meta, "status": "confirmed"})
+            return _saved(call, state, record, paths, "confirmed")
+    finally:
+        state["proposed"] = None
     record("grounding.brief_changes", "person", {"text": answer})
-    return ({"role": "tool", "tool_call_id": call.id,
-             "content": f"The person did not confirm the brief. They said: {answer}"}, None)
+    return ({"role": "tool", "tool_call_id": call.id, "content": NOT_CONFIRMED + answer}, None)
 
 
 def _saved(call, state, record, paths, status):

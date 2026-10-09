@@ -1,9 +1,11 @@
-"""SPEC 4.2: looking up standard definitions."""
+"""SPEC 4.2 and 4.6: looking up standard definitions, and who looks them up."""
 import json
 
 import pytest
 
-from harness.grounding import Lookup, ReferenceResearcher, get_researcher
+from harness.config import load_config
+from harness.grounding import (ChainResearcher, Lookup, ReferenceResearcher, WikipediaResearcher,
+                               get_researcher)
 from harness.grounding.claude_code_research import ClaudeCodeResearcher
 from harness.grounding.research import RESEARCHERS
 
@@ -17,15 +19,17 @@ def test_reference_researcher_matches_terms_and_aliases(reference_file):
     assert found.query == "Cash-Flow  FORECAST" and found.name == "cash flow forecast"
     assert found.definition.startswith("A plan of the money")
     assert found.sources == ({"title": "Example: cash flow forecast", "url": SOURCE},)
+    assert found.origin == "reference"
     assert researcher.look_up("cash_flow projection").name == "cash flow forecast"
     assert researcher.look_up("balance").name == "account balance"
 
 
 def test_reference_researcher_says_when_it_does_not_know(reference_file):
     missing = ReferenceResearcher(reference_file).look_up("quantum budgeting")
-    assert missing == Lookup(query="quantum budgeting", found=False)
+    assert missing == Lookup(query="quantum budgeting", found=False, origin="reference")
     assert missing.as_dict() == {"query": "quantum budgeting", "found": False, "name": "",
-                                 "definition": "", "sources": []}
+                                 "definition": "", "sources": [], "origin": "reference"}
+    assert Lookup("x", False).origin == ""                    # the last field, empty unless set
 
 
 def test_the_repository_ships_a_usable_reference_file():
@@ -37,11 +41,23 @@ def test_the_repository_ships_a_usable_reference_file():
         assert entry["sources"] and all(s["url"].startswith("https://") and s["title"] for s in entry["sources"])
 
 
-def test_get_researcher_defaults_to_the_reference_file(monkeypatch, reference_file):
+def test_the_default_researcher_is_the_file_first_then_wikipedia(monkeypatch, reference_file):
+    monkeypatch.delenv("HARNESS_RESEARCHER")                  # the tests' own default is `reference`
+    monkeypatch.setenv("HARNESS_REFERENCE", str(reference_file))
+    assert load_config().researcher == "auto"
+    researcher = get_researcher()
+    assert isinstance(researcher, ChainResearcher)
+    first, second = researcher.researchers
+    assert isinstance(first, ReferenceResearcher) and isinstance(second, WikipediaResearcher)
+    assert researcher.look_up("cash forecast").origin == "reference"     # found in the file: no request made
+
+
+def test_get_researcher_reads_the_configured_name(reference_file, monkeypatch):
     monkeypatch.setenv("HARNESS_REFERENCE", str(reference_file))
     researcher = get_researcher()
     assert isinstance(researcher, ReferenceResearcher)
     assert researcher.look_up("cash forecast").found
+    assert isinstance(get_researcher("wikipedia"), WikipediaResearcher)
 
 
 def test_get_researcher_by_name_and_unknown(monkeypatch):
@@ -49,8 +65,8 @@ def test_get_researcher_by_name_and_unknown(monkeypatch):
     monkeypatch.setenv("HARNESS_MODEL", "configured-name")
     researcher = get_researcher()
     assert isinstance(researcher, ClaudeCodeResearcher) and researcher.model_name == "configured-name"
-    assert set(RESEARCHERS) >= {"reference", "claude_code"}
-    with pytest.raises(ValueError, match="claude_code, reference"):
+    assert set(RESEARCHERS) == {"auto", "claude_code", "reference", "wikipedia"}
+    with pytest.raises(ValueError, match="auto, claude_code, reference, wikipedia"):
         get_researcher("town-crier")
 
 
@@ -80,7 +96,8 @@ def test_claude_code_researcher_sends_only_the_term_to_the_web():
     lookup = ClaudeCodeResearcher("some-model", runner=runner).look_up("budget variance")
     assert lookup == Lookup(query="budget variance", found=True, name="Budget variance",
                             definition="The difference between budget and actual.",
-                            sources=({"title": "A page", "url": "https://example.org/variance"},))
+                            sources=({"title": "A page", "url": "https://example.org/variance"},),
+                            origin="claude_code")
 
     call = runner.calls[0]
     assert call["stdin"] == "budget variance"
@@ -104,7 +121,8 @@ def test_claude_code_researcher_needs_sources_to_count_as_found():
     lookup = ClaudeCodeResearcher("m", runner=no_sources).look_up("something")
     assert lookup.found is False and lookup.sources == ()
     not_found = FakeRunner({"found": False, "name": "", "definition": "", "sources": []})
-    assert ClaudeCodeResearcher("m", runner=not_found).look_up("zzz").found is False
+    missing = ClaudeCodeResearcher("m", runner=not_found).look_up("zzz")
+    assert missing.found is False and missing.origin == "claude_code"
 
 
 def test_claude_code_researcher_errors():

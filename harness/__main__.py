@@ -1,4 +1,4 @@
-"""Command line (SPEC 3.6 and 4.5): `python -m harness check`, `events` and `ground`."""
+"""Command line (SPEC 3.6, 4.5 and 4.7): `python -m harness check`, `events`, `ground` and `ui`."""
 import argparse
 import json
 import sys
@@ -52,7 +52,7 @@ HOW_TO = ("Answer each question and press Enter. Type /wrap to finish with what 
 
 def ground(resume: bool, max_questions: int) -> int:
     """Run the grounding interview in the terminal and write the domain brief."""
-    from .grounding import get_researcher, new_state, run_interview
+    from .grounding import ResearchDesk, get_researcher, new_state, run_interview
 
     config = load_config()
     conn = db.connect(config.db_path)
@@ -85,7 +85,8 @@ def ground(resume: bool, max_questions: int) -> int:
                         actor="person", payload={"text": opening})
 
     try:
-        saved = run_interview(model=get_model(), researcher=get_researcher(), ask=ask, conn=conn,
+        desk = ResearchDesk(get_researcher(), conn)         # remembers every lookup (SPEC 4.6)
+        saved = run_interview(model=get_model(), researcher=desk, ask=ask, conn=conn,
                               state=state, brief_dir=config.brief_dir, state_path=state_path,
                               max_questions=max_questions)
     except Exception as error:
@@ -101,6 +102,37 @@ def ground(resume: bool, max_questions: int) -> int:
     return 0 if saved["status"] == "confirmed" else 1
 
 
+def ui(port: int, browser: bool, max_questions: int) -> int:
+    """Run the grounding interview in a local web page, until interrupted."""
+    import webbrowser
+
+    from .ui.server import make_server
+    from .ui.session import GroundingSession
+
+    config = load_config()
+    conn = db.connect(config.db_path)
+    db.migrate(conn)
+    session = GroundingSession(config, conn, max_questions=max_questions)   # resumes an unfinished interview
+    try:
+        server = make_server(session, port)
+    except OSError as error:
+        reason = " ".join(str(error).split())
+        print(f"could not start on port {port}: {reason}", file=sys.stderr)
+        return 1
+    address = f"http://127.0.0.1:{server.server_address[1]}/"
+    print(f"The grounding interview is at {address}", flush=True)
+    print("Press Ctrl+C to stop. An unfinished interview carries on the next time you run this.", flush=True)
+    if browser:
+        webbrowser.open(address)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopped.")
+    finally:
+        server.server_close()
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="python -m harness")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -109,11 +141,17 @@ def main() -> int:
     grounding = commands.add_parser("ground", help="run the grounding interview")
     grounding.add_argument("--resume", action="store_true", help="carry on an interview you stopped")
     grounding.add_argument("--max-questions", type=int, default=12)
+    page = commands.add_parser("ui", help="run the grounding interview in a local web page")
+    page.add_argument("--port", type=int, default=8765)
+    page.add_argument("--no-browser", action="store_true", help="do not open the page in the browser")
+    page.add_argument("--max-questions", type=int, default=12)
     args = parser.parse_args()
     if args.command == "check":
         return check()
     if args.command == "events":
         return events()
+    if args.command == "ui":
+        return ui(args.port, not args.no_browser, args.max_questions)
     return ground(args.resume, args.max_questions)
 
 
