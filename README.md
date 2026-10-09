@@ -18,17 +18,36 @@ The harness itself knows nothing about weddings. The example lives in
 | `tests/` | Acceptance tests per step, plus tests for the example data |
 | `data/` | The example data, its generator, and the facilitator key |
 
-## Try it
+## Set up
 
-Python 3.11 or later. Nothing to install for the offline run except pytest.
-Run everything from the repository root, and use `python3` if your machine
-has no `python`.
+The simplest way is [uv](https://docs.astral.sh/uv/). It is one small tool
+that fetches a suitable Python if your machine has none, and keeps
+everything this project needs in a `.venv` folder inside the repository.
+Nothing else on your machine changes, and deleting `.venv` undoes it.
 
 ```
+curl -LsSf https://astral.sh/uv/install.sh | sh     # macOS or Linux (or: brew install uv)
+```
+
+On Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+
+Then, from the repository root:
+
+```
+uv run pytest -q                                           # sets everything up, then runs the tests
+HARNESS_MODEL_PROVIDER=scripted uv run python -m harness check
+uv run python -m harness events
+```
+
+Put `uv run` in front of any command in this repository and it runs inside
+that environment.
+
+Without uv, any Python 3.11 or later works:
+
+```
+python3 -m venv .venv && source .venv/bin/activate
 pip install pytest
 python -m pytest -q
-HARNESS_MODEL_PROVIDER=scripted python -m harness check
-python -m harness events
 ```
 
 ## Choose how the harness reaches a model
@@ -47,8 +66,11 @@ With a Claude subscription and no API key:
 ```
 claude auth status                        # should say you are logged in
 export HARNESS_MODEL_PROVIDER=claude_code
-python -m harness check
+uv run python -m harness check
 ```
+
+The check sends the model a one-line test and should end with
+`Setup works: the model replied and the check was saved as event 1.`
 
 If `ANTHROPIC_API_KEY` is set in your shell, Claude Code uses that key
 instead of your plan, so unset it first. If the check reports an unknown
@@ -57,10 +79,9 @@ option, update Claude Code with `claude update`.
 With an API key:
 
 ```
-pip install anthropic
 export ANTHROPIC_API_KEY=...
 export HARNESS_MODEL_PROVIDER=anthropic
-python -m harness check
+uv run --extra claude python -m harness check
 ```
 
 `HARNESS_MODEL` picks the model. The default is `claude-sonnet-5-5`; with
