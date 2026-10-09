@@ -6,9 +6,10 @@ import pytest
 
 import step2_helpers as h
 from harness.model import ScriptedModel
-from step2_helpers import (DAY, QUESTION, BAD_NAME, EMPTY_REPLY, EMPTY_VALUE, INPUTS_UNBACKED, NO_EXPECTATION, NOT_REGISTERED,
-                           NUMBERS_CORRECTION, OPENING, SAVED, SESSION, TOO_MANY, WITHHELD, WITHHELD_NOTE, Person,
-                           events, payloads, rows, run_module, save_input, say_text, tool, tool_message, tools, user_messages)
+from step2_helpers import (DAY, QUESTION, BAD_NAME, EMPTY_REPLY, EMPTY_VALUE, GATE_UNBACKED, INPUTS_UNBACKED, NO_EXPECTATION,
+                           NOT_REGISTERED, NUMBERS_CORRECTION, OPENING, SAVED, SESSION, TOO_MANY, WITHHELD, WITHHELD_NOTE,
+                           Person, events, payloads, rows, run_module, save_input, say_text, tool, tool_message, tools,
+                           user_messages)
 
 UNBACKED_REPLY = "You will have 9,999 left."
 OTHER_UNBACKED = "Perhaps 8,888 instead."
@@ -28,17 +29,18 @@ def test_the_limits_and_the_schemas(agent):
     assert h.without_descriptions(agent.RUN_MODULE_SCHEMA) == h.RUN_MODULE_SCHEMA
     assert h.without_descriptions(agent.SAVE_INPUT_SCHEMA) == h.SAVE_INPUT_SCHEMA
     assert h.without_descriptions(agent.REQUEST_MODULE_SCHEMA) == h.REQUEST_MODULE_SCHEMA
+    assert h.without_descriptions(agent.ASK_DECISION_SCHEMA) == h.ASK_DECISION_SCHEMA          # (step 4) SPEC 8.3
 
 
 # ---- the model is called with ----------------------------------------------------------------
 
-def test_the_model_gets_the_question_and_the_three_tools(ask_agent):
+def test_the_model_gets_the_question_and_the_four_tools(ask_agent):
     model, person = ask_agent([say_text("Let me think.")])
     [call] = model.calls
     assert call["messages"] == [{"role": "user", "content": QUESTION}]
-    assert [t.name for t in call["tools"]] == ["run_module", "save_input", "request_module"]
+    assert [t.name for t in call["tools"]] == ["run_module", "save_input", "request_module", "ask_decision"]
     assert [h.without_descriptions(t.input_schema) for t in call["tools"]] == [
-        h.RUN_MODULE_SCHEMA, h.SAVE_INPUT_SCHEMA, h.REQUEST_MODULE_SCHEMA]
+        h.RUN_MODULE_SCHEMA, h.SAVE_INPUT_SCHEMA, h.REQUEST_MODULE_SCHEMA, h.ASK_DECISION_SCHEMA]
     assert "  (thinking)" in person.told
 
 
@@ -260,14 +262,25 @@ def test_a_result_of_another_session_does_not(ask_agent, gate, conn):
     assert person.asked == [WITHHELD.format(numbers="2,000")]
 
 
-def test_assumptions_and_expectations_are_not_checked(ask_agent, conn):
-    script = [run_module(assumptions=["Assuming a 7.25% return on savings."], expected="roughly 1,999 or so"),
-              say_text("Done.")]
+def test_the_expectation_of_a_run_without_assumptions_is_not_checked(ask_agent, conn):
+    # (step 4) nothing is shown to the person for such a run, so the number check does not read it (SPEC 5.9, 8.2)
+    script = [run_module(assumptions=[], expected="roughly 1,999 or so"), say_text("Done.")]
     ask_agent(script)
     [run] = rows(conn, "calc_runs")
-    assert json.loads(run["assumptions"]) == ["Assuming a 7.25% return on savings."]
-    assert run["expected"] == "roughly 1,999 or so"
+    assert json.loads(run["assumptions"]) == [] and run["expected"] == "roughly 1,999 or so"
     assert events(conn, "ask.correction") == []
+
+
+def test_assumptions_that_will_be_shown_are_checked_for_numbers(ask_agent, conn):
+    # (step 4) the assumption gate shows them, so they are read by the number check (SPEC 8.2): no run, no question
+    assumptions = ["Assuming a 7.25% return on savings."]
+    model, person = ask_agent([run_module(assumptions=assumptions, expected="roughly what comes in"), say_text("Done.")])
+    result = tool_message(model, 1)
+    assert result["is_error"] is True and result["content"] == GATE_UNBACKED.format(numbers="7.25%")
+    assert rows(conn, "calc_runs") == []
+    [(_, actor, payload)] = events(conn, "ask.correction")
+    assert actor == "harness" and payload["reason"] == "assumptions" and payload["numbers"] == ["7.25%"]
+    assert all("Taking as given" not in text for text in person.told)
 
 
 def test_a_number_that_is_only_in_a_note_is_backed(ask_agent, notes, conn):
@@ -310,12 +323,14 @@ def test_a_note_saved_during_the_session_backs_the_next_reply_but_the_context_st
 # ---- run_module ------------------------------------------------------------------------------
 
 def test_run_module_goes_through_the_gate(ask_agent, conn):
-    script = [run_module(assumptions=["Income is steady."], expected="about 2,000"), say_text("It gives 2,000.")]
-    model, person = ask_agent(script)
+    # (step 4) a run with assumptions needs a yes from the person first (SPEC 8.2); the expectation is shown with
+    # them, so it holds only numbers the person gave
+    script = [run_module(assumptions=["Income is steady."], expected="about 5000 less 3000"), say_text("It gives 2,000.")]
+    model, person = ask_agent(script, ["yes", "/quit"])
     [run] = rows(conn, "calc_runs")
     assert run["session_id"] == SESSION and run["module"] == "monthly_surplus"
     assert json.loads(run["inputs"]) == {"income": "5000", "spending": "3000"}
-    assert json.loads(run["assumptions"]) == ["Income is steady."] and run["expected"] == "about 2,000"
+    assert json.loads(run["assumptions"]) == ["Income is steady."] and run["expected"] == "about 5000 less 3000"
     assert "  (running monthly_surplus)" in person.told
     result = tool_message(model, 1)
     assert not result.get("is_error")

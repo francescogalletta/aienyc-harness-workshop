@@ -53,7 +53,7 @@ def test_the_default_limit_is_200(api, world):
         conn.close()
     body = page(api)
     assert len(body["events"]) == 200 and body["more"] is True
-    assert ids(body)[0] == 249 and ids(body)[-1] == 50
+    assert ids(body)[0] == 250 and ids(body)[-1] == 51
 
 
 def test_the_payload_is_json(api):
@@ -65,7 +65,7 @@ def test_the_payload_is_json(api):
 
 def test_a_limit_gives_that_many_and_more(api, stored):
     body = page(api, limit=10)
-    assert ids(body) == [e["id"] for e in stored][:10] == list(range(49, 39, -1)) and body["more"] is True
+    assert ids(body) == [e["id"] for e in stored][:10] == list(range(50, 40, -1)) and body["more"] is True
 
 
 def test_more_is_false_when_the_page_ends_exactly_at_the_oldest(api, stored):
@@ -76,7 +76,7 @@ def test_more_is_false_when_the_page_ends_exactly_at_the_oldest(api, stored):
 
 def test_limit_one(api):
     body = page(api, limit=1)
-    assert ids(body) == [49] and body["more"] is True
+    assert ids(body) == [50] and body["more"] is True
 
 
 def test_the_largest_limit(api, stored):
@@ -126,7 +126,7 @@ def test_an_empty_value_counts_as_absent(api, stored):
 
 def test_a_kind_is_exact(api, world):
     body = page(api, kind="ask.reply")
-    assert ids(body) == [e["id"] for e in events_where(world, "kind = 'ask.reply'", newest_first=True)] == [49, 43, 25]
+    assert ids(body) == [e["id"] for e in events_where(world, "kind = 'ask.reply'", newest_first=True)] == [50, 44, 25]
     assert {e["kind"] for e in body["events"]} == {"ask.reply"}
 
 
@@ -164,26 +164,26 @@ def test_a_prefix_takes_its_characters_literally(api, world):
 
 def test_a_session_is_exact(api, world):
     body = page(api, session=CHAT2)
-    assert ids(body) == list(range(43, 25, -1)) and {e["session_id"] for e in body["events"]} == {CHAT2}
+    assert ids(body) == list(range(44, 25, -1)) and {e["session_id"] for e in body["events"]} == {CHAT2}
     assert page(api, session="chat") == {"events": [], "more": False}
     assert page(api, session="chat-") == {"events": [], "more": False}
 
 
 def test_a_kind_and_a_session_together(api):
     body = page(api, kind="calc.", session=CHAT2)
-    assert ids(body) == [42, 41, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30]
+    assert ids(body) == [43, 42, 39, 38, 37, 36, 35, 34, 33, 32, 31, 30]
 
 
 def test_filters_before_and_limit_together(api):
     body = page(api, kind="calc.run", before=45, limit=2)
-    assert ids(body) == [42, 20] and body["more"] is True
+    assert ids(body) == [43, 20] and body["more"] is True
     body = page(api, kind="calc.run", before=ids(body)[-1], limit=2)
     assert ids(body) == [18] and body["more"] is False
 
 
 def test_more_looks_only_at_matching_events(api):
     body = page(api, kind="ask.started", limit=3)
-    assert ids(body) == [45, 26, 15] and body["more"] is False
+    assert ids(body) == [46, 26, 15] and body["more"] is False
 
 
 def test_a_filter_with_no_match_is_an_empty_page(api):

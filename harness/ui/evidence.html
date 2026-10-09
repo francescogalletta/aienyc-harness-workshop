@@ -31,6 +31,8 @@
   --bad: #a3231a;
   --bad-tint: #fbe8e5;
   --focus: #1a47b8;
+  --aside-bg: #e6ecf1;
+  --aside-edge: #52626f;
   --slab: Rockwell, "Rockwell Nova", "Roboto Slab", "DejaVu Serif", "Sitka Text", Georgia, serif;
   --sans: Seravek, "Gill Sans Nova", Ubuntu, Calibri, "DejaVu Sans", "Segoe UI", system-ui, sans-serif;
   --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
@@ -59,6 +61,8 @@
     --bad: #ff9f92;
     --bad-tint: #3a1713;
     --focus: #a3bfff;
+    --aside-bg: #17212b;
+    --aside-edge: #8ea2b3;
   }
 }
 
@@ -315,6 +319,85 @@ pre.raw, pre.text {
 }
 pre.text.wrapped, pre.raw.wrapped { white-space: pre-wrap; overflow-wrap: anywhere; }
 
+/* ---------- gates and decisions (step 4) ---------- */
+/* A checkpoint is something the harness put in front of the person: neutral ink, the same bar as a run card. */
+.cp { border: 2px solid var(--ink); border-top-width: 7px; border-radius: 4px; background: var(--surface); padding: 0.5rem 0.85rem 0.75rem; margin: 0 0 1.15rem; min-width: 0; }
+.cp.target { box-shadow: 0 0 0 0.35rem var(--you-tint); }
+.cp .head { display: flex; flex-wrap: wrap; gap: 0.2rem 0.7rem; align-items: baseline; }
+.cp .head b { font-family: var(--slab); font-size: 1.05rem; }
+.cp .head time { margin-left: auto; color: var(--muted); font-size: 0.8rem; }
+.cp .lead { color: var(--muted); font-size: 0.92rem; margin-top: 0.1rem; }
+.cp pre.text { font-size: 0.9rem; margin-top: 0.45rem; }
+.cp .links { display: flex; flex-wrap: wrap; gap: 0.3rem 0.4rem; align-items: baseline; margin-top: 0.55rem; font-size: 0.92rem; }
+.cp .links .lab2 { font-weight: 700; color: var(--muted); margin-right: 0.2rem; }
+.cp .links .chip { margin-right: 0; }
+a.chip { text-decoration: none; }
+a.chip:hover { background: var(--line-soft); }
+.chip.k-calculation.plain { border-width: 1.5px; }
+.turn .choice { font-weight: 700; font-size: 1.02rem; overflow-wrap: anywhere; }
+.turn .stepref, .dec .stepref { color: var(--muted); font-size: 0.88rem; font-weight: 400; overflow-wrap: anywhere; }
+.turn .stepref b, .dec .stepref b { color: var(--ink); font-family: var(--mono); font-size: 0.95em; }
+.turn .links { display: flex; flex-wrap: wrap; gap: 0.3rem 0.4rem; align-items: baseline; margin-top: 0.4rem; font-size: 0.92rem; color: var(--muted); }
+.turn .links .chip { margin-right: 0; }
+
+/* A side conversation: boxed, indented, hatched on the left, in its own slate tone. It looks like a different place. */
+.sidebox { position: relative; margin: 0 0 1.15rem 1.5rem; border: 2px solid var(--aside-edge); border-radius: 4px; background: var(--aside-bg); padding: 0 0 0 0.85rem; min-width: 0; overflow: hidden; }
+.sidebox::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 0.85rem; border-right: 2px solid var(--aside-edge); background: repeating-linear-gradient(135deg, var(--aside-edge) 0 2px, transparent 2px 7px); opacity: 0.85; }
+.sidebox .abody { padding: 0.55rem 0.9rem 0.3rem; min-width: 0; }
+.sidebox .ahead { display: flex; flex-wrap: wrap; gap: 0.1rem 0.8rem; align-items: baseline; }
+.sidebox .ahead h3 { font-family: var(--slab); font-size: 1.1rem; font-weight: 700; }
+.sidebox .ahead .span { margin-left: auto; color: var(--muted); font-size: 0.82rem; }
+.sidebox .asub { color: var(--muted); font-size: 0.92rem; margin: 0.1rem 0 0.8rem; max-width: 40rem; }
+.sidebox .turn { border-left-width: 3px; }
+.sidebox .turn.sys { border-left-style: dotted; }
+.sidebox details.looking { margin-top: 0.3rem; }
+.sidebox details.looking summary { cursor: pointer; color: var(--muted); font-size: 0.88rem; font-weight: 600; }
+.sidebox .afoot { border-top: 2px solid var(--aside-edge); background: var(--surface); padding: 0.6rem 0.9rem 0.8rem; min-width: 0; }
+.sidebox .afoot .ended { font-weight: 600; }
+.sidebox .afoot .ended .muted { font-weight: 400; }
+.sidebox .afoot .note { color: var(--muted); font-size: 0.88rem; margin-top: 0.35rem; }
+.carry { border-left: 4px solid var(--you-edge); background: var(--you-tint); padding: 0.45rem 0.8rem 0.55rem; margin-top: 0.55rem; max-width: 44rem; }
+.carry .l { font-size: 0.85rem; font-weight: 700; color: var(--you); }
+.carry .quote { color: var(--ink); font-weight: 600; margin-top: 0.15rem; }
+.nopass { margin-top: 0.4rem; color: var(--muted); border: 1.5px dashed var(--line); border-radius: 3px; padding: 0.25rem 0.6rem; display: inline-block; }
+.cmp .tag { margin-left: 0.2rem; }
+.cmp details { margin-top: 0.2rem; }
+.cmp details summary { cursor: pointer; color: var(--muted); font-size: 0.88rem; }
+.cmp details p { margin-top: 0.2rem; }
+@media (max-width: 600px) {
+  .sidebox { margin-left: 0.5rem; padding-left: 0.6rem; }
+  .sidebox::before { width: 0.6rem; }
+  .sidebox .abody { padding-left: 0.65rem; padding-right: 0.65rem; }
+  .sidebox .afoot { padding-left: 0.65rem; padding-right: 0.65rem; }
+  .sidebox .ahead .span { margin-left: 0; flex-basis: 100%; }
+}
+
+/* The Decisions view */
+.decs { display: grid; gap: 1.1rem; max-width: 80rem; }
+.dec { border: 2px solid var(--ink); border-top-width: 7px; border-radius: 4px; background: var(--raised); padding: 0.5rem 0.95rem 0.9rem; min-width: 0; }
+.dec.target { box-shadow: 0 0 0 0.35rem var(--you-tint); }
+.dec .dtop { display: flex; flex-wrap: wrap; gap: 0.25rem 0.7rem; align-items: baseline; }
+.dec .dtop time { margin-left: auto; color: var(--muted); font-size: 0.88rem; }
+.dec .pick { font-family: var(--slab); font-weight: 700; font-size: 1.25rem; line-height: 1.3; margin: 0.3rem 0 0; overflow-wrap: anywhere; }
+.dec .cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.4rem 2rem; margin-top: 0.55rem; align-items: start; }
+@media (min-width: 900px) { .dec .cols { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } }
+.dec h4 { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.7rem 0 0.2rem; }
+.dec .cols > div > h4:first-child { margin-top: 0.1rem; }
+.dec details.q summary { cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--muted); padding: 0.1rem 0; }
+.dec details.q pre.text { margin-top: 0.25rem; font-size: 0.88rem; }
+ol.opts { margin-top: 0.1rem; }
+ol.opts li { display: grid; grid-template-columns: 1.7rem minmax(0, 1fr); gap: 0 0.3rem; padding: 0.3rem 0.5rem 0.3rem 0.4rem; border-left: 4px solid var(--line-soft); overflow-wrap: anywhere; }
+ol.opts li + li { margin-top: 0.25rem; }
+ol.opts li .n { font-family: var(--mono); font-weight: 700; color: var(--muted); }
+ol.opts li.picked { border-left-color: var(--you-edge); background: var(--you-tint); font-weight: 700; }
+ol.opts li.picked .n { color: var(--you); }
+ol.opts li .tag { margin-left: 0.5rem; font-weight: 700; }
+.dec .none-of { color: var(--muted); margin-top: 0.3rem; }
+.dec .says { overflow-wrap: anywhere; }
+.dec .links { display: flex; flex-wrap: wrap; gap: 0.3rem 0.4rem; align-items: baseline; }
+.dec .links .chip { margin-right: 0; }
+.dec .where { margin-top: 0.7rem; font-size: 0.92rem; font-weight: 600; }
+
 /* values */
 dl.kv { display: grid; grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr); gap: 0.15rem 0.9rem; align-items: baseline; }
 dl.kv dt { color: var(--muted); font-size: 0.9rem; font-weight: 600; overflow-wrap: anywhere; }
@@ -468,6 +551,7 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
   <div class="wrap">
     <a href="#/conversations" data-tab="conversations">Conversations <span class="n"></span></a>
     <a href="#/runs" data-tab="runs">Runs <span class="n"></span></a>
+    <a href="#/decisions" data-tab="decisions">Decisions <span class="n"></span></a>
     <a href="#/modules" data-tab="modules">Modules <span class="n"></span></a>
     <a href="#/everything" data-tab="everything">Everything <span class="n"></span></a>
   </div>
@@ -479,7 +563,7 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
 "use strict";
 (function () {
   const TOKEN = "__HARNESS_TOKEN__";
-  const TABS = ["conversations", "runs", "modules", "everything"];
+  const TABS = ["conversations", "runs", "decisions", "modules", "everything"];
   const LABEL_ORDER = ["run", "input", "note", "brief", "person", "today"];
   const LEGEND = [
     ["run", "A tested module's run"],
@@ -513,7 +597,8 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
     "calc.step_added": "A step was added",
     "calc.adopt_decision": "Adoption was answered",
     "calc.adopt_refused": "Adoption was refused",
-    "calc.module_adopted": "The module was adopted"
+    "calc.module_adopted": "The module was adopted",
+    "ask.decision": "A decision was recorded"
   };
 
   const $ = (id) => document.getElementById(id);
@@ -771,6 +856,7 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
     else if (name === "run") done = await showRun(ctx);
     else if (name === "module") done = await showModule(ctx);
     else if (name === "runs") done = await showRuns(ctx);
+    else if (name === "decisions") done = await showDecisions(ctx);
     else if (name === "modules") done = await showModules(ctx);
     else if (name === "everything") done = await showEverything(ctx);
     else done = await showConversations(ctx);
@@ -853,7 +939,9 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
     reply: "The reply had numbers no source backs",
     run_module: "A calculation request had numbers no source backs",
     save_input: "A value to save had numbers no source backs",
-    request_module: "A request for a new module had numbers no source backs"
+    request_module: "A request for a new module had numbers no source backs",
+    assumptions: "The assumptions to put to you had numbers no source backs",
+    ask_decision: "A decision to put to you had numbers no source backs"
   };
   function numberTags(nums) {
     const wrap = document.createElement("span");
@@ -877,6 +965,215 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
     who.appendChild(timeEl(ev.ts, true));
     t.appendChild(who);
     return t;
+  }
+
+
+  /* ---------- decisions, gates and side conversations (step 4) ---------- */
+  const KIND_LABEL = { assumptions: "Assumptions", judgment: "Judgment call", build: "Build request" };
+  const HOW_ENDED = {
+    back: "You typed /back and returned to the main conversation.",
+    limit: "It reached the limit on turns.",
+    quit: "You typed /quit."
+  };
+  function kindLabel(k) { return KIND_LABEL[str(k)] || str(k) || "Decision"; }
+  /* The choice of a decision, in words. picked is the 1-based option chosen, or 0. */
+  function choiceParts(d) {
+    const kind = str(d.kind), ch = str(d.choice), opts = arr(d.options);
+    if (kind === "judgment" || /^[1-9]$/.test(ch)) {
+      if (/^[1-9]$/.test(ch)) {
+        const n = Number(ch), o = opts[n - 1];
+        return { head: "Option " + n + (typeof o === "string" && o ? ": " + o : ""), picked: n, other: false };
+      }
+      if (ch === "something else") return { head: "Something else, in your own words", picked: 0, other: true };
+    }
+    if (kind === "assumptions") {
+      if (ch === "yes") return { head: "Yes: go ahead on these", picked: 0, other: false };
+      if (ch === "no") return { head: "No: do not run them", picked: 0, other: false };
+    }
+    if (kind === "build") {
+      if (ch === "yes") return { head: "Yes: build it", picked: 0, other: false };
+      if (ch === "no") return { head: "No: do not build it", picked: 0, other: false };
+    }
+    return { head: "Choice: " + (ch || "none recorded"), picked: 0, other: false };
+  }
+  /* A step as the summary's process knows it, else its bare id. */
+  function stepNode(id) {
+    id = str(id);
+    if (!id) return null;
+    const p = st.summary && arr(st.summary.process).find((x) => x && x.id === id);
+    const label = p && str(p.label) ? str(p.label) : id;
+    const w = el("span", { class: "stepref" }, "Step ", el("b", { text: label }));
+    if (p && str(p.name)) w.appendChild(document.createTextNode(" " + str(p.name)));
+    if (p && p.in_brief === false && label.indexOf("not in the brief") < 0) w.appendChild(el("span", null, " ", tag("Not in the brief", "warn")));
+    return w;
+  }
+  function runLinks(ids, ctx, label) {
+    const list = arr(ids).filter((x) => x !== null && x !== undefined);
+    if (!list.length) return null;
+    const box = el("div", { class: "links" }, label ? el("span", { class: "lab2", text: label }) : null);
+    list.forEach((id) => box.appendChild(el("a", { class: "chip k-calculation", href: runHref(id, ctx), text: "Run " + str(id), title: "Open run " + str(id) })));
+    return box;
+  }
+  function moduleChips(calls) {
+    const mods = arr(st.summary && st.summary.modules).map((m) => m && m.name);
+    const box = el("div", { class: "links" }, el("span", { class: "lab2", text: "Calculations held back:" }));
+    const names = arr(calls).map((c) => str(obj(c).module)).filter(Boolean);
+    if (!names.length) box.appendChild(el("span", { class: "muted", text: "none listed" }));
+    names.forEach((n) => box.appendChild(mods.indexOf(n) >= 0 ? el("a", { class: "chip k-calculation", href: modHref(n, {}), text: n }) : el("span", { class: "chip k-calculation", text: n })));
+    return box;
+  }
+  function checkpoint(ev, title, lead, text, runModules, mctx) {
+    const cp = el("div", { class: "cp", id: "ev-" + ev.id });
+    cp.appendChild(el("div", { class: "head" }, el("b", { text: title }), tag("Shown to you"), timeEl(ev.ts, true)));
+    cp.appendChild(el("p", { class: "lead", text: lead }));
+    cp.appendChild(el("pre", { class: "text wrapped" }, markedText(text, ev.numbers, runModules, mctx)));
+    const ty = tally(ev.numbers);
+    if (ty) cp.appendChild(ty);
+    return cp;
+  }
+  function decisionTurn(ev, mctx) {
+    const d = obj(ev.payload), c = choiceParts(d);
+    const t = turn("you", ev, "You decided", [tag(kindLabel(d.kind), "you", "kind: " + str(d.kind))]);
+    const sn = stepNode(d.step);
+    if (sn) t.appendChild(el("p", { class: "cmp" }, sn));
+    t.appendChild(el("p", { class: "choice", text: c.head }));
+    if (str(d.words)) {
+      t.appendChild(el("p", { class: "sayline", text: "In your own words" }));
+      t.appendChild(el("p", { class: "quote", text: str(d.words) }));
+    }
+    const rl = runLinks(d.runs, mctx, "It rested on:");
+    if (rl) t.appendChild(rl);
+    return t;
+  }
+
+  /* Side conversations: every aside.* event of one number is one nested conversation, wherever its events fall. */
+  function asideNo(ev) {
+    const n = obj(ev.payload).aside;
+    return (n === null || n === undefined || n === "") ? "?" : String(n);
+  }
+  function isAside(ev) { return str(ev && ev.kind).indexOf("aside.") === 0; }
+  function asideEvent(ev, runModules, mctx) {
+    const p = obj(ev.payload);
+    switch (str(ev.kind)) {
+      case "aside.opened": {
+        const t = turn("sys", ev, "You stepped aside here");
+        if (str(p.looking_at)) {
+          const d = el("details", { class: "looking", open: true }, el("summary", { text: "What was on your screen, and went with it" }),
+            el("pre", { class: "text wrapped", text: str(p.looking_at) }));
+          t.appendChild(d);
+        } else t.appendChild(el("p", { class: "cmp muted", text: "Nothing from the screen went with it." }));
+        return t;
+      }
+      case "aside.message": {
+        const t = turn("you", ev, "You");
+        t.appendChild(el("p", { class: "said", text: str(p.text) }));
+        return t;
+      }
+      case "aside.reply": {
+        const t = turn("agent", ev, "Side assistant", [tag("Shown to you", "agent")]);
+        t.appendChild(el("p", { class: "said" }, markedText(p.text, ev.numbers, runModules, mctx)));
+        return t;
+      }
+      case "aside.withheld": {
+        const t = turn("held", ev, "Side assistant", [tag("Not shown", "bad")]);
+        t.appendChild(el("p", { class: "why" }, "Held back because no source backs: ", numberTags(p.numbers)));
+        t.appendChild(el("p", { class: "sayline", text: "What it tried to say" }));
+        t.appendChild(el("p", { class: "said" }, markedText(p.text, ev.numbers, runModules, mctx)));
+        return t;
+      }
+      case "aside.correction": {
+        const t = turn("held", ev, "Sent back to the side assistant", [tag("Not shown", "bad")]);
+        t.appendChild(el("p", { class: "why" }, "The reply had numbers no source backs: ", numberTags(p.numbers)));
+        t.appendChild(el("p", { class: "sayline", text: "The reply that was refused" }));
+        t.appendChild(el("p", { class: "said" }, markedText(p.text, ev.numbers, runModules, mctx)));
+        return t;
+      }
+      case "aside.lookup": {
+        const t = turn("sys", ev, "Side assistant looked something up");
+        const line = el("p", { class: "cmp" }, el("b", { text: str(p.query) }));
+        if (str(p.error)) line.appendChild(tag("Failed", "bad"));
+        else if (p.found === true) line.appendChild(tag("Found" + (str(p.name) ? ": " + str(p.name) : ""), "ok"));
+        else line.appendChild(tag("Not found", "warn"));
+        t.appendChild(line);
+        if (str(p.error)) t.appendChild(el("p", { class: "cmp muted", text: str(p.error) }));
+        else if (p.found === true && (str(p.definition) || arr(p.sources).length)) {
+          const d = el("details", null, el("summary", { text: "What came back" }));
+          if (str(p.definition)) d.appendChild(el("p", { text: str(p.definition) }));
+          if (arr(p.sources).length) d.appendChild(el("p", { class: "muted", text: "From: " + arr(p.sources).map(str).join(", ") }));
+          t.appendChild(el("div", { class: "cmp" }, d));
+        }
+        return t;
+      }
+      case "aside.stopped": {
+        const t = turn("sys", ev, "Side conversation stopped");
+        t.appendChild(el("p", { class: "cmp", text: str(p.reason) || "The side assistant stopped." }));
+        return t;
+      }
+      default: {
+        const d = el("details", { class: "other", id: "ev-" + ev.id });
+        d.appendChild(el("summary", null, el("span", { class: "k", text: str(ev.kind) }), el("span", { text: "#" + ev.id }), timeEl(ev.ts, true)));
+        let filled = false;
+        d.addEventListener("toggle", () => { if (d.open && !filled) { filled = true; d.appendChild(el("pre", { class: "raw wrapped", text: pretty(ev.payload) })); } });
+        return d;
+      }
+    }
+  }
+  function asideBox(g, runModules, mctx) {
+    const opened = g.events.find((e) => e.kind === "aside.opened") || null;
+    let closed = null;
+    g.events.forEach((e) => { if (e.kind === "aside.closed") closed = e; });
+    const hid = "aside-" + g.key + "-h";
+    const box = el("section", { class: "sidebox", "aria-labelledby": hid });
+    const body = el("div", { class: "abody" });
+    const head = el("div", { class: "ahead" }, el("h3", { id: hid, text: "Side conversation " + g.key }));
+    const from = opened ? fmtClock(opened.ts) : "";
+    const to = closed ? fmtClock(closed.ts) : "";
+    if (from || to) head.appendChild(el("span", { class: "span", text: from && to ? from + " to " + to : from ? "from " + from : "until " + to }));
+    body.appendChild(head);
+    body.appendChild(el("p", { class: "asub", text: "A separate conversation, with its own assistant. The main assistant did not see it, apart from a sentence you chose to carry back." + (opened ? "" : " The start of it was not recorded.") }));
+    g.events.forEach((e) => { if (e !== closed) body.appendChild(asideEvent(e, runModules, mctx)); });
+    box.appendChild(body);
+    const foot = el("div", { class: "afoot", id: closed ? "ev-" + closed.id : false });
+    if (closed) {
+      const p = obj(closed.payload);
+      const n = Number(p.turns);
+      foot.appendChild(el("p", { class: "ended" }, "Ended after " + (isNaN(n) ? "an unknown number of turns" : plural(n, "turn")) + ". ",
+        el("span", { class: "muted", text: HOW_ENDED[str(p.how)] || (str(p.how) ? "How it ended: " + str(p.how) : "") })));
+      if (typeof p.carried === "string" && p.carried !== "") {
+        foot.appendChild(el("div", { class: "carry" },
+          el("p", { class: "l", text: "Passed to the main conversation, in your words" }),
+          el("p", { class: "quote", text: p.carried })));
+      } else foot.appendChild(el("p", { class: "nopass", text: "Nothing was passed on to the main conversation." }));
+    } else {
+      foot.appendChild(el("p", { class: "ended" }, tag("Never closed", "warn"), " ", el("span", { class: "muted", text: "No end is recorded for this side conversation. The conversation stopped while it was open, or the record ends here." })));
+      foot.appendChild(el("p", { class: "nopass", text: "Nothing was passed on to the main conversation." }));
+    }
+    if (g.between > 0) foot.appendChild(el("p", { class: "note", text: plural(g.between, "other event was", "other events were") + " recorded while this was open. They follow below, in order." }));
+    box.appendChild(foot);
+    return box;
+  }
+  /* The events in order, with each side conversation gathered into one box where it opened. */
+  function drawTurns(events, c, ctx, runModules) {
+    const turns = el("div", { class: "turns" });
+    const items = [], groups = {};
+    events.forEach((ev, i) => {
+      if (!ev || typeof ev !== "object") return;
+      if (isAside(ev)) {
+        const key = asideNo(ev);
+        let g = groups[key];
+        if (!g) { g = groups[key] = { key: key, events: [], first: i, last: i, between: 0 }; items.push({ aside: g }); }
+        g.events.push(ev); g.last = i;
+      } else items.push({ ev: ev });
+    });
+    Object.keys(groups).forEach((k) => {
+      const g = groups[k];
+      g.between = events.slice(g.first, g.last + 1).filter((e) => e && typeof e === "object" && !isAside(e)).length;
+    });
+    items.forEach((it) => {
+      if (it.aside) turns.appendChild(asideBox(it.aside, runModules, { s: c.session_id, e: it.aside.events[0].id }));
+      else turns.appendChild(eventNode(it.ev, c, ctx, runModules));
+    });
+    return { node: turns, asides: Object.keys(groups).length };
   }
 
   function eventNode(ev, c, ctx, runModules) {
@@ -966,6 +1263,24 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
         t.appendChild(el("p", { class: "said", text: str(p.error) }));
         return t;
       }
+      case "ask.gate": {
+        const cp = checkpoint(ev, "Held for your yes", "The assistant wanted to run a calculation on things you had not confirmed. It did not run until you answered.", p.block, runModules, mctx);
+        cp.appendChild(moduleChips(p.calls));
+        return cp;
+      }
+      case "ask.decision_asked": {
+        const cp = checkpoint(ev, "A call only you can make", "The assistant stopped to ask, because the choice depends on what you want.", p.block, runModules, mctx);
+        const rl = runLinks(obj(p.arguments).runs, mctx, "It rested on:");
+        if (rl) cp.appendChild(rl);
+        return cp;
+      }
+      case "ask.decision": return decisionTurn(ev, mctx);
+      case "ask.decision_refused": {
+        const t = turn("sys", ev, "Decision not put to you");
+        t.appendChild(el("p", { class: "cmp", text: str(p.error) }));
+        t.appendChild(el("p", { class: "cmp muted", text: "It failed a check, so you were never shown it." }));
+        return t;
+      }
       case "ask.stopped": {
         const t = turn("sys", ev, "Stopped");
         t.appendChild(el("p", { class: "cmp", text: str(p.reason) || "The assistant stopped." }));
@@ -1006,8 +1321,11 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
       el("h2", { class: "title", text: "Conversation from " + (events.length ? fmtTime(events[0].ts) : str(session)) }),
       rp ? el("p", { style: "margin-top:0.35rem" }, tag("Replay: " + str(rp.example) + ", " + str(rp.scenario), "agent"), " ", el("span", { class: "muted", text: "A scripted replay, not typed by a person." })) : null,
       facts);
-    const turns = el("div", { class: "turns" });
-    events.forEach((ev) => { if (ev && typeof ev === "object") turns.appendChild(eventNode(ev, c, ctx, runModules)); });
+    const drawn = drawTurns(events, c, ctx, runModules);
+    const turns = drawn.node;
+    const nDec = events.filter((e) => e && e.kind === "ask.decision").length;
+    if (nDec) facts.appendChild(el("div", null, el("dt", { text: "Decisions" }), el("dd", { text: String(nDec) })));
+    if (drawn.asides) facts.appendChild(el("div", null, el("dt", { text: "Side conversations" }), el("dd", { text: String(drawn.asides) })));
     const aside = el("aside", { "aria-label": "Legend" }, legendNode(window.matchMedia("(min-width: 1080px)").matches));
     const foot = el("p", { class: "muted", style: "margin-top:1rem" }, el("a", { href: "#/everything" + q({ session: c.session_id }), text: "See every raw event of this conversation" }));
     show(head, chain([
@@ -1022,6 +1340,92 @@ h4.mini { font-size: 0.85rem; color: var(--muted); font-weight: 700; margin: 0.9
       const t = document.getElementById("ev-" + want);
       if (t) t.classList.add("target");
     }
+  }
+
+  /* ---------- Decisions ---------- */
+  st.dec = { events: [], more: false, loading: false, token: 0 };
+  async function showDecisions(ctx) {
+    const s = await needSummary(ctx);
+    if (!s) return;
+    const list = el("div", { class: "decs", id: "dec-list" });
+    const bar = el("div", { class: "morebar", id: "dec-bar" });
+    show(el("h2", { class: "title", text: "Decisions" }),
+      el("p", { class: "lede", text: "Everything you were asked to decide, newest first: what the assistant wanted to take as given, the calls only you can make, and requests to build a new calculation. Each shows the question as it was put to you, what you chose and what you said. A computed number is never put up for your approval." }),
+      list, bar);
+    await loadDecisions(true, list, bar);
+    const want = Number(ctx.query.get("e"));
+    if (want && ctx.my === st.nav) { const t = document.getElementById("dec-" + want); if (t) { t.classList.add("target"); ctx.scrollTo = "dec-" + want; } }
+  }
+  function decisionCard(e) {
+    const d = obj(e.payload), c = choiceParts(d), opts = arr(d.options);
+    const mctx = { s: e.session_id, e: e.id };
+    const card = el("article", { class: "dec", id: "dec-" + e.id });
+    const top = el("div", { class: "dtop" }, tag(kindLabel(d.kind), "you", "kind: " + str(d.kind)));
+    const sn = stepNode(d.step);
+    if (sn) top.appendChild(sn);
+    top.appendChild(timeEl(e.ts));
+    card.appendChild(top);
+    card.appendChild(el("p", { class: "pick", text: c.head }));
+
+    const left = el("div", null);
+    const qd = el("details", { class: "q", open: true }, el("summary", { text: "The question as it was shown to you" }),
+      el("pre", { class: "text wrapped", text: str(d.question) }));
+    left.appendChild(qd);
+
+    const right = el("div", null);
+    if (opts.length) {
+      right.appendChild(el("h4", { text: "What was on offer" }));
+      const ol = el("ol", { class: "opts" });
+      opts.forEach((o, i) => {
+        const on = c.picked === i + 1;
+        ol.appendChild(el("li", { class: on ? "picked" : false, "aria-current": on ? "true" : false },
+          el("span", { class: "n", text: (i + 1) + "." }),
+          el("span", null, str(o), on ? tag("Your choice", "you") : null)));
+      });
+      right.appendChild(ol);
+      if (c.other) right.appendChild(el("p", { class: "none-of", text: "You chose none of these." }));
+    }
+    if (str(d.words)) {
+      right.appendChild(el("h4", { text: "In your own words" }));
+      right.appendChild(el("p", { class: "quote says", text: str(d.words) }));
+    }
+    const rl = runLinks(d.runs, mctx, "");
+    if (rl) {
+      right.appendChild(el("h4", { text: "The runs it rested on" }));
+      right.appendChild(rl);
+    }
+    card.appendChild(el("div", { class: "cols" }, left, right));
+    const sid = str(e.session_id);
+    card.appendChild(el("p", { class: "where" }, el("a", { href: convHref(sid, e.id), text: "Open this in its conversation" }),
+      el("span", { class: "muted", style: "font-weight:400" }, " (" + (convStart(sid) || "session " + shortId(sid)) + ")")));
+    return card;
+  }
+  async function loadDecisions(fresh, list, bar) {
+    const D = st.dec;
+    if (D.loading && !fresh) return;
+    const my = ++D.token;
+    D.loading = true;
+    if (fresh) { D.events = []; D.more = false; clear(list); }
+    clear(bar);
+    bar.appendChild(el("span", { class: "muted", text: "Loading decisions" }));
+    const last = D.events.length ? D.events[D.events.length - 1].id : undefined;
+    const r = await api("/api/work/events" + q({ kind: "ask.decision", before: fresh ? undefined : last }));
+    if (my !== D.token || !list.isConnected) return;
+    D.loading = false;
+    clear(bar);
+    if (!r.ok) { bar.appendChild(errBlock("The decisions could not be loaded.", r, () => loadDecisions(fresh, list, bar))); return; }
+    arr(r.data.events).forEach((e) => { D.events.push(e); list.appendChild(decisionCard(e)); });
+    D.more = r.data.more === true;
+    if (!D.events.length) {
+      bar.appendChild(el("div", { class: "empty" }, "No decisions yet. One is recorded each time you confirm what the assistant takes as given, make a call only you can make, or answer a request to build a new calculation. Start a conversation with ", el("code", { text: "python -m harness ask" }), "."));
+      return;
+    }
+    bar.appendChild(el("span", { text: "Showing " + plural(D.events.length, "decision") + ", newest first." }));
+    if (D.more) {
+      const b = el("button", { class: "btn", type: "button", text: "Load more" });
+      b.addEventListener("click", () => { b.disabled = true; loadDecisions(false, list, bar); });
+      bar.appendChild(b);
+    } else bar.appendChild(el("span", { text: "That is all of them." }));
   }
 
   /* ---------- Runs ---------- */

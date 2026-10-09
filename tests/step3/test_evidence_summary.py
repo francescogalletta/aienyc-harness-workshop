@@ -301,7 +301,7 @@ def test_a_session_row_holds_its_times_event_count_and_first_kind(summary, world
         assert session["events"] == len(events) and session["first_kind"] == events[0]["kind"]
     assert {s["session_id"]: (s["events"], s["first_kind"]) for s in summary()["sessions"]} == {
         BUILD: (10, "calc.note_saved"), ADOPT: (4, "calc.adopt_decision"), CHAT1: (11, "ask.started"),
-        CHAT2: (18, "ask.started"), REPLAY: (6, "replay.scenario")}
+        CHAT2: (19, "ask.started"), REPLAY: (6, "replay.scenario")}
 
 
 def test_the_kinds_are_the_distinct_kinds_sorted(summary, world):

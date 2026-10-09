@@ -57,11 +57,12 @@ def test_the_schema_is_the_one_of_the_spec(agent):
     assert h.without_descriptions(agent.REQUEST_MODULE_SCHEMA) == h.REQUEST_MODULE_SCHEMA
 
 
-def test_the_tool_is_offered_last_with_that_schema(ask_agent):
+def test_the_tool_is_offered_third_with_that_schema(ask_agent):
+    """(step 4) SPEC 5.9: `ask_decision` is the fourth tool, so `request_module` is no longer the last."""
     model, _ = ask_agent([say_text("Hello.")])
     names = [t.name for t in model.calls[0]["tools"]]
-    assert names[-1] == "request_module"
-    assert h.without_descriptions(model.calls[0]["tools"][-1].input_schema) == h.REQUEST_MODULE_SCHEMA
+    assert names == ["run_module", "save_input", "request_module", "ask_decision"]
+    assert h.without_descriptions(model.calls[0]["tools"][2].input_schema) == h.REQUEST_MODULE_SCHEMA
 
 
 # ---- each check, in the stated order ---------------------------------------------------------

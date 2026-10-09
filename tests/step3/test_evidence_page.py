@@ -71,10 +71,19 @@ def test_it_calls_only_the_paths_of_the_api(evidence_text):
     assert "/api/state" not in called and "/api/start" not in called
 
 
-def test_it_names_the_four_views_and_the_one_action(evidence_text):
-    for name in ("Conversations", "Runs", "Modules", "Everything"):
+def test_it_names_the_five_views_and_the_one_action(evidence_text):
+    # (step 4) a fifth view, Decisions (SPEC 7.6 item 2)
+    for name in ("Conversations", "Runs", "Decisions", "Modules", "Everything"):
         assert name in evidence_text
     assert "Run the tests now" in evidence_text
+
+
+def test_it_reads_the_decisions_from_the_events_and_draws_the_side_conversations(evidence_text):
+    # (step 4) SPEC 7.6 items 15 to 17: the kinds it draws, the label of a side conversation
+    for kind in ("ask.gate", "ask.decision_asked", "ask.decision_refused", "ask.decision", "aside.opened", "aside.closed"):
+        assert kind in evidence_text, kind
+    assert "Side conversation" in evidence_text
+    assert "/api/work/events" in evidence_text
 
 
 def test_it_indexes_texts_by_code_points(evidence_text):

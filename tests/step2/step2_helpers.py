@@ -113,6 +113,13 @@ ALREADY_BUILT = ("Step '{target}' already has the module '{module}', with unchan
 ADDED_PREFIX = "added_"
 NOT_IN_BRIEF = "(not in the brief)"
 
+# (step 4) SPEC 8.2: the errors the assumption gate gives a run_module call
+GATE_UNBACKED = ("The person would see your assumptions and what you expect before the run, and these numbers in it did "
+                 "not come from the person, the brief, a saved input or a module result: {numbers}. Say it without them, "
+                 "or ask the person, and call run_module again.")
+ASK_FIRST = ("This run takes things as given that the person has not accepted, and it could not be shown to them with "
+             "the rest of your reply. Call run_module again.")
+
 ALL_BUILT = "Every calculation step has a tested module."
 SOME_MISSING = ("Some calculation steps have no tested module yet. "
                 "Run python -m harness build again to carry on.")
@@ -152,6 +159,15 @@ REQUEST_MODULE_SCHEMA = {"type": "object", "properties": {
     "works_out": {"type": "string"}, "from_what": {"type": "string"}, "gives": {"type": "string"},
     "formula": {"type": "string"}, "why": {"type": "string"}},
     "required": ["case", "works_out", "from_what", "gives", "formula", "why"]}
+# (step 4) SPEC 8.3
+ASK_DECISION_SCHEMA = {"type": "object", "properties": {
+    "step": {"type": "string"},
+    "question": {"type": "string"},
+    "options": {"type": "array", "items": {"type": "string"}},
+    "recommendation": {"type": "integer"},
+    "why": {"type": "string"},
+    "runs": {"type": "array", "items": {"type": "integer"}}},
+    "required": ["question", "options", "runs"]}
 
 
 def without_descriptions(schema):

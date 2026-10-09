@@ -1,4 +1,4 @@
-"""Scenarios and replay (SPEC 6.4 and 6.5).
+"""Scenarios and replay (SPEC 6.4, 6.5 and 8.8).
 
 A scenario is a scripted person and what the harness must see. `run_scenario`
 runs one against a model, in a scratch folder, and checks module runs and
@@ -18,6 +18,7 @@ from .calc.adopt import adopt
 from .calc.added import step_label
 from .calc.agent import run_agent
 from .calc.builder import build, load_brief
+from .calc.decisions import KINDS, SOMETHING_ELSE, list_decisions
 from .calc.provenance import _read, unbacked
 from .calc.values import same
 
@@ -26,7 +27,7 @@ NO_SCENARIOS = "There are no scenarios in {folder}."
 
 KEYS = ("name", "kind", "description", "today", "without", "lines", "expect")
 REQUIRED = ("name", "kind", "lines", "expect")
-ASK_EXPECTS = ("runs", "shown", "not_shown", "max_withheld", "max_corrections")
+ASK_EXPECTS = ("runs", "shown", "not_shown", "max_withheld", "max_corrections", "decisions", "asides")
 BUILD_EXPECTS = ("steps",)
 OUTCOMES = ("built", "reused", "kept", "not_built")
 SNAKE = re.compile(r"^[a-z][a-z0-9_]*$")
@@ -123,6 +124,15 @@ def _expect_problems(expect, kind, brief) -> list[str]:
         if key in expect and (not isinstance(expect[key], int) or isinstance(expect[key], bool)
                               or expect[key] < 0):
             errors.append(f"expect.{key} must be a whole number, 0 or more")
+    if "decisions" in expect:
+        errors += _decision_problems(expect["decisions"], brief)
+    if "asides" in expect:
+        asides = expect["asides"]
+        counts = isinstance(asides, dict) and set(asides) <= {"opened", "turns"} and bool(asides)
+        if not counts or not all(isinstance(each, int) and not isinstance(each, bool) and each >= 0
+                                 for each in asides.values()):
+            errors.append("expect.asides must be an object with opened, turns or both, each a whole number, "
+                          "0 or more")
     if "steps" in expect:
         steps = expect["steps"]
         if not isinstance(steps, dict):
@@ -133,6 +143,34 @@ def _expect_problems(expect, kind, brief) -> list[str]:
                        for step in steps if step not in calculations and not step.startswith("added_")]
             errors += [f"expect.steps: '{step}' must be built, reused, kept or not_built"
                        for step, outcome in steps.items() if outcome not in OUTCOMES]
+    return errors
+
+
+def _decision_problems(decisions, brief: dict) -> list[str]:
+    """What is wrong with `expect.decisions` (SPEC 6.4, step 4)."""
+    if not isinstance(decisions, list):
+        return ["expect.decisions must be a list"]
+    errors = []
+    ids = {step.get("id") for step in brief.get("process", [])}
+    for k, entry in enumerate(decisions, start=1):
+        good = (isinstance(entry, dict) and set(entry) <= {"kind", "step", "choice", "count"}
+                and entry.get("kind") in KINDS
+                and ("step" not in entry or (isinstance(entry["step"], str) and entry["step"]))
+                and ("choice" not in entry or isinstance(entry["choice"], str))
+                and ("count" not in entry or (isinstance(entry["count"], int)
+                                              and not isinstance(entry["count"], bool) and entry["count"] >= 1)))
+        if not good:
+            errors.append(f"expect.decisions: entry {k} must be an object with a kind (assumptions, judgment or "
+                          "build) and, optionally, step, choice and count (1 or more)")
+            continue
+        if "step" in entry and entry["step"] not in ids and not entry["step"].startswith("added_"):
+            errors.append(f"expect.decisions: entry {k}: '{entry['step']}' is not a step of the brief")
+        if "choice" in entry:
+            allowed = ("yes", "no") if entry["kind"] in ("assumptions", "build") else ("1", "2", "3", "4",
+                                                                                         SOMETHING_ELSE)
+            if entry["choice"] not in allowed:
+                errors.append(f"expect.decisions: entry {k}: choice must be yes or no for assumptions and build, "
+                              "and 1, 2, 3, 4 or something else for judgment")
     return errors
 
 
@@ -204,6 +242,23 @@ def check_scenario(conn, session_id, scenario, results=None) -> list[dict]:
         count = len(_events(conn, session_id, "ask.correction"))
         check(f"at most {expect['max_corrections']} corrections", count <= expect["max_corrections"],
               f"{count} corrections")
+    for entry in expect.get("decisions", []):
+        count = entry.get("count", 1)
+        of_kind = [each for each in list_decisions(conn, session_id=session_id) if each["kind"] == entry["kind"]]
+        matching = [each for each in of_kind if ("step" not in entry or each["step"] == entry["step"])
+                    and ("choice" not in entry or each["choice"] == entry["choice"])]
+        what = f"at least {count} {entry['kind']} decision" + ("" if count == 1 else "s")
+        if "step" in entry:
+            what += f" for step {step_label(entry['step'])}"
+        if "choice" in entry:
+            what += f" choosing {entry['choice']}"
+        check(what, len(matching) >= count, f"{len(matching)} matching of {len(of_kind)} {entry['kind']} decisions")
+    for key, kind, what in (("opened", "aside.opened", "side conversations opened"),
+                            ("turns", "aside.message", "side conversation turns")):
+        if key in expect.get("asides", {}):
+            count = len(_events(conn, session_id, kind))
+            check(f"{expect['asides'][key]} {what}", count == expect["asides"][key],
+                  f"{count} {key}")
     for step, outcome in expect.get("steps", {}).items():
         result = next((each for each in results or [] if each["step"] == step), None)
         seen = "not handled"

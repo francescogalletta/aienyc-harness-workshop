@@ -39,7 +39,9 @@ def test_the_build_inside_a_conversation_is_among_its_events(api):
     _, body = get(api, CHAT2)
     kinds = [e["kind"] for e in body["events"]]
     assert "calc.step_added" in kinds and "calc.module_registered" in kinds and "calc.golden_decision" in kinds
-    assert [e["id"] for e in body["events"]] == list(range(26, 44))
+    assert [e["id"] for e in body["events"]] == list(range(26, 45))
+    # (step 4) the request writes its decision just after ask.module_outcome (SPEC 5.11, 8.4)
+    assert kinds[kinds.index("ask.module_outcome") + 1] == "ask.decision"
 
 
 def test_the_date_of_the_conversation_is_its_ask_started(api):

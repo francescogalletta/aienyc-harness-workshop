@@ -1,4 +1,4 @@
-"""Reading the evidence (SPEC 7.3 and 7.4).
+"""Reading the evidence (SPEC 7.3, 7.4 and 8.9).
 
 Six functions, each taking an open connection. Five only read; `test_now` makes
 one fresh, recorded test run. Each returns exactly the JSON body of its
@@ -136,6 +136,8 @@ def _traced_field(kind: str, payload: dict):
         field = payload.get("text")
     elif kind == "ask.module_requested":
         field = payload.get("request")
+    elif kind in ("ask.gate", "ask.decision_asked"):
+        field = payload.get("block")
     else:
         return None
     return field if isinstance(field, str) else None
@@ -173,6 +175,11 @@ def conversation(conn, session_id: str) -> dict | None:
                 sources.append(("brief", None, brief))
             sources += [("person", None, each["payload"].get("text")) for each in events
                         if each["kind"] in ("ask.message", "ask.module_decision") and each["id"] < before]
+            sources += [("person", None, each["payload"].get("words")) for each in events
+                        if each["kind"] == "ask.decision" and each["id"] < before]
+            sources += [("person", None, each["payload"].get("carried")) for each in events
+                        if each["kind"] == "aside.closed" and isinstance(each["payload"].get("carried"), str)
+                        and each["id"] < before]
             sources.append(("today", None, today))
             numbers = trace(field, sources)
         shown.append({"id": event["id"], "ts": event["ts"], "kind": event["kind"], "actor": event["actor"],

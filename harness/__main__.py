@@ -1,5 +1,5 @@
-"""Command line (SPEC 3.6, 4.5, 4.7, 5.10, 6.7 and 7.7): `python -m harness check`, `events`, `ground`, `ui`,
-`build`, `modules`, `ask`, `adopt`, `replay` and `work`."""
+"""Command line (SPEC 3.6, 4.5, 4.7, 5.10, 6.7, 7.7 and 8.7): `python -m harness check`, `events`, `ground`, `ui`,
+`build`, `modules`, `ask`, `adopt`, `replay`, `work` and `decisions`."""
 import argparse
 import json
 import re
@@ -151,13 +151,19 @@ ALL_ADOPTED = "Every module folder is registered now."
 SOME_NOT_ADOPTED = ("Some module folders are not registered. Fix them, or rebuild their steps with: "
                     "python -m harness build")
 REPLAY_DONE = "{passed} of {total} scenarios passed."
+NO_DECISIONS = "No decisions are recorded yet."
 
 
 def terminal_ask(text: str) -> str:
-    """Show text between blank lines and read the answer. The end of input counts as /quit."""
+    """Show text between blank lines and read the answer. The end of input counts as /quit.
+
+    A question of a side conversation is known by its mark, and read after its own prompt (SPEC 8.7).
+    """
+    from .calc.aside import ASIDE_MARK, ASIDE_PROMPT
+
     print(f"\n{text}\n")
     try:
-        return input("> ")
+        return input(ASIDE_PROMPT if text.startswith(ASIDE_MARK) else "> ")
     except EOFError:
         return "/quit"
 
@@ -346,6 +352,27 @@ def replay_scenarios(example: str, scenario: str | None, keep: bool) -> int:
     return 0 if passed == len(scenarios) else 1
 
 
+def show_decisions() -> int:
+    """Print every decision of every session, oldest first (SPEC 8.7)."""
+    from .calc.added import step_label
+    from .calc.decisions import choice_words, list_decisions
+
+    conn = db.connect()
+    db.migrate(conn)
+    found = list_decisions(conn)
+    if not found:
+        print(NO_DECISIONS)
+        return 0
+    for each in found:
+        step = step_label(each["step"]) if each["step"] else "-"
+        runs = ", ".join(str(run) for run in each["runs"]) or "-"
+        print(f"{each['id']}  {each['ts']}  {each['kind']}  step: {step}  chose: {choice_words(each)}  runs: {runs}")
+        for line in each["question"].split("\n"):
+            print(f"  {line}")
+        print(f"  in their words: {each['words']}")
+    return 0
+
+
 def work(port: int, browser: bool) -> int:
     """Serve the evidence page, with no model and no interview, until interrupted (SPEC 7.7)."""
     import webbrowser
@@ -404,6 +431,7 @@ def main() -> int:
     evidence = commands.add_parser("work", help="show what the harness did, in a local web page")
     evidence.add_argument("--port", type=int, default=8765)
     evidence.add_argument("--no-browser", action="store_true", help="do not open the page in the browser")
+    commands.add_parser("decisions", help="print what you decided in your conversations")
     args = parser.parse_args()
     if args.command == "check":
         return check()
@@ -423,6 +451,8 @@ def main() -> int:
         return replay_scenarios(args.example, args.scenario, args.keep)
     if args.command == "work":
         return work(args.port, not args.no_browser)
+    if args.command == "decisions":
+        return show_decisions()
     return ground(args.resume, args.max_questions)
 
 

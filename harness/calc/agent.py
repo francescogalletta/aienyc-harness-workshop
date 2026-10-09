@@ -1,10 +1,12 @@
-"""The agent that answers questions about the plan (SPEC 5.9).
+"""The agent that answers questions about the plan (SPEC 5.9, 8.2 to 8.6).
 
 It runs modules through the gate and saves what the person tells it. It
 is given the notes kept during a build, and when no module can do what is
 needed it asks for one to be built, and the person decides. It never works a
 number out itself: the harness checks every number it sends out, and every
-number it passes to a module or saves (SPEC 5.8).
+number it passes to a module or saves (SPEC 5.8). The person decides what a
+run takes as given, and the calls only they can make; at any question they
+can step aside (SPEC 8).
 """
 import json
 import re
@@ -16,10 +18,13 @@ from ..model import ToolSpec
 from . import gate
 from .added import add_step, list_added_steps, process_steps, step_label
 from .builder import ACCEPT_WORDS, NO_STEP, build_step, format_sections
+from .decisions import (GATE_QUESTION, SOMETHING_ELSE, DECISION_QUESTION, DECISION_QUESTION_SUGGESTED,
+                        assumption_set, decision_block, gate_block, list_decisions, one_line, read_choice,
+                        record_decision)
 from .gate import NOT_REGISTERED
 from .notes import add_note, list_notes
 from .provenance import unbacked
-from .registry import file_status, get_module, list_modules, step_map
+from .registry import file_status, get_module, input_problems, list_modules, step_map
 
 RUN_MODULE_SCHEMA = {"type": "object", "properties": {
     "module": {"type": "string"}, "inputs": {"type": "object"},
@@ -45,6 +50,15 @@ SAVE_INPUT = ToolSpec(
     description=("Save a figure the person gave you, so it is not asked for again. Give a snake_case name, "
                  "the value in plain form and a note on where it came from."),
     input_schema=SAVE_INPUT_SCHEMA)
+ASK_DECISION_SCHEMA = {"type": "object", "properties": {
+    "step": {"type": "string"},
+    "question": {"type": "string"},
+    "options": {"type": "array", "items": {"type": "string"}},
+    "recommendation": {"type": "integer"},
+    "why": {"type": "string"},
+    "runs": {"type": "array", "items": {"type": "integer"}}},
+    "required": ["question", "options", "runs"]}
+
 REQUEST_MODULE = ToolSpec(
     name="request_module",
     description=("Ask for one module to be built, when no module can do what is needed. case is step (a "
@@ -53,10 +67,19 @@ REQUEST_MODULE = ToolSpec(
                  "has; target is its name). Say in plain words what must be worked out, from what, giving "
                  "what, how, and why it is needed now. The person decides. You do not write or see code."),
     input_schema=REQUEST_MODULE_SCHEMA)
-TOOLS = (RUN_MODULE, SAVE_INPUT, REQUEST_MODULE)
+ASK_DECISION = ToolSpec(
+    name="ask_decision",
+    description=("Put a call only the person can make to them: a step of kind judgment, or a choice between "
+                 "ways forward that depends on what they want. Give the step it belongs to (when there is one), "
+                 "the question, two to four options in plain words, the option you would choose "
+                 "(recommendation, a number from 1, optional) with one sentence why, and the run_ids of the "
+                 "results it rests on. The person answers, and you get their choice or their own words."),
+    input_schema=ASK_DECISION_SCHEMA)
+TOOLS = (RUN_MODULE, SAVE_INPUT, REQUEST_MODULE, ASK_DECISION)
 
 MAX_CALLS = 10
 MAX_REQUESTS = 2
+MAX_DECISIONS = 2
 OPENING = "What would you like to work out?"
 NUMBERS_CORRECTION = ("[harness] Your reply was not shown. These numbers did not come from a module result in "
                       "this conversation, a saved input, the brief or the person's own words: {numbers}. "
@@ -85,6 +108,21 @@ MISSING_WORDS = "Say in plain words: {fields}."
 NOT_A_STEP = "There is no calculation step '{target}' in the process."
 ALREADY_BUILT = ("Step '{target}' already has the module '{module}', with unchanged files. Run it, or ask to "
                  "replace it if it does not fit.")
+GATE_UNBACKED = ("The person would see your assumptions and what you expect before the run, and these numbers in "
+                 "it did not come from the person, the brief, a saved input or a module result: {numbers}. Say it "
+                 "without them, or ask the person, and call run_module again.")
+ASK_FIRST = ("This run takes things as given that the person has not accepted, and it could not be shown to them "
+             "with the rest of your reply. Call run_module again.")
+ONE_DECISION = "Only one ask_decision is handled per reply. Wait for the answer to the first."
+TOO_MANY_DECISIONS = ("No more decisions can be put to the person until their next message. Tell the person "
+                      "plainly what is still to decide.")
+DECISION_NO_QUESTION = "Say the question in plain words."
+DECISION_OPTIONS = "Give two to four different options, each in plain words."
+DECISION_NO_STEP = "There is no step {step} in the process."
+DECISION_BAD_RECOMMENDATION = "recommendation must be the number of one of the options, or left out."
+DECISION_NO_WHY = "Say in one sentence why you recommend it."
+DECISION_RUNS = "runs must be a list of run ids. It may be empty."
+DECISION_UNKNOWN_RUNS = "These runs are not in this conversation: {runs}."
 
 NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -97,20 +135,27 @@ def says_yes(answer: str) -> bool:
     return bool(words) and words[0].lower().rstrip(".,!;:") in ACCEPT_WORDS
 
 
-def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None) -> None:
+def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None, desk=None) -> None:
     """Answer the person's questions until they type /quit.
 
     `ask(text)` shows text to the person and returns what they typed.
     `say(text)` shows text that needs no answer.
+    `desk` is the research desk a side conversation looks terms up with (SPEC 8.5).
     """
+    from .aside import ASIDE_CARRIED, Asides       # aside.py imports this module's texts, so it is imported here
+
     today = today or date.today()
     today_text = today.isoformat()
     db.record_event(conn, session_id=session_id, kind="ask.started", actor="harness",
                     payload={"today": today_text})         # the date is a source for the number check (SPEC 7.2)
     system = _system_prompt(conn, brief, today_text)
+    asides = Asides(model=model, conn=conn, brief=brief, ask=ask, say=say, session_id=session_id,
+                    today=today_text, desk=desk)
+    ask, say = asides.ask, asides.say           # from here every question has /aside (SPEC 8.5)
     typed = []          # every message the person typed in this session, as typed
-    decided = []        # every answer to REQUEST_QUESTION in this session
+    accepted = []       # the assumption sets the person said yes to (SPEC 8.2)
     requests = {"shown": 0}     # requests shown for the last person message
+    decisions = {"shown": 0}    # decisions shown for the last person message
     messages = []
 
     def record(kind, actor, payload):
@@ -118,20 +163,72 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
 
     def sources() -> list:
         """What a number may come from, read afresh at each check (SPEC 5.9)."""
-        found = [brief, today_text, *typed, *decided]
+        found = [brief, today_text, *typed, *(each["words"] for each in list_decisions(conn, session_id=session_id)),
+                 *asides.carried]
         found += [json.loads(row["value"]) for row in conn.execute("SELECT value FROM inputs")]
         found += [note["text"] for note in list_notes(conn)]       # the person's words, or a request they approved
         for row in conn.execute("SELECT inputs, output FROM calc_runs WHERE session_id = ?", (session_id,)):
             found += [json.loads(row["inputs"]), json.loads(row["output"])]
         return found
 
-    def run_module(call) -> dict:
+    def needs_yes(call) -> bool:
+        """Does this run take things as given that the person has not accepted, and could it otherwise run? (SPEC 8.2)"""
+        arguments = call.arguments
+        inputs, name = arguments.get("inputs"), arguments.get("module")
+        assumptions, expected = arguments.get("assumptions"), arguments.get("expected")
+        if unbacked(json.dumps(inputs), sources()):
+            return False
+        module = get_module(conn, name) if isinstance(name, str) else None
+        if module is None or file_status(conn, name) != "unchanged":
+            return False
+        if (not isinstance(assumptions, list) or not all(isinstance(item, str) for item in assumptions)
+                or not isinstance(expected, str) or not expected.strip()):
+            return False
+        if input_problems(module["spec"], inputs):
+            return False
+        wanted = assumption_set(assumptions)
+        return bool(wanted) and wanted not in accepted
+
+    def assumption_gate(calls) -> tuple[set, dict]:
+        """Show the person the held runs of a reply and ask once (SPEC 8.2).
+
+        Returns the indexes of the held calls, and the results the gate gave some of them.
+        """
+        held = [(k, call) for k, call in enumerate(calls) if call.name == "run_module" and needs_yes(call)]
+        if not held:
+            return set(), {}
+        block = gate_block([(get_module(conn, call.arguments["module"])["spec"]["description"],
+                             call.arguments["assumptions"], call.arguments["expected"]) for _k, call in held])
+        numbers = unbacked(block, sources())
+        if numbers:
+            record("ask.correction", "harness", {"reason": "assumptions", "numbers": numbers,
+                                                 "text": json.dumps([call.arguments for _k, call in held])})
+            return {k for k, _call in held}, {
+                k: _result(call, GATE_UNBACKED.format(numbers=", ".join(numbers)), True) for k, call in held}
+        record("ask.gate", "agent", {"calls": [call.arguments for _k, call in held], "block": block})
+        say(block)
+        while True:
+            answer = ask(GATE_QUESTION).strip()
+            if answer:
+                break
+        yes = answer.lower() in ACCEPT_WORDS            # strict: the leniency of SPEC 6.6 does not apply
+        record_decision(conn, session_id=session_id, kind="assumptions", step_id=None, question=block,
+                        options=[], choice="yes" if yes else "no", words=answer, runs=[])
+        if yes:
+            accepted.extend(assumption_set(call.arguments["assumptions"]) for _k, call in held)
+            return {k for k, _call in held}, {}
+        return {k for k, _call in held}, {
+            k: _result(call, json.dumps({"outcome": "not_run", "said": answer}), False) for k, call in held}
+
+    def run_module(call, held=False) -> dict:
         arguments = call.arguments
         numbers = unbacked(json.dumps(arguments.get("inputs")), sources())
         if numbers:
             record("ask.correction", "harness", {"reason": "run_module", "numbers": numbers,
                                                  "text": json.dumps(arguments)})
             return _result(call, INPUTS_UNBACKED.format(numbers=", ".join(numbers)), True)
+        if not held and needs_yes(call):
+            return _result(call, ASK_FIRST, True)
         say(f"  (running {arguments.get('module')})")
         try:
             result = gate.call(conn, arguments.get("module"), arguments.get("inputs"),
@@ -215,9 +312,9 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
             if answer:
                 break
         decision = "accepted" if says_yes(answer) else "declined"
-        decided.append(answer)
         record("ask.module_decision", "person", {"decision": decision, "text": answer})
 
+        step_id = target if case == "step" else registered["spec"]["step_id"] if case == "replace" else None
         if decision == "declined":
             result = {"outcome": "declined", "said": answer}
         else:
@@ -231,6 +328,7 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
                 rebuild = target
             else:
                 step = steps[target]
+            step_id = step["id"]
             built = build_step(model=model, conn=conn, brief=brief, step=step, ask=ask, say=say,
                                session_id=session_id, rebuild=rebuild)
             if built["outcome"] == "not_built":
@@ -239,29 +337,112 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
                 result = {"outcome": built["outcome"], "step": built["step"], "module": built["module"],
                           "spec": get_module(conn, built["module"])["spec"]}
         record("ask.module_outcome", "harness", result)
+        record_decision(conn, session_id=session_id, kind="build", step_id=step_id, question=block, options=[],
+                        choice="yes" if decision == "accepted" else "no", words=answer, runs=[])
+        return _result(call, json.dumps(result), False)
+
+    def ask_decision(call, reply) -> dict:
+        """Put a call only the person can make to them, and record what they say (SPEC 8.3)."""
+        arguments = call.arguments
+
+        def refuse(error: str) -> dict:
+            record("ask.decision_refused", "harness", {"error": error, "arguments": arguments})
+            return _result(call, error, True)
+
+        first = not reply["decision"]
+        reply["decision"] = True
+        if not first:
+            return refuse(ONE_DECISION)
+        if decisions["shown"] >= MAX_DECISIONS:
+            return refuse(TOO_MANY_DECISIONS)
+        question, options = arguments.get("question"), arguments.get("options")
+        if not isinstance(question, str) or not question.strip():
+            return refuse(DECISION_NO_QUESTION)
+        if (not isinstance(options, list) or not 2 <= len(options) <= 4
+                or not all(isinstance(option, str) and option.strip() for option in options)
+                or len({one_line(option).casefold() for option in options}) != len(options)):
+            return refuse(DECISION_OPTIONS)
+        step_id = arguments.get("step")
+        steps = {step["id"]: step for step in process_steps(conn, brief)}
+        if step_id is None or step_id == "":
+            step = None
+        elif isinstance(step_id, str) and step_id in steps:
+            step = steps[step_id]
+        else:
+            return refuse(DECISION_NO_STEP.format(
+                step=f"'{step_id}'" if isinstance(step_id, str) else json.dumps(step_id)))
+        recommendation, why = arguments.get("recommendation"), arguments.get("why")
+        if recommendation is not None and (not isinstance(recommendation, int) or isinstance(recommendation, bool)
+                                           or not 1 <= recommendation <= len(options)):
+            return refuse(DECISION_BAD_RECOMMENDATION)
+        if recommendation is not None and (not isinstance(why, str) or not why.strip()):
+            return refuse(DECISION_NO_WHY)
+        runs = arguments.get("runs")
+        if not isinstance(runs, list) or not all(isinstance(run, int) and not isinstance(run, bool) for run in runs):
+            return refuse(DECISION_RUNS)
+        known = {row["id"] for row in conn.execute("SELECT id FROM calc_runs WHERE session_id = ?", (session_id,))}
+        unknown = list(dict.fromkeys(run for run in runs if run not in known))
+        if unknown:
+            return refuse(DECISION_UNKNOWN_RUNS.format(runs=", ".join(str(run) for run in unknown)))
+        block = decision_block(question=question, options=options, recommendation=recommendation,
+                               why=why if recommendation is not None else "", step=step)
+        numbers = unbacked(block, sources())
+        if numbers:
+            record("ask.correction", "harness", {"reason": "ask_decision", "numbers": numbers,
+                                                 "text": json.dumps(arguments)})
+            return _result(call, INPUTS_UNBACKED.format(numbers=", ".join(numbers)), True)
+
+        record("ask.decision_asked", "agent", {"arguments": arguments, "block": block})
+        decisions["shown"] += 1                     # counts whatever the answer
+        say(block)
+        shown = DECISION_QUESTION_SUGGESTED if recommendation is not None else DECISION_QUESTION
+        while True:
+            answer = ask(shown).strip()
+            if answer:
+                break
+        choice = read_choice(answer, options, recommendation)
+        decision = record_decision(conn, session_id=session_id, kind="judgment",
+                                   step_id=step["id"] if step else None, question=block,
+                                   options=[one_line(option) for option in options], choice=choice,
+                                   words=answer, runs=runs)
+        decided = {each["step"] for each in list_decisions(conn, session_id=session_id)
+                   if each["kind"] == "judgment"}
+        result = {"outcome": "decided", "decision": decision["id"], "choice": choice,
+                  "option": None if choice == SOMETHING_ELSE else decision["options"][int(choice) - 1],
+                  "said": answer,
+                  "judgment_steps": [{"id": each["id"], "name": each["name"], "decided": each["id"] in decided}
+                                     for each in process_steps(conn, brief) if each.get("kind") == "judgment"]}
         return _result(call, json.dumps(result), False)
 
     def turn() -> tuple[str, str]:
         """Work on the last person message. Returns what to show the person, and a note for their next message."""
         calls, corrected = 0, False
         requests["shown"] = 0
+        decisions["shown"] = 0
         while True:
             if calls == MAX_CALLS:
                 record("ask.stopped", "harness", {"reason": "too many steps"})
                 return TOO_MANY, ""
             say("  (thinking)")
+            for carried in asides.take_carried():       # words the person passed back from a side conversation
+                messages.append({"role": "user", "content": ASIDE_CARRIED.format(text=carried)})
             response = model.complete(system=system, messages=messages, tools=TOOLS)
             calls += 1
 
             if response.tool_calls:         # its text is not shown
-                results = []
-                for call in response.tool_calls:
-                    if call.name == "run_module":
-                        results.append(run_module(call))
+                results, reply = [], {"decision": False}
+                held, gated = assumption_gate(response.tool_calls)      # before any call is handled (SPEC 8.2)
+                for k, call in enumerate(response.tool_calls):
+                    if k in gated:
+                        results.append(gated[k])
+                    elif call.name == "run_module":
+                        results.append(run_module(call, held=k in held))
                     elif call.name == "save_input":
                         results.append(save_input(call))
                     elif call.name == "request_module":
                         results.append(request_module(call))
+                    elif call.name == "ask_decision":
+                        results.append(ask_decision(call, reply))
                     else:
                         results.append(_result(call, f"There is no tool called {call.name} here.", True))
                 messages.append({"role": "assistant", "content": response.text, "tool_calls": [

@@ -217,7 +217,8 @@ def test_unknown_keys_of_expect(replay):
 
 
 @pytest.mark.parametrize("key, value", [("runs", [{"module": "m"}]), ("shown", ["4,650"]), ("not_shown", ["4,650"]),
-                                        ("max_withheld", 0), ("max_corrections", 0)])
+                                        ("max_withheld", 0), ("max_corrections", 0),
+                                        ("decisions", [{"kind": "judgment"}]), ("asides", {"opened": 1})])
 def test_an_ask_key_in_a_build_scenario(replay, key, value):
     assert validate(replay, build(expect={key: value, "steps": {"s1": "built"}})) == [
         f"expect.{key} is only for ask scenarios"]

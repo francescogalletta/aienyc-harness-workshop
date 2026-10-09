@@ -19,7 +19,8 @@ Status of each section:
 | 5. Step 2: consistency | Fixed, covered by `tests/step2` |
 | 6. Seeded examples and replay | Contract for step 3, to be covered by `tests/step3` and `tests/data/test_examples.py` |
 | 7. Step 3: evidence | Contract, to be covered by `tests/step3` |
-| 8. Steps 4 and 5 | Draft. Each is fixed when its step is built and its tests are written. |
+| 8. Step 4: human in the loop | Contract, to be covered by `tests/step4`. It changes parts of sections 5 to 7 in place; each change is marked "(step 4)". |
+| 9. Step 5 | Draft. Fixed when the step is built and its tests are written. |
 
 ## 1. Ground rules
 
@@ -54,7 +55,8 @@ harness/           the harness (built by the prompts)
   model/           the only place a provider SDK may be imported
   migrations/      numbered .sql files, applied in order
   grounding/       step 1: the interview, the lookups and the brief
-  calc/            step 2: modules, the gate, the agent; adoption (section 6)
+  calc/            step 2: modules, the gate, the agent; adoption (section 6);
+                   decisions and side conversations (section 8)
   ui/              the local web pages: the interview and the evidence
   replay.py        scenarios and replay (section 6)
 reference/         saved reference terms for offline lookups (given)
@@ -2081,14 +2083,21 @@ person's own words, and when the person has no straight figure it asks what
 they do have. It never works a number out itself. When no module can do
 what is needed, it asks for one to be built, and the person decides. How it
 asks is set by `analyst.md`; the harness gives it the notes (5.5) and checks
-its numbers.
+its numbers. (step 4) Before a run that takes something as given, and for a
+call only the person can make, the person decides (8.2, 8.3); at any
+question the person can step aside (8.5).
 
 ```python
-run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None) -> None
+run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None, desk=None) -> None
 ```
 
 `brief` is as `load_brief` returns it. `today` is a `datetime.date`,
-default `date.today()`.
+default `date.today()`. (step 4) `desk` is the research desk a side
+conversation looks terms up with (8.5); `None` makes one when it is first
+needed. From its start `run_agent` uses `asides.ask` and `asides.say` (8.5)
+in place of the `ask` and `say` it was given: every `ask` and `say` in this
+section means those, so `/aside` works at every question, a build's
+included.
 
 **System prompt.** The text of `analyst.md`, with `{context}` replaced by
 these sections (same format as 5.7), in this order:
@@ -2108,7 +2117,9 @@ The context is made once, when the session starts, and is not remade. A
 module built or reused during the session reaches the agent through the
 result of `request_module`, which holds its spec; the gate reads the
 registry at every call, so the agent can run it at once. The next session's
-context has it, and any added step, like any other.
+context has it, and any added step, like any other. (step 4) Step 4 adds
+no section: the judgment steps show in `process`, and their decisions in
+the results of `ask_decision` (8.3).
 
 **Tools**, in this order:
 
@@ -2128,10 +2139,12 @@ REQUEST_MODULE_SCHEMA = {"type": "object", "properties": {
     "required": ["case", "works_out", "from_what", "gives", "formula", "why"]}
 ```
 
-named `run_module`, `save_input` and `request_module`. Each property may
+named `run_module`, `save_input` and `request_module`, and (step 4)
+`ask_decision` last, with `ASK_DECISION_SCHEMA` (8.3). Each property may
 also carry a `description` for the model; tool descriptions are free text.
-The assumptions and the expectation are recorded with the run. They are
-never shown to the person, so the number check does not read them.
+The assumptions and the expectation are recorded with the run. (step 4)
+They are shown to the person only at the assumption gate (8.2), and the
+number check reads them only there.
 
 **Sources** for the number check, read afresh at each check:
 
@@ -2139,8 +2152,11 @@ never shown to the person, so the number check does not read them.
 - `today` as `YYYY-MM-DD`;
 - every message the person typed in this session, as recorded in
   `ask.message` (stripped; including `question`);
-- every answer the person gave to `REQUEST_QUESTION` in this session, as
-  recorded in `ask.module_decision`;
+- (step 4) the `words` of every decision recorded in this session (8.1):
+  the answers to `REQUEST_QUESTION`, to the assumption gate and to
+  `ask_decision`;
+- (step 4) every text carried back from a side conversation of this
+  session (`asides.carried`, 8.5);
 - the `value` of every row of `inputs`, from any session;
 - the `text` of every note, from any session (they are the person's own
   words, or a request they approved), so a note kept during a build in this
@@ -2235,7 +2251,8 @@ checks):
 `step` is the id of the step built, so for `new` it is the new added step's
 id. The result is recorded as `ask.module_outcome`, with the result as its
 payload (`declined` too). It is never an error result. Its content is
-`json.dumps(result)`.
+`json.dumps(result)`. (step 4) Just after `ask.module_outcome`, the request
+writes a decision of kind `build` (8.4).
 
 **The loop.**
 
@@ -2249,19 +2266,30 @@ payload (`declined` too). It is never an error result. Its content is
    Otherwise every person message, the first one too, records `ask.message`
    with its text, and is added as a user message, followed by a blank line
    and `WITHHELD_NOTE` when the previous reply was withheld.
-2. Call the model, after `say("  (thinking)")`, with the three tools. At
+2. Call the model, after `say("  (thinking)")`, with the four tools. At
    most `MAX_CALLS = 10` calls of the agent's model follow one person
    message. The calls made by a build inside the turn (spec, examples,
    example helper, code) do not count: the build has its own limits, and
-   `MAX_REQUESTS` bounds the builds. When the limit is reached, record
-   `ask.stopped` and wait for the person with `ask(TOO_MANY)`. Both counts,
-   calls and requests shown, start again from 0 at each person message.
+   `MAX_REQUESTS` bounds the builds. (step 4) The calls of a side
+   conversation do not count either: it has its own limits (8.5). Gates and
+   decisions call no model and count towards neither limit. When the limit
+   is reached, record
+   `ask.stopped` and wait for the person with `ask(TOO_MANY)`. The counts,
+   calls, requests shown and (step 4) decisions shown, start again from 0
+   at each person message (a text carried back from a side conversation is
+   not a person message).
+   (step 4) Just before each call of the agent's model, every text carried
+   back from a side conversation and not yet given to the agent is added,
+   oldest first, as one user message each (8.5).
 3. **If it called tools**, its text is not shown, so the number check does
-   not read it. Each call is handled in
+   not read it. (step 4) First the assumption gate (8.2) looks at the
+   reply's `run_module` calls. Then each call is handled in
    order, and the assistant message and all results are added together:
    - `run_module`: if `unbacked(json.dumps(inputs), sources)` is not empty,
      the result is the error `INPUTS_UNBACKED` and `ask.correction` is
-     recorded (reason `run_module`); the gate is not called. Otherwise
+     recorded (reason `run_module`); the gate is not called. (step 4) Then,
+     if the call was not held and needs a yes now, the error `ASK_FIRST`
+     (8.2). Otherwise
      `say("  (running <module>)")` and `gate.call(...)`. Success gives the
      result `json.dumps({"module", "run_id", "output"})`. `Refused` gives an
      error result holding its message.
@@ -2273,6 +2301,11 @@ payload (`declined` too). It is never an error result. Its content is
      `ask.input_saved` is recorded, and the result is `SAVED`.
    - `request_module`: as above. A build it starts runs there and then,
      before the next call of the reply is handled.
+   - (step 4) `ask_decision`: as in 8.3. The person answers there and
+     then, before the next call of the reply is handled.
+   - (step 4) A `run_module` call the assumption gate held keeps the result
+     the gate gave it on a no or for its numbers (8.2), and is not run. On
+     a yes it is handled as above.
    - Any other tool gets the error `There is no tool called <name> here.`
 4. **If its text is empty**, add `EMPTY_REPLY` as a user message.
 5. **If its text has unbacked numbers** and no reply to this person message
@@ -2304,7 +2337,10 @@ try of every phase with three examples each answered `yes`, then run and
 explained, takes six model calls in this order: agent (`request_module`),
 `propose_spec`, `propose_examples`, `write_module`, agent (`run_module`),
 agent (the reply). The person answers `REQUEST_QUESTION`, then the plan,
-then each of the three examples, and then sees the reply.
+then each of the three examples, and then sees the reply. (step 4) That
+`run_module` call has no assumptions; with new ones, the person answers the
+assumption gate before it runs. The order with gates, decisions and side
+conversations is in 8.6.
 
 `{numbers}` in the messages below is the list from `unbacked`, joined by
 `, `.
@@ -2343,7 +2379,8 @@ All three commands run `migrate` first and make a new session id.
 **`python -m harness build [--rebuild NAME]`** runs `load_brief` on the
 brief folder and then `build` with the configured model. In the terminal,
 `ask` prints a blank line, the text and a blank line, then reads after
-`> `; the end of input counts as `/quit`.
+`> `; the end of input counts as `/quit`. (step 4) When the text starts
+with `ASIDE_MARK` it reads after `ASIDE_PROMPT` instead (8.7).
 
 When it returns, it prints a blank line and one line per result, where
 `<step>` is `step_label(<the result's step>)` (5.5):
@@ -2434,7 +2471,7 @@ Every event carries the session id of the command that made it.
 | `calc.run` | `harness` | `{"module", "run_id", "test_run_id", "inputs", "output"}` |
 | `ask.message` | `person` | `{"text"}`, stripped; every person message, the first too |
 | `ask.reply` | `agent` | `{"text"}` |
-| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module`, `save_input` or `request_module`; `text` is the reply, or the tool arguments as `json.dumps(arguments)` |
+| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module`, `save_input` or `request_module`, and (step 4) `assumptions` or `ask_decision` (8.2, 8.3); `text` is the reply, or the tool arguments as `json.dumps(arguments)` (for `assumptions`, the list of the arguments of the calls held back) |
 | `ask.withheld` | `harness` | `{"numbers", "text"}` |
 | `ask.input_saved` | `agent` | `{"name", "value", "note"}` |
 | `ask.stopped` | `harness` | `{"reason": "too many steps"}` |
@@ -2460,8 +2497,12 @@ For a `request_module` call that passes its checks: `ask.module_requested`,
 `ask.module_decision`, then on a yes `calc.step_added` (for `new`) or
 `calc.note_saved` (for `replace`), then the build's own events (5.7), then
 `ask.module_outcome`. On a no: `ask.module_requested`,
-`ask.module_decision`, `ask.module_outcome`. All of them carry the session
-id of the conversation.
+`ask.module_decision`, `ask.module_outcome`. (step 4) In both cases
+`ask.decision` (8.4) follows `ask.module_outcome`. All of them carry the
+session id of the conversation.
+
+(step 4) Step 4 adds the events of 8.10. Side conversations inside a build
+add their `aside.*` events among the build's.
 
 ### 5.12 Decisions
 
@@ -2653,6 +2694,9 @@ module. Each `golden.json` entry is `{"inputs", "expected", "working",
 
 **The scenarios**: each file passes `validate_scenario` (6.4). Each example
 ships at least one `ask` scenario and at least one `build` scenario.
+(step 4) It also ships at least one `ask` scenario whose `expect.decisions`
+has an entry of kind `judgment` whose `step` is a step of kind `judgment`
+in its brief, and at least one `ask` scenario with `expect.asides` (8.8).
 
 Two examples ship:
 
@@ -2835,8 +2879,8 @@ For example:
             "shown": ["4,650"], "max_withheld": 0}}
 ```
 
-`expect` holds at least one of these keys. The first five are for `ask`,
-the last for `build`:
+`expect` holds at least one of these keys. The first five, and (step 4)
+`decisions` and `asides`, are for `ask`; `steps` is for `build`:
 
 | Key | Holds | Passes when |
 | --- | --- | --- |
@@ -2845,6 +2889,8 @@ the last for `build`:
 | `not_shown` | list of numbers, as text | no such number appears in any reply shown |
 | `max_withheld` | whole number, 0 or more | the session has at most this many `ask.withheld` events |
 | `max_corrections` | whole number, 0 or more | the session has at most this many `ask.correction` events, of any reason |
+| `decisions` (step 4) | list of `{"kind", "step"?, "choice"?, "count"?}` | for each entry, the session has at least `count` (default 1) decisions (8.1) of that `kind` and, when given, that `step` and that `choice` |
+| `asides` (step 4) | `{"opened"?, "turns"?}` | the session has exactly `opened` `aside.opened` events, and exactly `turns` `aside.message` events (8.5) |
 | `steps` | `{"<step id>": "built" \| "reused" \| "kept" \| "not_built"}` | `build` returned a result for that step with that outcome |
 
 **A number appears in a reply** when the reply backs it with the number
@@ -2893,6 +2939,11 @@ Stage 2, in this order:
 | `shown` or `not_shown` is not a list of strings | `expect.<key> must be a list of numbers written as text` |
 | an item of `shown` or `not_shown` is not exactly one number in the reading of 5.8, not a date, and not exempt (a bare whole number from 0 to 12) | `expect.<key>: '<item>' must be one number the number check reads, not a date and not a bare whole number from 0 to 12` |
 | `max_withheld` or `max_corrections` is not an `int` (not `bool`) of 0 or more | `expect.<key> must be a whole number, 0 or more` |
+| (step 4) `decisions` is not a list | `expect.decisions must be a list` |
+| (step 4) an entry of `decisions` is not an object with `kind` one of `assumptions`, `judgment` or `build`, an optional non-empty string `step`, an optional string `choice`, an optional `count` that is an `int` (not `bool`) of 1 or more, and no other key | `expect.decisions: entry <k> must be an object with a kind (assumptions, judgment or build) and, optionally, step, choice and count (1 or more)` (`<k>` from 1); nothing more is checked for that entry |
+| (step 4) its `step` is not the id of a step of the brief's process (of any kind) and does not start with `added_` | `expect.decisions: entry <k>: '<step>' is not a step of the brief` |
+| (step 4) its `choice` is not `yes` or `no` for kind `assumptions` or `build`, or not `1`, `2`, `3`, `4` or `something else` for kind `judgment` | `expect.decisions: entry <k>: choice must be yes or no for assumptions and build, and 1, 2, 3, 4 or something else for judgment` |
+| (step 4) `asides` is not an object with at least one of `opened` and `turns`, each an `int` (not `bool`) of 0 or more, and no other key | `expect.asides must be an object with opened, turns or both, each a whole number, 0 or more` |
 | `steps` is not an object | `expect.steps must be an object` |
 | a key of `steps` is not a calculation step of the brief and does not start with `added_` | `expect.steps: '<id>' is not a calculation step of the brief` |
 | a value of `steps` is not one of the four outcomes | `expect.steps: '<id>' must be built, reused, kept or not_built` |
@@ -2968,8 +3019,9 @@ check_scenario(conn, session_id, scenario, results=None) -> list[dict]
 
 **`check_scenario`** returns one check per expectation, in this order:
 each `runs` entry, each `shown` item, each `not_shown` item,
-`max_withheld`, `max_corrections`, then each `steps` entry in the object's
-order. A check is `{"what": str, "passed": bool, "seen": str}`:
+`max_withheld`, `max_corrections`, (step 4) each `decisions` entry, then
+`asides.opened` and `asides.turns` when given, then each `steps` entry in
+the object's order. A check is `{"what": str, "passed": bool, "seen": str}`:
 
 | Expectation | `what` | `seen` |
 | --- | --- | --- |
@@ -2978,6 +3030,9 @@ order. A check is `{"what": str, "passed": bool, "seen": str}`:
 | `not_shown` item | `does not show <item>` | the same two forms |
 | `max_withheld` | `at most <N> replies withheld` | `<count> withheld` |
 | `max_corrections` | `at most <N> corrections` | `<count> corrections` |
+| `decisions` entry (step 4) | `at least <count> <kind> decision`, with `s` added unless `<count>` is 1, then ` for step <step_label(step)>` when `step` is given, then ` choosing <choice>` when `choice` is given | `<m> matching of <n> <kind> decisions`, where `<n>` counts the session's decisions of that kind and `<m>` those that also match `step` and `choice` |
+| `asides.opened` (step 4) | `<N> side conversations opened` | `<count> opened` |
+| `asides.turns` (step 4) | `<N> side conversation turns` | `<count> turns` |
 | `steps` entry | `step <step_label(id)> <outcome>` | the outcome of its result, with ` (<reason>)` added for `not_built`; or `not handled` |
 
 `<n>` is the number of `ask.reply` events in the session.
@@ -3266,7 +3321,7 @@ A **conversation** is a session with at least one `ask.message` event.
 | `input` | `None` | the payload's `value` | `ask.input_saved` events of any session before `E` |
 | `note` | `None` | the payload's `text` | `calc.note_saved` events of any session before `E` |
 | `brief` | `None` | the brief | read now |
-| `person` | `None` | the payload's `text` | `ask.message` and `ask.module_decision` events of `S` before `E`, by id |
+| `person` | `None` | the payload's `text`; (step 4) for `ask.decision` its `words`, for `aside.closed` its `carried` | `ask.message` and `ask.module_decision` events of `S` before `E`, and (step 4) `ask.decision` events and `aside.closed` events whose `carried` is text, all by id |
 | `today` | `None` | the conversation's date | the `today` of the `ask.started` event of `S`; with none, the date part (first ten characters) of the `ts` of the first event of `S` |
 
 "Before `E`" means with a smaller event id. These are the sources the
@@ -3350,8 +3405,17 @@ events, and `null` for every other:
 | `ask.withheld` | `payload.text` (not shown) |
 | `ask.correction` with `reason` `reply` | `payload.text` (not shown) |
 | `ask.module_requested` | `payload.request` (shown to the person) |
+| `ask.gate` (step 4) | `payload.block` (shown to the person) |
+| `ask.decision_asked` (step 4) | `payload.block` (shown to the person) |
 
-`start` and `end` in a trace item index that field.
+`start` and `end` in a trace item index that field. (step 4) The texts of a
+side conversation (`aside.reply`, `aside.withheld`, `aside.correction`) are
+not traced: `numbers` is `null` for them. Their number check used the side
+conversation's own sources (8.5), which the record does not rebuild.
+
+(step 4) The API is otherwise unchanged. The decisions are read through the
+events endpoint: `GET /api/work/events?kind=ask.decision` gives every
+decision, newest first, each event's payload being the decision (8.1).
 
 **`GET /api/work/run?id=N`**: one calculation run.
 
@@ -3462,9 +3526,9 @@ What it must do, as a checklist a reviewer can tick:
 1. Sends the token in the `X-Harness-Token` header on every `/api/`
    request. Calls only the paths of 7.4. The only POST is
    `/api/work/test`.
-2. On load, gets `/api/work/summary` and offers four views: Conversations,
-   Runs, Modules (with the process) and Everything. A link
-   to the interview (`/`) is shown only when `interview` is true.
+2. On load, gets `/api/work/summary` and offers five views: Conversations,
+   Runs, Decisions (step 4), Modules (with the process) and Everything. A
+   link to the interview (`/`) is shown only when `interview` is true.
 3. Shows `database` and the brief's goal and status, or that there is no
    brief.
 4. **Conversations**: lists `conversations` in the order given, each with
@@ -3478,7 +3542,8 @@ What it must do, as a checklist a reviewer can tick:
    and `numbers`; `ask.module_requested` (the `request` block, as shown),
    `ask.module_decision`, `ask.module_outcome` and `ask.request_refused`;
    `ask.input_saved`; `calc.run` (module and output, opening the run);
-   `calc.refused` and `calc.run_failed` (the reason); `ask.stopped`. Every
+   `calc.refused` and `calc.run_failed` (the reason); `ask.stopped`; and
+   (step 4) the kinds of items 15 and 16. Every
    other kind (a build inside the conversation, for example) is shown
    compactly with its kind, and its payload on demand.
 6. **Every traced number** is marked in place in its text, using `start`
@@ -3520,6 +3585,38 @@ What it must do, as a checklist a reviewer can tick:
 13. Shows the `error` of any answer that is not 200, and the status code.
 14. Uses no model and no text of its own about the person's figures: every
     figure on the page comes from the API.
+15. (step 4) **Gates and decisions in a conversation**, in place, as blocks
+    set apart from the replies: `ask.gate` shows its `block` as
+    preformatted text, with its traced `numbers` marked as in item 6, and
+    under it the calls held back (each `module`); `ask.decision_asked`
+    shows its `block` the same way; `ask.decision` shows, as the person's,
+    its `kind`, the choice (for a judgment, the chosen option's number and
+    text from `options`, or "something else") and `words`, each of its
+    `runs` opening that run; `ask.decision_refused` shows its `error`, like
+    `ask.request_refused`.
+16. (step 4) **Side conversations in a conversation**: the events from an
+    `aside.opened` to the `aside.closed` with the same `payload.aside`
+    (every `aside.*` event carries it) are drawn as one nested
+    conversation, visibly set apart (indented, boxed and labelled "Side
+    conversation <aside>"), even when other events lie between them. Inside
+    it: `aside.opened` with its `looking_at` block as preformatted text
+    when not `null`; `aside.message` as the person's; `aside.reply` as the
+    side assistant's; `aside.withheld` and `aside.correction` as **not
+    shown**, with their `numbers`; `aside.lookup` compactly (the `query`,
+    and `name` and `found`, or `error`); `aside.stopped`. `aside.closed`
+    ends it, showing `turns`, how it ended (`how`: the person went back,
+    the turn limit, or `/quit`) and either the `carried` text, labelled as
+    passed to the main conversation in the person's words, or that nothing
+    was passed on. An aside never opened or never closed (a session that
+    stopped) is still drawn with what it has.
+17. (step 4) **Decisions**: gets `/api/work/events?kind=ask.decision`
+    (with "Load more", as in item 10) and lists the decisions newest first.
+    Each shows `ts`, `kind`, its step (the `label` from the summary's
+    `process` when the step is there, marking steps not in the brief, else
+    the id as it is; nothing when `step` is `null`), `question` as
+    preformatted text, `options` numbered from 1 with the chosen one
+    marked, the choice as in item 15, `words`, its `runs` (each opening its
+    run) and its `session_id` (opening the conversation).
 
 **`harness/ui/grounding.html`** gets one change: a link to `/work`, labelled
 `Show your work`. Nothing else in it changes.
@@ -3580,18 +3677,868 @@ id.
 12. The page is given, like the interview page: written once from the API,
     never by a build.
 
-## 8. Steps 4 and 5 (draft)
+## 8. Step 4: human in the loop
 
-Each step adds modules and tables without changing what earlier steps built.
-New tables arrive as new migration files. The detail below is the intended
-shape; it becomes fixed when the step is built.
+Gates only for what matters. The person decides the judgment calls: what a
+calculation takes as given before it runs, and the calls only they can make
+once the results are in. The person never approves a computed number:
+tested code already earned that. At any question the person can step aside
+into a side conversation, with its own assistant and its own context, that
+leaves the main conversation as it was. Every decision is recorded.
 
-**Step 4, human in the loop.** `harness/side/`: a sub-agent with its own
-context that holds a clarification with the person and returns only a
-decision record. Gates sit before a calculation runs, on the proposed inputs
-and the expected output. New table: `decisions`.
+The harness, not the prompt, enforces five things in this step:
+
+1. A run that takes as given something the person has not accepted in this
+   conversation does not run until the person says yes (8.2).
+2. A call only the person can make is put to them only through
+   `ask_decision`, in a fixed block that passed the number check, and their
+   answer is recorded (8.3).
+3. Every gate writes one decision record: the assumption gate, each
+   judgment, and the build request of 5.9 (8.1, 8.4).
+4. A side conversation never receives the main conversation's messages, and
+   the main agent never receives the side conversation's. The side
+   assistant cannot run a module, save an input, ask for a build or record a
+   decision. Nothing crosses back but words the person types for that
+   purpose (8.5).
+5. Everything above is recorded as events (8.10).
+
+The prompt, not the harness, asks the agent to put on a run only what the
+person has not confirmed, and to use `ask_decision` for the judgment steps.
+The harness cannot see a judgment the agent never puts to the person. That
+is said out loud in the workshop.
+
+Nothing else is gated: `save_input` is not, a run with no assumptions is
+not, and a computed output is never put up for approval. Side conversations
+exist only in a conversation (`python -m harness ask`), a build started
+from it included; not in `python -m harness build`, `adopt` or the
+interview.
+
+Terminal only. Standard library only. Nothing under `harness/` names the
+example domain.
+
+**Files.**
+
+| File | Status |
+| --- | --- |
+| `harness/migrations/0006_decisions.sql` | New, exactly as in 8.1. |
+| `harness/calc/decisions.py` | New (8.1 to 8.3): the decision records, and the blocks of the gate and of a judgment. |
+| `harness/calc/aside.py` | New (8.5): side conversations. |
+| `harness/calc/aside.md` | **Given** (8.5): the instructions of the side assistant. Never rewritten by a build. |
+| `harness/calc/agent.py` | Changed (5.9, 8.2 to 8.6). |
+| `harness/calc/analyst.md` | **Given**, revised for this step. |
+| `harness/__main__.py` | Changed (8.7): `decisions`, and the prompt of a side conversation. |
+| `harness/replay.py` | Changed (6.4, 6.5): two more expectations. |
+| `harness/ui/evidence.py` | Changed (7.3, 7.4): more `person` sources, two more traced kinds. |
+| `harness/ui/evidence.html` | **Given**, updated by a designer from 7.4 and 7.6 (items 15 to 17). |
+| `examples/*/scenarios/` | Changed data (8.8). |
+| `tests/step4/` | Acceptance tests for this section. |
+| `README.md`, `BUILD_PLAN.md`, `prompts/step4_human.md` | Written by the implementer after the step is built. |
+
+### 8.1 Decisions: `0006_decisions.sql` and `harness/calc/decisions.py`
+
+The migration `0006_decisions.sql` is exactly:
+
+```sql
+-- Step 4: what the person decided in a conversation (SPEC 8.1).
+
+CREATE TABLE decisions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,        -- UTC, ISO 8601
+    session_id  TEXT NOT NULL,        -- the conversation
+    kind        TEXT NOT NULL,        -- 'assumptions' | 'judgment' | 'build'
+    step_id     TEXT,                 -- the step it belongs to, or NULL
+    question    TEXT NOT NULL,        -- the block shown, exactly
+    options     TEXT NOT NULL,        -- JSON list of the options shown; [] for a yes or no
+    choice      TEXT NOT NULL,        -- 'yes' or 'no'; for a judgment '1' to '4' or 'something else'
+    words       TEXT NOT NULL,        -- what the person typed, stripped
+    runs        TEXT NOT NULL         -- JSON list of the calc_runs ids it rested on
+);
+```
+
+A **decision**, as a dict, has exactly these keys, in this order:
+
+```
+{"id", "ts", "session_id", "kind", "step", "question", "options", "choice", "words", "runs"}
+```
+
+`step` is the `step_id` column (or `None`); `options` and `runs` are lists.
+
+In `harness/calc/decisions.py`:
+
+```python
+KINDS = ("assumptions", "judgment", "build")
+SOMETHING_ELSE = "something else"
+
+record_decision(conn, *, session_id, kind, step_id, question, options, choice, words, runs) -> dict
+list_decisions(conn, *, session_id=None) -> list[dict]
+choice_words(decision: dict) -> str
+one_line(text: str) -> str
+assumption_set(assumptions: list[str]) -> frozenset[str]
+gate_block(items: list[tuple[str, list[str], str]]) -> str
+decision_block(*, question: str, options: list[str], recommendation: int | None, why: str, step: dict | None) -> str
+read_choice(answer: str, options: list[str], recommendation: int | None) -> str
+```
+
+- `record_decision` raises `ValueError("unknown kind: <kind>")` for a kind
+  not in `KINDS`. Otherwise it inserts one row (`ts` now; `options` and
+  `runs` as JSON), commits, records `ask.decision` (actor `person`) whose
+  payload is the decision without `ts` and `session_id`, and returns the
+  decision. It checks nothing else: its callers do.
+- `list_decisions` returns the decisions of one session, or of every
+  session when `session_id` is `None`, oldest first (by `id`).
+- `choice_words` gives `yes` or `no` for kinds `assumptions` and `build`;
+  for a judgment, `something else`, or `<n>. <option n>` for a numbered
+  choice (`2. Move the date`).
+- `one_line(text)` is `" ".join(text.split())`: trimmed, every run of white
+  space made one space. Every text the agent writes into a block passes
+  through it, so a block is always laid out as below.
+- `assumption_set` and the blocks are in 8.2 and 8.3; `read_choice` in 8.3.
+
+The three kinds:
+
+| Kind | Written by | `step` | `question` | `options` | `choice` | `runs` |
+| --- | --- | --- | --- | --- | --- | --- |
+| `assumptions` | the assumption gate (8.2) | `None` | the gate block | `[]` | `yes` or `no` | `[]` |
+| `judgment` | `ask_decision` (8.3) | the `step` sent, or `None` | the decision block | the options as shown | `1` to `4`, or `something else` | `runs` as sent |
+| `build` | `request_module` (8.4) | the step it builds | the request block | `[]` | `yes` or `no` | `[]` |
+
+### 8.2 The assumption gate
+
+A run's `assumptions` are what the agent takes as given that the person has
+not confirmed (`analyst.md`). Before such a run, the person sees them, with
+what the module works out and what the agent expects, and says whether to
+go ahead. Nothing about the computed output is ever asked.
+
+**The set.** `assumption_set(assumptions)` is the set of
+`one_line(sentence).casefold()` for each sentence, with `""` left out. Two
+sets match only when they are equal: the same sentences in any order,
+written the same once trimmed and case-folded. A sentence accepted as part
+of one set does not let a different set through.
+
+**Accepted sets.** `run_agent` keeps a list of the sets the person
+accepted, in memory, for the conversation (one `run_agent` call). It starts
+empty. A set is added when the person says yes to a gate that showed it,
+and never removed. Nothing else adds to it. The record of each answer is
+the decision; the list is not stored.
+
+**Needs a yes.** A `run_module` call **needs a yes**, at a given moment,
+when all of these hold then:
+
+1. `unbacked(json.dumps(inputs), sources)` is empty (5.9);
+2. `module` names a registered module whose `file_status` is `unchanged`;
+3. `assumptions` is a list of strings and `expected` is a string that is
+   not empty once stripped;
+4. `input_problems(<its spec>, inputs)` is empty (5.6);
+5. its `assumption_set` is not empty, and is not one of the accepted sets.
+
+So a call the gate would refuse before testing (5.6) is never shown to the
+person: it is handled as in 5.9 and refused there.
+
+**The order.** After a reply with tool calls, and before any of its calls
+is handled:
+
+1. The **held** calls are the reply's `run_module` calls that need a yes
+   now, in reply order. With none, go to 4.
+2. The **gate block** is `gate_block([(<the module's spec description>,
+   <assumptions>, <expected>) for each held call])`. If
+   `unbacked(<the gate block>, sources)` is not empty, nothing is shown:
+   record `ask.correction` (reason `assumptions`, `numbers`, and `text` =
+   `json.dumps(<the list of the held calls' arguments>)`); every held call
+   gets the error result `GATE_UNBACKED`. Go to 4.
+3. Otherwise record `ask.gate`, `say(<the gate block>)` and
+   `ask(GATE_QUESTION)`. The answer is stripped; an empty answer asks again
+   with the same text and records nothing. It is a **yes** when, lower-cased,
+   it is one of the builder's `ACCEPT_WORDS` (strict: the leniency of 6.6
+   does not apply). Anything else, `/quit` included, is a **no**. Then
+   `record_decision(kind="assumptions", step_id=None, question=<the gate
+   block>, options=[], choice="yes" | "no", words=<the answer>, runs=[])`.
+   - On a yes, each held call's set is added to the accepted sets. The held
+     calls are handled in step 4 as any other call.
+   - On a no, nothing is added. Each held call gets the result
+     `json.dumps({"outcome": "not_run", "said": <the answer>})`, which is
+     not an error. Nothing of it runs.
+4. Every call of the reply is handled in order, as in 5.9, whatever the
+   gate gave: the calls that were not held, `save_input`, `request_module`
+   and `ask_decision` included. A held call that got a result in 2 or 3
+   keeps it and is not handled again. When a `run_module` call that was not
+   held passes the number check on its inputs and **needs a yes** at the
+   moment it is handled, it gets the error result `ASK_FIRST` and does not
+   run. This happens only when something changed during the reply, such as
+   a module built by an earlier `request_module` call of it.
+
+So one reply gets at most one gate, however many calls it holds, and the
+person decides once for all of them. A set accepted once is never asked
+about again in the conversation. A declined set is asked about again when
+the agent sends it again.
+
+**The gate block** (`gate_block`) is these lines, joined by `\n`:
+
+```
+GATE_INTRO
+  <k>. <one_line(description)>                 one group per item, k from 1, in order
+     Taking as given:
+       - <one_line(sentence)>                  one per sentence of the item's set, at its first place in the list sent
+     Expecting: <one_line(expected)>
+```
+
+The indents are 2, 5, 7 and 5 spaces. The number check reads exactly this
+block, as for the request block (5.9), so a number in a module's
+description counts too.
+
+In `decisions.py`:
+
+```
+GATE_INTRO    = "Before working this out, the assistant would take some things as given that you have not confirmed:"
+GATE_QUESTION = "Go ahead on these? Type yes to go ahead. If something is not right, say so in your own words: nothing runs, and the assistant hears what you said. Type /aside to talk it through on the side first."
+```
+
+In `agent.py`:
+
+```
+GATE_UNBACKED = "The person would see your assumptions and what you expect before the run, and these numbers in it did not come from the person, the brief, a saved input or a module result: {numbers}. Say it without them, or ask the person, and call run_module again."
+ASK_FIRST     = "This run takes things as given that the person has not accepted, and it could not be shown to them with the rest of your reply. Call run_module again."
+```
+
+### 8.3 Judgment calls: `ask_decision`
+
+A step of kind `judgment` is a call only the person can make. So is any
+choice between ways forward that depends on what the person wants. The
+agent puts it to the person with the tool `ask_decision`, the fourth tool
+of 5.9:
+
+```python
+ASK_DECISION_SCHEMA = {"type": "object", "properties": {
+    "step": {"type": "string"},
+    "question": {"type": "string"},
+    "options": {"type": "array", "items": {"type": "string"}},
+    "recommendation": {"type": "integer"},
+    "why": {"type": "string"},
+    "runs": {"type": "array", "items": {"type": "integer"}}},
+    "required": ["question", "options", "runs"]}
+```
+
+`step` is the id of the step it belongs to (optional). `recommendation` is
+the number of the option the agent would choose, from 1 (optional); `why`
+says why, in one sentence, and is read only with a recommendation. `runs`
+are the `run_id`s of the results it rests on; it may be empty.
+
+A step of kind `input` is not a judgment: the agent asks for it in plain
+words and saves it (5.9). If the agent goes on without it, that is an
+assumption, and the gate (8.2) shows it.
+
+**The checks**, in this order. The first that fails gives an error result,
+records its event, and shows the person nothing:
+
+| Check | Error | Event |
+| --- | --- | --- |
+| no earlier `ask_decision` call of the same reply reached this table | `ONE_DECISION` | `ask.decision_refused` |
+| fewer than `MAX_DECISIONS` decisions have been shown for this person message | `TOO_MANY_DECISIONS` | `ask.decision_refused` |
+| `question` is a string that is not empty once stripped | `DECISION_NO_QUESTION` | `ask.decision_refused` |
+| `options` is a list of 2 to 4 strings, each not empty once stripped, no two with the same `one_line(...).casefold()` | `DECISION_OPTIONS` | `ask.decision_refused` |
+| `step` is missing, `null` or `""`, or is a string that is the id of a step of the process (5.5), of any kind | `DECISION_NO_STEP` | `ask.decision_refused` |
+| `recommendation` is missing or `null`, or is an `int` (not `bool`) from 1 to the number of options | `DECISION_BAD_RECOMMENDATION` | `ask.decision_refused` |
+| with a recommendation, `why` is a string that is not empty once stripped | `DECISION_NO_WHY` | `ask.decision_refused` |
+| `runs` is a list of `int`s (not `bool`) | `DECISION_RUNS` | `ask.decision_refused` |
+| each of `runs` is the id of a `calc_runs` row of this session | `DECISION_UNKNOWN_RUNS` | `ask.decision_refused` |
+| `unbacked(<the decision block>, sources)` is empty (sources as in 5.9) | `INPUTS_UNBACKED` (5.9) | `ask.correction`, reason `ask_decision` |
+
+In `DECISION_NO_STEP`, `{step}` is the value in single quotes when it is a
+string (`'s9'`), else its `json.dumps`. In `DECISION_UNKNOWN_RUNS`, `{runs}`
+is the ids that are not, each once, in the order sent, joined by `, `.
+"Reached this table" in the first check means whatever came of it: only the
+first `ask_decision` call of a reply is looked at. A step given as `""`
+counts as no step.
+
+**The decision block** (`decision_block`) is these lines, joined by `\n`:
+
+```
+DECISION_INTRO, or DECISION_INTRO_STEP when step is a step dict
+  <one_line(question)>
+    <n>. <one_line(option n)>                  one per option, n from 1
+  <DECISION_SUGGESTS>                          only when recommendation is not None
+```
+
+The indents are 2, 4 and 2 spaces. In `DECISION_INTRO_STEP`, `{step}` is
+`step_label(step["id"])` and `{name}` is `one_line(step["name"])`. In
+`DECISION_SUGGESTS`, `{n}` is the recommendation and `{why}` is
+`one_line(why)`. The agent passes the step of the process the `step` id
+names, or `None`. The number check reads exactly this block.
+
+**Asking.** When every check passes: record `ask.decision_asked`; from here
+the decision counts towards `MAX_DECISIONS`, whatever the answer;
+`say(<the decision block>)`, then `ask(DECISION_QUESTION_SUGGESTED)` with a
+recommendation, else `ask(DECISION_QUESTION)`. The answer is stripped; an
+empty answer asks again with the same text and records nothing. Then
+`read_choice(<the answer>, <the options>, <the recommendation or None>)`
+gives the choice, and `record_decision(kind="judgment", step_id=<step, or
+None>, question=<the decision block>, options=<one_line of each option>,
+choice=<the choice>, words=<the answer>, runs=<runs, as sent>)`.
+
+**Reading the answer** (`read_choice`). With `a = one_line(answer)`, the
+first rule that applies:
+
+1. `a` matches `(?:option\s+)?([1-9])[.)]?` in full, ignoring case, and the
+   number is at most the number of options: that number, as text (`"2"`).
+2. `a.casefold()` equals `one_line(option).casefold()` for some option: the
+   number of the first such option, as text.
+3. There is a recommendation and `a.lower()` is one of the builder's
+   `ACCEPT_WORDS`: the recommendation, as text.
+4. Anything else, `/quit` included: `SOMETHING_ELSE`. The answer is the
+   person's own words.
+
+**The result**, which is not an error, is `json.dumps` of
+
+```
+{"outcome": "decided", "decision": <the decision's id>, "choice": "2" | "something else",
+ "option": "<the chosen option, one_line>" | null, "said": "<the answer>",
+ "judgment_steps": [{"id", "name", "decided": true | false}]}
+```
+
+`option` is `null` for `something else`. `judgment_steps` lists every step
+of kind `judgment` of the process, in process order; `decided` is true when
+this session has a decision of kind `judgment` with that step, whatever
+its choice.
+
+**Judgment steps in the agent's context.** No section is added and the
+context is still made once (5.9). The `process` section already shows each
+step's `kind`. `analyst.md` says that no judgment step has a decision when a
+conversation starts, and that each `ask_decision` result says which have
+one now.
+
+`MAX_DECISIONS` counts like `MAX_REQUESTS`: from 0 at each person message.
+
+In `decisions.py`:
+
+```
+DECISION_INTRO              = "Only you can decide this:"
+DECISION_INTRO_STEP         = "Only you can decide this. It is step {step} of the plan: {name}."
+DECISION_SUGGESTS           = "The assistant suggests {n}: {why}"
+DECISION_QUESTION           = "Type the number of your choice, or say in your own words what you want instead. Type /aside to talk it through on the side first."
+DECISION_QUESTION_SUGGESTED = "Type the number of your choice, or yes to take the suggestion, or say in your own words what you want instead. Type /aside to talk it through on the side first."
+```
+
+In `agent.py`:
+
+```
+MAX_DECISIONS = 2
+ONE_DECISION                = "Only one ask_decision is handled per reply. Wait for the answer to the first."
+TOO_MANY_DECISIONS          = "No more decisions can be put to the person until their next message. Tell the person plainly what is still to decide."
+DECISION_NO_QUESTION        = "Say the question in plain words."
+DECISION_OPTIONS            = "Give two to four different options, each in plain words."
+DECISION_NO_STEP            = "There is no step {step} in the process."
+DECISION_BAD_RECOMMENDATION = "recommendation must be the number of one of the options, or left out."
+DECISION_NO_WHY             = "Say in one sentence why you recommend it."
+DECISION_RUNS               = "runs must be a list of run ids. It may be empty."
+DECISION_UNKNOWN_RUNS       = "These runs are not in this conversation: {runs}."
+```
+
+### 8.4 The build gate
+
+`request_module` (5.9) behaves exactly as before. Once the request is
+settled, just after `ask.module_outcome` (a declined one too), it also
+calls `record_decision(kind="build", step_id=<the step>, question=<the
+request block>, options=[], choice="yes" | "no", words=<the answer to
+REQUEST_QUESTION>, runs=[])`. `choice` is `yes` when `ask.module_decision`
+says `accepted`, else `no`. The step is `target` for `step`, the module's
+`step_id` for `replace`, and for `new` the added step's id on a yes and
+`None` on a no. A request refused by a check was never shown and writes no
+decision.
+
+### 8.5 Side conversations: `harness/calc/aside.py`
+
+At any question the conversation puts to the person, they can type
+`/aside`, with a question after it or not. A side assistant, with its own
+context and its own prompt, explains and explores with them. When they
+type `/back`, they return to exactly the question that was open, shown
+again, and only the words they choose to pass on cross back.
+
+**One mechanism: the wrapped `ask` and `say`.** `run_agent` makes one
+`Asides` object at the start, from the `ask` and `say` it was given, and
+from then on uses only `asides.ask` and `asides.say`: for `OPENING`, every
+reply, `WITHHELD` and `TOO_MANY`, `REQUEST_QUESTION`, `GATE_QUESTION`,
+`DECISION_QUESTION` and `DECISION_QUESTION_SUGGESTED`, every progress line,
+and as the `ask` and `say` it passes to `build_step`. So every question of a
+build started from the conversation (the plan check, each example, a
+transcribed answer) has `/aside` too. Plain `build`, `adopt` and the
+interview never wrap their `ask`, so `/aside` there is an ordinary answer.
+`question` (the words given on the command line) is the first person
+message as given, never a side conversation.
+
+```python
+class Asides:
+    def __init__(self, *, model, conn, brief, ask, say, session_id, today: str, desk=None)
+    def ask(self, text: str) -> str
+    def say(self, text: str) -> None
+    def take_carried(self) -> list[str]
+    carried: list[str]            # every text carried back in this session, oldest first
+```
+
+`today` is the conversation's date as `YYYY-MM-DD`. `model` is the agent's
+model. `desk` is a `ResearchDesk` (4.6) or `None`.
+
+- **`say(text)`** calls the given `say(text)`. Unless `text` starts with
+  `"  ("` (a progress line), it is also kept as **shown since the last
+  answer**.
+- **`ask(text)`**:
+  1. `looking_at` is the texts shown since the last answer, joined by `\n`,
+     or `None` when there are none. It is fixed for this question, however
+     many times it is asked again below.
+  2. Call the given `ask(text)`. The texts shown since the last answer are
+     forgotten.
+  3. Strip the answer. When, lower-cased, it is `/aside`, or starts with
+     `/aside` followed by white space, it opens a side conversation:
+     `run_aside(..., aside=<the next number>, looking_at=looking_at,
+     first=<the rest of the answer after /aside, stripped>)`. When that
+     returns `how` = `quit`, return `"/quit"`: the open question gets
+     `/quit`, as if typed there. Otherwise, when `looking_at` is not `None`,
+     call the given `say(looking_at)`; then go back to 2 with the same
+     `text`.
+  4. Otherwise return the answer as the given `ask` returned it
+     (unstripped: callers strip, as before).
+- **`take_carried()`** returns the texts carried back that the agent has
+  not been given yet, oldest first, and marks them given.
+
+So `looking_at` is what the harness showed the person since they last
+answered, progress lines left out: the gate block at `GATE_QUESTION`, the
+decision block at a decision, the request block at `REQUEST_QUESTION`, the
+step header and plan at the plan check, an example block at an example. At
+an ordinary reply it is usually `None`: the reply itself is the question
+text, and it is never passed. An `/aside` answer is never recorded as
+`ask.message`, never reaches the agent and never reaches a build.
+
+Side conversations are numbered from 1 in each session, in the order
+opened. Inside one, the given `ask` and `say` are used, never the wrapped
+ones, so there is no nesting: `/aside` typed inside one shows
+`marked(ASIDE_NESTED)` and asks the same question again. It is not a turn
+and records nothing.
+
+**One side conversation.**
+
+```python
+run_aside(*, model, conn, brief, ask, say, session_id, aside: int, looking_at: str | None,
+          first: str, today: str, desk=None) -> tuple[str, str | None]
+```
+
+It returns `(how, carried)`: `how` is `back`, `limit` or `quit`; `carried`
+is the text to carry back, or `None`.
+
+1. Record `aside.opened`. `say(ASIDE_OPEN)`.
+2. The first message is `first`. When it is `""`, the message is
+   `ask(marked(ASIDE_FIRST))`, read as in 4.
+3. A message that is not `/back` or `/quit` is one **turn**: record
+   `aside.message`, add it as a user message (followed by a blank line and
+   `WITHHELD_NOTE` when the previous reply of this side conversation was
+   withheld), and work on it (below) until there is something to show.
+   - When this was turn `MAX_ASIDE_TURNS`: `say(marked(<what to show>))`,
+     then `say(marked(ASIDE_LIMIT))`; `how` is `limit`; go to 5.
+   - Otherwise the next message is `ask(marked(<what to show>))`, read as
+     in 4.
+4. **Reading a message.** Strip it. Empty: ask again with the same text.
+   Lower-cased `/aside`, or starting with `/aside` and white space:
+   `say(marked(ASIDE_NESTED))` and ask again with the same text. Lower-cased
+   `/back`: `how` is `back`, go to 5. Lower-cased `/quit`: `how` is `quit`,
+   nothing is carried, go to 6. Anything else is the next turn (3).
+5. **Carrying back.** `ask(marked(ASIDE_CARRY))`, stripped. Lower-cased
+   `/quit`: `how` becomes `quit` and nothing is carried. Empty, one of
+   `NOTHING_WORDS` once lower-cased, or starting with `/`: nothing is
+   carried. Anything else is carried, exactly as typed once stripped.
+6. Record `aside.closed`. `say(ASIDE_CLOSE)`. Return `(how, carried)`. The
+   `Asides` object keeps a carried text in `carried`, for the agent.
+
+**Working on a turn**, like the loop of 5.9, steps 2 and 4 to 7, with these
+differences:
+
+- The system prompt is `aside.md` with `{context}` replaced by the context
+  below. The messages are this side conversation's only.
+- Before each model call, `say(marked(ASIDE_THINKING))`. At most
+  `MAX_ASIDE_CALLS` model calls per turn; when reached, record
+  `aside.stopped` and what to show is `TOO_MANY`.
+- The one tool is the interviewer's `LOOK_UP` (4.4): name `look_up`,
+  schema `{"query": string}`, required. Each call of a reply, in order: the
+  query is `str(arguments.get("query", "")).strip()`. Empty, or longer than
+  `MAX_QUERY_LENGTH` (4.2): the error result `LOOKUP_TERM`. After
+  `MAX_ASIDE_LOOKUPS` lookups in this side conversation: the error result
+  `ASIDE_LOOKUP_LIMIT`. Neither is recorded. Otherwise
+  `say(marked(ASIDE_LOOKING_UP))` and `desk.look_up(query)` (4.6), which
+  counts as a lookup. A `failed` entry gives the error result
+  `LOOKUP_FAILED` and records `aside.lookup` with the error; any other
+  gives `json.dumps(as_lookup(entry))` and records `aside.lookup`. Only the
+  query reaches the researcher (ground rule 6). With no `desk`,
+  `ResearchDesk(get_researcher(), conn)` is made at the first lookup and
+  kept. Any other tool gets the error `There is no tool called <name>
+  here.` The assistant message and every result are added together, and
+  the model is called again.
+- An empty reply adds `EMPTY_REPLY` as a user message.
+- The number check uses the side conversation's own sources (below). A
+  first failure in a turn records `aside.correction`, adds the text as an
+  assistant message and `ASIDE_NUMBERS` as a user message. A second records
+  `aside.withheld`, adds the text as an assistant message, and what to show
+  is `WITHHELD`. Otherwise record `aside.reply`, add it as an assistant
+  message, and what to show is the reply.
+- There is no `run_module`, `save_input`, `request_module` or
+  `ask_decision`, and nothing here writes a decision, an input or a note.
+
+`EMPTY_REPLY`, `WITHHELD`, `WITHHELD_NOTE` and `TOO_MANY` are the agent's
+(5.9), imported. `LOOK_UP` is the interviewer's; `MAX_QUERY_LENGTH`,
+`ResearchDesk`, `get_researcher` and `as_lookup` are the research desk's.
+
+`marked(text)` puts `ASIDE_MARK` before every line of `text` (split on
+`\n`, joined by `\n`). So every line of a side conversation is marked,
+except the two banners, and the terminal reads after `ASIDE_PROMPT` (8.7).
+
+**The context** is made when the side conversation opens, by
+`aside_context(conn, brief, *, session_id, today, looking_at) -> str`:
+these sections, in this order, with `format_sections` (5.7).
+
+| Section | Holds |
+| --- | --- |
+| `today` | `today` |
+| `goal` | the brief's `goal` |
+| `glossary` | the brief's `glossary` |
+| `particulars` | the brief's `particulars` |
+| `process` | the brief's `process` |
+| `plans` | for every registered module, by name: `{"steps": [step_label(id), ...], "plan": plan_words(spec)}` |
+| `runs in this conversation` | every `calc_runs` row of this session, by id: `[{"run": id, "module", "inputs", "output"}]` |
+| `decisions in this conversation` | `list_decisions(conn, session_id=...)`, each without `ts` and `session_id` |
+| `looking at` | `looking_at`, or `null` |
+
+It never holds the main conversation's messages or replies, the saved
+inputs or the notes.
+
+**Its sources** for the number check, read at each check: the context (the
+whole text of the sections above); every message typed in this side
+conversation, `first` included, stripped; and every lookup result given to
+it in this side conversation, as sent. Nothing else.
+
+**What crosses back.** Only a carried text, typed by the person at
+`ASIDE_CARRY`. Just before each call of the agent's model, `run_agent`
+adds each text of `asides.take_carried()`, oldest first, as one user
+message: `ASIDE_CARRIED` with `{text}` the carried text. Every text in
+`asides.carried` is a source for the agent's number check from the moment
+it is carried (5.9). It is not an `ask.message`, and it does not start the
+counts of 5.9 again. If the conversation ends first, it never reaches the
+agent; it stays recorded in `aside.closed`. The side assistant's replies
+never reach the agent, and no model summarises them.
+
+**Limits.** `MAX_ASIDE_TURNS` turns per side conversation,
+`MAX_ASIDE_CALLS` model calls per turn and `MAX_ASIDE_LOOKUPS` lookups per
+side conversation. None counts towards `MAX_CALLS`, `MAX_REQUESTS` or
+`MAX_DECISIONS`, and a side conversation starts no count again. How many
+side conversations a session opens is not limited: the person opens each
+one.
+
+In `aside.py`:
+
+```
+MAX_ASIDE_TURNS    = 6
+MAX_ASIDE_CALLS    = 5
+MAX_ASIDE_LOOKUPS  = 3
+ASIDE_MARK         = "aside | "
+ASIDE_PROMPT       = "aside> "
+NOTHING_WORDS      = ("no", "n", "nothing", "no.")
+ASIDE_OPEN         = "---- Side conversation. The main conversation waits, and will not see what is said here. Type /back to go back to it. ----"
+ASIDE_CLOSE        = "---- Back to the main conversation. ----"
+ASIDE_FIRST        = "What would you like to talk through?"
+ASIDE_NESTED       = "You are already in a side conversation. Type /back to go back to the main one."
+ASIDE_THINKING     = "(thinking)"
+ASIDE_LOOKING_UP   = "(looking up: {query})"
+ASIDE_LIMIT        = "That is as far as one side conversation goes: {limit} messages."
+ASIDE_CARRY        = "Before you go back: is there anything the main conversation should know? Type it in your own words, and it is passed on exactly as you write it. Type no to pass on nothing."
+ASIDE_CARRIED      = "[harness] The person stepped aside for a side conversation that you did not see. They asked for this to be passed on, in their own words:\n{text}"
+ASIDE_NUMBERS      = "[harness] Your reply was not shown. These numbers are not in what you were given, the person's messages here or a lookup: {numbers}. Do not work numbers out yourself. Leave the number out, or tell the person the main conversation can work it out with a tested module. Then reply again."
+LOOKUP_TERM        = "Send only the term to look up, at most {limit} characters."
+LOOKUP_FAILED      = "The lookup failed: {error}"
+ASIDE_LOOKUP_LIMIT = "No more lookups in this side conversation. Answer with what you have."
+```
+
+`{limit}` is `MAX_ASIDE_TURNS` in `ASIDE_LIMIT` and `MAX_QUERY_LENGTH` in
+`LOOKUP_TERM`. `{numbers}` is the list from `unbacked`, joined by `, `. `\n`
+in `ASIDE_CARRIED` is a line break. `aside.md` is given and holds
+`{context}` once.
+
+### 8.6 The agent, put together
+
+The changes to `run_agent`, all described above, in one place:
+
+- four tools: `run_module`, `save_input`, `request_module`, `ask_decision`;
+- `asides.ask` and `asides.say` everywhere (8.5);
+- after a reply with tool calls: the assumption gate, then each call in
+  order (8.2);
+- before each call of the agent's model: the carried texts (8.5);
+- the sources of the number check: the decisions' `words` in place of the
+  answers to `REQUEST_QUESTION`, and the carried texts (5.9);
+- `request_module` writes a decision (8.4).
+
+**The order of model calls**, which a scripted model follows. One model
+object answers the agent, any build and any side conversation, in the
+order they happen. A gate and a decision call no model.
+
+1. **A held run.** An agent call whose reply holds a `run_module` call
+   that needs a yes. Then `say(<the gate block>)` and the answer to
+   `GATE_QUESTION`. Then the reply's calls in order: for a run that goes
+   ahead, `say("  (running <module>)")` and the gate of 5.6. Then the next
+   agent call, with the assistant message and every result. So a run and
+   its reply still take two agent calls.
+2. **A judgment.** An agent call whose reply holds `ask_decision`. The
+   reply's calls in order; at `ask_decision`, `say(<the decision block>)`
+   and the answer. Then the next agent call.
+3. **A side conversation**, at any question: the answer `/aside <q>`, then
+   `say(ASIDE_OPEN)`. For each turn: `say(marked(ASIDE_THINKING))` and one
+   side call; while the reply asks for lookups, the lookups and one more
+   side call, after `say(marked(ASIDE_THINKING))`; then the reply, shown by
+   `ask(marked(<reply>))`, whose answer is the next message or `/back`. Then
+   the answer to `ask(marked(ASIDE_CARRY))`, `say(ASIDE_CLOSE)`, the
+   `looking_at` text again when there is one, and the same question again.
+   No agent call happens in between. A carried text joins the next agent
+   call as its last message.
+
+For example, a question answered by one run that needs a yes, where the
+person steps aside at the gate, asks one thing, carries one sentence back
+and then says yes: the person types the question, `/aside <q>`, `/back`,
+the sentence, `yes`, and sees the reply. The model calls are: agent
+(`run_module`), side (the reply), agent (the reply, whose messages end with
+the tool result and then the `ASIDE_CARRIED` message). Three calls. With
+one lookup in the side conversation, four: agent, side (`look_up`), side
+(the reply), agent.
+
+For example, a side conversation at the opening question: the person types
+`/aside <q>`, `/back`, `no`, then their question. `OPENING` is asked again
+(no block is shown again: `looking_at` is `None`), and the conversation
+starts as usual. The model calls are: side, then the agent's as usual.
+
+### 8.7 Command line
+
+**The terminal `ask`** (5.10, used by `ask`, `build` and `adopt`): when the
+text starts with `ASIDE_MARK`, it reads after `ASIDE_PROMPT` instead of
+`> `. Nothing else changes.
+
+**`python -m harness decisions`** runs `migrate` and prints every decision
+of every session, oldest first (newest last), each as these lines:
+
+```
+<id>  <ts>  <kind>  step: <step_label(step), or ->  chose: <choice_words(decision)>  runs: <ids joined by ", ", or ->
+  <each line of question, with 2 spaces before it>
+  in their words: <words>
+```
+
+with two spaces between the parts of the first line. With no decision it
+prints `NO_DECISIONS`. It exits 0. It needs no brief and never calls a
+model.
+
+```
+NO_DECISIONS = "No decisions are recorded yet."
+```
+
+`NO_DECISIONS` lives in `__main__.py`. Every other command behaves as
+before. The line `Ask about your plan. Type /quit to stop.` is unchanged:
+the gate and decision questions name `/aside`, and the agent offers it.
+
+### 8.8 Scenarios and the seeded examples
+
+A gate, a decision, a side conversation and the carry question are
+ordinary questions to the scripted person: each takes the next line. A line
+that starts with `/aside` opens a side conversation wherever it lands. When
+the lines run out, `/quit` answers everything: a no at a gate, `something
+else` at a decision, the end of a side conversation (which gives the open
+question `/quit`), and at an ordinary question the end of the conversation.
+So every scenario still ends.
+
+The new expectations, `decisions` and `asides`, are in 6.4 and 6.5. Their
+counts come from `list_decisions(conn, session_id=...)` and from the
+session's `aside.opened` and `aside.message` events.
+
+**What the data author changes**, and nothing more:
+
+1. The four `ask` scenarios (`wedding/cover_each_payment`,
+   `wedding/no_family_contribution`, `moving/months_at_current_saving`,
+   `moving/upfront_and_monthly`): add `"yes"` twice at the end of `lines`,
+   so each has six `"yes"` lines after its first line. They answer a gate
+   the model may raise. `expect` does not change.
+2. The two `build` scenarios do not change: a plain build has no gate and
+   no side conversation.
+3. Four new `ask` scenarios, two per example. Each `description` is one
+   sentence of the author's own.
+
+   | File | `today` | `lines` | `expect` |
+   | --- | --- | --- | --- |
+   | `wedding/scenarios/decide_what_to_update.json` | `2027-01-15` | the first line of `cover_each_payment`, then a space and `Once you have the results, help me decide what to update first.`; then `"yes"` six times | `{"decisions": [{"kind": "judgment", "step": "s7"}], "max_withheld": 0}` |
+   | `wedding/scenarios/aside_before_asking.json` | `2027-01-15` | `"/aside What does a running balance mean in my plan?"`, `"/back"`, `"no"`, the first line of `cover_each_payment`, then `"yes"` six times | `{"asides": {"opened": 1, "turns": 1}, "runs": [{"module": "wedding_total_cost"}], "max_withheld": 0}` |
+   | `moving/scenarios/keep_or_move_date.json` | none | the first line of `months_at_current_saving`, then a space and `Then help me decide whether to keep the move date or move it.`; then `"yes"` six times | `{"decisions": [{"kind": "judgment", "step": "m4"}], "max_withheld": 0}` |
+   | `moving/scenarios/aside_before_asking.json` | none | `"/aside What is a sinking fund?"`, `"/back"`, `"no"`, the first line of `upfront_and_monthly`, then `"yes"` six times | `{"asides": {"opened": 1, "turns": 1}, "runs": [{"module": "move_upfront_cost"}], "max_withheld": 0}` |
+
+   A side conversation opened at the first question is the one place a
+   scenario can be sure where a line lands: before the agent says
+   anything. An expectation on a judgment names only its kind and step,
+   never a choice, because where an answer line lands depends on the model.
+   A `"yes"` that lands on a decision takes the suggestion when there is
+   one (8.3), else it is the person's own words.
+
+`tests/data/test_examples.py` checks the rule added to 6.1.
+
+### 8.9 Evidence
+
+The page shows the decisions, the gates and decisions in place, and the
+side conversations nested, from the events (7.4, 7.6 items 15 to 17). The
+API gains no path and no key. What changes:
+
+- `GET /api/work/conversation` traces two more kinds, `ask.gate` and
+  `ask.decision_asked`, over `payload.block` (7.4). Their sources are those
+  of 7.3, which now count the person's words at a gate or decision and the
+  carried texts as `person`.
+- The side conversation's own texts are not traced (`numbers` is `null`).
+- The decisions are `GET /api/work/events?kind=ask.decision`, newest first.
+
+So a conversation's events may now hold, for example:
+
+```
+{"id": 41, "ts": "...", "kind": "ask.gate", "actor": "agent",
+ "payload": {"calls": [{"module": "monthly_surplus", "inputs": {"income": "5000", "spending": "3000"},
+                        "assumptions": ["Spending stays the same each month."], "expected": "about 2,000"}],
+             "block": "Before working this out, ...\n  1. Works out ...\n     Taking as given:\n       - Spending stays the same each month.\n     Expecting: about 2,000"},
+ "numbers": [{"text": "2,000", "start": <its place in block>, "end": <...>, "source": "person", "run_id": null}]}
+{"id": 42, "ts": "...", "kind": "ask.decision", "actor": "person",
+ "payload": {"id": 3, "kind": "assumptions", "step": null, "question": "Before working this out, ...",
+             "options": [], "choice": "yes", "words": "yes", "runs": []},
+ "numbers": null}
+{"id": 57, "ts": "...", "kind": "aside.closed", "actor": "person",
+ "payload": {"aside": 1, "turns": 2, "how": "back", "carried": "Rent is 1,100 now."},
+ "numbers": null}
+```
+
+and `GET /api/work/events?kind=ask.decision` answers, for example:
+
+```json
+{"events": [{"id": 63, "ts": "...", "session_id": "...", "kind": "ask.decision", "actor": "person",
+             "payload": {"id": 4, "kind": "judgment", "step": "s7",
+                         "question": "Only you can decide this. It is step s7 of the plan: ...",
+                         "options": ["Keep the date", "Move the date"], "choice": "2",
+                         "words": "2", "runs": [5, 6]}}],
+ "more": false}
+```
+
+### 8.10 Events
+
+Every event carries the session id of the conversation. Every `aside.*`
+event carries `aside`, the number of its side conversation in the session.
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `ask.gate` | `agent` | `{"calls", "block"}`; `calls` the arguments of the held calls, as sent, in reply order; `block` the gate block shown |
+| `ask.decision_asked` | `agent` | `{"arguments", "block"}`; `arguments` as sent; `block` the decision block shown |
+| `ask.decision_refused` | `harness` | `{"error", "arguments"}`; an `ask_decision` call that failed a check other than the number check; `arguments` as sent |
+| `ask.decision` | `person` | the decision (8.1) without `ts` and `session_id`; recorded by `record_decision` |
+| `aside.opened` | `person` | `{"aside", "first", "looking_at"}`; `first` the text typed after `/aside`, stripped (`""` when none); `looking_at` the text or `null` |
+| `aside.message` | `person` | `{"aside", "text"}`, stripped; one per turn |
+| `aside.lookup` | `agent` | `{"aside", "query", "found", "name", "definition", "sources", "origin"}` (`as_lookup` of the entry), or `{"aside", "query", "error"}` when it failed |
+| `aside.correction` | `harness` | `{"aside", "numbers", "text"}` |
+| `aside.withheld` | `harness` | `{"aside", "numbers", "text"}` |
+| `aside.reply` | `agent` | `{"aside", "text"}`; a reply shown, without the marks |
+| `aside.stopped` | `harness` | `{"aside", "reason": "too many steps"}` |
+| `aside.closed` | `person` | `{"aside", "turns", "how", "carried"}`; `how` is `back`, `limit` or `quit`; `carried` the text carried back, or `null` |
+
+The order:
+
+- **A gate shown:** `ask.gate`, the events of any side conversation opened
+  at it, `ask.decision`, then the events of each call of the reply, in
+  order (5.11). A gate refused by the number check: `ask.correction`, then
+  the events of each call.
+- **A decision:** `ask.decision_asked`, the events of any side
+  conversation, `ask.decision`. A refused one: `ask.decision_refused`, or
+  `ask.correction` with reason `ask_decision`.
+- **A build request:** as in 5.11, then `ask.decision`.
+- **A side conversation:** `aside.opened`, then per turn `aside.message`,
+  the turn's `aside.lookup` and `aside.correction` events, then one of
+  `aside.reply`, `aside.withheld` or `aside.stopped`; then `aside.closed`.
+  Inside a build, these come among the build's events.
+
+### 8.11 Decisions
+
+Choices made to close gaps in the design, for review:
+
+1. One table for every decision, three kinds: `assumptions`, `judgment`,
+   `build`. `record_decision` also records the `ask.decision` event, the
+   way `add_note` records `calc.note_saved`. The evidence reads decisions
+   from that event, so the API gains no path and no key.
+2. A yes or no is stored as `yes` or `no`; a judgment's choice is the
+   option number as text or `something else`. Option texts are
+   model-written, so scenarios check the kind, the step and the choice,
+   never the wording.
+3. Assumptions are compared as sets of sentences, each trimmed, with its
+   white space made single, and case-folded. A run passes when its whole
+   set equals one accepted earlier in the conversation. Accepted sets are
+   kept in memory for one conversation; the decisions are the record.
+4. A run is held only when it would otherwise run, apart from its tests:
+   inputs backed, module registered and unchanged, expectation given,
+   inputs fitting the spec. The person is never asked about a run the gate
+   would refuse.
+5. The gate looks at a reply before any of its calls is handled: one
+   block, one answer, for every held call. The other calls go on as
+   before, on a yes or a no. A run that only comes to need a yes during the
+   reply gets `ASK_FIRST` instead of running unseen.
+6. On a no, a held call gets `{"outcome": "not_run", "said"}`, not an
+   error, like a declined build. The person's words reach the agent as
+   they are.
+7. The gate block shows the module's description, the assumptions and the
+   expectation, and the number check reads all of it, as for the request
+   block. So what the person sees has no made-up number, and the evidence
+   page traces it the same way. The computed output is never shown for
+   approval.
+8. The yes at a gate is strict (`ACCEPT_WORDS`): "yes, but with 180" must
+   not run. Only `REQUEST_QUESTION` stays lenient (6.6).
+9. One `ask_decision` per reply, and at most `MAX_DECISIONS = 2` per person
+   message: an answer may change what comes next. Two to four options; a
+   recommendation is an option number with one sentence why. The run ids
+   are checked but not shown; the page links them.
+10. An answer that is an option number (`2`, `2.`, `option 2`) or an
+    option's text picks it; a plain yes takes the suggestion when there is
+    one. Anything else is kept as the person's own words.
+11. Steps of kind `input` stay plain questions and saved inputs. Only a
+    choice between ways forward goes through `ask_decision`.
+12. No context section is added for judgment steps: the context stays made
+    once (5.9). `process` shows each step's kind, none has a decision when
+    a conversation starts, and each `ask_decision` result lists the
+    judgment steps with `decided`.
+13. The build request writes its decision after `ask.module_outcome`, so a
+    `new` step can be named, and the events of 5.11 keep their order.
+14. One mechanism for `/aside`: `run_agent` wraps `ask` and `say` once,
+    and every question goes through the wrapper, a build's included. What
+    was shown since the person last answered is what they were looking at;
+    `/back` shows it again and asks the same question.
+15. The side assistant is the same model with its own prompt, context and
+    messages. It gets the brief's goal, glossary, particulars and process,
+    the modules' plans, this conversation's runs and decisions, and what the
+    person was looking at. Not the main conversation's messages, the saved
+    inputs or the notes.
+16. Its one tool is the interviewer's `look_up`, through the research desk:
+    only the term reaches a researcher. Three lookups per side
+    conversation. Its number check uses its own context, its messages and
+    its lookups.
+17. Every line of a side conversation is marked `aside | `, it opens and
+    closes with a banner, and the terminal prompt is `aside> `. The
+    terminal knows a side question by its mark.
+18. What crosses back is what the person types at `ASIDE_CARRY`, as typed.
+    It reaches the agent as one `[harness]` user message just before the
+    agent's next call, whichever question the side conversation was opened
+    at. No model summarises across the boundary.
+19. No nesting: `/aside` inside a side conversation is refused with a line,
+    and the person goes on there.
+20. Six turns per side conversation, five model calls per turn. Side calls,
+    gates and decisions count towards neither `MAX_CALLS`, `MAX_REQUESTS`
+    nor `MAX_DECISIONS`.
+21. `/quit` means the same everywhere: at a gate it is a no, at a decision
+    the person's words, and inside a side conversation it ends the side
+    conversation and answers the open question with `/quit`. So a scripted
+    person whose lines run out always ends the conversation.
+22. The texts of a side conversation are recorded but not traced on the
+    page: their sources are not those of the conversation.
+
+## 9. Step 5 (draft)
+
+This step adds modules and tables without changing what earlier steps
+built. New tables arrive as new migration files. The detail below is the
+intended shape; it becomes fixed when the step is built.
 
 **Step 5, verification.** `harness/verify.py`: at the decision points named
 in the brief, checks new information against the person's own data, the
-brief, or a reference source. A mismatch opens a side conversation.
+brief, or a reference source. A mismatch opens a side conversation (8.5).
 New table: `verifications`.
