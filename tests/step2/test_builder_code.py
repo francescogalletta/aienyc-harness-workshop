@@ -5,7 +5,7 @@ import pytest
 
 import step2_helpers as h
 from harness.calc.safety import check_code
-from step2_helpers import (CODE_REJECTED, DISAGREEMENT, EXAMPLES_DISAGREE, EXAMPLE_FAILED, GOAL, PARTICULAR, REASON_CODE, TESTS_FAILED, accepts, events,
+from step2_helpers import (CODE_REJECTED, DISAGREEMENT, EXAMPLES_DISAGREE, EXAMPLE_FAILED, GOAL, PARTICULAR, REASON_CODE, TESTS_FAILED, built, events,
                            only_step, payloads, propose_examples, propose_spec, rows, surplus_examples,
                            write_module)
 
@@ -20,18 +20,18 @@ def code_feedback(model, call_index):
     return result["content"]
 
 
-def lines_of(content):
-    return [line for line in content.splitlines() if line.strip()]
-
-
 def inputs_json(example):
     return json.dumps(example["inputs"], ensure_ascii=False)
+
+
+def lines_of(content):
+    return [line for line in content.splitlines() if line.strip()]
 
 
 # ---- what the writer is sent -------------------------------------------------------------------
 
 def test_the_writer_never_sees_the_brief_or_the_worked_examples(build):
-    results, model, _ = build([*START, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    results, model, _ = build([*START, WRONG, write_module()], built(), brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
     writer_calls = h.phase_calls(model, "module_writer.md")
     assert len(writer_calls) == 2
@@ -47,7 +47,7 @@ def test_the_writer_never_sees_the_brief_or_the_worked_examples(build):
 
 
 def test_the_writer_is_given_the_spec(build):
-    _, model, _ = build([*START, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, write_module()], built(), brief=only_step("s1"))
     [call] = h.phase_calls(model, "module_writer.md")
     assert call["messages"] == [{"role": "user", "content": h.sections(("spec", h.saved_spec(h.surplus_spec(), "s1")))}]
 
@@ -58,7 +58,7 @@ def test_the_staging_folder_is_emptied_and_holds_the_spec_and_the_confirmed_exam
     stale = modules_dir / "_build" / "monthly_surplus"
     stale.mkdir(parents=True)
     (stale / "left_over.txt").write_text("from an earlier build", encoding="utf-8")
-    results, _, _ = build([*START, WRONG, WRONG, WRONG], ["/accept", "/skip", "/accept"], brief=only_step("s1"))
+    results, _, _ = build([*START, WRONG, WRONG, WRONG], ["yes", "/accept", "/skip", "/accept"], brief=only_step("s1"))
     assert results[0]["reason"] == REASON_CODE
     assert not (stale / "left_over.txt").exists()
     assert (stale / "spec.json").read_text(encoding="utf-8") == h.dump(h.saved_spec(h.surplus_spec(), "s1"))
@@ -68,7 +68,7 @@ def test_the_staging_folder_is_emptied_and_holds_the_spec_and_the_confirmed_exam
 
 def test_a_step_that_fails_leaves_the_last_attempt_in_staging_and_registers_nothing(build, conn, modules_dir):
     last = write_module(h.WRONG_SURPLUS_PY + "\n# the last one\n", h.WRONG_SURPLUS_TESTS)
-    results, model, _ = build([*START, WRONG, WRONG, last], accepts(3), brief=only_step("s1"))
+    results, model, _ = build([*START, WRONG, WRONG, last], built(), brief=only_step("s1"))
     assert results == [{"step": "s1", "outcome": "not_built", "module": None, "reason": REASON_CODE}]
     assert len(model.calls) == 2 + 3
     staging = modules_dir / "_build" / "monthly_surplus"
@@ -81,7 +81,7 @@ def test_a_step_that_fails_leaves_the_last_attempt_in_staging_and_registers_noth
 # ---- attempts ----------------------------------------------------------------------------------
 
 def test_each_attempt_is_written_checked_run_and_recorded(build, conn):
-    results, _, person = build([*START, WRONG, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    results, _, person = build([*START, WRONG, WRONG, write_module()], built(), brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
     assert [p["attempt"] for p in payloads(conn, "calc.code_written")] == [1, 2, 3]
     assert [p["passed"] for p in payloads(conn, "calc.tests_run")] == [False, False, True]
@@ -91,13 +91,13 @@ def test_each_attempt_is_written_checked_run_and_recorded(build, conn):
 
 
 def test_a_module_is_registered_only_on_the_run_that_passed(build, conn, registry):
-    build([*START, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    build([*START, WRONG, write_module()], built(), brief=only_step("s1"))
     passing = [r for r in rows(conn, "test_runs") if r["passed"]]
     assert registry.get_module(conn, "monthly_surplus")["test_run_id"] == passing[0]["id"]
 
 
 def test_the_writer_gets_three_attempts_in_all(build):
-    results, model, _ = build([*START, WRONG, WRONG, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    results, model, _ = build([*START, WRONG, WRONG, WRONG, write_module()], built(), brief=only_step("s1"))
     assert results[0]["reason"] == REASON_CODE and len(model.calls) == 5      # the sixth entry is never asked for
 
 
@@ -105,7 +105,7 @@ def test_the_writer_gets_three_attempts_in_all(build):
 
 def rejected_once(build, module_py, tests_py):
     """Send this code once, then good code. Return the bullets of the first refusal."""
-    results, model, _ = build([*START, write_module(module_py, tests_py), write_module()], accepts(3),
+    results, model, _ = build([*START, write_module(module_py, tests_py), write_module()], built(),
                               brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
     lines = lines_of(code_feedback(model, 3))
@@ -149,7 +149,7 @@ def test_keyword_only_parameters_count(build):
     module_py = "def calculate(income, *, spending):\n    return income - spending\n"
     tests_py = ("from decimal import Decimal\n\nfrom module import calculate\n\n\n"
                 "def test_it():\n    assert calculate(Decimal('5'), spending=Decimal('3')) == Decimal('2')\n")
-    results, model, _ = build([*START, write_module(module_py, tests_py)], accepts(3), brief=only_step("s1"))
+    results, model, _ = build([*START, write_module(module_py, tests_py)], built(), brief=only_step("s1"))
     assert results[0]["outcome"] == "built" and len(model.calls) == 3
 
 
@@ -189,13 +189,13 @@ def test_rejected_code_is_recorded_and_not_run(build, conn):
 
 def test_three_rejected_attempts_end_the_step(build, conn):
     bad = write_module("import os\n" + h.SURPLUS_PY, h.SURPLUS_TESTS)
-    results, model, person = build([*START, bad, bad, bad], accepts(3), brief=only_step("s1"))
+    results, model, person = build([*START, bad, bad, bad], built(), brief=only_step("s1"))
     assert results[0]["reason"] == REASON_CODE and len(model.calls) == 5
     assert rows(conn, "test_runs") == [] and h.RUNNING_TESTS not in person.told
 
 
 def test_a_reply_without_code_counts_as_an_attempt(build):
-    results, model, _ = build([*START, h.say_text("done"), h.say_text("done"), write_module()], accepts(3),
+    results, model, _ = build([*START, h.say_text("done"), h.say_text("done"), write_module()], built(),
                               brief=only_step("s1"))
     assert results[0]["outcome"] == "built" and len(model.calls) == 5
 
@@ -203,14 +203,14 @@ def test_a_reply_without_code_counts_as_an_attempt(build):
 # ---- the feedback after a failed run -----------------------------------------------------------
 
 def test_failing_examples_are_named_by_their_inputs_and_nothing_else(build):
-    _, model, _ = build([*START, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, WRONG, write_module()], built(), brief=only_step("s1"))
     lines = lines_of(code_feedback(model, 3))
     assert lines == [TESTS_FAILED] + ["- " + EXAMPLE_FAILED.format(index=i, inputs=inputs_json(e))
                                       for i, e in enumerate(surplus_examples(), start=1)]
 
 
 def test_the_feedback_never_holds_an_expected_or_an_actual_answer(build):
-    _, model, _ = build([*START, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, WRONG, write_module()], built(), brief=only_step("s1"))
     feedback = code_feedback(model, 3)
     for answer in ("2023.35", "8223.55", "8500", "6000", "-500"):
         assert answer not in feedback
@@ -218,7 +218,7 @@ def test_the_feedback_never_holds_an_expected_or_an_actual_answer(build):
 
 def test_an_example_that_raised_adds_what_it_stopped_with(build):
     raising = write_module(h.RAISING_SURPLUS_PY, h.RAISING_SURPLUS_TESTS)
-    _, model, _ = build([*START, raising, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, raising, write_module()], built(), brief=only_step("s1"))
     second = surplus_examples()[1]
     assert lines_of(code_feedback(model, 3)) == [
         TESTS_FAILED,
@@ -231,7 +231,7 @@ def test_a_failing_unit_test_is_named_with_its_error_in_full(build, conn):
                "def test_alpha_fails():\n    assert calculate(Decimal('2'), Decimal('1')) == Decimal('8')\n\n\n"
                "def test_passes():\n    assert calculate(Decimal('2'), Decimal('1')) == Decimal('1')\n")
     bad = write_module(h.SURPLUS_PY, failing)
-    _, model, _ = build([*START, bad, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, bad, write_module()], built(), brief=only_step("s1"))
     feedback = code_feedback(model, 3)
     lines = lines_of(feedback)
     assert lines[0] == TESTS_FAILED
@@ -247,21 +247,21 @@ def test_a_failing_unit_test_is_named_with_its_error_in_full(build, conn):
 
 def test_a_run_that_stopped_says_why(build):
     broken = write_module("raise ValueError('broken import')\n" + h.SURPLUS_PY, h.SURPLUS_TESTS)
-    _, model, _ = build([*START, broken, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, broken, write_module()], built(), brief=only_step("s1"))
     assert lines_of(code_feedback(model, 3)) == [TESTS_FAILED, "- The run stopped: ValueError: broken import"]
 
 
 def test_failing_tests_come_before_failing_examples(build):
     failing_tests = h.WRONG_SURPLUS_TESTS + "\n\ndef test_nonsense():\n    assert False\n"
     bad = write_module(h.WRONG_SURPLUS_PY, failing_tests)
-    _, model, _ = build([*START, bad, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, bad, write_module()], built(), brief=only_step("s1"))
     lines = lines_of(code_feedback(model, 3))
     assert lines.index("- test_nonsense failed:") < min(i for i, line in enumerate(lines) if line.startswith("- Example "))
     assert lines[0] == TESTS_FAILED
 
 
 def test_the_feedback_is_an_error_result_after_the_assistant_message(build):
-    _, model, _ = build([*START, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    _, model, _ = build([*START, WRONG, write_module()], built(), brief=only_step("s1"))
     messages = model.calls[3]["messages"]
     assert [m["role"] for m in messages] == ["user", "assistant", "tool"]
     assert messages[1]["tool_calls"][0]["arguments"]["module_py"] == h.WRONG_SURPLUS_PY
@@ -269,69 +269,108 @@ def test_the_feedback_is_an_error_result_after_the_assistant_message(build):
 
 def test_the_two_steps_are_independent_when_one_fails(build, registry, conn):
     script = [*START, WRONG, WRONG, WRONG, *h.months_script()]
-    results, _, _ = build(script, accepts(6))
+    results, _, _ = build(script, built(2))
     assert [r["outcome"] for r in results] == ["not_built", "built"]
     assert [m["name"] for m in registry.list_modules(conn)] == ["months_to_goal"]
 
 
 # ---- when the code and the examples disagree: said to the person, never to the writer ----------
 
-def disagreement(example, got):
-    return DISAGREEMENT.format(inputs=inputs_json(example), expected=json.dumps(example["expected"]), got=got)
+def disagreement(k, confirmed, gives):
+    """The block said for one failing example: `confirmed` and `gives` are the lines already laid out."""
+    return "\n".join([DISAGREEMENT.format(k=k), confirmed, gives])
+
+
+def short(k, confirmed, gives):
+    return disagreement(k, f"  You confirmed: {confirmed}", f"  The code gives: {gives}")
+
+
+def test_the_template_is_the_number_alone():
+    assert DISAGREEMENT == "Example {k}"
 
 
 def test_three_failed_attempts_with_failing_examples_tell_the_person(build):
-    results, _, person = build([*START, WRONG, WRONG, WRONG], accepts(3), brief=only_step("s1"))
+    results, _, person = build([*START, WRONG, WRONG, WRONG], built(), brief=only_step("s1"))
     assert results[0]["reason"] == REASON_CODE
-    first, second, third = surplus_examples()
-    assert person.told[-4:] == [EXAMPLES_DISAGREE, disagreement(first, '"8223.55"'),
-                                disagreement(second, '"8500"'), disagreement(third, '"6000"')]
+    assert person.told[-4:] == [EXAMPLES_DISAGREE, short(1, "2023.35", "8223.55"),
+                                short(2, "-500", "8500"), short(3, "0", "6000")]
     assert person.told.count(EXAMPLES_DISAGREE) == 1
 
 
 def test_the_message_names_only_the_examples_that_failed(build):
     raising = write_module(h.RAISING_SURPLUS_PY, h.RAISING_SURPLUS_TESTS)
-    _, _, person = build([*START, raising, raising, raising], accepts(3), brief=only_step("s1"))
-    assert person.told[-2:] == [EXAMPLES_DISAGREE, disagreement(surplus_examples()[1], "an error")]
+    _, _, person = build([*START, raising, raising, raising], built(), brief=only_step("s1"))
+    assert person.told[-2:] == [EXAMPLES_DISAGREE, short(2, "-500", "an error")]
 
 
 def test_the_confirmed_answer_is_the_persons_correction(build):
-    _, _, person = build([*START, WRONG, WRONG, WRONG], ["/accept", "-499.5", "/accept"], brief=only_step("s1"))
-    assert any("you confirmed \"-499.5\"" in line for line in person.told)
+    _, _, person = build([*START, WRONG, WRONG, WRONG], ["yes", "/accept", "-499.5", "/accept"], brief=only_step("s1"))
+    assert short(2, "-499.5", "8500") in person.told
 
 
-def test_the_message_uses_the_numbering_of_the_confirmed_examples(build):
-    _, _, person = build([*START, WRONG, WRONG, WRONG], ["/skip", "/accept", "/accept"], brief=only_step("s1"))
-    second, third = surplus_examples()[1:]
-    assert person.told[-3:] == [EXAMPLES_DISAGREE, disagreement(second, '"8500"'), disagreement(third, '"6000"')]
+def test_the_message_uses_the_numbering_the_examples_were_shown_with(build):
+    _, _, person = build([*START, WRONG, WRONG, WRONG], ["yes", "/skip", "/accept", "/accept"], brief=only_step("s1"))
+    assert person.told[-3:] == [EXAMPLES_DISAGREE, short(2, "-500", "8500"), short(3, "0", "6000")]
+
+
+def test_a_skipped_first_example_does_not_shift_the_numbers(build):
+    # golden.json holds examples 2 and 3 as its entries 1 and 2; the person saw them as 2 and 3.
+    _, _, person = build([*START, WRONG, WRONG, WRONG], ["yes", "/skip", "/accept", "/accept"], brief=only_step("s1"))
+    block = [line for line in person.told if "You confirmed" in line]
+    assert [line.splitlines()[0] for line in block] == ["Example 2", "Example 3"]
+
+
+def test_an_object_answer_is_laid_out_like_the_proposed_answer(build):
+    wrong = write_module(h.WRONG_RANGED_PY, h.RANGED_TESTS)
+    script = [propose_spec(h.ranged_spec()), propose_examples(h.ranged_examples()), wrong, wrong, wrong]
+    _, _, person = build(script, built(), brief=only_step("s1"))
+    assert person.told[-4:] == [EXAMPLES_DISAGREE] + [
+        disagreement(k, "  You confirmed:\n    low: " + low + "\n    expected: " + mid + "\n    high: " + high,
+                     "  The code gives:\n    low: " + low + "\n    expected: " + mid + "\n    high: " + got)
+        for k, (low, mid, high, got) in enumerate([("13000", "17000", "23000", "25000"),
+                                                   ("26000", "34000", "46000", "50000"),
+                                                   ("1300", "1700", "2300", "2500")], start=1)]
+
+
+def test_the_block_looks_as_it_should(build):
+    _, _, person = build([*START, WRONG, WRONG, WRONG], built(), brief=only_step("s1"))
+    assert person.told[-2] == "Example 2\n  You confirmed: -500\n  The code gives: 8500"
 
 
 def test_it_is_not_said_while_the_writer_still_has_attempts(build):
-    results, _, person = build([*START, WRONG, WRONG, write_module()], accepts(3), brief=only_step("s1"))
+    results, _, person = build([*START, WRONG, WRONG, write_module()], built(), brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
-    assert EXAMPLES_DISAGREE not in person.told and not any("you confirmed" in line for line in person.told)
+    assert EXAMPLES_DISAGREE not in person.told and not any("You confirmed" in line for line in person.told)
 
 
 def test_it_is_not_said_when_only_unit_tests_failed(build):
     failing = h.SURPLUS_TESTS + "\n\ndef test_nonsense():\n    assert False\n"
     bad = write_module(h.SURPLUS_PY, failing)
-    results, _, person = build([*START, bad, bad, bad], accepts(3), brief=only_step("s1"))
+    results, _, person = build([*START, bad, bad, bad], built(), brief=only_step("s1"))
     assert results[0]["reason"] == REASON_CODE
-    assert EXAMPLES_DISAGREE not in person.told and not any("you confirmed" in line for line in person.told)
+    assert EXAMPLES_DISAGREE not in person.told and not any("You confirmed" in line for line in person.told)
 
 
 def test_it_is_not_said_when_the_code_never_ran(build):
     unsafe = write_module("import os\n" + h.SURPLUS_PY, h.SURPLUS_TESTS)
-    results, _, person = build([*START, unsafe, unsafe, unsafe], accepts(3), brief=only_step("s1"))
+    results, _, person = build([*START, unsafe, unsafe, unsafe], built(), brief=only_step("s1"))
     assert results[0]["reason"] == REASON_CODE
     assert EXAMPLES_DISAGREE not in person.told
 
 
 def test_it_never_reaches_the_model(build):
-    _, model, _ = build([*START, WRONG, WRONG, WRONG], accepts(3), brief=only_step("s1"))
-    everything = json.dumps([[c["system"], c["messages"]] for c in model.calls])
-    for text in ("disagree", "you confirmed", "the code gives", "8223.55", "2023.35", "an error"):
+    _, model, _ = build([*START, WRONG, WRONG, WRONG], built(), brief=only_step("s1"))
+    everything = json.dumps([c["messages"] for c in model.calls])
+    for text in ("disagree", "You confirmed", "The code gives", "8223.55", "2023.35", "an error"):
         assert text not in everything, text
+
+
+def test_the_numbering_never_reaches_the_model_or_golden_json(build, modules_dir):
+    _, model, _ = build([*START, WRONG, WRONG, WRONG], ["yes", "/skip", "/accept", "/accept"], brief=only_step("s1"))
+    for call in model.calls:
+        assert "You confirmed" not in json.dumps(call["messages"])
+    golden = json.loads((modules_dir / "_build" / "monthly_surplus" / "golden.json").read_text(encoding="utf-8"))
+    assert [set(entry) for entry in golden] == [{"inputs", "expected", "working", "decision"}] * 2
 
 
 # ---- the exact wording of the file checks -------------------------------------------------------
@@ -355,5 +394,5 @@ def test_parameter_names_are_compared_as_a_set_so_their_order_does_not_matter(bu
     module_py = "def calculate(spending, income):\n    return income - spending\n"
     tests_py = ("from decimal import Decimal\n\nfrom module import calculate\n\n\n"
                 "def test_it():\n    assert calculate(spending=Decimal('3'), income=Decimal('5')) == Decimal('2')\n")
-    results, model, _ = build([*START, write_module(module_py, tests_py)], accepts(3), brief=only_step("s1"))
+    results, model, _ = build([*START, write_module(module_py, tests_py)], built(), brief=only_step("s1"))
     assert results[0]["outcome"] == "built" and len(model.calls) == 3

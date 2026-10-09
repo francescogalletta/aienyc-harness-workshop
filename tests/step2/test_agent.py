@@ -74,10 +74,24 @@ def test_the_system_prompt_is_analyst_md_with_the_context(ask_agent, brief):
         ("process", brief["process"]),
         ("modules", {"monthly_surplus": {"steps": ["s1"], "spec": h.saved_spec(h.surplus_spec(), "s1")},
                      "months_to_goal": {"steps": ["s3"], "spec": h.saved_spec(h.months_spec(), "s3")}}),
-        ("saved inputs", {}))
+        ("saved inputs", {}), ("notes", []))
     system = model.calls[0]["system"]
     assert system.strip() == h.prompt_text("analyst.md").replace("{context}", context).strip()
     assert "{context}" not in system
+
+
+def test_the_notes_of_every_session_are_in_the_context_oldest_first(ask_agent, notes, conn, brief):
+    notes.add_note(conn, step_id="s3", text="I have a list of costs.", session_id="one")
+    notes.add_note(conn, step_id="s1", text="Rent is not the only cost.", session_id="two")
+    model, _ = ask_agent([say_text("Hello.")])
+    context = h.sections(
+        ("today", "2026-03-14"), ("goal", brief["goal"]), ("particulars", brief["particulars"]),
+        ("process", brief["process"]),
+        ("modules", {"monthly_surplus": {"steps": ["s1"], "spec": h.saved_spec(h.surplus_spec(), "s1")},
+                     "months_to_goal": {"steps": ["s3"], "spec": h.saved_spec(h.months_spec(), "s3")}}),
+        ("saved inputs", {}),
+        ("notes", [{"step": "s3", "text": "I have a list of costs."}, {"step": "s1", "text": "Rent is not the only cost."}]))
+    assert model.calls[0]["system"].strip() == h.prompt_text("analyst.md").replace("{context}", context).strip()
 
 
 def test_today_defaults_to_the_real_date(agent, conn, brief, installed):
@@ -279,6 +293,43 @@ def test_assumptions_and_expectations_are_not_checked(ask_agent, conn):
     assert json.loads(run["assumptions"]) == ["Assuming a 7.25% return on savings."]
     assert run["expected"] == "roughly 1,999 or so"
     assert events(conn, "ask.correction") == []
+
+
+def test_a_number_that_is_only_in_a_note_is_backed(ask_agent, notes, conn):
+    notes.add_note(conn, step_id="s1", text="My deposit is 4,321.", session_id="an-earlier-session")
+    _, person = ask_agent([say_text("Your deposit is 4,321.")], question="What do you know about me?")
+    assert person.asked == ["Your deposit is 4,321."]
+
+
+def test_the_same_number_without_the_note_is_withheld(ask_agent):
+    _, person = ask_agent([say_text("Your deposit is 4,321."), say_text("Your deposit is 4,321.")],
+                          question="What do you know about me?")
+    assert person.asked == [WITHHELD.format(numbers="4,321")]
+
+
+def test_a_number_that_is_only_in_a_note_is_backed_in_the_inputs_of_a_run(ask_agent, notes, conn):
+    notes.add_note(conn, step_id="s1", text="I earn 7777 now.", session_id="an-earlier-session")
+    ask_agent([run_module(inputs={"income": "7777", "spending": "3000"}), say_text("Done.")])
+    [run] = rows(conn, "calc_runs")
+    assert json.loads(run["inputs"]) == {"income": "7777", "spending": "3000"}
+    assert events(conn, "ask.correction") == []
+
+
+def test_a_note_saved_during_the_session_backs_the_next_reply_but_the_context_stays(agent, notes, conn, brief, installed):
+    class Noting(Person):
+        noted = False
+
+        def ask(self, text):
+            if not self.noted:
+                self.noted = True
+                notes.add_note(conn, step_id="s1", text="My deposit is 4,321.", session_id="this-one")
+            return super().ask(text)
+
+    model, person = ScriptedModel([say_text("Hello."), say_text("Your deposit is 4,321.")]), Noting("Go on.", "/quit")
+    agent.run_agent(model=model, conn=conn, brief=brief, ask=person.ask, say=person.say, session_id=SESSION,
+                    question="Hi", today=DAY)
+    assert person.asked[-1] == "Your deposit is 4,321."
+    assert len({call["system"] for call in model.calls}) == 1 and "4,321" not in model.calls[0]["system"]
 
 
 # ---- run_module ------------------------------------------------------------------------------

@@ -4,14 +4,14 @@ import json
 import pytest
 
 import step2_helpers as h
-from step2_helpers import (CANNOT_REUSE, NOT_REGISTERED, REASON_CODE, REASON_SPEC, REASON_STOPPED, accepts, events,
+from step2_helpers import (CANNOT_REUSE, built, NOT_REGISTERED, REASON_CODE, REASON_SPEC, REASON_SKIPPED, REASON_STOPPED, events,
                            only_step, payloads, propose_examples, propose_spec, reuse_module, rows, saved_spec,
                            sections, surplus_script, surplus_spec, write_module)
 
 NEW_EXAMPLES = [
-    {"inputs": {"income": "900", "spending": "400"}, "expected": "500", "working": "900 less 400"},
-    {"inputs": {"income": "10", "spending": "20"}, "expected": "-10", "working": "10 less 20"},
-    {"inputs": {"income": "7.50", "spending": "2.25"}, "expected": "5.25", "working": "7.50 less 2.25"},
+    {"inputs": {"income": "900", "spending": "400"}, "expected": "500", "working": "900 less 400 leaves 500"},
+    {"inputs": {"income": "10", "spending": "20"}, "expected": "-10", "working": "10 less 20 is minus 10"},
+    {"inputs": {"income": "7.50", "spending": "2.25"}, "expected": "5.25", "working": "7.50 less 2.25 leaves 5.25"},
 ]
 
 
@@ -49,7 +49,7 @@ def test_a_module_that_cannot_be_reused_is_explained_and_counts_as_an_attempt(bu
     h.install_months(conn, step_id="old_step")
     edit(modules_dir / "months_to_goal")
     script = [reuse_module("ghost"), reuse_module("months_to_goal"), *surplus_script()]
-    results, model, _ = build(script, accepts(3), brief=only_step("s1"))
+    results, model, _ = build(script, built(), brief=only_step("s1"))
     first = tool_results(model, 1)
     second = tool_results(model, 2)
     assert [m["content"] for m in first] == [CANNOT_REUSE.format(name="ghost")] and first[0]["is_error"] is True
@@ -81,7 +81,7 @@ def test_a_step_with_an_unchanged_module_is_kept_and_no_model_is_called(build, c
 
 def test_a_kept_step_does_not_stop_the_next_one_being_built(build, conn):
     h.install_surplus(conn, step_id="s1")
-    results, model, _ = build(h.months_script(), accepts(3))
+    results, model, _ = build(h.months_script(), built())
     assert [(r["step"], r["outcome"]) for r in results] == [("s1", "kept"), ("s3", "built")]
     assert len(model.calls) == 3
 
@@ -99,7 +99,7 @@ def test_a_plain_build_rebuilds_a_module_whose_files_changed_or_are_missing(buil
         (folder / "tests.py").unlink()
 
     script = [propose_spec(name="something_else"), propose_examples(NEW_EXAMPLES), write_module()]
-    results, model, _ = build(script, accepts(3), brief=only_step("s1"))
+    results, model, _ = build(script, built(), brief=only_step("s1"))
 
     assert results == [{"step": "s1", "outcome": "built", "module": "monthly_surplus", "reason": ""}]
     assert [t.name for t in model.calls[0]["tools"]] == ["propose_spec"]            # no reuse_module on a rebuild
@@ -122,20 +122,20 @@ def test_the_spec_writer_sees_the_current_spec_and_not_the_module_it_is_replacin
     h.install_months(conn, step_id="other_step")
     edit(modules_dir / "monthly_surplus")
     brief = only_step("s1")
-    _, model, _ = build(surplus_script(), accepts(3), brief=brief)
+    _, model, _ = build(surplus_script(), built(), brief=brief)
     content = model.calls[0]["messages"][0]["content"]
     others = content.split("[registered modules]\n")[1].split("[current spec]\n")[0]
     assert "months_to_goal" in others and "monthly_surplus" not in others
     assert content.endswith("[current spec]\n" + json.dumps(saved_spec(surplus_spec(), "s1"), indent=2, ensure_ascii=False))
 
 
-def test_the_first_message_of_a_rebuild_has_four_sections_in_order(build, conn, modules_dir):
+def test_the_first_message_of_a_rebuild_has_five_sections_in_order(build, conn, modules_dir):
     h.install_surplus(conn, step_id="s1")
     edit(modules_dir / "monthly_surplus")
     brief = only_step("s1")
-    _, model, _ = build(surplus_script(), accepts(3), brief=brief)
+    _, model, _ = build(surplus_script(), built(), brief=brief)
     assert model.calls[0]["messages"][0]["content"] == sections(
-        ("step", brief["process"][0]), ("brief", brief), ("registered modules", []),
+        ("step", brief["process"][0]), ("brief", brief), ("registered modules", []), ("notes", []),
         ("current spec", saved_spec(surplus_spec(), "s1")))
 
 
@@ -144,7 +144,7 @@ def test_the_first_message_of_a_rebuild_has_four_sections_in_order(build, conn, 
 def test_rebuild_handles_only_that_module_even_when_its_files_are_unchanged(build, conn):
     h.install_surplus(conn, step_id="s1")
     h.install_months(conn, step_id="s3")
-    results, model, _ = build([propose_spec(), propose_examples(NEW_EXAMPLES), write_module()], accepts(3),
+    results, model, _ = build([propose_spec(), propose_examples(NEW_EXAMPLES), write_module()], built(),
                               rebuild="monthly_surplus")
     assert results == [{"step": "s1", "outcome": "built", "module": "monthly_surplus", "reason": ""}]
     assert len(model.calls) == 3 and [t.name for t in model.calls[0]["tools"]] == ["propose_spec"]
@@ -154,7 +154,7 @@ def test_rebuild_leaves_the_other_modules_alone(build, conn, modules_dir):
     h.install_surplus(conn, step_id="s1")
     h.install_months(conn, step_id="s3")
     untouched = h.snapshot(modules_dir / "months_to_goal")
-    build([propose_spec(), propose_examples(NEW_EXAMPLES), write_module()], accepts(3), rebuild="monthly_surplus")
+    build([propose_spec(), propose_examples(NEW_EXAMPLES), write_module()], built(), rebuild="monthly_surplus")
     assert h.snapshot(modules_dir / "months_to_goal") == untouched
 
 
@@ -173,7 +173,7 @@ def test_rebuild_of_a_module_whose_step_is_not_in_the_brief(build, conn):
 
 def test_the_step_of_a_rebuild_is_the_one_in_the_modules_spec(build, conn):
     h.install_surplus(conn, step_id="s3")                 # built for step s3, whatever the module does
-    results, _, person = build([propose_spec(), propose_examples(NEW_EXAMPLES), write_module()], accepts(3),
+    results, _, person = build([propose_spec(), propose_examples(NEW_EXAMPLES), write_module()], built(),
                                rebuild="monthly_surplus")
     assert results[0]["step"] == "s3" and results[0]["outcome"] == "built"
     assert person.told[0] == "Step s3: Work out the months to reach the target"
@@ -186,8 +186,9 @@ WRONG = write_module(h.WRONG_SURPLUS_PY, h.WRONG_SURPLUS_TESTS)
 
 @pytest.mark.parametrize("script, answers, reason", [
     ([propose_spec(description="")] * 3, [], REASON_SPEC),
-    ([propose_spec(), propose_examples(NEW_EXAMPLES)], ["/accept", "/quit"], REASON_STOPPED),
-    ([propose_spec(), propose_examples(NEW_EXAMPLES), WRONG, WRONG, WRONG], accepts(3), REASON_CODE),
+    ([propose_spec(), propose_examples(NEW_EXAMPLES)], ["yes", "/accept", "/quit"], REASON_STOPPED),
+    ([propose_spec()], ["/skip"], REASON_SKIPPED),
+    ([propose_spec(), propose_examples(NEW_EXAMPLES), WRONG, WRONG, WRONG], built(), REASON_CODE),
 ])
 def test_a_failed_rebuild_leaves_the_registered_module_exactly_as_it_was(build, conn, registry, modules_dir,
                                                                           script, answers, reason):

@@ -11,6 +11,8 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+from harness.model import ScriptedModel
+
 ROOT = Path(__file__).resolve().parents[2]
 CALC = ROOT / "harness" / "calc"
 SESSION = "test-session"
@@ -29,30 +31,53 @@ RUN_FAILED = "'{name}' stopped with an error: {error}"
 NO_BRIEF = "There is no brief yet. Write one with: python -m harness ground"
 DRAFT_BRIEF = "The brief is still a draft. Confirm it first with: python -m harness ground"
 STEP_HEADER = "Step {id}: {name}"
+WRITING_SPEC = "  (writing the plan for this step, attempt {attempt})"
+WRITING_EXAMPLES = "  (writing made-up examples, attempt {attempt})"
+WRITING_CODE = "  (writing the code, attempt {attempt})"
+READING_REPLY = "  (reading your answer)"
 USE_TOOL = "[harness] Reply only by calling {tools}."
 ONE_CALL = "Only one tool call is handled per reply. This one was ignored."
 SPEC_REJECTED = "The spec was not accepted. Fix these and propose it again:"
 NAME_TAKEN = "a module called '{name}' already exists: reuse it, or choose another name"
 CANNOT_REUSE = "There is no registered module called '{name}' with unchanged files. Propose a spec instead."
+PLAN_QUESTION = ("Does this fit what you have? Type yes to go on. If not, tell me in your own words what you do "
+                 "have: a list of amounts, a rough range, anything. /skip leaves this step for later, /quit stops "
+                 "the build.")
+PLAN_FEEDBACK = ("The spec passed the checks, and the person read it in plain words. They said it does not fit what "
+                 "they have, in these words:\n{text}\nPropose a revised spec shaped around what they have. Their "
+                 "figures are for later: never put them in the spec.")
+PLAN_KEPT = ("I will go on with the last plan shown above. What you said is kept as a note, for when you work with "
+             "your real numbers.")
 EXAMPLES_REJECTED = "The examples were not accepted. Fix these and propose them again:"
-EXAMPLES_INTRO = "Check these worked examples for {name}: {description} Your answers become the check its code must pass."
-CONFIRM_EXAMPLE = ("Type /accept if the answer is right, type the right answer, or type /skip to leave this "
-                   "example out. /quit stops the build.")
-NOT_A_VALUE = "That could not be read as {kind}. Type /accept, the right answer, or /skip."
+EXAMPLES_INTRO = ("Now a few made-up examples, to check the arithmetic before any code is written. They are not your "
+                  "figures: they use small round numbers, and your real numbers come later, when you ask about your "
+                  "plan. Check the working and the proposed answer of each one by hand. What you confirm becomes the "
+                  "test the code must pass.")
+CONFIRM_EXAMPLE = ("Is the proposed answer right for this made-up example? Type yes if it is. If not, type the right "
+                   "answer, or say in your own words what is wrong. You can also ask a question about it. /skip "
+                   "leaves this example out, /quit stops the build.")
+CONFIRM_ANSWER = ("Is that the right answer for this made-up example? Type yes to keep it, or say what to change. "
+                  "/skip leaves this example out, /quit stops the build.")
+NOTE_KEPT = ("Thank you. I have kept that as a note about your real situation, for later. For now, only the "
+             "made-up example above needs checking.")
+NOT_UNDERSTOOD = ("Sorry, I did not understand that. Type yes if the proposed answer is right. If not, type the "
+                  "right answer, with every number in it written out.")
 CODE_REJECTED = "The code was not accepted. Fix these and write both files again:"
 RUNNING_TESTS = "  (running the tests)"
 TESTS_FAILED = "The code was run and did not pass. Fix it and write both files again:"
 EXAMPLE_FAILED = "Example {index} failed. Its inputs were: {inputs}"
 EXAMPLES_DISAGREE = ("The code and these worked examples disagree. One of them is wrong. Check each by hand: "
                      "if the example was wrong, run the build again and type the right answer.")
-DISAGREEMENT = "  With {inputs} you confirmed {expected}, and the code gives {got}."
+DISAGREEMENT = "Example {k}"
 REASON_SPEC = "no acceptable spec after 3 attempts"
+REASON_SKIPPED = "left for later by the person"
 REASON_EXAMPLES = "no acceptable examples after 3 attempts"
 REASON_CONFIRMED = "fewer than 2 examples were confirmed"
 REASON_CODE = "the code did not pass after 3 attempts"
 REASON_STOPPED = "stopped by the person"
-KIND_WORDS = {"number": "a number", "integer": "a whole number", "date": "a date (YYYY-MM-DD)",
-              "boolean": "yes or no", "text": "text", "list": "a JSON list", "object": "a JSON object"}
+ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}
+KIND_WORDS = {"number": "a number", "integer": "a whole number", "date": "a date",
+              "boolean": "yes or no", "text": "text", "list": "a list", "object": "a few named values"}
 
 OPENING = "What would you like to work out?"
 NUMBERS_CORRECTION = ("[harness] Your reply was not shown. These numbers did not come from a module result in this "
@@ -89,6 +114,10 @@ REUSE_SCHEMA = {"type": "object", "properties": {"module": _TEXT, "reason": _TEX
 EXAMPLES_SCHEMA = {"type": "object", "properties": {"examples": {"type": "array", "items": {
     "type": "object", "properties": {"inputs": {"type": "object"}, "expected": {}, "working": _TEXT},
     "required": ["inputs", "expected", "working"]}}}, "required": ["examples"]}
+RESPOND_SCHEMA = {"type": "object", "properties": {
+    "action": {"type": "string", "enum": ["correct", "explain", "note", "skip"]},
+    "answer": {}, "message": _TEXT},
+    "required": ["action"]}
 CODE_SCHEMA = {"type": "object", "properties": {"module_py": _TEXT, "tests_py": _TEXT},
                "required": ["module_py", "tests_py"]}
 RUN_MODULE_SCHEMA = {"type": "object", "properties": {
@@ -189,6 +218,34 @@ def months_spec(**changes):
     return spec
 
 
+def ranged_spec(**changes):
+    """A spec with an object output: three named values, as the example helper must keep them."""
+    spec = {
+        "name": "trip_cost",
+        "description": "The cost of a trip in three cases.",
+        "method": "arithmetic",
+        "formula": "low, expected and high = base_cost plus three different extras",
+        "inputs": [{"name": "base_cost", "type": "number", "description": "The cost before any extras."}],
+        "output": {"type": "object", "description": "low, expected and high: the cost in three cases."},
+    }
+    spec.update(changes)
+    return spec
+
+
+def ranged_examples():
+    return [
+        {"inputs": {"base_cost": "10000"},
+         "expected": {"low": "13000", "expected": "17000", "high": "23000"},
+         "working": "10000 + 3000 = 13000; 10000 + 7000 = 17000; 10000 + 13000 = 23000"},
+        {"inputs": {"base_cost": "20000"},
+         "expected": {"low": "26000", "expected": "34000", "high": "46000"},
+         "working": "20000 + 6000 = 26000; 20000 + 14000 = 34000; 20000 + 26000 = 46000"},
+        {"inputs": {"base_cost": "1000"},
+         "expected": {"low": "1300", "expected": "1700", "high": "2300"},
+         "working": "1000 + 300 = 1300; 1000 + 700 = 1700; 1000 + 1300 = 2300"},
+    ]
+
+
 def saved_spec(spec, step_id):
     """The spec as it is written to spec.json: the seven keys, in order."""
     return {"name": spec["name"], "description": spec["description"], "step_id": step_id,
@@ -203,14 +260,14 @@ def surplus_examples():
         {"inputs": {"income": "4000", "spending": "4500"}, "expected": "-500",
          "working": "4000 less 4500 is a shortfall of 500"},
         {"inputs": {"income": "3000", "spending": "3000"}, "expected": "0",
-         "working": "equal amounts leave nothing"},
+         "working": "3000 less 3000 leaves 0"},
     ]
 
 
 def months_examples():
     return [
         {"inputs": {"target": "12000", "monthly_saving": "1000"}, "expected": "12", "working": "12000 over 1000"},
-        {"inputs": {"target": "10000", "monthly_saving": "300"}, "expected": "34", "working": "33.3 rounded up"},
+        {"inputs": {"target": "10000", "monthly_saving": "300"}, "expected": "34", "working": "10000 / 300 = 33.3; rounded up to 34"},
         {"inputs": {"target": "500", "monthly_saving": "500"}, "expected": "1", "working": "one month covers it"},
     ]
 
@@ -301,6 +358,79 @@ def calculate(target, monthly_saving):
         for _ in range(10 ** 12):
             pass
     return math.ceil(target / monthly_saving)
+"""
+
+
+# Right for ranged_examples() as proposed: low, expected and high are 1.3, 1.7 and 2.3 times the base cost.
+RANGED_PY = """\
+from decimal import Decimal
+
+
+def calculate(base_cost):
+    return {"low": base_cost * Decimal("1.3"), "expected": base_cost * Decimal("1.7"),
+            "high": base_cost * Decimal("2.3")}
+"""
+
+RANGED_TESTS = """\
+from decimal import Decimal
+
+from module import calculate
+
+
+def test_the_three_cases():
+    assert calculate(Decimal("100")) == {"low": Decimal("130"), "expected": Decimal("170"), "high": Decimal("230")}
+"""
+
+
+# Wrong on `high` only: 2.5 times the base cost, not 2.3.
+WRONG_RANGED_PY = """\
+from decimal import Decimal
+
+
+def calculate(base_cost):
+    return {"low": base_cost * Decimal("1.3"), "expected": base_cost * Decimal("1.7"),
+            "high": base_cost * Decimal("2.5")}
+"""
+
+
+# What the spec writer gives when the person says they have a list of costs, not one total.
+def revised_spec(**changes):
+    return surplus_spec(formula="surplus = income - the sum of costs", inputs=[
+        {"name": "income", "type": "number", "description": "Money in each month."},
+        {"name": "costs", "type": "list", "description": "Each cost paid every month. Each item has name and amount."}],
+        **changes)
+
+
+def revised_examples():
+    return [
+        {"inputs": {"income": "5000", "costs": [{"name": "rent", "amount": "1000"}, {"name": "food", "amount": "500"}]},
+         "expected": "3500", "working": "1000 + 500 = 1500; 5000 - 1500 = 3500"},
+        {"inputs": {"income": "100", "costs": []}, "expected": "100", "working": "no costs, so all 100 is left"},
+        {"inputs": {"income": "2000", "costs": [{"name": "rent", "amount": "2000"}]}, "expected": "0",
+         "working": "2000 - 2000 = 0"},
+    ]
+
+
+REVISED_PY = """\
+from decimal import Decimal
+
+
+def calculate(income, costs):
+    return income - sum((Decimal(cost["amount"]) for cost in costs), Decimal(0))
+"""
+
+REVISED_TESTS = """\
+from decimal import Decimal
+
+from module import calculate
+
+
+def test_with_costs():
+    assert calculate(Decimal("100"), [{"name": "a", "amount": "30"}]) == Decimal("70")
+
+
+def test_without_costs():
+    assert calculate(Decimal("100"), []) == Decimal("100")
 """
 
 
@@ -424,6 +554,11 @@ def write_module(module_py=SURPLUS_PY, tests_py=SURPLUS_TESTS):
     return tool("write_module", {"module_py": module_py, "tests_py": tests_py})
 
 
+def respond(action, **arguments):
+    """The example helper's one tool call."""
+    return tool("respond", {"action": action, **arguments})
+
+
 def surplus_script():
     """The three replies that build monthly_surplus at the first try of every phase."""
     return [propose_spec(), propose_examples(), write_module()]
@@ -432,6 +567,10 @@ def surplus_script():
 def months_script():
     return [propose_spec(months_spec()), propose_examples(months_examples()),
             write_module(MONTHS_PY, MONTHS_TESTS)]
+
+
+def ranged_script():
+    return [propose_spec(ranged_spec()), propose_examples(ranged_examples()), write_module(RANGED_PY, RANGED_TESTS)]
 
 
 def say_text(text):
@@ -476,6 +615,40 @@ class Person:
 
 def accepts(count):
     return ["/accept"] * count
+
+
+def built(steps=1, examples=3):
+    """The answers of a person who builds `steps` steps at the first try: yes to each plan, then an accept word
+    for each of `examples` examples."""
+    return (["yes"] + accepts(examples)) * steps
+
+
+ROLE_FILES = {"spec_writer": "spec_writer.md", "example_writer": "example_writer.md",
+              "example_helper": "example_helper.md", "module_writer": "module_writer.md"}
+
+
+def role_of(system):
+    """Which model role a system prompt belongs to (`analyst` for anything else)."""
+    for role, file in ROLE_FILES.items():
+        if system.strip() == prompt_text(file).strip():
+            return role
+    return "analyst"
+
+
+class TracingModel(ScriptedModel):
+    """A scripted model that also notes each call, by role, in the person's log: so that the order of what is
+    said, asked and sent to the model can be read from one list."""
+
+    def __init__(self, script, person):
+        super().__init__(script)
+        self.person = person
+
+    def complete(self, *, system, messages, tools=()):
+        self.person.log.append(("call", role_of(system)))
+        return super().complete(system=system, messages=messages, tools=tools)
+
+    def roles(self):
+        return [role_of(call["system"]) for call in self.calls]
 
 
 # ---- reading what was recorded ------------------------------------------------------------------

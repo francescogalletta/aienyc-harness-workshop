@@ -1,8 +1,9 @@
 """The agent that answers questions about the plan (SPEC 5.9).
 
 It runs modules through the gate and saves what the person tells it. It
-never works a number out itself: the harness checks every number it sends
-out, and every number it passes to a module or saves (SPEC 5.8).
+is given the notes kept during a build. It never works a number out itself:
+the harness checks every number it sends out, and every number it passes to
+a module or saves (SPEC 5.8).
 """
 import json
 import re
@@ -13,6 +14,7 @@ from .. import db
 from ..model import ToolSpec
 from . import gate
 from .builder import format_sections
+from .notes import list_notes
 from .provenance import unbacked
 from .registry import list_modules
 
@@ -75,6 +77,7 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
         """What a number may come from, read afresh at each check (SPEC 5.9)."""
         found = [brief, today_text, *typed]
         found += [json.loads(row["value"]) for row in conn.execute("SELECT value FROM inputs")]
+        found += [note["text"] for note in list_notes(conn)]       # the person's own words
         for row in conn.execute("SELECT inputs, output FROM calc_runs WHERE session_id = ?", (session_id,)):
             found += [json.loads(row["inputs"]), json.loads(row["output"])]
         return found
@@ -199,5 +202,6 @@ def _system_prompt(conn, brief: dict, today_text: str) -> str:
     saved = {row["name"]: {"value": json.loads(row["value"]), "note": row["note"]}
              for row in conn.execute("SELECT * FROM inputs ORDER BY name")}
     context = format_sections({"today": today_text, "goal": brief["goal"], "particulars": brief["particulars"],
-                               "process": brief["process"], "modules": modules, "saved inputs": saved})
+                               "process": brief["process"], "modules": modules, "saved inputs": saved,
+                               "notes": list_notes(conn)})
     return Path(__file__).with_name("analyst.md").read_text(encoding="utf-8").replace("{context}", context)

@@ -5,9 +5,7 @@ import pytest
 
 from harness import db
 from harness.grounding import save_brief
-from harness.model import ScriptedModel
-
-from step2_helpers import SESSION, Person, make_brief
+from step2_helpers import SESSION, Person, TracingModel, make_brief
 
 SETTINGS = ("HARNESS_DB", "HARNESS_MODEL_PROVIDER", "HARNESS_MODEL", "HARNESS_SCRIPT",
             "HARNESS_RESEARCHER", "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR")
@@ -83,16 +81,25 @@ def builder():
 
 
 @pytest.fixture
+def notes():
+    return importlib.import_module("harness.calc.notes")
+
+
+@pytest.fixture
 def agent():
     return importlib.import_module("harness.calc.agent")
 
 
 @pytest.fixture
 def build(builder, conn, brief):
-    """Run `build` with a scripted model and a recording person. Returns (results, model, person)."""
+    """Run `build` with a scripted model and a recording person. Returns (results, model, person).
+
+    The person's log also holds ("call", role) each time the model is called, so the order of the calls
+    among what is said and asked can be read from it.
+    """
     def run(script, answers=(), *, brief=brief, **options):
-        model = ScriptedModel(script)
         person = Person(*answers)
+        model = TracingModel(script, person)
         results = builder.build(model=model, conn=conn, brief=brief, ask=person.ask, say=person.say,
                                 session_id=SESSION, **options)
         return results, model, person
