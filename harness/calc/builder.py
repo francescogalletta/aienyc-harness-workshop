@@ -1,4 +1,4 @@
-"""The builder (SPEC 5.7): turns each calculation step of the brief into a registered module.
+"""The builder (SPEC 5.7): turns each calculation step of the process into a registered module.
 
 Three phases, each its own conversation with the model: the spec (which the
 person reads in plain words and checks against what they have), the worked
@@ -17,6 +17,7 @@ from pathlib import Path
 from .. import db
 from ..config import load_config
 from ..model import ToolSpec
+from .added import ADDED_PREFIX, process_steps, step_label
 from .gate import NOT_REGISTERED, run_tests
 from .notes import add_note, list_notes
 from .provenance import unbacked
@@ -31,7 +32,10 @@ MAX_PLAN_ROUNDS = 2
 ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}
 NO_BRIEF = "There is no brief yet. Write one with: python -m harness ground"
 DRAFT_BRIEF = "The brief is still a draft. Confirm it first with: python -m harness ground"
-STEP_HEADER = "Step {id}: {name}"
+RESERVED_ID = ("The brief has a step '{id}', but step ids that start with added_ are kept for steps added in a "
+               "conversation. Change it with: python -m harness ground")
+NO_STEP = "The process has no step '{step}', which '{name}' was built for."
+STEP_HEADER = "Step {id}: {name}"         # {id} is step_label(the step's id)
 WRITING_SPEC = "  (writing the plan for this step, attempt {attempt})"
 WRITING_EXAMPLES = "  (writing made-up examples, attempt {attempt})"
 WRITING_CODE = "  (writing the code, attempt {attempt})"
@@ -139,48 +143,61 @@ def load_brief(folder) -> dict:
     brief = json.loads(path.read_text(encoding="utf-8"))
     if brief.get("meta", {}).get("status") != "confirmed":
         raise ValueError(DRAFT_BRIEF)
+    for step in brief.get("process", []):
+        if str(step.get("id")).startswith(ADDED_PREFIX):
+            raise ValueError(RESERVED_ID.format(id=step["id"]))
     return {key: value for key, value in brief.items() if key != "meta"}
 
 
-def build(*, model, conn, brief, ask, say=print, session_id, rebuild=None) -> list[dict]:
-    """Build a module for each calculation step of the brief. Returns one result per step handled.
+def build_step(*, model, conn, brief, step, ask, say=print, session_id, rebuild=None) -> dict:
+    """Build a module for one calculation step, a brief step or an added step. Returns its result.
 
     `ask(text)` shows text to the person and returns what they typed.
     `say(text)` shows text that needs no answer.
+    With `rebuild=NAME`, that registered module is built again for this step.
+    """
+    brief = {key: value for key, value in brief.items() if key != "meta"}
+    say(STEP_HEADER.format(id=step_label(step["id"]), name=step["name"]))
+    name = rebuild                                  # the module to build again, if there is one
+    if rebuild is None and step["id"] in step_map(conn):
+        name = step_map(conn)[step["id"]]
+        if file_status(conn, name) == "unchanged":
+            return {"step": step["id"], "outcome": "kept", "module": name, "reason": ""}
+    try:
+        result = _build_step(model, conn, brief, step, name, ask, say, session_id)
+    except Stopped:
+        result = {"step": step["id"], "outcome": "not_built", "module": None, "reason": REASON_STOPPED}
+    if result["outcome"] == "not_built":
+        _record_not_built(conn, session_id, result)
+    return result
+
+
+def build(*, model, conn, brief, ask, say=print, session_id, rebuild=None) -> list[dict]:
+    """Build a module for each calculation step of the process. Returns one result per step handled.
+
     With `rebuild=NAME`, only that registered module is built again.
     """
     brief = {key: value for key, value in brief.items() if key != "meta"}
-    steps = {step["id"]: step for step in brief["process"]}
+    steps = process_steps(conn, brief)
     if rebuild is not None:
         registered = get_module(conn, rebuild)
         if registered is None:
             raise ValueError(NOT_REGISTERED.format(name=rebuild))
         step_id = registered["spec"]["step_id"]
-        if step_id not in steps:
-            raise ValueError(f"The brief has no step '{step_id}', which '{rebuild}' was built for.")
-        todo = [steps[step_id]]
+        found = [step for step in steps if step["id"] == step_id]
+        if not found:
+            raise ValueError(NO_STEP.format(step=step_id, name=rebuild))
+        todo = found[:1]
     else:
-        todo = [step for step in brief["process"] if step.get("kind") == "calculation"]
+        todo = [step for step in steps if step.get("kind") == "calculation"]
 
     results = []
     for step in todo:
-        say(STEP_HEADER.format(id=step["id"], name=step["name"]))
-        name = rebuild                              # the module to build again, if there is one
-        if rebuild is None and step["id"] in step_map(conn):
-            name = step_map(conn)[step["id"]]
-            if file_status(conn, name) == "unchanged":
-                results.append({"step": step["id"], "outcome": "kept", "module": name, "reason": ""})
-                continue
-        try:
-            result = _build_step(model, conn, brief, step, name, ask, say, session_id)
-        except Stopped:
-            result = {"step": step["id"], "outcome": "not_built", "module": None, "reason": REASON_STOPPED}
-            _record_not_built(conn, session_id, result)
-            results.append(result)
-            break
-        if result["outcome"] == "not_built":
-            _record_not_built(conn, session_id, result)
+        result = build_step(model=model, conn=conn, brief=brief, step=step, ask=ask, say=say,
+                            session_id=session_id, rebuild=rebuild)
         results.append(result)
+        if result["reason"] == REASON_STOPPED:
+            break
     return results
 
 

@@ -56,36 +56,48 @@ python -m pytest -q
 ## Choose how the harness reaches a model
 
 The harness talks to a model through one interface. `HARNESS_MODEL_PROVIDER`
-picks what sits behind it:
+picks what sits behind it. If you set nothing, the default is `auto`, which
+uses the `anthropic` provider when `ANTHROPIC_API_KEY` is set and the
+`anthropic` package is installed, and otherwise `claude_code` when the
+`claude` command is on your path. If neither is there, it stops and tells
+you what to install.
 
 | Provider | What you need | Notes |
 | --- | --- | --- |
+| `auto` | Either of the two below | The default. Picks one as described above. |
 | `scripted` | Nothing | Replays prepared responses. Used by every test. |
 | `claude_code` | [Claude Code](https://code.claude.com/docs/en/overview) installed and signed in with your Claude plan | No API key. Usage counts against your plan. |
-| `anthropic` | A Claude API key | Billed to the key. This is the default. |
+| `anthropic` | A Claude API key | Billed to the key. Needs the `claude` extra (see below). |
 
 With a Claude subscription and no API key:
 
 ```
 claude auth status                        # should say you are logged in
-export HARNESS_MODEL_PROVIDER=claude_code
 uv run python -m harness check
 ```
+
+Nothing needs exporting: `auto` finds Claude Code. The check prints which
+provider it used. To choose it yourself, add
+`export HARNESS_MODEL_PROVIDER=claude_code`.
 
 The check sends the model a one-line test and should end with
 `Setup works: the model replied and the check was saved as event 1.`
 
 If `ANTHROPIC_API_KEY` is set in your shell, Claude Code uses that key
-instead of your plan, so unset it first. If the check reports an unknown
+instead of your plan, and `auto` prefers the `anthropic` provider when the
+package is installed, so unset the key first. If the check reports an unknown
 option, update Claude Code with `claude update`.
 
 With an API key:
 
 ```
 export ANTHROPIC_API_KEY=...
-export HARNESS_MODEL_PROVIDER=anthropic
+export HARNESS_MODEL_PROVIDER=anthropic     # optional: auto would pick it too
 uv run --extra claude python -m harness check
 ```
+
+If you choose `anthropic` without the package, the harness says so and
+shows the install command (`uv sync --extra claude`).
 
 `HARNESS_MODEL` picks the model. The default is `claude-sonnet-5-5`; with
 `claude_code` you can also use an alias such as `sonnet` or `haiku`.
@@ -98,7 +110,6 @@ the finance terms you use against their standard meaning, and writes a
 and the steps needed, with the ones that must run as code marked.
 
 ```
-export HARNESS_MODEL_PROVIDER=claude_code
 uv run python -m harness ui
 ```
 
@@ -147,7 +158,6 @@ Step 2 turns each calculation step of your brief into code that is tested
 before it is allowed to run. You need a confirmed brief first.
 
 ```
-export HARNESS_MODEL_PROVIDER=claude_code
 uv run python -m harness build
 ```
 

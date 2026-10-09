@@ -8,7 +8,7 @@ import hashlib
 import json
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from harness.model import ScriptedModel
@@ -29,6 +29,9 @@ TESTS_FAIL = "The tests of '{name}' do not pass right now, so it will not run."
 RUN_FAILED = "'{name}' stopped with an error: {error}"
 
 NO_BRIEF = "There is no brief yet. Write one with: python -m harness ground"
+RESERVED_ID = ("The brief has a step '{id}', but step ids that start with added_ are kept for steps added in a "
+               "conversation. Change it with: python -m harness ground")
+NO_STEP = "The process has no step '{step}', which '{name}' was built for."
 DRAFT_BRIEF = "The brief is still a draft. Confirm it first with: python -m harness ground"
 STEP_HEADER = "Step {id}: {name}"
 WRITING_SPEC = "  (writing the plan for this step, attempt {attempt})"
@@ -93,6 +96,22 @@ TOO_MANY = "(The harness stopped working on this, because it took too many steps
 BAD_NAME = "The name must be in snake_case, such as monthly_income."
 EMPTY_VALUE = "The value is empty."
 SAVED = "Saved."
+MAX_REQUESTS = 2
+REQUEST_STEP = "The assistant asks to build a module for step {step}: {name}."
+REQUEST_NEW = "The assistant asks to build a calculation that is not in the brief."
+REQUEST_REPLACE = "The assistant asks to rebuild the module {module}, so that it takes what you have."
+REQUEST_QUESTION = ("Build it now? Type yes to start. As with python -m harness build, you will check a plan and a "
+                    "few made-up examples. Anything else leaves it, and we carry on without it. During the build, "
+                    "/quit stops only the build.")
+TOO_MANY_REQUESTS = ("No more builds can be asked for until the person's next message. Tell the person plainly what "
+                     "cannot be answered yet.")
+BAD_CASE = "case must be step, new or replace."
+MISSING_WORDS = "Say in plain words: {fields}."
+NOT_A_STEP = "There is no calculation step '{target}' in the process."
+ALREADY_BUILT = ("Step '{target}' already has the module '{module}', with unchanged files. Run it, or ask to "
+                 "replace it if it does not fit.")
+ADDED_PREFIX = "added_"
+NOT_IN_BRIEF = "(not in the brief)"
 
 ALL_BUILT = "Every calculation step has a tested module."
 SOME_MISSING = ("Some calculation steps have no tested module yet. "
@@ -127,6 +146,12 @@ RUN_MODULE_SCHEMA = {"type": "object", "properties": {
 SAVE_INPUT_SCHEMA = {"type": "object", "properties": {
     "name": {"type": "string"}, "value": {"type": "string"}, "note": {"type": "string"}},
     "required": ["name", "value", "note"]}
+REQUEST_MODULE_SCHEMA = {"type": "object", "properties": {
+    "case": {"type": "string", "enum": ["step", "new", "replace"]},
+    "target": {"type": "string"},
+    "works_out": {"type": "string"}, "from_what": {"type": "string"}, "gives": {"type": "string"},
+    "formula": {"type": "string"}, "why": {"type": "string"}},
+    "required": ["case", "works_out", "from_what", "gives", "formula", "why"]}
 
 
 def without_descriptions(schema):
@@ -698,3 +723,151 @@ def run_cli(args, typed=""):
     """Run `python -m harness ...` in the repository with the test environment (set by conftest)."""
     return subprocess.run([sys.executable, "-m", "harness", *args], cwd=ROOT, input=typed,
                           capture_output=True, text=True)
+
+
+# ---- a third module, for a step that is not in the brief (SPEC 5.5, 5.9) --------------------------
+
+def yearly_spec(**changes):
+    spec = {
+        "name": "yearly_cost",
+        "description": "The cost over a whole year.",
+        "method": "arithmetic",
+        "formula": "yearly = monthly x 12",
+        "inputs": [{"name": "monthly", "type": "number", "description": "The cost for one month."}],
+        "output": {"type": "number", "description": "The cost for a year."},
+    }
+    spec.update(changes)
+    return spec
+
+
+def yearly_examples():
+    return [
+        {"inputs": {"monthly": "100"}, "expected": "1200", "working": "100 x 12 = 1200"},
+        {"inputs": {"monthly": "250"}, "expected": "3000", "working": "250 x 12 = 3000"},
+        {"inputs": {"monthly": "50"}, "expected": "600", "working": "50 x 12 = 600"},
+    ]
+
+
+YEARLY_PY = """\
+def calculate(monthly):
+    return monthly * 12
+"""
+
+YEARLY_TESTS = """\
+from decimal import Decimal
+
+from module import calculate
+
+
+def test_a_year():
+    assert calculate(Decimal("10")) == Decimal("120")
+
+
+def test_nothing_costs_nothing():
+    assert calculate(Decimal("0")) == Decimal("0")
+"""
+
+
+def yearly_script():
+    """The three replies that build yearly_cost at the first try of every phase."""
+    return [propose_spec(yearly_spec()), propose_examples(yearly_examples()), write_module(YEARLY_PY, YEARLY_TESTS)]
+
+
+def yearly_files(step_id="added_1"):
+    return {"spec.json": dump(saved_spec(yearly_spec(), step_id)),
+            "golden.json": dump(golden_of(yearly_examples())),
+            "module.py": YEARLY_PY, "tests.py": YEARLY_TESTS}
+
+
+def install_yearly(conn, step_id="added_1"):
+    return install(conn, yearly_files(step_id), step_id)
+
+
+# ---- added steps and request_module (SPEC 5.5, 5.9) ------------------------------------------------
+
+DAY = date(2026, 3, 14)
+QUESTION = "I earn 5000 and spend 3000 a month. What is left each month?"
+YEARLY_QUESTION = "My subscriptions cost 250 a month. What is that over a whole year?"
+
+STEP_TEXTS = {"works_out": "the money left over each month",
+              "from_what": "what comes in and what goes out each month",
+              "gives": "the surplus per month",
+              "formula": "what comes in minus what goes out",
+              "why": "you asked what is left each month"}
+NEW_TEXTS = {"works_out": "the cost over a whole year",
+             "from_what": "the cost for one month",
+             "gives": "the total for a year",
+             "formula": "the monthly cost times twelve",
+             "why": "you asked about a whole year"}
+REPLACE_TEXTS = {"works_out": "the money left over each month",
+                 "from_what": "a list of costs, each with a name and an amount",
+                 "gives": "the surplus per month",
+                 "formula": "what comes in minus the sum of the costs",
+                 "why": "you have a list of costs, not one total"}
+DEFAULT_TEXTS = {"step": STEP_TEXTS, "new": NEW_TEXTS, "replace": REPLACE_TEXTS}
+DEFAULT_TARGETS = {"step": "s1", "new": None, "replace": "monthly_surplus"}
+
+
+def label(step_id):
+    """step_label of SPEC 5.5, written out here."""
+    return f"{step_id} {NOT_IN_BRIEF}" if step_id.startswith(ADDED_PREFIX) else step_id
+
+
+def request_arguments(case="step", target="default", **changes):
+    """The arguments of a request_module call. A change of None removes that key (to test a missing one)."""
+    arguments = {"case": case}
+    target = DEFAULT_TARGETS.get(case) if target == "default" else target
+    if target is not None:
+        arguments["target"] = target
+    arguments.update(DEFAULT_TEXTS.get(case, STEP_TEXTS))
+    arguments.update(changes)
+    return {key: value for key, value in arguments.items() if value is not None}
+
+
+def request_module(case="step", target="default", **changes):
+    return tool("request_module", request_arguments(case, target, **changes))
+
+
+def request_block(first_line, texts):
+    """The request block of SPEC 5.9, worked out here from the five texts (stripped)."""
+    return "\n".join([first_line,
+                      f"  To work out: {texts['works_out'].strip()}", f"  From: {texts['from_what'].strip()}",
+                      f"  Giving: {texts['gives'].strip()}", f"  How: {texts['formula'].strip()}",
+                      f"  Why now: {texts['why'].strip()}"])
+
+
+STEP_BLOCK = request_block(REQUEST_STEP.format(step="s1", name="Work out the monthly surplus"), STEP_TEXTS)
+NEW_BLOCK = request_block(REQUEST_NEW, NEW_TEXTS)
+REPLACE_BLOCK = request_block(REQUEST_REPLACE.format(module="monthly_surplus"), REPLACE_TEXTS)
+
+
+def added_step(number=1, **changes):
+    """The added step of SPEC 5.5 for the default `new` request, as a dict with its keys in order."""
+    step = {"id": f"added_{number}", "name": NEW_TEXTS["works_out"], "kind": "calculation", "method": "arithmetic",
+            "formula": NEW_TEXTS["formula"], "needs": [NEW_TEXTS["from_what"]], "produces": NEW_TEXTS["gives"],
+            "reason": NEW_TEXTS["why"]}
+    step.update(changes)
+    return step
+
+
+def add_new_step(conn, session_id="earlier", **changes):
+    """Add the default added step through the harness (an earlier session, unless told otherwise)."""
+    from harness.calc import added
+
+    texts = {"name": NEW_TEXTS["works_out"], "formula": NEW_TEXTS["formula"], "needs": NEW_TEXTS["from_what"],
+             "produces": NEW_TEXTS["gives"], "reason": NEW_TEXTS["why"], **changes}
+    return added.add_step(conn, session_id=session_id, **texts)
+
+
+def tool_message(model, call_index, position=-1):
+    """A tool result among the messages of one model call."""
+    return [m for m in model.calls[call_index]["messages"] if m["role"] == "tool"][position]
+
+
+def user_messages(model, call_index):
+    return [m["content"] for m in model.calls[call_index]["messages"] if m["role"] == "user"]
+
+
+def agent_calls(model):
+    """The calls of the agent's own model, among all the calls a scripted model got."""
+    return [call for call in model.calls if role_of(call["system"]) == "analyst"]

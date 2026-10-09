@@ -68,7 +68,8 @@ model, a stand-in for the model so the harness can be tested offline, and the
 local database.
 
 The model can be reached in three ways, and the rest of the harness cannot
-tell which one is in use:
+tell which one is in use. A fourth name, `auto`, is the default: it picks
+`anthropic` or `claude_code` for you (3.7).
 
 | Provider | What it needs | Section |
 | --- | --- | --- |
@@ -83,8 +84,8 @@ Read from environment variables, each with a default:
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `HARNESS_DB` | `var/harness.db` | Path of the SQLite database |
-| `HARNESS_MODEL_PROVIDER` | `anthropic` | A name from the provider table (3.7): `anthropic`, `claude_code` or `scripted` |
-| `HARNESS_MODEL` | `claude-sonnet-5-5` | Model name passed to the provider |
+| `HARNESS_MODEL_PROVIDER` | `auto` | A name from the provider table (3.7): `auto`, `anthropic`, `claude_code` or `scripted` |
+| `HARNESS_MODEL` | `claude-sonnet-5-5` | Model name passed to the provider. Both `anthropic` and `claude_code` accept it. |
 | `HARNESS_SCRIPT` | (none) | Path of a script file for the `scripted` provider |
 
 Expose `load_config() -> Config`, a frozen dataclass with the fields
@@ -96,10 +97,13 @@ Expose `load_config() -> Config`, a frozen dataclass with the fields
 The four types below live in `harness/model/interface.py`.
 `harness/model/__init__.py` re-exports them and lists exactly these names in
 `__all__`: `ToolSpec`, `ToolCall`, `ModelResponse`, `Model`, `ScriptedModel`,
-`ScriptExhausted`, `get_model`. Other code imports from `harness.model`, never
+`ScriptExhausted`, `get_model`, `resolve_provider`. Other code imports from `harness.model`, never
 from its submodules.
 
 Importing `harness.model` must not import any provider SDK.
+
+`harness/model/__init__.py` also lists `resolve_provider` in `__all__`. It is
+described in 3.7.
 
 ```python
 @dataclass(frozen=True)
@@ -140,8 +144,8 @@ optional on a tool message and marks a tool call that failed.
 `get_model(provider: str | None = None) -> Model`, defined in
 `harness/model/__init__.py`, returns the model for the
 given provider, or for `load_config().model_provider` when none is given.
-It looks the name up in the provider table (3.7) and calls the entry with
-`load_config()`. An unknown provider raises `ValueError` naming the provider
+It resolves the name with `resolve_provider` (3.7), looks the result up in
+the provider table and calls the entry with `load_config()`. An unknown provider raises `ValueError` naming the provider
 and listing the known ones, sorted and separated by `, `.
 
 ### 3.3 Scripted stand-in: `harness/model/scripted.py`
@@ -275,12 +279,42 @@ relative to the current folder.
 
 `PROVIDERS` is a dict from provider name to a function that takes the
 `Config` and returns a `Model`. It is the only place that knows which
-adapters exist. It holds `scripted`, `anthropic` and `claude_code`.
+adapters exist. It holds `auto`, `scripted`, `anthropic` and `claude_code`.
 
 Each entry imports its adapter file inside the function, so that an adapter's
 dependencies are loaded only when that provider is asked for. The `anthropic`
 entry returns `AnthropicModel(config.model_name)` and the `claude_code` entry
-returns `ClaudeCodeModel(config.model_name)`.
+returns `ClaudeCodeModel(config.model_name)`. The default model name,
+`claude-sonnet-5-5`, is passed to either one unchanged.
+
+**`auto`** is the default provider. The `auto` entry chooses when a model is
+asked for, not when the settings are read. It uses `anthropic` when the
+environment variable `ANTHROPIC_API_KEY` is not empty and the `anthropic`
+package can be found (`importlib.util.find_spec`). Otherwise it uses
+`claude_code` when a `claude` executable is on the `PATH` (`shutil.which`).
+If neither holds it raises `RuntimeError` with the message in the constant
+`NO_PROVIDER`:
+
+> No model provider is available. Install Claude Code and sign in, or set
+> ANTHROPIC_API_KEY and install the anthropic package, or set
+> HARNESS_MODEL_PROVIDER to the provider you want.
+
+`providers.py` defines `resolve_provider(name: str) -> str`, also available
+from `harness.model`. For `auto` it returns `anthropic` or `claude_code` by
+the rule above, or raises the `NO_PROVIDER` error. For any other name it
+returns the name unchanged. `get_model` calls it, and so can the `check`
+command, to print the provider that was actually used.
+
+**A missing package.** When a provider is named and its package is not
+installed, the entry raises `RuntimeError` with the message in the
+constant `MISSING_PACKAGE`:
+
+> The '{provider}' provider needs the '{package}' package. Install it with:
+> uv sync --extra {extra}  (or choose another provider with
+> HARNESS_MODEL_PROVIDER).
+
+For `anthropic` the package is `anthropic` and the extra, as named in
+`pyproject.toml`, is `claude`.
 
 **Adding a provider** takes two changes and nothing else:
 
@@ -336,7 +370,9 @@ model. The preamble, as one line:
 
 The tool rules, as one line:
 
-> The program offers the tools listed below. To use one, add it to `tool_calls` in your reply, with arguments that fit its input schema. The program runs it and shows you the result on the next turn. Never make up a tool result. Put what you want to say to the person in `text`; it may be empty when you call a tool. When you need no tool, leave `tool_calls` empty.
+> The program can carry out the actions listed below. They are not functions you can call directly: calling one directly fails, and that failure does not mean the action is unavailable. The only way to use one is to add an entry to `tool_calls` in your reply, with its name and arguments that fit its input schema. The program then carries it out and shows you the result on the next turn. Never make up a result. Put what you want to say to the person in `text`; it may be empty when you add an action. When you need no action, leave `tool_calls` empty.
+
+The wording matters. With a looser version the model sometimes tried to call a tool directly, failed, and told the person the tool was unavailable.
 
 **The conversation** goes in on standard input as text:
 
@@ -905,9 +941,17 @@ not to, and runs until interrupted.
 ## 5. Step 2: consistency
 
 Every number the person sees comes from fixed, tested code. Code is never
-written while a question is being answered. It is written only by an
-explicit build, from the brief, with unit tests and worked examples the
-person has checked by hand. A module is reused before a new one is written.
+written by the agent that answers questions, and never seen by it. It is
+written only by a build, from the brief, with unit tests and worked examples
+the person has checked by hand. A module is reused before a new one is
+written.
+
+A build starts in one of two ways: the person runs `python -m harness build`,
+or the agent finds a gap while answering, asks for one step to be built
+(`request_module`, 5.9), and the person says yes. Both run the same builder
+on the same terms. A gap the agent finds that the brief has no step for
+becomes an **added step**: part of the process from then on, and always
+marked as not in the brief.
 
 The build and the agent work with the person, in their own words. Before any
 example, the build shows the plan of a step in plain words and asks whether
@@ -947,6 +991,7 @@ only: no dependency is added.
 | `harness/calc/runner.py` | Given, with one change (5.3). |
 | `harness/calc/registry.py` | New (5.4, 5.5). |
 | `harness/calc/notes.py` | New (5.5). |
+| `harness/calc/added.py` | New (5.5): added steps. |
 | `harness/calc/gate.py` | New (5.6). |
 | `harness/calc/builder.py` | New (5.7). |
 | `harness/calc/provenance.py` | New (5.8). |
@@ -954,6 +999,7 @@ only: no dependency is added.
 | `harness/calc/spec_writer.md`, `example_writer.md`, `example_helper.md`, `module_writer.md`, `analyst.md` | Given. The instructions of the five model roles. Never rewritten by a build. |
 | `harness/migrations/0003_calc.sql` | Given (5.5). |
 | `harness/migrations/0004_notes.sql` | New, exactly as in 5.5. |
+| `harness/migrations/0005_added_steps.sql` | New, exactly as in 5.5. |
 | `harness/config.py`, `harness/__main__.py` | Changed (5.4, 5.10). |
 | `modules/` | Created by `build`: one folder per module. Commit it with the brief. |
 
@@ -1089,8 +1135,8 @@ UTF-8.
 ```
 {"name":        "snake_case name of what it works out",
  "description": "one sentence",
- "step_id":     "the id of the brief step it was built for",
- "method":      "the step's method, as in the brief",
+ "step_id":     "the id of the step it was built for: a brief step or an added step (5.5)",
+ "method":      "the step's method, as in the brief or the added step",
  "formula":     "one plain line, using the input names",
  "inputs":      [{"name": "snake_case", "type": <one of TYPES>, "description": "..."}],
  "output":      {"type": <one of TYPES>, "description": "..."}}
@@ -1141,7 +1187,7 @@ folder or any of the four files is missing. The folder's own name and path
 are not part of it, so the same files give the same fingerprint wherever
 they are.
 
-### 5.5 Registry and notes: `registry.py`, `notes.py`, `0003_calc.sql`, `0004_notes.sql`
+### 5.5 Registry, notes and added steps: `registry.py`, `notes.py`, `added.py`, `0003_calc.sql`, `0004_notes.sql`, `0005_added_steps.sql`
 
 The migration `0003_calc.sql` creates five tables:
 
@@ -1149,7 +1195,7 @@ The migration `0003_calc.sql` creates five tables:
 | --- | --- | --- |
 | `test_runs` | `id`, `ts`, `module`, `fingerprint`, `reason` (`build`, `gate` or `status`), `passed` (1 or 0), `report` (JSON) | test run, whatever the result |
 | `modules` | `name` (key), `fingerprint`, `spec` (JSON), `test_run_id`, `registered_at`, `session_id` | registered module |
-| `step_modules` | `step_id` (key), `module` | brief step that has a module |
+| `step_modules` | `step_id` (key), `module` | step of the process (5.5) that has a module |
 | `calc_runs` | `id`, `ts`, `session_id`, `module`, `fingerprint`, `test_run_id`, `inputs` (JSON), `assumptions` (JSON list), `expected` (text), `output` (JSON) | calculation the gate ran |
 | `inputs` | `name` (key), `value` (JSON), `note`, `ts`, `session_id` | input the person gave, kept between sessions |
 
@@ -1221,10 +1267,67 @@ Two functions, in `harness/calc/notes.py`, both taking an open connection:
 - `list_notes(conn) -> list[dict]` returns every note, from any session,
   oldest first (by `id`), each as `{"step": <step_id>, "text": <text>}`.
 
-Notes are written in two places only: at the plan check and by the example
-helper's `note` (5.7). They are read by the spec writer (5.7) and the agent
-(5.9). The example writer, the example helper and the code writer never
-receive them.
+Notes are written in three places only: at the plan check and by the
+example helper's `note` (5.7), and when the person approves a request to
+replace a module (5.9), whose request block, as shown, becomes the note.
+They are read by the spec writer (5.7) and the agent (5.9). The example
+writer, the example helper and the code writer never receive them.
+
+**Added steps.** A calculation the person needs that the brief has no step
+for is added as a step of its own, when the person approves the agent's
+request (5.9). The migration `0005_added_steps.sql` is exactly:
+
+```sql
+-- Step 2: calculation steps added in a conversation, not in the brief (SPEC 5.5).
+
+CREATE TABLE added_steps (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,   -- the step id is 'added_<id>'
+    ts          TEXT NOT NULL,        -- UTC, ISO 8601
+    session_id  TEXT NOT NULL,        -- the conversation it was added in
+    name        TEXT NOT NULL,        -- what it works out, in the agent's words
+    formula     TEXT NOT NULL,
+    needs       TEXT NOT NULL,        -- what it is worked out from, in the agent's words
+    produces    TEXT NOT NULL,
+    reason      TEXT NOT NULL         -- why the agent asked for it
+);
+```
+
+An added step has the shape of a brief process step, plus its reason. As a
+dict it has exactly these keys, in this order:
+
+```
+{"id": "added_<id>", "name": <name>, "kind": "calculation", "method": "arithmetic",
+ "formula": <formula>, "needs": [<needs>], "produces": <produces>, "reason": <reason>}
+```
+
+Its method is always `arithmetic`. The prefix `added_` is kept for added
+steps: `load_brief` refuses a brief with a step id that starts with it
+(5.7), so an added id can never clash with a brief id.
+
+In `harness/calc/added.py`:
+
+```
+ADDED_PREFIX = "added_"
+NOT_IN_BRIEF = "(not in the brief)"
+```
+
+- `add_step(conn, *, name: str, formula: str, needs: str, produces: str, reason: str, session_id: str) -> dict`
+  strips each text, inserts one row (`ts` now), commits, records
+  `calc.step_added` and returns the step as a dict.
+- `list_added_steps(conn) -> list[dict]`: every added step, from any
+  session, oldest first (by `id`), as dicts.
+- `process_steps(conn, brief) -> list[dict]`: the brief's `process`, in
+  order, then `list_added_steps(conn)`. This is **the process**, wherever
+  this section says so.
+- `step_label(step_id: str) -> str`: `"<step_id> (not in the brief)"`
+  (`step_id`, a space and `NOT_IN_BRIEF`) when the id starts with
+  `ADDED_PREFIX`, else `step_id` as it is.
+
+Wherever a step id is printed for the person (the step header of a build,
+the request of 5.9, the lines of `build` and `modules` in 5.10), it is
+printed as `step_label(id)`. So the gap in the brief stays in sight.
+Changing the brief to take the step in is the person's call, later, with
+`python -m harness ground`.
 
 ### 5.6 Gate: `harness/calc/gate.py`
 
@@ -1283,22 +1386,26 @@ RUN_FAILED     = "'{name}' stopped with an error: {error}"
 
 ### 5.7 Builder: `harness/calc/builder.py`
 
-The builder turns each calculation step of the brief into a registered
-module, or records why it could not.
+The builder turns calculation steps of the process (5.5: the brief's steps,
+then the added steps) into registered modules, or records why it could not.
+One step at a time: `build_step` is the whole pipeline for one step, and
+`build` calls it for each step. The agent calls `build_step` too (5.9).
 
 ```python
 load_brief(folder) -> dict
+build_step(*, model, conn, brief, step, ask, say=print, session_id, rebuild=None) -> dict
 build(*, model, conn, brief, ask, say=print, session_id, rebuild=None) -> list[dict]
 ```
 
 **`load_brief(folder)`** reads `<folder>/domain_brief.json`. It raises
 `ValueError(NO_BRIEF)` if the file is missing, and `ValueError(DRAFT_BRIEF)`
-if `meta.status` is not `confirmed`. It returns the brief without its `meta`
-key. `build` and the agent are given a brief in that form (`build` also
-drops `meta` if it is there).
+if `meta.status` is not `confirmed`, and then `ValueError(RESERVED_ID)`, with
+`{id}` the first such id in process order, if a process step id starts with
+`added_`. It returns the brief without its `meta` key. `build`, `build_step`
+and the agent are given a brief in that form (`build` and `build_step` also
+drop `meta` if it is there).
 
-`ask` and `say` work as in the interview (4.4). `build` returns one result
-per step it handled, in brief order:
+`ask` and `say` work as in the interview (4.4). A **result** is
 
 ```
 {"step": "s1", "outcome": "built" | "reused" | "kept" | "not_built", "module": "name" | None, "reason": ""}
@@ -1308,29 +1415,44 @@ per step it handled, in brief order:
 `not_built`. `reason` is empty except for `not_built`, where it is one of the
 `REASON_*` strings below.
 
-**Which steps.** Without `rebuild`, the builder goes through the brief's
-`process` in order and handles each step whose `kind` is `calculation`:
+**`build_step`** handles one step of kind `calculation`: a brief step or an
+added step, as a dict. It starts with `say(STEP_HEADER)`, with
+`step_label(step["id"])` and the step's `name`. Then:
 
-- If `step_map` maps the step to a module whose `file_status` is
+- With `rebuild=NAME`, that registered module is rebuilt for this step.
+- Otherwise, if `step_map` maps the step to a module whose `file_status` is
   `unchanged`, the outcome is `kept`. No model is called.
-- If it maps the step to a module whose files are `changed` or `missing`,
-  that module is rebuilt (below), as with `rebuild`.
+- Otherwise, if it maps the step to a module whose files are `changed` or
+  `missing`, that module is rebuilt.
 - Otherwise a new module is built.
 
-With `rebuild=NAME` only that module is handled. `NAME` must be registered
-(else `ValueError` with the gate's `NOT_REGISTERED` message), and the step is
-the one in its spec's `step_id`, which must be in the brief (else
-`ValueError` naming the step in single quotes). For a rebuild that `build`
-starts itself, the step is the one being handled. A rebuild goes through the
-same three phases and the same plan check.
-Its spec is not offered `reuse_module`, its spec's `name` is set to `NAME`
-whatever the model sent, and its new worked examples replace the old ones.
+A rebuild goes through the same three phases and the same plan check as a
+new module. Its spec is not
+offered `reuse_module`, its spec's `name` is set to `NAME` whatever the
+model sent, and its new worked examples replace the old ones.
 
-Every step handled starts with `say(STEP_HEADER)`, with the brief step's
-`id` and `name`; a `kept` step gets it too. A step that fails does not stop
-the build: the next step goes ahead. Steps stay independent: when a step
-needs an earlier step's result, its module takes that result as an ordinary
-input, so it can be built even if the earlier step was not.
+`build_step` returns the step's result. `/quit` inside it ends the step with
+`not_built` and `REASON_STOPPED` (Stopping, below): it does not raise. Every
+result `not_built` records `calc.step_not_built` before `build_step` returns.
+`build_step` checks nothing about `rebuild` itself: its callers do.
+
+**`build`** handles a list of steps, in order, with `build_step`, and returns
+their results in that order. A result whose reason is `REASON_STOPPED` ends
+the list: the steps after it are not handled and not in the result.
+
+- Without `rebuild`, the steps are those of the process
+  (`process_steps(conn, brief)`) whose `kind` is `calculation`, each with
+  `rebuild=None`.
+- With `rebuild=NAME` there is one step. `NAME` must be registered (else
+  `ValueError` with the gate's `NOT_REGISTERED` message), and the step is the
+  one in its spec's `step_id`, which must be in the process (else
+  `ValueError(NO_STEP)`, before anything is shown). It is called with
+  `rebuild=NAME`.
+
+A step that fails does not stop the build: the next step goes ahead. Steps
+stay independent: when a step needs an earlier step's result, its module
+takes that result as an ordinary input, so it can be built even if the
+earlier step was not.
 
 A step that is not `kept` goes like this: the spec (phase 1), the plan
 check, the worked examples (phase 2), the person's check of each example,
@@ -1366,7 +1488,9 @@ Sections are separated by one blank line.
 
 **Phase 1, the spec.** System prompt: `spec_writer.md`. Tools, in this order:
 `propose_spec` and `reuse_module` (only `propose_spec` on a rebuild).
-Sections: `step` (the brief step), `brief` (the whole brief), `registered
+Sections: `step` (the step dict as given to `build_step`: a brief step, or
+an added step with its `reason`), `brief` (the whole brief, without added
+steps), `registered
 modules` (a list of the specs of the registered modules whose files are
 unchanged, ordered by module name, without the one being rebuilt; `[]` when
 there is none), `notes` (`list_notes(conn)`, read when the phase starts;
@@ -1789,15 +1913,18 @@ its mapping exactly as they were. Every step that does not end in `built`,
 stay, whatever its outcome.
 
 **Stopping.** `/quit` (and the end of input, in the terminal) stops the
-build at once, at the plan check, at an example or at a transcribed answer.
-The current step is `not_built` with `REASON_STOPPED`, and the steps after
-it are not in the result. What was registered before stays.
+step at once, at the plan check, at an example or at a transcribed answer.
+The step is `not_built` with `REASON_STOPPED`. In `build`, the steps after
+it are not in the result. In a conversation, only the build stops: the
+conversation goes on (5.9). What was registered before stays.
 
-**A model call that raises** is not caught: the exception leaves `build`.
-What was registered before stays.
+**A model call that raises** is not caught: the exception leaves
+`build_step`, and `build` or `run_agent` with it. What was registered before
+stays.
 
 **The order of model calls**, which a scripted model follows, and of the
-person's answers. For each step in brief order that is not `kept`:
+person's answers. For each step `build` handles, in process order, that is
+not `kept` (and for the one step of `build_step`):
 
 1. The spec phase: one to three calls for the first spec. A reuse, or three
    refused attempts, ends the step here.
@@ -1834,7 +1961,9 @@ MIN_CONFIRMED = 2       # defined in registry.py (5.5); builder.py imports it
 ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}
 NO_BRIEF          = "There is no brief yet. Write one with: python -m harness ground"
 DRAFT_BRIEF       = "The brief is still a draft. Confirm it first with: python -m harness ground"
-STEP_HEADER       = "Step {id}: {name}"
+RESERVED_ID       = "The brief has a step '{id}', but step ids that start with added_ are kept for steps added in a conversation. Change it with: python -m harness ground"
+NO_STEP           = "The process has no step '{step}', which '{name}' was built for."
+STEP_HEADER       = "Step {id}: {name}"         # {id} is step_label(the step's id)
 WRITING_SPEC      = "  (writing the plan for this step, attempt {attempt})"
 WRITING_EXAMPLES  = "  (writing made-up examples, attempt {attempt})"
 WRITING_CODE      = "  (writing the code, attempt {attempt})"
@@ -1941,8 +2070,10 @@ helper's fallback line then asks the person to write the number out.
 The agent answers the person's questions about their plan. It runs modules
 through the gate and saves what the person tells it. It takes answers in the
 person's own words, and when the person has no straight figure it asks what
-they do have. It never works a number out itself. How it asks is set by
-`analyst.md`; the harness gives it the notes (5.5) and checks its numbers.
+they do have. It never works a number out itself. When no module can do
+what is needed, it asks for one to be built, and the person decides. How it
+asks is set by `analyst.md`; the harness gives it the notes (5.5) and checks
+its numbers.
 
 ```python
 run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None) -> None
@@ -1960,11 +2091,16 @@ these sections (same format as 5.7), in this order:
 | `goal` | the brief's goal |
 | `particulars` | the brief's particulars |
 | `process` | the brief's process steps |
+| `added steps (not in the brief)` | `list_added_steps(conn)` (5.5), `[]` when none |
 | `modules` | for every registered module, by name: `{"steps": [...], "spec": {...}}` |
 | `saved inputs` | every row of `inputs`: `{name: {"value": ..., "note": ...}}`, `{}` when none |
 | `notes` | `list_notes(conn)` (5.5): what the person said about their situation during a build, `[]` when none |
 
-The context is made once, when the session starts.
+The context is made once, when the session starts, and is not remade. A
+module built or reused during the session reaches the agent through the
+result of `request_module`, which holds its spec; the gate reads the
+registry at every call, so the agent can run it at once. The next session's
+context has it, and any added step, like any other.
 
 **Tools**, in this order:
 
@@ -1976,11 +2112,18 @@ RUN_MODULE_SCHEMA = {"type": "object", "properties": {
 SAVE_INPUT_SCHEMA = {"type": "object", "properties": {
     "name": {"type": "string"}, "value": {"type": "string"}, "note": {"type": "string"}},
     "required": ["name", "value", "note"]}
+REQUEST_MODULE_SCHEMA = {"type": "object", "properties": {
+    "case": {"type": "string", "enum": ["step", "new", "replace"]},
+    "target": {"type": "string"},
+    "works_out": {"type": "string"}, "from_what": {"type": "string"}, "gives": {"type": "string"},
+    "formula": {"type": "string"}, "why": {"type": "string"}},
+    "required": ["case", "works_out", "from_what", "gives", "formula", "why"]}
 ```
 
-named `run_module` and `save_input`. The assumptions and the expectation are
-recorded with the run. They are never shown to the person, so the number
-check does not read them.
+named `run_module`, `save_input` and `request_module`. Each property may
+also carry a `description` for the model; tool descriptions are free text.
+The assumptions and the expectation are recorded with the run. They are
+never shown to the person, so the number check does not read them.
 
 **Sources** for the number check, read afresh at each check:
 
@@ -1988,10 +2131,103 @@ check does not read them.
 - `today` as `YYYY-MM-DD`;
 - every message the person typed in this session, as recorded in
   `ask.message` (stripped; including `question`);
+- every answer the person gave to `REQUEST_QUESTION` in this session, as
+  recorded in `ask.module_decision`;
 - the `value` of every row of `inputs`, from any session;
 - the `text` of every note, from any session (they are the person's own
-  words);
+  words, or a request they approved), so a note kept during a build in this
+  session counts at once;
 - the `inputs` and `output` of every `calc_runs` row of this session.
+
+Answers typed inside a build (the plan check, the examples) are not person
+messages: they are not recorded as `ask.message`, not added to the
+conversation and not sources, except through the notes they leave.
+
+**`request_module`.** The agent asks for one step to be built. `case` says
+which:
+
+- `step`: a calculation step of the process has no working module. `target`
+  is its id.
+- `new`: the person needs a calculation the process has no step for.
+  `target` is ignored.
+- `replace`: a registered module does not fit what the person has (the
+  wrong shape of inputs) and should be rebuilt. `target` is its name.
+
+The five texts say, in the agent's plain words, what must be worked out
+(`works_out`), from what (`from_what`), giving what (`gives`), how
+(`formula`), and why it is needed now (`why`). A `target` that is missing or
+not a string reads as `""`. Each text is used stripped.
+
+The checks, in this order. The first that fails gives an error result,
+records its event, and shows the person nothing:
+
+| Check | Error | Event |
+| --- | --- | --- |
+| fewer than `MAX_REQUESTS` requests have been shown for this person message | `TOO_MANY_REQUESTS` | `ask.request_refused` |
+| `case` is `step`, `new` or `replace` | `BAD_CASE` | `ask.request_refused` |
+| each of the five texts is a string that is not empty once stripped | `MISSING_WORDS`, `{fields}` the names of those that are not, in schema order, joined by `, ` | `ask.request_refused` |
+| `step`: `target` is the id of a step of the process whose `kind` is `calculation` | `NOT_A_STEP`, `{target}` = `target` | `ask.request_refused` |
+| `step`: `step_map` does not map it to a module whose files are `unchanged` | `ALREADY_BUILT`, `{target}` = `target`, `{module}` that module | `ask.request_refused` |
+| `replace`: `target` is registered | the gate's `NOT_REGISTERED`, `{name}` = `target` | `ask.request_refused` |
+| `replace`: its spec's `step_id` is a step of the process | the builder's `NO_STEP`, `{step}` that id, `{name}` = `target` | `ask.request_refused` |
+| `unbacked(<the request block>, sources)` is empty | `INPUTS_UNBACKED` | `ask.correction`, reason `request_module` |
+
+**The request block** is what the person is shown, these lines joined by
+`\n`:
+
+```
+<the first line>
+  To work out: <works_out>
+  From: <from_what>
+  Giving: <gives>
+  How: <formula>
+  Why now: <why>
+```
+
+The first line is `REQUEST_STEP` (with `{step}` = `step_label(target)` and
+`{name}` the step's name), `REQUEST_NEW` or `REQUEST_REPLACE` (with
+`{module}` = `target`). The number check reads exactly this block.
+
+When every check passes, the harness records `ask.module_requested`, calls
+`say(<the request block>)` and then `ask(REQUEST_QUESTION)`. From here the
+request counts towards `MAX_REQUESTS`, whatever the answer. The answer is
+stripped. An empty answer asks again with the same question, and nothing is
+recorded. One of the builder's `ACCEPT_WORDS`, compared lower-cased, accepts.
+Any other answer, `/quit` included, declines. The decision records
+`ask.module_decision`.
+
+**Declined.** The result is `{"outcome": "declined", "said": <the answer>}`.
+
+**Accepted.** One step is built, with `build_step` (5.7), the agent's
+`model`, `brief`, `ask`, `say` and `session_id`:
+
+- `step`: `build_step(step=<that step of the process>)`. It goes exactly as
+  in `build`: a new module, or a rebuild when the mapped module's files have
+  changed or are missing.
+- `new`: first `add_step(conn, name=works_out, formula=formula,
+  needs=from_what, produces=gives, reason=why, session_id=...)` (5.5), then
+  `build_step(step=<the added step>)`. The added step stays in the process
+  whatever the outcome.
+- `replace`: first `add_note(conn, step_id=<its spec's step_id>,
+  text=<the request block>, session_id=...)`, so the spec writer shapes the
+  inputs to what the person has; then `build_step(step=<that step>,
+  rebuild=target)`.
+
+`/quit` inside the build stops only the build (5.7): the step is
+`not_built` with `REASON_STOPPED`, and the conversation goes on.
+
+The result, from the step's result `r` (`kept` cannot happen, because of the
+checks):
+
+| `r["outcome"]` | Result |
+| --- | --- |
+| `built` or `reused` | `{"outcome", "step", "module", "spec"}`, where `spec` is the registered spec of `r["module"]` |
+| `not_built` | `{"outcome": "not_built", "step", "reason"}` |
+
+`step` is the id of the step built, so for `new` it is the new added step's
+id. The result is recorded as `ask.module_outcome`, with the result as its
+payload (`declined` too). It is never an error result. Its content is
+`json.dumps(result)`.
 
 **The loop.**
 
@@ -2005,10 +2241,13 @@ check does not read them.
    Otherwise every person message, the first one too, records `ask.message`
    with its text, and is added as a user message, followed by a blank line
    and `WITHHELD_NOTE` when the previous reply was withheld.
-2. Call the model, after `say("  (thinking)")`, with the two tools. At most
-   `MAX_CALLS = 10` model calls follow one person message. When the limit is
-   reached, record `ask.stopped` and wait for the person with
-   `ask(TOO_MANY)`.
+2. Call the model, after `say("  (thinking)")`, with the three tools. At
+   most `MAX_CALLS = 10` calls of the agent's model follow one person
+   message. The calls made by a build inside the turn (spec, examples,
+   example helper, code) do not count: the build has its own limits, and
+   `MAX_REQUESTS` bounds the builds. When the limit is reached, record
+   `ask.stopped` and wait for the person with `ask(TOO_MANY)`. Both counts,
+   calls and requests shown, start again from 0 at each person message.
 3. **If it called tools**, its text is not shown, so the number check does
    not read it. Each call is handled in
    order, and the assistant message and all results are added together:
@@ -2024,6 +2263,8 @@ check does not read them.
      `INPUTS_UNBACKED` and `ask.correction` (reason `save_input`). Otherwise
      the row is inserted or replaced (value stored as `json.dumps(value)`),
      `ask.input_saved` is recorded, and the result is `SAVED`.
+   - `request_module`: as above. A build it starts runs there and then,
+     before the next call of the reply is handled.
    - Any other tool gets the error `There is no tool called <name> here.`
 4. **If its text is empty**, add `EMPTY_REPLY` as a user message.
 5. **If its text has unbacked numbers** and no reply to this person message
@@ -2036,11 +2277,33 @@ check does not read them.
 7. **Otherwise** record `ask.reply`, add it as an assistant message and wait
    for the person with `ask(reply)`.
 
+**The order of model calls with a build inside a turn**, which a scripted
+model follows:
+
+1. An agent call whose reply holds a `request_module` call (after
+   `say("  (thinking)")`).
+2. The calls of that reply, in order. For `request_module`, once the checks
+   pass: `say(<the request block>)`, then the person's answer to
+   `REQUEST_QUESTION`. On a yes, the build's model calls and the person's
+   answers for that one step, exactly in the order of 5.7, starting with
+   `say(STEP_HEADER)`. On a no, nothing more.
+3. The other calls of the same reply, if any.
+4. The next agent call, after `say("  (thinking)")`, with the assistant
+   message and every result of that reply.
+
+For example, a `new` request that the person accepts, built at the first
+try of every phase with three examples each answered `yes`, then run and
+explained, takes six model calls in this order: agent (`request_module`),
+`propose_spec`, `propose_examples`, `write_module`, agent (`run_module`),
+agent (the reply). The person answers `REQUEST_QUESTION`, then the plan,
+then each of the three examples, and then sees the reply.
+
 `{numbers}` in the messages below is the list from `unbacked`, joined by
 `, `.
 
 ```
 MAX_CALLS = 10
+MAX_REQUESTS = 2
 OPENING            = "What would you like to work out?"
 NUMBERS_CORRECTION = "[harness] Your reply was not shown. These numbers did not come from a module result in this conversation, a saved input, the brief or the person's own words: {numbers}. Do not work numbers out yourself: run a module, or leave the number out. Then reply again."
 WITHHELD           = "(The answer was held back, because it contained numbers that no tested module produced: {numbers}.)"
@@ -2051,7 +2314,19 @@ TOO_MANY           = "(The harness stopped working on this, because it took too 
 BAD_NAME           = "The name must be in snake_case, such as monthly_income."
 EMPTY_VALUE        = "The value is empty."
 SAVED              = "Saved."
+REQUEST_STEP       = "The assistant asks to build a module for step {step}: {name}."
+REQUEST_NEW        = "The assistant asks to build a calculation that is not in the brief."
+REQUEST_REPLACE    = "The assistant asks to rebuild the module {module}, so that it takes what you have."
+REQUEST_QUESTION   = "Build it now? Type yes to start. As with python -m harness build, you will check a plan and a few made-up examples. Anything else leaves it, and we carry on without it. During the build, /quit stops only the build."
+TOO_MANY_REQUESTS  = "No more builds can be asked for until the person's next message. Tell the person plainly what cannot be answered yet."
+BAD_CASE           = "case must be step, new or replace."
+MISSING_WORDS      = "Say in plain words: {fields}."
+NOT_A_STEP         = "There is no calculation step '{target}' in the process."
+ALREADY_BUILT      = "Step '{target}' already has the module '{module}', with unchanged files. Run it, or ask to replace it if it does not fit."
 ```
+
+`ACCEPT_WORDS` and `NO_STEP` are the builder's, and `NOT_REGISTERED` the
+gate's: `agent.py` imports them.
 
 ### 5.10 Command line
 
@@ -2062,23 +2337,29 @@ brief folder and then `build` with the configured model. In the terminal,
 `ask` prints a blank line, the text and a blank line, then reads after
 `> `; the end of input counts as `/quit`.
 
-When it returns, it prints a blank line and one line per result:
+When it returns, it prints a blank line and one line per result, where
+`<step>` is `step_label(<the result's step>)` (5.5):
 
 - `<step> -> <module> (built)`, `(reused)` or `(already built)`;
 - `<step>: not built (<reason>)`.
 
-A brief with no calculation step prints `The brief has no calculation steps.`
-and exits 0. Otherwise, without `--rebuild`, the last line is
+So an added step prints as, for example,
+`added_1 (not in the brief) -> extra_costs_total (built)`.
+
+When the process (5.5: the brief's steps and the added steps) has no
+calculation step, it prints `The brief has no calculation steps.` and exits
+0 (without `--rebuild`). Otherwise, without `--rebuild`, the last line is
 `ALL_BUILT = "Every calculation step has a tested module."` and the exit code
-0 when every calculation step of the brief got a result other than
+0 when every calculation step of the process got a result other than
 `not_built`; otherwise the last line is
 `SOME_MISSING = "Some calculation steps have no tested module yet. Run python -m harness build again to carry on."`
 and the exit code 1. Both strings are defined in `__main__.py`. With
 `--rebuild` there is no last line; it exits 0 when
 the outcome is `built`, and 1 otherwise.
 
-A missing or draft brief, or an unknown `--rebuild` name, prints the
-`ValueError` message to standard error and exits 1. If the build fails (for
+A missing or draft brief, a brief with a reserved step id (`RESERVED_ID`),
+an unknown `--rebuild` name, or a module whose step is not in the process
+(`NO_STEP`), prints the `ValueError` message to standard error and exits 1. If the build fails (for
 example the model cannot be reached), it prints
 `build stopped: <Type>: <reason on one line>` to standard error, with no
 traceback, and exits 1.
@@ -2091,8 +2372,9 @@ like any other):
 <name>  steps: <ids>  files: <unchanged|changed|missing>  tests: <passed|failed>  fingerprint: <first 12 characters>
 ```
 
-with two spaces between the parts. `<ids>` are the mapped step ids joined
-by `, `, or `-` when there is none; the fingerprint is the registered one. This is "tests passing", from running code,
+with two spaces between the parts. `<ids>` are the mapped step ids, each as
+`step_label(id)` (so `s1, added_1 (not in the brief)`), joined by `, `, or
+`-` when there is none; the fingerprint is the registered one. This is "tests passing", from running code,
 not from a stored flag. With no module registered it prints
 `No modules are registered yet. Build them with: python -m harness build`
 and exits 0. Otherwise it exits 0 when every module is `unchanged` and
@@ -2109,7 +2391,10 @@ module:
 `No modules are built yet. Build them first with: python -m harness build`.
 In both cases nothing else is printed.
 A failure prints `ask stopped: <Type>: <reason on one line>` to standard
-error and exits 1. When the person stops, it exits 0.
+error and exits 1. When the person stops, it exits 0. A build the agent
+asks for (5.9) runs in the same terminal, with the same `ask` and `print`,
+and prints nothing more: no result lines, no `ALL_BUILT` or
+`SOME_MISSING`. A brief with a reserved step id is refused like a draft one.
 
 `check`, `events`, `ground` and `ui` behave as before.
 
@@ -2141,10 +2426,15 @@ Every event carries the session id of the command that made it.
 | `calc.run` | `harness` | `{"module", "run_id", "test_run_id", "inputs", "output"}` |
 | `ask.message` | `person` | `{"text"}`, stripped; every person message, the first too |
 | `ask.reply` | `agent` | `{"text"}` |
-| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module` or `save_input`; `text` is the reply, or the tool arguments as JSON |
+| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module`, `save_input` or `request_module`; `text` is the reply, or the tool arguments as `json.dumps(arguments)` |
 | `ask.withheld` | `harness` | `{"numbers", "text"}` |
 | `ask.input_saved` | `agent` | `{"name", "value", "note"}` |
 | `ask.stopped` | `harness` | `{"reason": "too many steps"}` |
+| `ask.request_refused` | `harness` | `{"error", "arguments"}`; a `request_module` call that failed a check other than the number check; `arguments` as sent |
+| `ask.module_requested` | `agent` | `{"arguments", "request"}`; `arguments` as sent, `request` the request block shown |
+| `ask.module_decision` | `person` | `{"decision", "text"}`; `decision` is `accepted` or `declined`; `text` is the stripped answer |
+| `ask.module_outcome` | `harness` | the result given to the agent (5.9): `declined`, `built`, `reused` or `not_built` |
+| `calc.step_added` | `harness` | `{"step"}`, the added step as a dict (5.5); recorded by `add_step` |
 
 `index` in `calc.golden_decision`, `calc.example_reply`, `calc.helper_answer`
 and `calc.helper_rejected` counts the examples as shown, from 1. `attempt`
@@ -2157,6 +2447,13 @@ for feedback, `calc.note_saved`, then either `calc.plan_kept` (reason
 `calc.plan_kept`, reason `spec`, when all three are refused). For one free-text reply: `calc.example_reply`,
 then `calc.helper_answer` or `calc.helper_rejected`, then, for `note`,
 `calc.note_saved`, and for `skip`, `calc.golden_decision`.
+
+For a `request_module` call that passes its checks: `ask.module_requested`,
+`ask.module_decision`, then on a yes `calc.step_added` (for `new`) or
+`calc.note_saved` (for `replace`), then the build's own events (5.7), then
+`ask.module_outcome`. On a no: `ask.module_requested`,
+`ask.module_decision`, `ask.module_outcome`. All of them carry the session
+id of the conversation.
 
 ### 5.12 Decisions
 
@@ -2245,6 +2542,38 @@ Choices made to close gaps in the design, for review:
     of figures. Ranges and low/expected/high cases are handled by the agent
     running the module once per case. This is guidance in `spec_writer.md` and
     `analyst.md`, not enforced by the harness.
+30. The agent may ask for a build (`request_module`); it never writes or sees
+    code. The person decides with the usual accept words; anything else,
+    `/quit` included, declines. The build is `build_step`, the same pipeline
+    as `python -m harness build`, with the conversation's `ask`, `say`,
+    model and session id. There is no second pipeline.
+31. Three cases: a step of the process with no working module (`step`), a
+    need the process has no step for (`new`), and a module whose inputs do
+    not fit (`replace`). `step` refuses a step whose module works: that is a
+    `replace`. `replace` keeps the request block as a note before the
+    rebuild, so the spec writer sees what the person has.
+32. A `new` request adds a step, `added_<n>`, stored in `added_steps`, with
+    the agent's words and reason. Its method is always `arithmetic`. It
+    stays in the process even when its build fails, so `build` picks it up
+    later. `load_brief` refuses brief ids starting `added_`, so the two
+    never clash. Added steps are printed with `(not in the brief)`
+    wherever a step id is printed, and have their own context section.
+    Taking them into the brief is the person's call.
+33. The number check reads the request block exactly as shown to the person.
+    The person's answer to `REQUEST_QUESTION` is a source; answers inside a
+    build are not, except through the notes they leave.
+34. `/quit` inside a build from a conversation ends only that step
+    (`not_built`, `REASON_STOPPED`). `build_step` catches the stop itself;
+    `build` ends its list on that reason.
+35. The context is made once per session and not remade. A module built in
+    the session reaches the agent as the spec in the tool result, and the
+    gate reads the registry live.
+36. At most `MAX_REQUESTS = 2` requests are shown per person message,
+    declined ones included. Model calls made by a build do not count
+    towards `MAX_CALLS`: only the agent's own calls do.
+37. Tool results for a request are never errors: `declined`, `built`,
+    `reused` or `not_built` are outcomes the agent carries on from. Only a
+    failed check is an error result.
 
 ## 6. Steps 3 to 5 (draft)
 

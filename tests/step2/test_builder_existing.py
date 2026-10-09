@@ -4,7 +4,7 @@ import json
 import pytest
 
 import step2_helpers as h
-from step2_helpers import (CANNOT_REUSE, built, NOT_REGISTERED, REASON_CODE, REASON_SPEC, REASON_SKIPPED, REASON_STOPPED, events,
+from step2_helpers import (CANNOT_REUSE, built, NOT_REGISTERED, NO_STEP, REASON_CODE, REASON_SPEC, REASON_SKIPPED, REASON_STOPPED, events,
                            only_step, payloads, propose_examples, propose_spec, reuse_module, rows, saved_spec,
                            sections, surplus_script, surplus_spec, write_module)
 
@@ -164,11 +164,21 @@ def test_rebuild_of_an_unregistered_module(build):
     assert str(error.value) == NOT_REGISTERED.format(name="ghost")
 
 
-def test_rebuild_of_a_module_whose_step_is_not_in_the_brief(build, conn):
+def test_rebuild_of_a_module_whose_step_is_not_in_the_process(build, conn):
     h.install_surplus(conn, step_id="s1")
     with pytest.raises(ValueError) as error:
         build([], brief=only_step("s3"), rebuild="monthly_surplus")
-    assert "'s1'" in str(error.value)
+    assert str(error.value) == NO_STEP.format(step="s1", name="monthly_surplus")
+
+
+def test_that_error_comes_before_anything_is_shown_or_asked(builder, conn):
+    h.install_surplus(conn, step_id="s1")
+    person = h.Person()
+    model = h.TracingModel([], person)
+    with pytest.raises(ValueError):
+        builder.build(model=model, conn=conn, brief=only_step("s3"), ask=person.ask, say=person.say,
+                      session_id=h.SESSION, rebuild="monthly_surplus")
+    assert person.log == [] and model.calls == []
 
 
 def test_the_step_of_a_rebuild_is_the_one_in_the_modules_spec(build, conn):

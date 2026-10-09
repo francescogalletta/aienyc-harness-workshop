@@ -4,7 +4,7 @@ import json
 import pytest
 
 import step2_helpers as h
-from step2_helpers import (DRAFT_BRIEF, NAME_TAKEN, NO_BRIEF, ONE_CALL, PLAN_QUESTION, REASON_SPEC, SPEC_REJECTED,
+from step2_helpers import (DRAFT_BRIEF, NAME_TAKEN, NO_BRIEF, ONE_CALL, RESERVED_ID, PLAN_QUESTION, REASON_SPEC, SPEC_REJECTED,
                            STEP_HEADER, USE_TOOL, built, events, make_brief, months_script, months_spec, only_step,
                            payloads, propose_examples, propose_spec, rows, say_text, saved_spec, sections,
                            surplus_examples, surplus_script, surplus_spec, tools, write_module)
@@ -28,7 +28,7 @@ def tool_messages(model, call_index):
 # ---- the fixed strings and schemas -----------------------------------------------------------
 
 FIXED_STRINGS = [
-    "NO_BRIEF", "DRAFT_BRIEF", "STEP_HEADER", "WRITING_SPEC", "WRITING_EXAMPLES", "WRITING_CODE", "READING_REPLY",
+    "NO_BRIEF", "DRAFT_BRIEF", "RESERVED_ID", "NO_STEP", "STEP_HEADER", "WRITING_SPEC", "WRITING_EXAMPLES", "WRITING_CODE", "READING_REPLY",
     "USE_TOOL", "ONE_CALL", "SPEC_REJECTED", "NAME_TAKEN", "CANNOT_REUSE", "PLAN_QUESTION", "PLAN_FEEDBACK",
     "PLAN_KEPT", "EXAMPLES_REJECTED", "EXAMPLES_INTRO", "CONFIRM_EXAMPLE", "CONFIRM_ANSWER", "NOTE_KEPT",
     "NOT_UNDERSTOOD", "CODE_REJECTED", "RUNNING_TESTS", "TESTS_FAILED", "EXAMPLE_FAILED", "EXAMPLES_DISAGREE",
@@ -73,6 +73,35 @@ def test_load_brief_without_a_file(builder, tmp_path):
 
 def test_load_brief_refuses_a_draft(builder, tmp_path, save_confirmed_brief):
     save_confirmed_brief(make_brief(), status="draft")
+    with pytest.raises(ValueError) as error:
+        builder.load_brief(tmp_path / "brief")
+    assert str(error.value) == DRAFT_BRIEF
+
+
+def save_with_ids(save_confirmed_brief, *ids, status="confirmed"):
+    """Save a brief whose process holds a step of kind calculation for each id."""
+    steps = [{**make_brief()["process"][0], "id": step_id} for step_id in ids]
+    save_confirmed_brief(make_brief(process=steps), status=status)
+
+
+@pytest.mark.parametrize("ids, first", [
+    (["s1", "added_1"], "added_1"), (["added_7", "s1", "added_2"], "added_7"), (["added_"], "added_"),
+    (["s1", "added_x"], "added_x")])
+def test_load_brief_refuses_a_step_id_that_starts_with_added(builder, tmp_path, save_confirmed_brief, ids, first):
+    save_with_ids(save_confirmed_brief, *ids)
+    with pytest.raises(ValueError) as error:
+        builder.load_brief(tmp_path / "brief")
+    assert str(error.value) == RESERVED_ID.format(id=first)
+
+
+@pytest.mark.parametrize("step_id", ["s1_added_1", "added1", "Added_1", "xadded_1"])
+def test_load_brief_accepts_ids_that_do_not_start_with_the_prefix(builder, tmp_path, save_confirmed_brief, step_id):
+    save_with_ids(save_confirmed_brief, "s1", step_id)
+    assert [s["id"] for s in builder.load_brief(tmp_path / "brief")["process"]] == ["s1", step_id]
+
+
+def test_a_draft_is_refused_before_a_reserved_id(builder, tmp_path, save_confirmed_brief):
+    save_with_ids(save_confirmed_brief, "added_1", status="draft")
     with pytest.raises(ValueError) as error:
         builder.load_brief(tmp_path / "brief")
     assert str(error.value) == DRAFT_BRIEF

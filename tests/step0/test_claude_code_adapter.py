@@ -19,10 +19,13 @@ PREAMBLE = (
     "Ignore any details you were given about the machine, folder or session you run in: "
     "they are not part of the task.")
 TOOL_RULES = (
-    "The program offers the tools listed below. To use one, add it to `tool_calls` in your reply, "
-    "with arguments that fit its input schema. The program runs it and shows you the result on the "
-    "next turn. Never make up a tool result. Put what you want to say to the person in `text`; it "
-    "may be empty when you call a tool. When you need no tool, leave `tool_calls` empty.")
+    "The program can carry out the actions listed below. They are not functions you can call "
+    "directly: calling one directly fails, and that failure does not mean the action is unavailable. "
+    "The only way to use one is to add an entry to `tool_calls` in your reply, with its name and "
+    "arguments that fit its input schema. The program then carries it out and shows you the result "
+    "on the next turn. Never make up a result. Put what you want to say to the person in `text`; it "
+    "may be empty when you add an action. When you need no action, leave `tool_calls` empty."
+)
 
 
 class FakeRunner:

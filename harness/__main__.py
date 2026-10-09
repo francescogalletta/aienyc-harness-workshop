@@ -8,7 +8,7 @@ from datetime import date
 
 from . import db
 from .config import load_config
-from .model import get_model
+from .model import get_model, resolve_provider
 
 
 def check() -> int:
@@ -17,7 +17,8 @@ def check() -> int:
     conn = db.connect(config.db_path)
     db.migrate(conn)
     try:
-        model = get_model(config.model_provider)
+        provider = resolve_provider(config.model_provider)
+        model = get_model(provider)
         response = model.complete(
             system="This is a connection test.",
             messages=[{"role": "user", "content": "Reply with the single word: pong"}])
@@ -27,9 +28,9 @@ def check() -> int:
         return 1
     event_id = db.record_event(
         conn, session_id=uuid.uuid4().hex, kind="harness.check", actor="harness",
-        payload={"provider": config.model_provider, "model": config.model_name,
+        payload={"provider": provider, "model": config.model_name,
                  "reply": response.text, "migrations": db.applied_migrations(conn)})
-    print(f"provider: {config.model_provider}")
+    print(f"provider: {provider}")
     print(f"model:    {config.model_name}")
     print(f"database: {config.db_path}")
     print(f"reply:    {response.text}")
@@ -153,7 +154,8 @@ def terminal_ask(text: str) -> str:
 
 
 def build(rebuild: str | None) -> int:
-    """Build a tested module for each calculation step of the brief (SPEC 5.10)."""
+    """Build a tested module for each calculation step of the process (SPEC 5.10)."""
+    from .calc.added import process_steps, step_label
     from .calc.builder import build as build_modules
     from .calc.builder import load_brief
 
@@ -165,7 +167,7 @@ def build(rebuild: str | None) -> int:
     except ValueError as error:
         print(error, file=sys.stderr)
         return 1
-    calculations = [step for step in brief["process"] if step.get("kind") == "calculation"]
+    calculations = [step for step in process_steps(conn, brief) if step.get("kind") == "calculation"]
     if not calculations and rebuild is None:
         print("The brief has no calculation steps.")
         return 0
@@ -175,7 +177,7 @@ def build(rebuild: str | None) -> int:
                                 session_id=uuid.uuid4().hex, rebuild=rebuild)
     except Exception as error:
         reason = " ".join(str(error).split())
-        if rebuild is not None and type(error) is ValueError:       # an unknown module, or a step the brief lacks
+        if rebuild is not None and type(error) is ValueError:       # an unknown module, or a step the process lacks
             print(reason, file=sys.stderr)
         else:
             print(f"build stopped: {type(error).__name__}: {reason}", file=sys.stderr)
@@ -184,9 +186,9 @@ def build(rebuild: str | None) -> int:
     print()
     for result in results:
         if result["outcome"] == "not_built":
-            print(f"{result['step']}: not built ({result['reason']})")
+            print(f"{step_label(result['step'])}: not built ({result['reason']})")
         else:
-            print(f"{result['step']} -> {result['module']} ({OUTCOMES[result['outcome']]})")
+            print(f"{step_label(result['step'])} -> {result['module']} ({OUTCOMES[result['outcome']]})")
     if rebuild is not None:
         return 0 if results and results[0]["outcome"] == "built" else 1
     if len(results) == len(calculations) and all(r["outcome"] != "not_built" for r in results):
@@ -198,6 +200,7 @@ def build(rebuild: str | None) -> int:
 
 def modules() -> int:
     """List the registered modules, each after a fresh test run (SPEC 5.10)."""
+    from .calc.added import step_label
     from .calc.gate import run_tests
     from .calc.registry import file_status, list_modules
 
@@ -213,7 +216,7 @@ def modules() -> int:
         status = file_status(conn, module["name"])
         run = run_tests(conn, module["name"], reason="status", session_id=session_id)
         healthy = healthy and status == "unchanged" and run["passed"]
-        print(f"{module['name']}  steps: {', '.join(module['steps']) or '-'}  files: {status}  "
+        print(f"{module['name']}  steps: {', '.join(map(step_label, module['steps'])) or '-'}  files: {status}  "
               f"tests: {'passed' if run['passed'] else 'failed'}  fingerprint: {module['fingerprint'][:12]}")
     if healthy:
         return 0

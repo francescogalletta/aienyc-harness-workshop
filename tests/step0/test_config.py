@@ -8,7 +8,7 @@ def test_defaults(monkeypatch):
     monkeypatch.delenv("HARNESS_DB", raising=False)
     config = load_config()
     assert config.db_path == Path("var/harness.db")
-    assert config.model_provider == "anthropic"
+    assert config.model_provider == "auto"
     assert config.model_name == "claude-sonnet-5-5"
     assert config.script_path is None
 

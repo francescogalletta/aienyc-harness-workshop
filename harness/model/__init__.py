@@ -4,17 +4,17 @@ Importing it loads no provider SDK.
 """
 from ..config import load_config
 from .interface import Model, ModelResponse, ToolCall, ToolSpec
-from .providers import PROVIDERS
+from .providers import PROVIDERS, resolve_provider
 from .scripted import ScriptedModel, ScriptExhausted
 
 __all__ = ["ToolSpec", "ToolCall", "ModelResponse", "Model", "ScriptedModel",
-           "ScriptExhausted", "get_model"]
+           "ScriptExhausted", "get_model", "resolve_provider"]
 
 
 def get_model(provider: str | None = None) -> Model:
     """Return the model for `provider`, or for the configured provider."""
     config = load_config()
-    provider = provider or config.model_provider
+    provider = resolve_provider(provider or config.model_provider)
     if provider not in PROVIDERS:
         known = ", ".join(sorted(PROVIDERS))
         raise ValueError(f"unknown model provider: {provider!r} (known: {known})")

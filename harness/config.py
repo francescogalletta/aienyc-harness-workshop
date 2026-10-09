@@ -21,7 +21,7 @@ def load_config() -> Config:
     script = os.environ.get("HARNESS_SCRIPT")
     return Config(
         db_path=Path(os.environ.get("HARNESS_DB") or "var/harness.db"),
-        model_provider=os.environ.get("HARNESS_MODEL_PROVIDER") or "anthropic",
+        model_provider=os.environ.get("HARNESS_MODEL_PROVIDER") or "auto",  # picked when a model is asked for (3.7)
         model_name=os.environ.get("HARNESS_MODEL") or "claude-sonnet-5-5",
         script_path=Path(script) if script else None,
         researcher=os.environ.get("HARNESS_RESEARCHER") or "auto",

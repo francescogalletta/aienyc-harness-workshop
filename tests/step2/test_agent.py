@@ -6,39 +6,12 @@ import pytest
 
 import step2_helpers as h
 from harness.model import ScriptedModel
-from step2_helpers import (BAD_NAME, EMPTY_REPLY, EMPTY_VALUE, INPUTS_UNBACKED, NO_EXPECTATION, NOT_REGISTERED,
+from step2_helpers import (DAY, QUESTION, BAD_NAME, EMPTY_REPLY, EMPTY_VALUE, INPUTS_UNBACKED, NO_EXPECTATION, NOT_REGISTERED,
                            NUMBERS_CORRECTION, OPENING, SAVED, SESSION, TOO_MANY, WITHHELD, WITHHELD_NOTE, Person,
-                           events, payloads, rows, run_module, save_input, say_text, tool, tools)
+                           events, payloads, rows, run_module, save_input, say_text, tool, tool_message, tools, user_messages)
 
-DAY = date(2026, 3, 14)
-QUESTION = "I earn 5000 and spend 3000 a month. What is left each month?"
 UNBACKED_REPLY = "You will have 9,999 left."
 OTHER_UNBACKED = "Perhaps 8,888 instead."
-
-
-@pytest.fixture
-def installed(conn):
-    h.install_surplus(conn, "s1")
-    h.install_months(conn, "s3")
-
-
-@pytest.fixture
-def ask_agent(agent, conn, brief, installed):
-    """Run the agent with a scripted model and a person who answers from a list (then must be done)."""
-    def run(script, answers=("/quit",), *, question=QUESTION, **options):
-        model, person = ScriptedModel(script), Person(*answers)
-        options = {"today": DAY, "session_id": SESSION, "brief": brief, **options}
-        agent.run_agent(model=model, conn=conn, ask=person.ask, say=person.say, question=question, **options)
-        return model, person
-    return run
-
-
-def tool_message(model, call_index, position=-1):
-    return [m for m in model.calls[call_index]["messages"] if m["role"] == "tool"][position]
-
-
-def user_messages(model, call_index):
-    return [m["content"] for m in model.calls[call_index]["messages"] if m["role"] == "user"]
 
 
 # ---- the fixed strings and schemas -----------------------------------------------------------
@@ -50,20 +23,22 @@ def test_the_fixed_strings(agent, name):
     assert getattr(agent, name) == getattr(h, name)
 
 
-def test_the_limit_and_the_schemas(agent):
-    assert agent.MAX_CALLS == 10
+def test_the_limits_and_the_schemas(agent):
+    assert (agent.MAX_CALLS, agent.MAX_REQUESTS) == (10, 2)
     assert h.without_descriptions(agent.RUN_MODULE_SCHEMA) == h.RUN_MODULE_SCHEMA
     assert h.without_descriptions(agent.SAVE_INPUT_SCHEMA) == h.SAVE_INPUT_SCHEMA
+    assert h.without_descriptions(agent.REQUEST_MODULE_SCHEMA) == h.REQUEST_MODULE_SCHEMA
 
 
 # ---- the model is called with ----------------------------------------------------------------
 
-def test_the_model_gets_the_question_and_the_two_tools(ask_agent):
+def test_the_model_gets_the_question_and_the_three_tools(ask_agent):
     model, person = ask_agent([say_text("Let me think.")])
     [call] = model.calls
     assert call["messages"] == [{"role": "user", "content": QUESTION}]
-    assert [t.name for t in call["tools"]] == ["run_module", "save_input"]
-    assert [h.without_descriptions(t.input_schema) for t in call["tools"]] == [h.RUN_MODULE_SCHEMA, h.SAVE_INPUT_SCHEMA]
+    assert [t.name for t in call["tools"]] == ["run_module", "save_input", "request_module"]
+    assert [h.without_descriptions(t.input_schema) for t in call["tools"]] == [
+        h.RUN_MODULE_SCHEMA, h.SAVE_INPUT_SCHEMA, h.REQUEST_MODULE_SCHEMA]
     assert "  (thinking)" in person.told
 
 
@@ -71,7 +46,7 @@ def test_the_system_prompt_is_analyst_md_with_the_context(ask_agent, brief):
     model, _ = ask_agent([say_text("Hello.")])
     context = h.sections(
         ("today", "2026-03-14"), ("goal", brief["goal"]), ("particulars", brief["particulars"]),
-        ("process", brief["process"]),
+        ("process", brief["process"]), ("added steps (not in the brief)", []),
         ("modules", {"monthly_surplus": {"steps": ["s1"], "spec": h.saved_spec(h.surplus_spec(), "s1")},
                      "months_to_goal": {"steps": ["s3"], "spec": h.saved_spec(h.months_spec(), "s3")}}),
         ("saved inputs", {}), ("notes", []))
@@ -86,7 +61,7 @@ def test_the_notes_of_every_session_are_in_the_context_oldest_first(ask_agent, n
     model, _ = ask_agent([say_text("Hello.")])
     context = h.sections(
         ("today", "2026-03-14"), ("goal", brief["goal"]), ("particulars", brief["particulars"]),
-        ("process", brief["process"]),
+        ("process", brief["process"]), ("added steps (not in the brief)", []),
         ("modules", {"monthly_surplus": {"steps": ["s1"], "spec": h.saved_spec(h.surplus_spec(), "s1")},
                      "months_to_goal": {"steps": ["s3"], "spec": h.saved_spec(h.months_spec(), "s3")}}),
         ("saved inputs", {}),
