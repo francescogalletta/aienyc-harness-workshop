@@ -25,7 +25,7 @@ Every step has the same four parts:
 
 | Step | Contract | Tests | Prompt | Built and tagged |
 | --- | --- | --- | --- | --- |
-| 0 | Fixed (SPEC 3) | Written | Written | No |
+| 0 | Fixed (SPEC 3) | Written | Written | Yes |
 | 1 | Draft (SPEC 4) | Not yet | Not yet | No |
 | 2 | Draft (SPEC 4) | Not yet | Not yet | No |
 | 3 | Draft (SPEC 4) | Not yet | Not yet | No |

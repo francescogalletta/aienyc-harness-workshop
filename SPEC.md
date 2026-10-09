@@ -155,6 +155,7 @@ script path set it returns a model with the one-entry script
 ### 3.4 Claude adapter: `harness/model/anthropic_provider.py`
 
 `AnthropicModel(model_name: str, client=None, max_tokens: int = 4096)`.
+It keeps its arguments as `self.model_name`, `self.client` and `self.max_tokens`.
 The `anthropic` package is imported inside this file only, and only when no
 `client` is passed in. A passed-in `client` is used as is, which is how the
 tests run it without a network.
