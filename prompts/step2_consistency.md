@@ -17,7 +17,7 @@ Read these first, in this order:
    behaviour exactly.
 2. `harness/`, to see what steps 0 and 1 built and how it is written. Read
    the given files in `harness/calc/` as well: `values.py`, `safety.py`,
-   `runner.py` and the four `.md` files.
+   `runner.py` and the five `.md` files.
 3. `tests/step2/`. These tests are the definition of done.
 
 Then build what section 5 describes:
@@ -25,8 +25,10 @@ Then build what section 5 describes:
 - the `modules_dir` setting in `harness/config.py` (5.4)
 - `harness/calc/__init__.py` (a docstring only)
 - `harness/calc/registry.py` (module folders, the spec check, fingerprints, registering)
+- `harness/calc/notes.py` (the notes kept during a build)
+- `harness/migrations/0004_notes.sql` (the notes table, exactly as in 5.5)
 - `harness/calc/gate.py` (running tests, and the one way a calculation runs)
-- `harness/calc/builder.py` (the three phases: spec, worked examples checked by the person, code)
+- `harness/calc/builder.py` (the phases: spec and plan check, worked examples checked by the person, code)
 - `harness/calc/provenance.py` (the number check)
 - `harness/calc/agent.py` (the agent that answers questions with tested modules)
 - the `build`, `modules` and `ask` commands in `harness/__main__.py`
@@ -36,8 +38,9 @@ Then build what section 5 describes:
 Rules:
 
 - Do not edit `SPEC.md`, anything under `tests/`, `data/`, `prompts/` or
-  `reference/`, or the given files: the four `.md` files in `harness/calc/`
-  (`spec_writer.md`, `example_writer.md`, `module_writer.md`, `analyst.md`),
+  `reference/`, or the given files: the five `.md` files in `harness/calc/`
+  (`spec_writer.md`, `example_writer.md`, `example_helper.md`, `module_writer.md`,
+  `analyst.md`),
   `harness/calc/values.py` and `harness/migrations/0003_calc.sql`. The only
   edits allowed in `safety.py` and `runner.py` are the one change each that
   section 5 specifies. If you believe a given file is wrong, stop and say so

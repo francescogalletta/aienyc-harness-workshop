@@ -909,6 +909,13 @@ written while a question is being answered. It is written only by an
 explicit build, from the brief, with unit tests and worked examples the
 person has checked by hand. A module is reused before a new one is written.
 
+The build and the agent work with the person, in their own words. Before any
+example, the build shows the plan of a step in plain words and asks whether
+it fits what the person has. The worked examples are shown without JSON, and
+the person may answer them in their own words. What the person says about
+their real situation is kept as a note, for later. No answer has to follow a
+format.
+
 The harness, not the prompt, enforces five things in this step:
 
 1. A module is registered only when its unit tests and the person's worked
@@ -920,7 +927,9 @@ The harness, not the prompt, enforces five things in this step:
    check.
 4. The agent that answers questions cannot put a number in front of the
    person, or into a module, unless that number came from a module result,
-   a saved input, the brief or the person's own words.
+   a saved input, the brief or the person's own words. The helper that
+   reads the person's answers to worked examples cannot put a number into
+   an answer unless the person or the example gave it.
 5. Every build, test run, calculation and refusal is recorded.
 
 Step 2 adds only this. There are no source adapters (ground rule 4 waits for
@@ -937,12 +946,14 @@ only: no dependency is added.
 | `harness/calc/safety.py` | Given, with one change (5.2). |
 | `harness/calc/runner.py` | Given, with one change (5.3). |
 | `harness/calc/registry.py` | New (5.4, 5.5). |
+| `harness/calc/notes.py` | New (5.5). |
 | `harness/calc/gate.py` | New (5.6). |
 | `harness/calc/builder.py` | New (5.7). |
 | `harness/calc/provenance.py` | New (5.8). |
 | `harness/calc/agent.py` | New (5.9). |
-| `harness/calc/spec_writer.md`, `example_writer.md`, `module_writer.md`, `analyst.md` | Given. The instructions of the four model roles. Never rewritten by a build. |
+| `harness/calc/spec_writer.md`, `example_writer.md`, `example_helper.md`, `module_writer.md`, `analyst.md` | Given. The instructions of the five model roles. Never rewritten by a build. |
 | `harness/migrations/0003_calc.sql` | Given (5.5). |
+| `harness/migrations/0004_notes.sql` | New, exactly as in 5.5. |
 | `harness/config.py`, `harness/__main__.py` | Changed (5.4, 5.10). |
 | `modules/` | Created by `build`: one folder per module. Commit it with the brief. |
 
@@ -1130,7 +1141,7 @@ folder or any of the four files is missing. The folder's own name and path
 are not part of it, so the same files give the same fingerprint wherever
 they are.
 
-### 5.5 Registry: `harness/calc/registry.py` and `0003_calc.sql`
+### 5.5 Registry and notes: `registry.py`, `notes.py`, `0003_calc.sql`, `0004_notes.sql`
 
 The migration `0003_calc.sql` creates five tables:
 
@@ -1184,6 +1195,36 @@ spec as JSON, `registered_at` now) and inserts or replaces the
 `step_modules` row for `step_id`. Use `INSERT ... ON CONFLICT ... DO UPDATE`,
 not `INSERT OR REPLACE`, so that foreign keys hold. It records
 `calc.module_registered` and returns the fingerprint.
+
+**Notes.** What the person says about their real situation during a build is
+kept, so that it is not lost and nobody asks for it twice. The migration
+`0004_notes.sql` is exactly:
+
+```sql
+-- Step 2: what the person said about their real situation, kept for later (SPEC 5.5).
+
+CREATE TABLE notes (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,        -- UTC, ISO 8601
+    session_id  TEXT NOT NULL,
+    step_id     TEXT NOT NULL,        -- the brief step being built when it was said
+    text        TEXT NOT NULL         -- what the person typed, stripped
+);
+```
+
+Two functions, in `harness/calc/notes.py`, both taking an open connection:
+
+- `add_note(conn, *, step_id: str, text: str, session_id: str) -> int`
+  strips `text`; if nothing is left it raises `ValueError("a note cannot be empty")`.
+  Otherwise it inserts one row (`ts` now), commits, records
+  `calc.note_saved` and returns the row's id.
+- `list_notes(conn) -> list[dict]` returns every note, from any session,
+  oldest first (by `id`), each as `{"step": <step_id>, "text": <text>}`.
+
+Notes are written in two places only: at the plan check and by the example
+helper's `note` (5.7). They are read by the spec writer (5.7) and the agent
+(5.9). The example writer, the example helper and the code writer never
+receive them.
 
 ### 5.6 Gate: `harness/calc/gate.py`
 
@@ -1281,7 +1322,7 @@ With `rebuild=NAME` only that module is handled. `NAME` must be registered
 the one in its spec's `step_id`, which must be in the brief (else
 `ValueError` naming the step in single quotes). For a rebuild that `build`
 starts itself, the step is the one being handled. A rebuild goes through the
-same three phases.
+same three phases and the same plan check.
 Its spec is not offered `reuse_module`, its spec's `name` is set to `NAME`
 whatever the model sent, and its new worked examples replace the old ones.
 
@@ -1291,11 +1332,22 @@ the build: the next step goes ahead. Steps stay independent: when a step
 needs an earlier step's result, its module takes that result as an ordinary
 input, so it can be built even if the earlier step was not.
 
+A step that is not `kept` goes like this: the spec (phase 1), the plan
+check, the worked examples (phase 2), the person's check of each example,
+with the example helper for answers in their own words, and the code
+(phase 3).
+
 **The three phases.** Each phase is a separate conversation with the model:
 its own system prompt, its own messages, starting from one user message.
 Within a phase the model may try up to `MAX_ATTEMPTS = 3` times; every model
-call counts as one attempt. In every phase:
+call counts as one attempt. In the spec phase the count starts again after
+each piece of feedback from the person (the plan check, below). In every
+phase:
 
+- Just before each model call, the builder calls `say` with the phase's
+  progress line, `WRITING_SPEC`, `WRITING_EXAMPLES` or `WRITING_CODE`, where
+  `{attempt}` is the number of that call in the count above, from 1. So a
+  slow call is never a silent pause.
 - A reply with no tool call adds the assistant text and the user message
   `USE_TOOL` (with the phase's tool names, joined by ` or `), and counts.
 - Only the first tool call of a reply is handled. Any other call in the same
@@ -1304,18 +1356,21 @@ call counts as one attempt. In every phase:
 - A refused call adds the assistant message and an error tool result holding
   the feedback, and the model is called again.
 
-The user message of each phase is made of sections. A section is a line
-`[<title>]` followed by the value: text as it is, anything else as
-`json.dumps(value, indent=2, ensure_ascii=False)`. Sections are separated by
-one blank line.
+The example helper (below) is not a phase. It is one model call for one
+reply of the person, with no second attempt.
+
+The user message of each phase, and of the example helper, is made of
+sections. A section is a line `[<title>]` followed by the value: text as it
+is, anything else as `json.dumps(value, indent=2, ensure_ascii=False)`.
+Sections are separated by one blank line.
 
 **Phase 1, the spec.** System prompt: `spec_writer.md`. Tools, in this order:
 `propose_spec` and `reuse_module` (only `propose_spec` on a rebuild).
 Sections: `step` (the brief step), `brief` (the whole brief), `registered
 modules` (a list of the specs of the registered modules whose files are
 unchanged, ordered by module name, without the one being rebuilt; `[]` when
-there is none), and on a
-rebuild `current spec`.
+there is none), `notes` (`list_notes(conn)`, read when the phase starts;
+`[]` when there is none), and on a rebuild `current spec`.
 
 - `propose_spec(name, description, method, formula, inputs, output)`, with
   the input schema `SPEC_SCHEMA` below. The harness drops unknown keys,
@@ -1323,14 +1378,15 @@ rebuild `current spec`.
   with `validate_spec`. A new module whose name is already registered also
   gets the error `NAME_TAKEN`. Errors give the result `SPEC_REJECTED`
   followed by each error as a `- ` bullet on its own line, and
-  `calc.spec_rejected`. An accepted spec records `calc.spec_proposed` and the
-  builder moves to phase 2.
+  `calc.spec_rejected`. An accepted spec records `calc.spec_proposed` and
+  goes to the plan check.
 - `reuse_module(module, reason)`. Accepted when `module` is registered and
   its files are unchanged. Then `map_step(conn, step, module)`, record
-  `calc.module_reused`, and the outcome is `reused`: the step is done.
-  Otherwise the result is the error `CANNOT_REUSE`.
+  `calc.module_reused`, and the outcome is `reused`: the step is done, with
+  no plan check. Otherwise the result is the error `CANNOT_REUSE`.
 
-Three refused attempts end the step: `not_built`, `REASON_SPEC`.
+Three refused attempts for the first spec end the step: `not_built`,
+`REASON_SPEC`.
 
 The tool input schemas, in `builder.py` (each property may also carry a
 `description` for the model; tool descriptions are free text):
@@ -1350,69 +1406,291 @@ REUSE_SCHEMA = {"type": "object", "properties": {"module": _TEXT, "reason": _TEX
 EXAMPLES_SCHEMA = {"type": "object", "properties": {"examples": {"type": "array", "items": {
     "type": "object", "properties": {"inputs": {"type": "object"}, "expected": {}, "working": _TEXT},
     "required": ["inputs", "expected", "working"]}}}, "required": ["examples"]}
+RESPOND_SCHEMA = {"type": "object", "properties": {
+    "action": {"type": "string", "enum": ["correct", "explain", "note", "skip"]},
+    "answer": {}, "message": _TEXT},
+    "required": ["action"]}
 CODE_SCHEMA = {"type": "object", "properties": {"module_py": _TEXT, "tests_py": _TEXT},
                "required": ["module_py", "tests_py"]}
 ```
 
-The tools are named `propose_spec`, `reuse_module`, `propose_examples` and
-`write_module`.
+The tools are named `propose_spec`, `reuse_module`, `propose_examples`,
+`respond` and `write_module`.
+
+**The plan check.** Before any example, the person sees the accepted spec in
+plain words and says whether it fits what they have: `say(plan_words(spec))`,
+then `ask(PLAN_QUESTION)`.
+
+`plan_words(spec) -> str`, in `builder.py`, is these lines joined by `\n`:
+
+```
+To work this out: <formula>
+I will need from you:
+  - <input name> (<kind>): <input description>        one line per input, in spec order
+It gives back: <output description>
+```
+
+`<formula>` and `<input name>` are the spec's, with every `_` replaced by a
+space. `<kind>` is `KIND_WORDS[<input type>]`. The descriptions are as they
+are. For example, a spec with
+
+```json
+{"formula": "low = months_low x monthly_rent + the sum of one_off_costs; high = months_high x monthly_rent + the sum of one_off_costs",
+ "inputs": [{"name": "months_low", "type": "integer", "description": "The fewest months you expect to rent."},
+            {"name": "months_high", "type": "integer", "description": "The most months you expect to rent."},
+            {"name": "monthly_rent", "type": "number", "description": "The rent for one month, in your currency."},
+            {"name": "one_off_costs", "type": "list", "description": "Each cost paid once. Each item has name and amount."}],
+ "output": {"type": "object", "description": "low and high: the total cost for the fewest and for the most months."}}
+```
+
+gives exactly
+
+```
+To work this out: low = months low x monthly rent + the sum of one off costs; high = months high x monthly rent + the sum of one off costs
+I will need from you:
+  - months low (a whole number): The fewest months you expect to rent.
+  - months high (a whole number): The most months you expect to rent.
+  - monthly rent (a number): The rent for one month, in your currency.
+  - one off costs (a list): Each cost paid once. Each item has name and amount.
+It gives back: low and high: the total cost for the fewest and for the most months.
+```
+
+The answer is stripped and handled by the first row that fits:
+
+| Answer | Meaning |
+| --- | --- |
+| empty | Ask again, with the same question. Nothing is recorded. |
+| `/quit` | Stop the whole build now (Stopping, below). Nothing is recorded. |
+| one of `ACCEPT_WORDS`, compared lower-cased | The plan fits. Decision `accepted`. Go on to phase 2 with this spec. |
+| `/skip` | Decision `skipped`. The step ends: `not_built`, `REASON_SKIPPED`. |
+| anything else | The person says, in their own words, what they have. Decision `feedback`. |
+
+Each decision records `calc.plan_decision`, where `round` is how many times
+the plan has been shown in this step (from 1) and `text` is the stripped
+answer. Feedback is then saved with `add_note(conn, step_id=<the step>,
+text=<the answer>, session_id=...)`, and:
+
+- If feedback has already gone back to the spec writer `MAX_PLAN_ROUNDS = 2`
+  times in this step, it does not go back again. Record `calc.plan_kept`
+  with reason `rounds`, `say(PLAN_KEPT)`, and go on to phase 2 with this
+  spec.
+- Otherwise it goes back to the spec writer, in the same conversation. The
+  harness adds the assistant message that held the accepted call (its text
+  and all its tool calls), then a tool result for that call that is not an
+  error, holding `PLAN_FEEDBACK` with `{text}` the stripped answer, then the
+  error result `ONE_CALL` for each other call of that reply. It calls the
+  model again, with the same system prompt and tools, and the count of
+  attempts starts again from 1. The reply is handled exactly as above:
+  - an accepted spec records `calc.spec_proposed` and is shown again, in a
+    new round of the plan check;
+  - an accepted reuse ends the step as `reused`;
+  - three refused attempts do not end the step: record `calc.plan_kept`
+    with reason `spec`, `say(PLAN_KEPT)`, and go on to phase 2 with the
+    last accepted spec, the one the person was last shown.
+
+So the plan is shown at most three times in a step. Without feedback, the
+spec phase is exactly as it would be without a plan check.
 
 **Phase 2, the worked examples.** System prompt: `example_writer.md`. One
 tool, `propose_examples(examples)`, where `examples` is a list of objects
 with `inputs` (an object), `expected` (any JSON value) and `working` (a
-string), all required. Sections: `spec`, then `step`.
+string), all required. Sections: `spec`, then `step`. The example writer
+never receives notes: the examples stay made up.
 
 The examples are refused, with `EXAMPLES_REJECTED` followed by `- ` bullets,
 and `calc.examples_rejected`, when:
 
 - there are fewer than `MIN_EXAMPLES = 3` (`at least 3 examples are needed`);
 - example k is not an object with `inputs`, `expected` and a non-empty
-  `working` (`example k: ...`);
+  `working` (`example k: ...`), and then nothing else is checked for it;
 - `input_problems(spec, inputs)` finds anything (`example k: <problem>`);
 - `from_json(expected, output type)` refuses it
-  (`example k: the expected answer: <reason>`).
+  (`example k: the expected answer: <reason>`);
+- its working does not show every number of its answer:
+  `unbacked(json.dumps(expected, ensure_ascii=False), [working])` (5.8) is
+  not empty
+  (`example k: the expected answer has numbers its working does not show: <numbers, joined by ", ">`).
+
+For each example the problems come in the order above.
 
 Accepted examples record `calc.examples_proposed`. Three refused attempts
 end the step: `not_built`, `REASON_EXAMPLES`.
 
+**Showing values.** Plans, worked examples and transcribed answers are
+shown without JSON.
+`show(value, indent=0) -> str` and `field(label, value, indent) -> str`, in
+`builder.py`, turn a JSON value into readable text. A value is *short* when
+it is not a list or an object, or when it is an empty list or object.
+
+- A short value is one piece of text, with no line break:
+  - text as it is, and `(none)` when it is empty;
+  - `true` as `yes`, and `false` as `no`;
+  - a JSON number as `json.dumps(value)`, such as `3` or `2.5`;
+  - `null`, `[]` and `{}` as `(none)`.
+- `field(label, value, indent)` is `<indent spaces><label>: <show(value)>`
+  when the value is short. Otherwise it is `<indent spaces><label>:`, a line
+  break, and `show(value, indent + 2)`.
+- A non-empty object is one `field(key, item, indent)` per key, in the
+  object's order. Keys are shown as they are.
+- A non-empty list is one entry per item, numbered from 1, with the mark
+  `"<i>. "`. A short item is `<indent spaces><mark><show(item)>`. Any other
+  item is `show(item, indent + len(mark))` with the first
+  `indent + len(mark)` characters (all spaces) of its first line replaced by
+  `<indent spaces><mark>`.
+- The lines are joined by `\n`, with no line break at the start or the end.
+
+For example, `show` of
+
+```json
+{"plan": "B", "paid": false, "count": 3, "rate": 0.5, "items": [], "extra": {}, "note": null, "label": "", "schedule": [{"date": "2027-01-01", "amounts": ["10", "20"]}, "later", [1, 2]], "nested": {"inner": {"a": "1"}}}
+```
+
+is exactly
+
+```
+plan: B
+paid: no
+count: 3
+rate: 0.5
+items: (none)
+extra: (none)
+note: (none)
+label: (none)
+schedule:
+  1. date: 2027-01-01
+     amounts:
+       1. 10
+       2. 20
+  2. later
+  3. 1. 1
+     2. 2
+nested:
+  inner:
+    a: 1
+```
+
 **The person checks every example.** `say(EXAMPLES_INTRO)`, then for each
-example k of n, `say` this block and `ask(CONFIRM_EXAMPLE)`:
+example k of n, `say` this block, its lines joined by `\n`:
 
 ```
 Example k of n
-  <input name>: <value>          one line per input, in spec order
-  Working: <working>
-  Proposed answer: <expected>
+field(<input name, with every _ replaced by a space>, <its value>, 2)      one per input, in spec order
+field("Working", <working>, 2)
+field("Proposed answer", <expected>, 2)
 ```
 
-A value is shown as it is when it is text, and as compact JSON
-(`json.dumps(value, ensure_ascii=False)`) otherwise. The answer is stripped:
+For example, with the spec of the plan check above, the example
+
+```json
+{"inputs": {"months_low": "2", "months_high": "3", "monthly_rent": "1000",
+            "one_off_costs": [{"name": "deposit", "amount": "500"}, {"name": "van", "amount": "200"}]},
+ "expected": {"low": "2700", "high": "3700"},
+ "working": "2 x 1000 = 2000; 3 x 1000 = 3000; 500 + 200 = 700; 2000 + 700 = 2700; 3000 + 700 = 3700"}
+```
+
+is shown, as the first of three, exactly as
+
+```
+Example 1 of 3
+  months low: 2
+  months high: 3
+  monthly rent: 1000
+  one off costs:
+    1. name: deposit
+       amount: 500
+    2. name: van
+       amount: 200
+  Working: 2 x 1000 = 2000; 3 x 1000 = 3000; 500 + 200 = 700; 2000 + 700 = 2700; 3000 + 700 = 3700
+  Proposed answer:
+    low: 2700
+    high: 3700
+```
+
+Then the harness waits for the person with `ask(CONFIRM_EXAMPLE)`, or with
+`ask(CONFIRM_ANSWER)` while a transcribed answer is waiting (below). The
+answer is stripped and handled by the first row that fits:
 
 | Answer | Meaning |
 | --- | --- |
-| `/accept` | Confirmed, with the proposed answer. Decision `accepted`. |
-| `/skip` | Left out. Decision `skipped`. |
+| empty | Ask again, with the same question. |
 | `/quit` | Stop the whole build now (below). |
-| empty | Ask again. |
-| anything else | The corrected answer, read by the output type (below). Decision `corrected`. If it cannot be read, `say(NOT_A_VALUE)` and ask again. |
+| one of `ACCEPT_WORDS`, compared lower-cased | Confirmed. If a transcribed answer is waiting: decision `corrected`, with that answer. Otherwise: decision `accepted`, with the proposed answer. |
+| `/skip` | Left out. Decision `skipped`. |
+| the output type is `number`, `integer`, `date` or `boolean`, and the answer reads as that type (below) | Decision `corrected`, with the value read. |
+| anything else | Free text. It goes to the example helper (below). |
 
-A typed answer is read like this. For `number` and `integer`, spaces, `,`,
-`$`, `€` and `£` are removed first; a `number` is then read with `Decimal`
-and must be finite, and is kept as `to_json` gives it; an `integer` is read
-with `int` and kept as text. A `date` must be `YYYY-MM-DD`. A `boolean` is
-`yes`, `y` or `true` for true and `no`, `n` or `false` for false, in any
-case. `text` is kept as typed. A `list` or `object` must be JSON of that
-kind.
+An answer reads as its type like this. For `number` and `integer`, spaces,
+`,`, `$`, `€` and `£` are removed first; a `number` is then read with
+`Decimal` and must be finite, and is kept as `to_json` gives it; an
+`integer` is read with `int` and kept as text. A `date` must be
+`YYYY-MM-DD`. A `boolean` is `yes`, `y` or `true` for true and `no`, `n` or
+`false` for false, in any case (`yes` and `y` are accept words, so they
+never get this far). Answers for `text`, `list` and `object` outputs are
+never read directly: they are free text.
 
 The person's word is final: the proposed answer is only a suggestion. Each
 decision records `calc.golden_decision`. When fewer than
 `MIN_CONFIRMED = 2` examples are confirmed (accepted or corrected), the step
 ends: `not_built`, `REASON_CONFIRMED`.
 
+**The example helper.** Free text about an example gets exactly one model
+call. The builder records `calc.example_reply`, calls
+`say(READING_REPLY)`, and calls the model with the system prompt
+`example_helper.md`, the one tool `respond` (input schema `RESPOND_SCHEMA`)
+and one user message with these sections, in this order:
+
+| Section | Holds |
+| --- | --- |
+| `spec` | the accepted spec |
+| `example` | `{"inputs", "expected", "working"}` of the example as proposed, in that order |
+| `answer shown` | the transcribed answer that was waiting when the person typed this, or `null` |
+| `replies` | every free-text reply the person typed about this example, oldest first, this one last |
+
+The helper never receives notes, the brief or the other examples. From
+this reply on, no transcribed answer is waiting, until a valid `correct`
+sets a new one.
+
+Only the first tool call of the reply is read; any other is ignored, since
+there is no second turn. It is checked in this order. The first problem
+found records `calc.helper_rejected` with one of these `problem` strings,
+then `say(NOT_UNDERSTOOD)` and `ask(CONFIRM_EXAMPLE)`:
+
+| Check | Problem |
+| --- | --- |
+| the reply has a tool call, and the first one is `respond` | `no tool call` |
+| `action` is `correct`, `explain`, `note` or `skip` | `unknown action` |
+| `correct`: `answer` is present | `no answer` |
+| `correct`: `from_json(answer, <output type>)` accepts it | `the answer does not fit: <its reason>` |
+| `correct`, for an `object` output: the answer has exactly the keys of the proposed answer | `the answer must have exactly these keys: <the proposed answer's keys, in its order, joined by ", ">` |
+| `correct`: `unbacked(json.dumps(answer, ensure_ascii=False), sources)` is empty | `unbacked numbers: <the numbers, joined by ", ">` |
+| `explain`: `message` is a string that is not empty once stripped | `empty message` |
+| `explain`: `unbacked(message, sources)` is empty | `unbacked numbers: <the numbers, joined by ", ">` |
+
+`sources` is exactly two kinds of thing: the example, as the dict in the
+`example` section, and each text in `replies`. Nothing else: not the spec,
+the notes, the brief or the answer shown. So the helper can copy a number
+from the example or from the person, but never work one out. For example,
+with the proposed answer `{"low": "13000", "expected": "17000", "high":
+"23000"}` and the reply `expected should be 17,500, the rest is fine`, the
+answer `{"low": "13000", "expected": "17500", "high": "23000"}` passes:
+13000 and 23000 come from the example, 17500 from the person's `17,500`.
+Had the person written `add 500 to expected`, 17500 would be refused.
+
+A valid call records `calc.helper_answer`, and then:
+
+- `correct`: `say(field("Your answer", answer, 2))`, and the answer, as
+  sent, is now the transcribed answer waiting. Ask `CONFIRM_ANSWER`.
+- `explain`: `say(<message, stripped>)`, then ask `CONFIRM_EXAMPLE`.
+- `note`: `add_note(conn, step_id=<the step>, text=<this reply>,
+  session_id=...)`, `say(NOTE_KEPT)`, then ask `CONFIRM_EXAMPLE`.
+- `skip`: left out. Decision `skipped`.
+
+A helper call that raises is not caught, like any other model call.
+
 **Phase 3, the code.** System prompt: `module_writer.md`. One tool,
 `write_module(module_py, tests_py)`, both strings, both required. One
 section: `spec`. The writer sees the spec and nothing else: never the brief,
-never the worked examples.
+never the notes, never the worked examples.
 
 Before the first attempt the builder empties the staging folder
 `<modules_dir>/_build/<name>/` and writes `spec.json` (the accepted spec)
@@ -1473,65 +1751,125 @@ folder is left as it is, so the person can look at the last attempt.
 **When the code and the examples disagree.** A worked example can be wrong
 too. So when the step ends with `REASON_CODE` and the last run's report has
 failing examples, the builder tells the person (never the writer): it calls
-`say(EXAMPLES_DISAGREE)` once, then for each failing example, in order,
-`say(DISAGREEMENT)` with the example's inputs and the confirmed answer as
-compact JSON, and `{got}` as the code's answer as compact JSON, or
-`an error` when the example has no `got`.
+`say(EXAMPLES_DISAGREE)` once, then one `say` for each failing example, in
+order. Each is a block of three parts, joined by `\n`:
+
+```
+DISAGREEMENT with {k} = the number the example was shown with
+field("You confirmed", <the confirmed answer>, 2)
+field("The code gives", <the code's answer>, 2)
+```
+
+`{k}` is the `k` of "Example k of n" as the person saw it, so it differs
+from the example's position in `golden.json` when an example was skipped. The
+builder holds that mapping, for this build call only, from the moment the
+examples were checked; nothing is added to `golden.json`. The two `field`
+lines are the ones of the example block above: a short answer on the label's
+line, any other answer as the lines of `show` below it. When the example has
+no `got` (the code raised), the third line is exactly `  The code gives: an
+error`. For example, for the second of three examples, with an object answer:
+
+```
+Example 2
+  You confirmed:
+    low: 4000
+    high: 5000
+  The code gives:
+    low: 4000
+    high: 5200
+```
+
+and for a single number: `  You confirmed: 4000` and `  The code gives: 4200`.
+None of this reaches any model message.
 
 **Partial failure.** Nothing is registered and no step is mapped unless
 phase 3 passes. A failed rebuild leaves the registered module, its files and
 its mapping exactly as they were. Every step that does not end in `built`,
-`reused` or `kept` records `calc.step_not_built`.
+`reused` or `kept` records `calc.step_not_built`. Notes saved during a step
+stay, whatever its outcome.
 
 **Stopping.** `/quit` (and the end of input, in the terminal) stops the
-build at once. The current step is `not_built` with `REASON_STOPPED`, and the
-steps after it are not in the result. What was registered before stays.
+build at once, at the plan check, at an example or at a transcribed answer.
+The current step is `not_built` with `REASON_STOPPED`, and the steps after
+it are not in the result. What was registered before stays.
 
 **A model call that raises** is not caught: the exception leaves `build`.
 What was registered before stays.
 
-**The order of model calls**, which a scripted model follows: for each step
-in brief order that is not `kept`, the spec phase (one to three calls); then,
-unless it ended there, the example phase (one to three calls); then the
-person's answers; then, unless it ended there, the code phase (one to three
-calls). A step built at the first try of every phase takes exactly three
-calls: `propose_spec`, `propose_examples`, `write_module`. A reused step
-takes one.
+**The order of model calls**, which a scripted model follows, and of the
+person's answers. For each step in brief order that is not `kept`:
+
+1. The spec phase: one to three calls for the first spec. A reuse, or three
+   refused attempts, ends the step here.
+2. The plan check: one answer. Feedback that goes back to the writer (at
+   most `MAX_PLAN_ROUNDS` times) adds one to three spec calls and, when
+   they end in a revised spec, one more answer. Feedback beyond the limit
+   adds no call. `/skip` ends the step here.
+3. Unless the step ended, the example phase: one to three calls. Three
+   refused attempts end the step here.
+4. The person's answers, example by example. Each free-text reply adds
+   exactly one helper call, made as soon as it is typed.
+5. Unless the step ended, the code phase: one to three calls.
+
+A step built at the first try of every phase, where the person accepts the
+plan and answers each example with an accept word, `/skip` or a value read
+directly, takes exactly three calls: `propose_spec`, `propose_examples`, `write_module`. The person
+answers once for the plan, then once for each example. A reused step takes
+one call and no answer.
+
+For such a step with three examples, everything shown, in order, is:
+`say(STEP_HEADER)`, `say(WRITING_SPEC)` (attempt 1), `say(plan_words(spec))`,
+`ask(PLAN_QUESTION)`, `say(WRITING_EXAMPLES)` (attempt 1),
+`say(EXAMPLES_INTRO)`, then for each example its block and
+`ask(CONFIRM_EXAMPLE)`, then `say(WRITING_CODE)` (attempt 1) and
+`say(RUNNING_TESTS)`.
 
 The fixed strings:
 
 ```
 MAX_ATTEMPTS = 3
 MIN_EXAMPLES = 3
+MAX_PLAN_ROUNDS = 2
 MIN_CONFIRMED = 2       # defined in registry.py (5.5); builder.py imports it
+ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}
 NO_BRIEF          = "There is no brief yet. Write one with: python -m harness ground"
 DRAFT_BRIEF       = "The brief is still a draft. Confirm it first with: python -m harness ground"
 STEP_HEADER       = "Step {id}: {name}"
+WRITING_SPEC      = "  (writing the plan for this step, attempt {attempt})"
+WRITING_EXAMPLES  = "  (writing made-up examples, attempt {attempt})"
+WRITING_CODE      = "  (writing the code, attempt {attempt})"
+READING_REPLY     = "  (reading your answer)"
 USE_TOOL          = "[harness] Reply only by calling {tools}."
 ONE_CALL          = "Only one tool call is handled per reply. This one was ignored."
 SPEC_REJECTED     = "The spec was not accepted. Fix these and propose it again:"
 NAME_TAKEN        = "a module called '{name}' already exists: reuse it, or choose another name"
 CANNOT_REUSE      = "There is no registered module called '{name}' with unchanged files. Propose a spec instead."
+PLAN_QUESTION     = "Does this fit what you have? Type yes to go on. If not, tell me in your own words what you do have: a list of amounts, a rough range, anything. /skip leaves this step for later, /quit stops the build."
+PLAN_FEEDBACK     = "The spec passed the checks, and the person read it in plain words. They said it does not fit what they have, in these words:\n{text}\nPropose a revised spec shaped around what they have. Their figures are for later: never put them in the spec."
+PLAN_KEPT         = "I will go on with the last plan shown above. What you said is kept as a note, for when you work with your real numbers."
 EXAMPLES_REJECTED = "The examples were not accepted. Fix these and propose them again:"
-EXAMPLES_INTRO    = "Check these worked examples for {name}: {description} Your answers become the check its code must pass."
-CONFIRM_EXAMPLE   = "Type /accept if the answer is right, type the right answer, or type /skip to leave this example out. /quit stops the build."
-NOT_A_VALUE       = "That could not be read as {kind}. Type /accept, the right answer, or /skip."
+EXAMPLES_INTRO    = "Now a few made-up examples, to check the arithmetic before any code is written. They are not your figures: they use small round numbers, and your real numbers come later, when you ask about your plan. Check the working and the proposed answer of each one by hand. What you confirm becomes the test the code must pass."
+CONFIRM_EXAMPLE   = "Is the proposed answer right for this made-up example? Type yes if it is. If not, type the right answer, or say in your own words what is wrong. You can also ask a question about it. /skip leaves this example out, /quit stops the build."
+CONFIRM_ANSWER    = "Is that the right answer for this made-up example? Type yes to keep it, or say what to change. /skip leaves this example out, /quit stops the build."
+NOTE_KEPT         = "Thank you. I have kept that as a note about your real situation, for later. For now, only the made-up example above needs checking."
+NOT_UNDERSTOOD    = "Sorry, I did not understand that. Type yes if the proposed answer is right. If not, type the right answer, with every number in it written out."
 CODE_REJECTED     = "The code was not accepted. Fix these and write both files again:"
 RUNNING_TESTS     = "  (running the tests)"
 TESTS_FAILED      = "The code was run and did not pass. Fix it and write both files again:"
 EXAMPLE_FAILED    = "Example {index} failed. Its inputs were: {inputs}"
 EXAMPLES_DISAGREE = "The code and these worked examples disagree. One of them is wrong. Check each by hand: if the example was wrong, run the build again and type the right answer."
-DISAGREEMENT      = "  With {inputs} you confirmed {expected}, and the code gives {got}."
+DISAGREEMENT      = "Example {k}"
 REASON_SPEC       = "no acceptable spec after 3 attempts"
+REASON_SKIPPED    = "left for later by the person"
 REASON_EXAMPLES   = "no acceptable examples after 3 attempts"
 REASON_CONFIRMED  = "fewer than 2 examples were confirmed"
 REASON_CODE       = "the code did not pass after 3 attempts"
 REASON_STOPPED    = "stopped by the person"
-KIND_WORDS = {"number": "a number", "integer": "a whole number", "date": "a date (YYYY-MM-DD)",
-              "boolean": "yes or no", "text": "text", "list": "a JSON list", "object": "a JSON object"}
+KIND_WORDS = {"number": "a number", "integer": "a whole number", "date": "a date",
+              "boolean": "yes or no", "text": "text", "list": "a list", "object": "a few named values"}
 ```
 
-`{kind}` in `NOT_A_VALUE` is the entry of `KIND_WORDS` for the output type.
+`\n` in `PLAN_FEEDBACK` is a line break.
 
 `MIN_CONFIRMED` lives in `registry.py`, and `builder.py` imports it.
 `ALL_BUILT` and `SOME_MISSING` (5.10) live in `__main__.py`.
@@ -1540,7 +1878,9 @@ KIND_WORDS = {"number": "a number", "integer": "a whole number", "date": "a date
 
 The agent must never do arithmetic. The harness checks this on everything
 the agent sends out: every number must already be known. The rule is meant
-to be explained in one minute.
+to be explained in one minute. The builder uses the same check, unchanged,
+on what the example helper sends and on the working of each worked example
+(5.7).
 
 **`unbacked(text: str, sources: list) -> list[str]`** returns the numbers in
 `text` that no source backs, as they are written in `text`, in order of
@@ -1592,11 +1932,17 @@ equals some known number by coincidence; a date whose day is 12 or less
 worked out in the head, as long as its year is known; and anything about
 signs. It is a tripwire for made-up arithmetic, not a proof.
 
+It can also refuse a number the person did give: thousands written with a
+space or a dot (`17 500`, `17.500`) are not read as 17500. The example
+helper's fallback line then asks the person to write the number out.
+
 ### 5.9 Agent: `harness/calc/agent.py`
 
 The agent answers the person's questions about their plan. It runs modules
-through the gate and saves what the person tells it. It never works a
-number out itself.
+through the gate and saves what the person tells it. It takes answers in the
+person's own words, and when the person has no straight figure it asks what
+they do have. It never works a number out itself. How it asks is set by
+`analyst.md`; the harness gives it the notes (5.5) and checks its numbers.
 
 ```python
 run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None) -> None
@@ -1616,6 +1962,7 @@ these sections (same format as 5.7), in this order:
 | `process` | the brief's process steps |
 | `modules` | for every registered module, by name: `{"steps": [...], "spec": {...}}` |
 | `saved inputs` | every row of `inputs`: `{name: {"value": ..., "note": ...}}`, `{}` when none |
+| `notes` | `list_notes(conn)` (5.5): what the person said about their situation during a build, `[]` when none |
 
 The context is made once, when the session starts.
 
@@ -1642,6 +1989,8 @@ check does not read them.
 - every message the person typed in this session, as recorded in
   `ask.message` (stripped; including `question`);
 - the `value` of every row of `inputs`, from any session;
+- the `text` of every note, from any session (they are the person's own
+  words);
 - the `inputs` and `output` of every `calc_runs` row of this session.
 
 **The loop.**
@@ -1773,8 +2122,14 @@ Every event carries the session id of the command that made it.
 | `calc.spec_proposed` | `agent` | `{"step", "spec"}` (the spec as checked) |
 | `calc.spec_rejected` | `harness` | `{"step", "errors"}` |
 | `calc.module_reused` | `agent` | `{"step", "module", "reason"}` |
+| `calc.plan_decision` | `person` | `{"step", "round", "decision", "text"}`; `decision` is `accepted`, `skipped` or `feedback`; `text` is the stripped answer |
+| `calc.plan_kept` | `harness` | `{"step", "reason"}`; `reason` is `rounds` or `spec` |
+| `calc.note_saved` | `person` | `{"id", "step", "text"}`; recorded by `add_note` |
 | `calc.examples_proposed` | `agent` | `{"module", "examples"}` |
 | `calc.examples_rejected` | `harness` | `{"module", "errors"}` |
+| `calc.example_reply` | `person` | `{"module", "index", "text"}`; free text sent to the example helper, stripped |
+| `calc.helper_answer` | `agent` | `{"module", "index", "arguments"}`; a valid `respond` call, its arguments as sent |
+| `calc.helper_rejected` | `harness` | `{"module", "index", "problem", "arguments"}`; `arguments` is `null` when there was no `respond` call |
 | `calc.golden_decision` | `person` | `{"module", "index", "decision", "expected"}`; `expected` is the confirmed answer, or `null` when skipped |
 | `calc.code_written` | `agent` | `{"module", "attempt", "module_py", "tests_py"}` |
 | `calc.code_rejected` | `harness` | `{"module", "attempt", "problems"}` |
@@ -1791,8 +2146,17 @@ Every event carries the session id of the command that made it.
 | `ask.input_saved` | `agent` | `{"name", "value", "note"}` |
 | `ask.stopped` | `harness` | `{"reason": "too many steps"}` |
 
-`index` in `calc.golden_decision` counts the examples as shown, from 1.
-`attempt` counts from 1.
+`index` in `calc.golden_decision`, `calc.example_reply`, `calc.helper_answer`
+and `calc.helper_rejected` counts the examples as shown, from 1. `attempt`
+counts from 1. `round` in `calc.plan_decision` counts the times the plan was
+shown in that step, from 1.
+
+At the plan check the events come in this order: `calc.plan_decision`, then,
+for feedback, `calc.note_saved`, then either `calc.plan_kept` (reason
+`rounds`) or the events of the next spec calls (which end with
+`calc.plan_kept`, reason `spec`, when all three are refused). For one free-text reply: `calc.example_reply`,
+then `calc.helper_answer` or `calc.helper_rejected`, then, for `note`,
+`calc.note_saved`, and for `skip`, `calc.golden_decision`.
 
 ### 5.12 Decisions
 
@@ -1831,10 +2195,56 @@ Choices made to close gaps in the design, for review:
 16. One timeout of 30 seconds for every runner process.
 17. The runner checks that a result fits the spec's output type (5.3).
 18. A worked example can be wrong too. When three code attempts fail and
-    examples are among the failures, the person is shown the inputs, the
-    answer they confirmed and the code's answer (`EXAMPLES_DISAGREE`,
-    `DISAGREEMENT`), so they can find which is wrong. The code writer is
-    never told: the examples stay the independent check.
+    examples are among the failures, the person is shown, for each one, a
+    block: `Example k` with `k` the number it was shown with (not its place in
+    `golden.json`), then `You confirmed` and `The code gives`, each laid out
+    like `Proposed answer` in the example block, or `an error` when the code
+    raised (`EXAMPLES_DISAGREE`, `DISAGREEMENT`, 5.7). The inputs are not
+    repeated: the example is found by its number. The code writer is never
+    told: the examples stay the independent check.
+19. The person checks the plan in plain words before any example. Their
+    feedback goes back to the spec writer as the result of its accepted
+    call, in the same conversation, at most `MAX_PLAN_ROUNDS = 2` times a
+    step. After that, or when no valid revision comes in three attempts, the
+    build goes on with the last plan shown and says so (`PLAN_KEPT`). Only
+    the first spec can end the step with `REASON_SPEC`.
+20. Each revised spec gets three attempts of its own. A reused module has no
+    plan check. `/skip` at the plan check leaves the step `not_built` with
+    `REASON_SKIPPED`.
+21. One set of accept words, `ACCEPT_WORDS` (the interview's, with
+    `/accept`), for the plan, the examples and a transcribed answer,
+    compared lower-cased. They are checked before an answer is read as a
+    value, so for a yes-or-no output `yes` accepts the proposed answer; to
+    change it the person types `no`, `true` or `false`, or says so.
+22. Only `number`, `integer`, `date` and `boolean` answers are read directly.
+    Everything else goes to the example helper, so nobody types JSON.
+    `NOT_A_VALUE` is gone.
+23. The example helper gets one model call per free-text reply, with no
+    retry. Its number check uses the example and the person's replies about
+    it, and nothing else. An `explain` message is checked the same way,
+    because the person reads it. A transcribed answer is shown back and needs
+    a yes; a value read directly does not, because it is what the person
+    typed.
+24. For an `object` output a transcribed answer must have the keys of the
+    proposed answer, so a dropped key is caught before any code is written.
+25. A proposed answer must show its numbers in its own working (the number
+    check, with the working as the only source), so an answer that
+    contradicts its working is sent back before the person sees it.
+26. Notes are kept with the step and the session only, and never edited.
+    The spec writer gets all of them, from every step and session, when its
+    conversation starts; feedback given during that conversation reaches it
+    as the tool result. The agent gets them in its context and as a source
+    for the number check. The example writer, the example helper and the
+    code writer never get them.
+27. Before every model call of a build, a progress line says what is being
+    written, so a slow call is not a silent pause.
+28. `KIND_WORDS` are plain words now, used only by `plan_words`. The
+    disagreement blocks after a failed code phase use the same readable
+    rendering as the example block (decision 18).
+29. One module, one case: a module works out a single case from a single set
+    of figures. Ranges and low/expected/high cases are handled by the agent
+    running the module once per case. This is guidance in `spec_writer.md` and
+    `analyst.md`, not enforced by the harness.
 
 ## 6. Steps 3 to 5 (draft)
 

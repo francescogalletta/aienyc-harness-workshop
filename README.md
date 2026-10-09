@@ -151,12 +151,18 @@ export HARNESS_MODEL_PROVIDER=claude_code
 uv run python -m harness build
 ```
 
+Each model call can take up to a minute through Claude Code. A full build of
+five steps took about eight minutes. A progress line tells you what is being
+written.
+
 For each calculation step, in the terminal:
 
-- The harness writes a spec for the calculation, or reuses a module you already have.
-- It proposes worked examples. You check each one by hand: type `/accept`, type the right answer instead, or type `/skip`. `/quit` stops the build.
-- The code is written by a separate model call that never sees your examples or your brief.
-- The harness runs the tests and your examples. Only code that passes is registered.
+- The harness shows its plan in plain words: what it needs from you and what it gives back. It asks whether that fits what you have. Type `yes`, or say in your own words what you do have, and the plan is reshaped. If the module already exists, it is reused and nothing is asked.
+- It then shows made-up examples with small round numbers. They are not your figures. Check each one by hand. Answer `yes`, type the right answer, say in your own words what is wrong, or ask a question. `/skip` leaves a step or an example out. `/quit` stops the build.
+- The code is written by a separate model call that never sees the examples, your brief or your notes.
+- The harness runs the tests and the examples you confirmed. Only code that passes is registered.
+
+What you say about your real situation during the build is kept as notes. `ask` uses them.
 
 **Check every proposed answer with a calculator.** The proposed answers can be wrong. In a live run, one proposed answer contradicted its own working, and accepting it made that module fail to build.
 

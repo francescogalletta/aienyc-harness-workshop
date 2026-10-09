@@ -5,9 +5,9 @@ import sqlite3
 import pytest
 
 import step2_helpers as h
-from step2_helpers import (ALL_BUILT, CONFIRM_EXAMPLE, DRAFT_BRIEF, NO_BRIEF, NOT_REGISTERED, OPENING, REASON_SPEC,
-                           REASON_STOPPED, SOME_MISSING, accepts, make_brief, months_script, only_step,
-                           propose_examples, propose_spec, reuse_module, run_cli, say_text, surplus_script)
+from step2_helpers import (ALL_BUILT, CONFIRM_EXAMPLE, DRAFT_BRIEF, NO_BRIEF, NOT_REGISTERED, OPENING, PLAN_QUESTION, REASON_SPEC,
+                           REASON_STOPPED, SOME_MISSING, built, make_brief, months_script, only_step,
+                           propose_spec, reuse_module, run_cli, say_text, surplus_script)
 
 NO_MODULES = "No modules are registered yet. Build them with: python -m harness build"
 REBUILD_HINT = "Rebuild a module with: python -m harness build --rebuild NAME"
@@ -36,7 +36,7 @@ def brief_saved(save_confirmed_brief):
 
 def test_build_builds_every_calculation_step(brief_saved, write_script):
     write_script(surplus_script() + months_script())
-    result = run_cli(["build"], typed(*accepts(6)))
+    result = run_cli(["build"], typed(*built(2)))
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines()[-3:] == [*BUILD_LINES, ALL_BUILT]
     assert module_names() == ["monthly_surplus", "months_to_goal"]
@@ -44,14 +44,15 @@ def test_build_builds_every_calculation_step(brief_saved, write_script):
 
 def test_build_asks_the_way_the_interview_does(brief_saved, write_script):
     write_script(surplus_script() + months_script())
-    result = run_cli(["build"], typed(*accepts(6)))
+    result = run_cli(["build"], typed(*built(2)))
+    assert f"\n{PLAN_QUESTION}\n\n> " in result.stdout
     assert f"\n{CONFIRM_EXAMPLE}\n\n> " in result.stdout
     assert "Step s1: Work out the monthly surplus" in result.stdout
 
 
 def test_build_again_finds_everything_already_built(brief_saved, write_script):
     write_script(surplus_script() + months_script())
-    run_cli(["build"], typed(*accepts(6)))
+    run_cli(["build"], typed(*built(2)))
     write_script([])                                             # no model call is needed now
     result = run_cli(["build"])
     assert result.returncode == 0, result.stderr
@@ -71,13 +72,13 @@ def test_build_says_when_a_module_is_reused(save_confirmed_brief, write_script, 
 def test_build_reports_a_step_that_could_not_be_built_and_goes_on(brief_saved, write_script):
     bad = propose_spec(name="Bad Name")
     write_script([bad, bad, bad, *months_script()])
-    result = run_cli(["build"], typed(*accepts(3)))
+    result = run_cli(["build"], typed(*built()))
     assert result.returncode == 1
     assert result.stdout.splitlines()[-3:] == [f"s1: not built ({REASON_SPEC})", BUILD_LINES[1], SOME_MISSING]
 
 
 def test_end_of_input_stops_the_build(brief_saved, write_script):
-    write_script([propose_spec(), propose_examples()])
+    write_script([propose_spec()])
     result = run_cli(["build"], "")
     assert result.returncode == 1
     assert result.stdout.splitlines()[-2:] == [f"s1: not built ({REASON_STOPPED})", SOME_MISSING]
@@ -124,7 +125,7 @@ def test_a_build_that_fails_stops_cleanly(brief_saved, write_script):
 def test_rebuild_of_one_module(brief_saved, write_script, conn):
     h.install_surplus(conn, step_id="s1")
     write_script(surplus_script())
-    result = run_cli(["build", "--rebuild", "monthly_surplus"], typed(*accepts(3)))
+    result = run_cli(["build", "--rebuild", "monthly_surplus"], typed(*built()))
     assert result.returncode == 0, result.stderr
     assert result.stdout.splitlines()[-1] == "s1 -> monthly_surplus (built)"
     assert ALL_BUILT not in result.stdout and SOME_MISSING not in result.stdout
@@ -141,9 +142,9 @@ def test_a_rebuild_that_fails_exits_1(brief_saved, write_script, conn):
 
 def test_each_command_makes_a_new_session_and_migrates_first(brief_saved, write_script):
     write_script(surplus_script() + months_script())
-    run_cli(["build"], typed(*accepts(6)))
+    run_cli(["build"], typed(*built(2)))
     write_script(surplus_script())
-    run_cli(["build", "--rebuild", "monthly_surplus"], typed(*accepts(3)))
+    run_cli(["build", "--rebuild", "monthly_surplus"], typed(*built()))
     sessions = [r[0] for r in database().execute("SELECT DISTINCT session_id FROM events WHERE kind LIKE 'calc.%'")]
     assert len(sessions) == 2
 

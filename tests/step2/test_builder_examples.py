@@ -6,15 +6,16 @@ import pytest
 
 import step2_helpers as h
 from harness.calc.values import to_json
-from step2_helpers import (CONFIRM_EXAMPLE, EXAMPLES_REJECTED, KIND_WORDS, NOT_A_VALUE, REASON_CONFIRMED,
-                           REASON_EXAMPLES, REASON_STOPPED, accepts, events, only_step, payloads, propose_examples,
-                           propose_spec, surplus_examples, surplus_script, surplus_spec, write_module)
+from step2_helpers import (ACCEPT_WORDS, CONFIRM_ANSWER, CONFIRM_EXAMPLE, EXAMPLES_REJECTED, PLAN_QUESTION,
+                           REASON_CONFIRMED, REASON_EXAMPLES, REASON_STOPPED, built, events, only_step, payloads,
+                           propose_examples, propose_spec, respond, surplus_examples, surplus_script, surplus_spec,
+                           write_module)
 
 
 def refused_examples(build, examples):
     """Send these examples once, then good ones. Return the bullets of the first refusal."""
     script = [propose_spec(), propose_examples(examples), propose_examples(), write_module()]
-    results, model, _ = build(script, accepts(3), brief=only_step("s1"))
+    results, model, _ = build(script, built(), brief=only_step("s1"))
     [result] = [m for m in model.calls[2]["messages"] if m["role"] == "tool"]
     assert result["is_error"] is True
     lines = [line for line in result["content"].splitlines() if line.strip()]
@@ -61,15 +62,15 @@ def test_every_problem_is_listed(build):
 
 def test_an_expected_answer_may_be_a_json_value_of_the_output_type(build):
     examples = [{**e, "expected": float(e["expected"])} for e in surplus_examples()]
-    results, _, _ = build([propose_spec(), propose_examples(examples), write_module()], accepts(3), brief=only_step("s1"))
+    results, _, _ = build([propose_spec(), propose_examples(examples), write_module()], built(), brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
 
 
 def test_more_than_three_examples_are_fine(build):
     examples = surplus_examples() + [{"inputs": {"income": "10", "spending": "4"}, "expected": "6", "working": "w"}]
-    results, _, person = build([propose_spec(), propose_examples(examples), write_module()], accepts(4),
+    results, _, person = build([propose_spec(), propose_examples(examples), write_module()], built(examples=4),
                                brief=only_step("s1"))
-    assert results[0]["outcome"] == "built" and len(person.asked) == 4
+    assert results[0]["outcome"] == "built" and person.asked.count(CONFIRM_EXAMPLE) == 4
 
 
 def test_rejected_examples_are_recorded(build, conn):
@@ -78,11 +79,11 @@ def test_rejected_examples_are_recorded(build, conn):
         "module": "monthly_surplus", "errors": ["at least 3 examples are needed"]})]
 
 
-def test_three_refused_attempts_end_the_step_before_the_person_is_asked(build, conn):
+def test_three_refused_attempts_end_the_step_before_any_example_is_shown(build, conn):
     script = [propose_spec(), propose_examples([]), propose_examples([]), propose_examples([])]
-    results, model, person = build(script, brief=only_step("s1"))
+    results, model, person = build(script, ["yes"], brief=only_step("s1"))
     assert results == [{"step": "s1", "outcome": "not_built", "module": None, "reason": REASON_EXAMPLES}]
-    assert len(model.calls) == 4 and person.asked == []
+    assert len(model.calls) == 4 and person.asked == [PLAN_QUESTION]
     assert payloads(conn, "calc.step_not_built") == [{"step": "s1", "reason": REASON_EXAMPLES}]
 
 
@@ -93,15 +94,27 @@ def decisions(conn):
 
 
 def test_accept_confirms_the_proposed_answer(build, conn):
-    build(surplus_script(), ["/accept", "  /accept  ", "/accept"], brief=only_step("s1"))
+    build(surplus_script(), ["yes", "/accept", "  /accept  ", "/accept"], brief=only_step("s1"))
     assert decisions(conn) == [(1, "accepted", "2023.35"), (2, "accepted", "-500"), (3, "accepted", "0")]
     assert events(conn, "calc.golden_decision")[0][1] == "person"
     assert set(payloads(conn, "calc.golden_decision")[0]) == {"module", "index", "decision", "expected"}
     assert payloads(conn, "calc.golden_decision")[0]["module"] == "monthly_surplus"
 
 
+@pytest.mark.parametrize("word", sorted(ACCEPT_WORDS) + ["YES", "Okay", "SÍ", "  Yes.  ", "Y"])
+def test_every_accept_word_confirms_an_example_whatever_its_case(build, conn, word):
+    build([propose_spec(), propose_examples()], ["yes", word, "/quit"], brief=only_step("s1"))
+    assert decisions(conn) == [(1, "accepted", "2023.35")]
+
+
+def test_an_empty_answer_asks_again_with_the_same_question(build, conn):
+    _, _, person = build(surplus_script(), ["yes", "", "   ", "/accept", "/accept", "/accept"], brief=only_step("s1"))
+    assert person.asked == [PLAN_QUESTION] + [CONFIRM_EXAMPLE] * 5
+    assert decisions(conn)[0] == (1, "accepted", "2023.35")
+
+
 def test_skip_leaves_an_example_out_with_no_expected_answer(build, conn, modules_dir):
-    results, _, _ = build(surplus_script(), ["/accept", "/skip", "/accept"], brief=only_step("s1"))
+    results, _, _ = build(surplus_script(), ["yes", "/accept", "/skip", "/accept"], brief=only_step("s1"))
     assert decisions(conn) == [(1, "accepted", "2023.35"), (2, "skipped", None), (3, "accepted", "0")]
     golden = json.loads((modules_dir / "monthly_surplus" / "golden.json").read_text(encoding="utf-8"))
     assert [g["inputs"] for g in golden] == [surplus_examples()[0]["inputs"], surplus_examples()[2]["inputs"]]
@@ -110,9 +123,9 @@ def test_skip_leaves_an_example_out_with_no_expected_answer(build, conn, modules
 
 def test_the_persons_word_is_final(build, conn, modules_dir):
     wrong = surplus_examples()
-    wrong[0] = {**wrong[0], "expected": "1999"}
+    wrong[0] = {**wrong[0], "expected": "1999", "working": "5123.45 less 3100.10 leaves 1999"}
     results, _, _ = build([propose_spec(), propose_examples(wrong), write_module()],
-                          [" $2,023.35 ", "/accept", "/accept"], brief=only_step("s1"))
+                          ["yes", " $2,023.35 ", "/accept", "/accept"], brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
     assert decisions(conn)[0] == (1, "corrected", to_json(Decimal("2023.35")))
     golden = json.loads((modules_dir / "monthly_surplus" / "golden.json").read_text(encoding="utf-8"))
@@ -121,14 +134,8 @@ def test_the_persons_word_is_final(build, conn, modules_dir):
     assert [g["decision"] for g in golden] == ["corrected", "accepted", "accepted"]
 
 
-def test_an_empty_answer_asks_again(build, conn):
-    _, _, person = build(surplus_script(), ["", "   ", "/accept", "/accept", "/accept"], brief=only_step("s1"))
-    assert person.asked == [CONFIRM_EXAMPLE] * 5
-    assert decisions(conn)[0] == (1, "accepted", "2023.35")
-
-
 def test_quit_stops_the_whole_build_at_once(build, conn, registry):
-    results, model, person = build(surplus_script() + h.months_script(), ["/accept", " /quit "])
+    results, model, person = build(surplus_script() + h.months_script(), ["yes", "/accept", " /quit "])
     assert results == [{"step": "s1", "outcome": "not_built", "module": None, "reason": REASON_STOPPED}]
     assert len(model.calls) == 2                                  # no code, and nothing for step s3
     assert not any(t.startswith("Step s3") for t in person.told)
@@ -138,21 +145,21 @@ def test_quit_stops_the_whole_build_at_once(build, conn, registry):
 
 
 def test_quit_keeps_what_was_registered_before(build, registry, conn):
-    results, _, _ = build(surplus_script() + h.months_script()[:2], accepts(3) + ["/accept", "/quit"])
+    results, _, _ = build(surplus_script() + h.months_script()[:2], built() + ["yes", "/accept", "/quit"])
     assert [r["outcome"] for r in results] == ["built", "not_built"]
     assert [m["name"] for m in registry.list_modules(conn)] == ["monthly_surplus"]
 
 
 @pytest.mark.parametrize("answers", [["/accept", "/skip", "/skip"], ["/skip", "/skip", "/skip"], ["/skip", "/accept", "/skip"]])
 def test_fewer_than_two_confirmed_examples_end_the_step(build, conn, answers):
-    results, model, _ = build([propose_spec(), propose_examples()], answers, brief=only_step("s1"))
+    results, model, _ = build([propose_spec(), propose_examples()], ["yes", *answers], brief=only_step("s1"))
     assert results == [{"step": "s1", "outcome": "not_built", "module": None, "reason": REASON_CONFIRMED}]
     assert len(model.calls) == 2                                  # the model is not asked for more
     assert payloads(conn, "calc.step_not_built") == [{"step": "s1", "reason": REASON_CONFIRMED}]
 
 
 def test_two_confirmed_examples_are_enough(build):
-    results, _, _ = build(surplus_script(), ["/skip", "/accept", "/accept"], brief=only_step("s1"))
+    results, _, _ = build(surplus_script(), ["yes", "/skip", "/accept", "/accept"], brief=only_step("s1"))
     assert results[0]["outcome"] == "built"
 
 
@@ -167,14 +174,14 @@ PROPOSED = {"number": "1", "integer": "1", "date": "2026-01-01", "text": "a", "b
 
 
 def echo_examples(kind):
-    return [{"inputs": {"x": "a"}, "expected": PROPOSED[kind], "working": "w"}] * 3
+    return [{"inputs": {"x": "a"}, "expected": PROPOSED[kind], "working": f"the answer is {PROPOSED[kind]}"}] * 3
 
 
-def answer_first(build, kind, typed):
-    """Answer the first example with `typed`, then quit. Return the person."""
-    _, _, person = build([propose_spec(echo_spec(kind)), propose_examples(echo_examples(kind))], [typed, "/quit"],
-                         brief=only_step("s1"))
-    return person
+def answer_first(build, kind, typed, *calls):
+    """Answer the plan, then the first example with `typed`, then quit. Return (model, person)."""
+    _, model, person = build([propose_spec(echo_spec(kind)), propose_examples(echo_examples(kind)), *calls],
+                             ["yes", typed, "/quit"], brief=only_step("s1"))
+    return model, person
 
 
 @pytest.mark.parametrize("kind, typed, confirmed", [
@@ -188,33 +195,38 @@ def answer_first(build, kind, typed):
     ("integer", "€ 40", "40"),
     ("integer", " 7 ", "7"),
     ("date", "2027-02-03", "2027-02-03"),
-    ("boolean", "yes", True), ("boolean", "Y", True), ("boolean", "TRUE", True), ("boolean", "True", True),
-    ("boolean", "no", False), ("boolean", "N", False), ("boolean", "False", False),
-    ("text", "free words", "free words"),
-    ("list", '[1, "a"]', [1, "a"]),
-    ("object", '{"k": "v"}', {"k": "v"}),
+    ("boolean", "true", True), ("boolean", "TRUE", True), ("boolean", "True", True),
+    ("boolean", "no", False), ("boolean", "N", False), ("boolean", "n", False), ("boolean", "False", False),
+    ("boolean", "false", False),
 ])
 def test_a_typed_answer_is_read_by_the_output_type(build, conn, kind, typed, confirmed):
-    answer_first(build, kind, typed)
+    model, person = answer_first(build, kind, typed)
     assert decisions(conn) == [(1, "corrected", confirmed)]
+    assert len(model.calls) == 2 and CONFIRM_ANSWER not in person.asked      # nothing is sent back for a yes
+
+
+@pytest.mark.parametrize("typed", ["yes", "y", "Y", "YES"])
+def test_for_a_yes_or_no_output_yes_accepts_the_proposed_answer(build, conn, typed):
+    answer_first(build, "boolean", typed)
+    assert decisions(conn) == [(1, "accepted", True)]
 
 
 @pytest.mark.parametrize("kind, typed", [
+    ("text", "free words"), ("list", '[1, "a"]'), ("list", "one, two"), ("object", '{"k": "v"}'),
     ("number", "abc"), ("number", "nan"), ("number", "Infinity"), ("number", "1.2.3"),
     ("integer", "1.5"), ("integer", "one"),
     ("date", "03/02/2027"), ("date", "2027-13-01"), ("date", "today"),
     ("boolean", "maybe"), ("boolean", "1"),
-    ("list", '{"a": 1}'), ("list", "[1"), ("list", "one, two"),
-    ("object", "[1]"), ("object", "not json"),
 ])
-def test_an_answer_that_cannot_be_read_is_explained_and_asked_again(build, conn, kind, typed):
-    person = answer_first(build, kind, typed)
-    assert NOT_A_VALUE.format(kind=KIND_WORDS[kind]) in person.told
-    assert person.asked == [CONFIRM_EXAMPLE, CONFIRM_EXAMPLE]
+def test_an_answer_that_is_not_read_directly_goes_to_the_example_helper(build, conn, kind, typed):
+    model, person = answer_first(build, kind, typed, respond("explain", message="It is a made-up example."))
+    assert model.roles() == ["spec_writer", "example_writer", "example_helper"]
+    assert payloads(conn, "calc.example_reply") == [{"module": "echo_value", "index": 1, "text": typed}]
+    assert person.asked == [PLAN_QUESTION, CONFIRM_EXAMPLE, CONFIRM_EXAMPLE]
     assert decisions(conn) == []                                   # the next answer was /quit
 
 
-def test_after_an_unreadable_answer_the_next_one_counts(build, conn):
-    build([propose_spec(echo_spec("number")), propose_examples(echo_examples("number"))], ["abc", "12", "/quit"],
-          brief=only_step("s1"))
+def test_after_an_answer_that_is_not_read_the_next_one_counts(build, conn):
+    build([propose_spec(echo_spec("number")), propose_examples(echo_examples("number")),
+           respond("explain", message="It is a made-up example.")], ["yes", "abc", "12", "/quit"], brief=only_step("s1"))
     assert decisions(conn) == [(1, "corrected", "12")]
