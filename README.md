@@ -45,7 +45,12 @@ harness changes.
 
 ## Build it yourself
 
-Each tag `step-N` is the repository at the end of step N. To rebuild a step
-with your own coding agent, start from the tag before it and paste in the
-matching prompt from `prompts/`. To rebuild step 0, delete the `harness/`
-folder first.
+Each branch `step-N` is the repository at the end of step N, and
+`step-0-start` is the starting point before any harness code exists. To
+rebuild a step with your own coding agent, check out the branch before it
+and paste in the matching prompt from `prompts/`:
+
+```
+git checkout step-0-start     # then run prompts/step0_setup.md
+git checkout step-0           # the finished step 0, to compare or catch up
+```

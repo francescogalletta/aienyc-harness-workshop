@@ -9,10 +9,10 @@ Every step has the same four parts:
 - **Prompt**: the file in `prompts/` that a coding agent runs.
 - **Builds**: what the prompt adds to `harness/`.
 - **Proof**: a before and after on the example that an audience can see.
-- **Done when**: a test command that passes. The result is saved as a git tag,
+- **Done when**: a test command that passes. The result is saved as a branch,
   so anyone can jump to the end of any step.
 
-| Step | Principle | Builds | Proof on the example | Done when | Tag |
+| Step | Principle | Builds | Proof on the example | Done when | Branch |
 | --- | --- | --- | --- | --- | --- |
 | 0 | (setup) | Model connection, scripted stand-in, local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
 | 1 | Shared domain | Grounding interview with research, the domain brief, the process plan | Before: a vague goal. After: a brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
@@ -23,7 +23,7 @@ Every step has the same four parts:
 
 ## Status
 
-| Step | Contract | Tests | Prompt | Built and tagged |
+| Step | Contract | Tests | Prompt | Built and saved |
 | --- | --- | --- | --- | --- |
 | 0 | Fixed (SPEC 3) | Written | Written | No |
 | 1 | Draft (SPEC 4) | Not yet | Not yet | No |
@@ -42,7 +42,7 @@ Each step is prepared in this order, and the order matters:
 4. Hand the prompt to a coding agent that has seen nothing else, and check
    that it reaches green tests on its own. If it cannot, the prompt or the
    contract is at fault, not the agent.
-5. Tag the result.
+5. Save the result as the branch `step-N`.
 
 Step 1 comes with one extra task: running the grounding interview for real
 on the example. Its output, the domain brief, decides which calculations
