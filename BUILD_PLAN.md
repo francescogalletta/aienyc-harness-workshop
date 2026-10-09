@@ -9,13 +9,14 @@ Every step has the same four parts:
 - **Prompt**: the file in `prompts/` that a coding agent runs.
 - **Builds**: what the prompt adds to `harness/`.
 - **Proof**: a before and after on the example that an audience can see.
-- **Done when**: a test command that passes. The result is saved as a branch,
-  so anyone can jump to the end of any step.
+- **Done when**: a test command that passes. Each step has two branches:
+  `step-N-start` before it is built and `step-N` after, so anyone can jump to
+  either side of any step.
 
 | Step | Principle | Builds | Proof on the example | Done when | Branch |
 | --- | --- | --- | --- | --- | --- |
 | 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
-| 1 | Shared domain | Grounding interview with research, the domain brief, the process plan | Before: a vague goal. After: a brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
+| 1 | Shared domain | Grounding interview with lookups, the brief's checks, the domain brief with its process diagram | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
 | 2 | Consistency | Source adapters, calculation registry, test gate, selection step, new-code path | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
 | 3 | Evidence | Event recording everywhere, the evidence interface | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |
 | 4 | Human in the loop | Gates, the side-conversation sub-agent, decision records | An ambiguous input opens a side conversation; the main session receives only the decision | `pytest tests/step4` | `step-4` |
@@ -26,11 +27,11 @@ Every step has the same four parts:
 | Step | Contract | Tests | Prompt | Built and saved |
 | --- | --- | --- | --- | --- |
 | 0 | Fixed (SPEC 3) | Written | Written | Yes |
-| 1 | Draft (SPEC 4) | Not yet | Not yet | No |
-| 2 | Draft (SPEC 4) | Not yet | Not yet | No |
-| 3 | Draft (SPEC 4) | Not yet | Not yet | No |
-| 4 | Draft (SPEC 4) | Not yet | Not yet | No |
-| 5 | Draft (SPEC 4) | Not yet | Not yet | No |
+| 1 | Fixed (SPEC 4) | Written | Written | No |
+| 2 | Draft (SPEC 5) | Not yet | Not yet | No |
+| 3 | Draft (SPEC 5) | Not yet | Not yet | No |
+| 4 | Draft (SPEC 5) | Not yet | Not yet | No |
+| 5 | Draft (SPEC 5) | Not yet | Not yet | No |
 
 ## How a step is prepared
 
@@ -44,9 +45,9 @@ Each step is prepared in this order, and the order matters:
    contract is at fault, not the agent.
 5. Save the result as the branch `step-N`.
 
-Step 1 comes with one extra task: running the grounding interview for real
-on the example. Its output, the domain brief, decides which calculations
-step 2 has to provide.
+Step 1 leaves one task for a person: running the grounding interview for
+real on the example. Its output, the domain brief, decides which
+calculations step 2 has to provide.
 
 ## Running without a live model
 

@@ -17,6 +17,8 @@ The harness itself knows nothing about weddings. The example lives in
 | `harness/` | The harness, as built so far |
 | `tests/` | Acceptance tests per step, plus tests for the example data |
 | `data/` | The example data, its generator, and the facilitator key |
+| `reference/` | Saved finance terms with checked sources, for offline lookups |
+| `brief/` | The domain brief, once you have run the interview |
 
 ## Set up
 
@@ -87,6 +89,36 @@ uv run --extra claude python -m harness check
 `HARNESS_MODEL` picks the model. The default is `claude-sonnet-5-5`; with
 `claude_code` you can also use an alias such as `sonnet` or `haiku`.
 
+## Run the grounding interview
+
+Step 1 is a short interview. The harness asks what you want help with, checks
+the finance terms you use against their standard meaning, and writes a
+**domain brief**: your goal, the terms you agreed, what is particular to you,
+and the steps needed, with the ones that must run as code marked.
+
+```
+export HARNESS_MODEL_PROVIDER=claude_code
+export HARNESS_RESEARCHER=claude_code     # look terms up on the web through Claude Code
+uv run python -m harness ground
+```
+
+- Answer one question at a time. Expect about a dozen, and a short wait
+  while each term is looked up.
+- Type `/wrap` to finish with what you have, or `/quit` to stop. Carry on
+  later with `uv run python -m harness ground --resume`.
+- At the end you are shown the proposed brief. Type `yes` to accept it, or
+  say what should change.
+- The brief is saved as `brief/domain_brief.md` (for you) and
+  `brief/domain_brief.json` (for the later steps). Everything asked and
+  answered is in the database: `uv run python -m harness events`.
+
+Leave `HARNESS_RESEARCHER` unset to look terms up in the saved file
+`reference/terms.json` instead of the web. That works offline and gives the
+same answer every time, but it only knows the terms in the file.
+
+Do not type account numbers or passwords into the interview. It does not
+need amounts either.
+
 ### Add another provider
 
 Any other model API, a free tier or a local model is one new file under
@@ -97,12 +129,12 @@ of a provider that is not an API at all.
 
 ## Build it yourself
 
-Each branch `step-N` is the repository at the end of step N, and
-`step-0-start` is the starting point before any harness code exists. To
-rebuild a step with your own coding agent, check out the branch before it
-and paste in the matching prompt from `prompts/`:
+Every step has two branches. `step-N-start` holds the contract, tests and
+prompt for step N, before it is built. `step-N` is the repository at the end
+of step N. To rebuild a step with your own coding agent, check out its start
+branch and paste in the matching prompt from `prompts/`:
 
 ```
-git checkout step-0-start     # then run prompts/step0_setup.md
-git checkout step-0           # the finished step 0, to compare or catch up
+git checkout step-1-start     # then run prompts/step1_shared_domain.md
+git checkout step-1           # the finished step 1, to compare or catch up
 ```
