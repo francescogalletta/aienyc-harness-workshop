@@ -18,7 +18,7 @@ Every step has the same four parts:
 | 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
 | 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
 | 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
-| 3 | Evidence | Event recording everywhere, the evidence interface | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |
+| 3 | Evidence | The show-your-work page (`work`) that follows each number to its run, module and tests; `adopt`, seeded examples and `replay` (built) | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |
 | 4 | Human in the loop | Gates, the side-conversation sub-agent, decision records | An ambiguous input opens a side conversation; the main session receives only the decision | `pytest tests/step4` | `step-4` |
 | 5 | Verification | Reference checks at decision points | The budget says one figure and the bank says another; the harness notices and asks | `pytest tests/step5` | `step-5` |
 
@@ -29,9 +29,15 @@ Every step has the same four parts:
 | 0 | Fixed (SPEC 3) | Written | Written | Yes |
 | 1 | Fixed (SPEC 4) | Written | Written | Yes |
 | 2 | Fixed (SPEC 5) | Written | Written | Yes |
-| 3 | Draft (SPEC 6) | Not yet | Not yet | No |
-| 4 | Draft (SPEC 6) | Not yet | Not yet | No |
-| 5 | Draft (SPEC 6) | Not yet | Not yet | No |
+| 3 | Fixed (SPEC 6 and 7) | Written | Written | Yes |
+| 4 | Draft (SPEC 8) | Not yet | Not yet | No |
+| 5 | Draft (SPEC 8) | Not yet | Not yet | No |
+
+Examples and replay (SPEC 6) are part of step 3: two seeded examples in
+`examples/` (a confirmed brief, built modules and scenarios), `adopt` to
+register their modules on a fresh clone, and `replay` to run their scenarios
+against a real model. Built; see `examples/README.md`. The worked examples
+in `examples/` were recomputed by an AI agent, not yet by a person.
 
 ## How a step is prepared
 

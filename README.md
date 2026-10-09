@@ -20,6 +20,7 @@ The harness itself knows nothing about weddings. The example lives in
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
 | `brief/` | The domain brief, once you have run the interview |
 | `modules/` | The tested calculation modules, once you have run the build |
+| `examples/` | Two complete seeded examples, `wedding` and `moving`: brief, modules and scenarios |
 
 ## Set up
 
@@ -189,7 +190,45 @@ Type `/quit` to stop.
 
 Code changes in one way only: `uv run python -m harness build --rebuild NAME`.
 If a module's files change any other way, it will not run until it is
-rebuilt. Commit `modules/` together with the brief.
+rebuilt. Commit `modules/` together with the brief. A fresh clone has the
+folders but an empty database, so run `uv run python -m harness adopt` once:
+it shows each module's worked examples, asks you to accept them, runs the
+tests, and registers only the modules that pass.
+
+## Show your work
+
+```
+uv run python -m harness work
+```
+
+This opens a page on your own machine that shows how every number was
+reached. It only reads the database and never calls a model. Its views:
+
+- **Conversations**: each reply as it was shown, with every number marked by where it came from: a module run, a saved input, a note, the brief, your own words, today's date. A number with no source stands out as `none`.
+- **Runs**: the inputs, the assumptions, what the agent expected beforehand, the output, and the test run it relied on.
+- **Modules**: the process, each module's formula, worked examples, code and build history.
+- **Everything**: the raw event log, with filters.
+
+On a module, **Run the tests now** runs its tests and worked examples again
+(up to 30 seconds), records the run, and shows which passed. "Tests passing"
+always comes from running the code, never from a stored flag.
+
+## Examples and replay
+
+`examples/` holds two seeded examples, `wedding` and `moving`: a confirmed
+brief, built modules and scenarios. They let you try `ask` and `work` without
+a seven-minute build, and they let you test a change by replaying a scripted
+person against the real model.
+
+```
+HARNESS_EXAMPLE=moving uv run python -m harness adopt
+HARNESS_EXAMPLE=moving uv run python -m harness ask
+uv run python -m harness replay moving
+```
+
+`examples/README.md` says how they were made and checked, how to write a
+scenario and how to add an example. Their worked examples were recomputed by
+an AI agent, not yet by a person.
 
 ## Build it yourself
 
