@@ -26,6 +26,8 @@ def test_check_with_the_scripted_model(tmp_path):
     assert result.returncode == 0, result.stderr
     for expected in ("scripted", "stand-in", str(db_path), "pong from the script"):
         assert expected in result.stdout, expected
+    assert result.stdout.strip().splitlines()[-1] == (
+        "Setup works: the model replied and the check was saved as event 1.")
 
     conn = sqlite3.connect(db_path)
     rows = conn.execute("SELECT kind, actor, payload FROM events").fetchall()

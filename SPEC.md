@@ -241,13 +241,17 @@ before the insert.
 `python -m harness check` proves the setup end to end. It:
 
 1. opens the database and runs `migrate`;
-2. gets the configured model and sends one user message, `ping`;
+2. gets the configured model and sends it the system prompt
+   `This is a connection test.` and one user message,
+   `Reply with the single word: pong`;
 3. records one event of kind `harness.check`, actor `harness`, with a new
    session id, whose payload holds `provider`, `model` (the configured model
    name), `reply` (the response text) and `migrations` (the result of
    `applied_migrations`);
 4. prints the provider, the model name, the database path as configured,
-   and the reply, to standard output;
+   and the reply, to standard output, followed by a last line
+   `Setup works: the model replied and the check was saved as event N.`
+   where N is the id of the recorded event;
 5. exits 0. If getting the model or calling it fails, it prints one line
    describing the error to standard error, with no traceback, exits 1, and
    records nothing.

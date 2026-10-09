@@ -15,18 +15,22 @@ def check() -> int:
     db.migrate(conn)
     try:
         model = get_model(config.model_provider)
-        response = model.complete(system="", messages=[{"role": "user", "content": "ping"}])
+        response = model.complete(
+            system="This is a connection test.",
+            messages=[{"role": "user", "content": "Reply with the single word: pong"}])
     except Exception as error:
         reason = " ".join(str(error).split())       # keep it to one line
         print(f"check failed: {type(error).__name__}: {reason}", file=sys.stderr)
         return 1
-    db.record_event(conn, session_id=uuid.uuid4().hex, kind="harness.check", actor="harness",
-                    payload={"provider": config.model_provider, "model": config.model_name,
-                             "reply": response.text, "migrations": db.applied_migrations(conn)})
+    event_id = db.record_event(
+        conn, session_id=uuid.uuid4().hex, kind="harness.check", actor="harness",
+        payload={"provider": config.model_provider, "model": config.model_name,
+                 "reply": response.text, "migrations": db.applied_migrations(conn)})
     print(f"provider: {config.model_provider}")
     print(f"model:    {config.model_name}")
     print(f"database: {config.db_path}")
     print(f"reply:    {response.text}")
+    print(f"Setup works: the model replied and the check was saved as event {event_id}.")
     return 0
 
 

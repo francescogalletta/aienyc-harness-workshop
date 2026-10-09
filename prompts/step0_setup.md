@@ -45,7 +45,8 @@ HARNESS_MODEL_PROVIDER=scripted python -m harness check
 python -m harness events
 ```
 
-(Use `python3` in place of `python` if that is what your machine has.)
+(Put `uv run` in front of each command if the project is set up with uv, or
+use `python3` in place of `python` if that is what your machine has.)
 All tests must pass and the last two commands must run cleanly. Then report,
 briefly: the files you created, the test result, the output of the two
 commands, and anything in the contract you found unclear or had to guess.
