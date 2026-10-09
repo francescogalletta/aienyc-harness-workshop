@@ -14,7 +14,7 @@ Every step has the same four parts:
 
 | Step | Principle | Builds | Proof on the example | Done when | Branch |
 | --- | --- | --- | --- | --- | --- |
-| 0 | (setup) | Model connection, scripted stand-in, local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
+| 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
 | 1 | Shared domain | Grounding interview with research, the domain brief, the process plan | Before: a vague goal. After: a brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
 | 2 | Consistency | Source adapters, calculation registry, test gate, selection step, new-code path | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
 | 3 | Evidence | Event recording everywhere, the evidence interface | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |

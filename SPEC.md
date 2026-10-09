@@ -61,6 +61,15 @@ Step 0 builds the three things every later step stands on: a way to talk to a
 model, a stand-in for the model so the harness can be tested offline, and the
 local database.
 
+The model can be reached in three ways, and the rest of the harness cannot
+tell which one is in use:
+
+| Provider | What it needs | Section |
+| --- | --- | --- |
+| `scripted` | Nothing. Replays prepared responses. | 3.3 |
+| `anthropic` | A Claude API key | 3.4 |
+| `claude_code` | Claude Code installed and signed in on this machine. No API key. | 3.8 |
+
 ### 3.1 Configuration: `harness/config.py`
 
 Read from environment variables, each with a default:
@@ -68,7 +77,7 @@ Read from environment variables, each with a default:
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `HARNESS_DB` | `var/harness.db` | Path of the SQLite database |
-| `HARNESS_MODEL_PROVIDER` | `anthropic` | `anthropic` or `scripted` |
+| `HARNESS_MODEL_PROVIDER` | `anthropic` | A name from the provider table (3.7): `anthropic`, `claude_code` or `scripted` |
 | `HARNESS_MODEL` | `claude-sonnet-5-5` | Model name passed to the provider |
 | `HARNESS_SCRIPT` | (none) | Path of a script file for the `scripted` provider |
 
@@ -124,9 +133,9 @@ optional on a tool message and marks a tool call that failed.
 
 `get_model(provider: str | None = None) -> Model` returns the model for the
 given provider, or for `load_config().model_provider` when none is given.
-An unknown provider raises `ValueError` naming the provider. For `anthropic`
-it returns `AnthropicModel(load_config().model_name)`, importing that file
-only at that moment.
+It looks the name up in the provider table (3.7) and calls the entry with
+`load_config()`. An unknown provider raises `ValueError` naming the provider
+and listing the known ones, sorted and separated by `, `.
 
 ### 3.3 Scripted stand-in: `harness/model/scripted.py`
 
@@ -148,7 +157,7 @@ optional `id`) and `stop_reason`.
   subclass of `Exception`.
 - `ScriptedModel.from_file(path)` loads a JSON file holding the list.
 
-`get_model("scripted")` loads the file named by `HARNESS_SCRIPT`. With no
+The `scripted` provider loads the file named by `HARNESS_SCRIPT`. With no
 script path set it returns a model with the one-entry script
 `[{"text": "ok"}]`.
 
@@ -250,6 +259,107 @@ oldest first, one line each: id, ts, kind, actor, separated by spaces.
 
 Run every command from the repository root. The default database path is
 relative to the current folder.
+
+### 3.7 Provider table: `harness/model/providers.py`
+
+`PROVIDERS` is a dict from provider name to a function that takes the
+`Config` and returns a `Model`. It is the only place that knows which
+adapters exist. It holds `scripted`, `anthropic` and `claude_code`.
+
+Each entry imports its adapter file inside the function, so that an adapter's
+dependencies are loaded only when that provider is asked for. The `anthropic`
+entry returns `AnthropicModel(config.model_name)` and the `claude_code` entry
+returns `ClaudeCodeModel(config.model_name)`.
+
+**Adding a provider** takes two changes and nothing else:
+
+1. One new file in `harness/model/` with a class whose `complete` method
+   matches the `Model` interface and returns a `ModelResponse`.
+2. One new entry in `PROVIDERS`.
+
+`PROVIDERS` is not re-exported from `harness.model`.
+
+### 3.8 Claude Code adapter: `harness/model/claude_code_provider.py`
+
+This adapter uses the Claude Code command-line tool, signed in on the
+person's own machine, as the model. It needs no API key and imports no SDK.
+Every call to `complete` runs the command once and reads back one reply.
+
+`ClaudeCodeModel(model_name: str, runner=None, command: str = "claude", timeout: float = 300)`
+keeps its arguments as attributes of the same names. `runner` is a function
+`runner(argv: list[str], stdin_text: str) -> (returncode, stdout, stderr)`.
+The default runner uses `subprocess.run` with the system temporary folder as
+the working folder, so the model is told nothing about where the harness
+lives. Tests pass in a fake runner.
+
+**The command.** `complete` runs, in this order:
+
+```
+<command> -p --safe-mode --tools "" --disallowedTools "mcp__*" --strict-mcp-config
+          --no-chrome --disable-slash-commands --no-session-persistence
+          --output-format json --model <model_name> --system-prompt-file <file>
+          [--json-schema <schema>]
+```
+
+These flags make Claude Code act as a plain model: none of its own tools,
+none of the person's customisations, MCP servers or skills, and nothing
+saved to its history. `--bare` must not be used, because bare mode ignores
+the subscription sign-in. `--json-schema` is added only when `tools` is not
+empty.
+
+**The system prompt** is written to a temporary file that exists for the
+length of the call. It holds, separated by blank lines: a fixed preamble
+saying the model is acting as the language model inside another program and
+has no tools of its own; the `system` text, when not empty; and, when there
+are tools, the rules for calling them followed by a JSON list of each tool's
+`name`, `description` and `input_schema`.
+
+**The conversation** goes in on standard input as text:
+
+```
+<conversation>
+<user>
+text
+</user>
+<assistant>
+text, when not empty
+<tool_call id="ID" name="NAME">ARGUMENTS AS JSON</tool_call>
+</assistant>
+<tool_result id="ID">
+text
+</tool_result>
+</conversation>
+
+Write the assistant's next reply.
+```
+
+A failed tool result is written `<tool_result id="ID" error="true">`.
+
+**The reply.** Claude Code prints one JSON object.
+
+- With no tools, `text` is its `result` field and there are no tool calls.
+- With tools, the schema passed in `--json-schema` requires an object with
+  `text` (a string) and `tool_calls` (a list of objects with `name`, limited
+  to the offered tool names, and `arguments`, an object). The adapter reads
+  it from the `structured_output` field. Each tool call gets a new id of the
+  form `call_` plus eight hex characters.
+- `stop_reason` is `"tool_use"` when there are tool calls and `"end"`
+  otherwise.
+- `usage["input_tokens"]` is the sum of `input_tokens`,
+  `cache_creation_input_tokens` and `cache_read_input_tokens` from the
+  result's `usage`; `output_tokens` is copied.
+
+**Errors** are raised as `RuntimeError` with the reason on one line (line
+breaks become spaces):
+
+- the command is not found: the message contains `not found`;
+- it gives no reply within `timeout` seconds;
+- its output is not a JSON object: the message contains its standard error,
+  or its standard output when standard error is empty;
+- it exits with a non-zero code or reports `is_error`: the message contains
+  the `result` text;
+- tools were offered but there is no `structured_output`: the message
+  contains `structured`.
 
 ## 4. Steps 1 to 5 (draft)
 

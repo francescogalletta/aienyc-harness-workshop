@@ -31,17 +31,48 @@ HARNESS_MODEL_PROVIDER=scripted python -m harness check
 python -m harness events
 ```
 
-To use Claude instead of the scripted stand-in:
+## Choose how the harness reaches a model
+
+The harness talks to a model through one interface. `HARNESS_MODEL_PROVIDER`
+picks what sits behind it:
+
+| Provider | What you need | Notes |
+| --- | --- | --- |
+| `scripted` | Nothing | Replays prepared responses. Used by every test. |
+| `claude_code` | [Claude Code](https://code.claude.com/docs/en/overview) installed and signed in with your Claude plan | No API key. Usage counts against your plan. |
+| `anthropic` | A Claude API key | Billed to the key. This is the default. |
+
+With a Claude subscription and no API key:
+
+```
+claude auth status                        # should say you are logged in
+export HARNESS_MODEL_PROVIDER=claude_code
+python -m harness check
+```
+
+If `ANTHROPIC_API_KEY` is set in your shell, Claude Code uses that key
+instead of your plan, so unset it first. If the check reports an unknown
+option, update Claude Code with `claude update`.
+
+With an API key:
 
 ```
 pip install anthropic
 export ANTHROPIC_API_KEY=...
+export HARNESS_MODEL_PROVIDER=anthropic
 python -m harness check
 ```
 
-`HARNESS_MODEL` picks the model. Another provider is one new file under
-`harness/model/` and one new branch in `get_model`; nothing else in the
-harness changes.
+`HARNESS_MODEL` picks the model. The default is `claude-sonnet-5-5`; with
+`claude_code` you can also use an alias such as `sonnet` or `haiku`.
+
+### Add another provider
+
+Any other model API, a free tier or a local model is one new file under
+`harness/model/` and one new line in the table in
+`harness/model/providers.py`. Nothing else in the harness changes. `SPEC.md`
+section 3.7 has the recipe, and the Claude Code adapter is a worked example
+of a provider that is not an API at all.
 
 ## Build it yourself
 

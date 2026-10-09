@@ -19,7 +19,8 @@ Then build what section 3 of `SPEC.md` describes, under `harness/`:
 
 - `harness/__init__.py` (a one-line docstring is enough)
 - `harness/config.py`
-- `harness/model/` (the interface, the scripted stand-in, the Claude adapter)
+- `harness/model/` (the interface, the scripted stand-in, the provider table,
+  the Claude API adapter and the Claude Code adapter)
 - `harness/db.py` and `harness/migrations/0001_init.sql`
 - `harness/__main__.py`
 
@@ -31,7 +32,8 @@ Rules:
 - Build only step 0. Do not start on anything in section 4 of `SPEC.md`.
 - Use only the Python standard library. The `anthropic` package may be
   imported in `harness/model/anthropic_provider.py` and nowhere else, and
-  the step 0 tests must pass without it installed.
+  the step 0 tests must pass without it installed. They must also pass
+  without Claude Code installed: do not run the `claude` command yourself.
 - Keep it small and readable. People will read this code on a projector.
   No abstractions beyond what the contract asks for.
 
