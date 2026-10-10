@@ -78,6 +78,7 @@ class Turn:
     reply: str | None = None
     withheld: bool = False
     corrections: int = 0
+    extra: dict = field(default_factory=dict)        # what a later layer's tools count within the turn
 
     @property
     def conn(self):

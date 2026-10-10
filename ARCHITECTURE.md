@@ -781,3 +781,55 @@ Each has the default the work plan takes.
 - **A3 · Not changed outside layer 3.** Nothing in `harness/core/` or `harness/calc/`. Shared: `tests/layer0/state_shape.py`
   checks layer 3 (assistant messages carry `figures`, figures name known inputs, `last_run.message` is in the chat, the
   steps of the last answer share one message, `used` agrees with them).
+- **A4a · Files and interfaces.** `marks.py` (assumption store, notices, `confirm`, `correct`, `route`, hook
+  `turn_finished`), `calls.py` (`ask_decision`, `choose`, `read_choice`), `requests.py` (`request_module`), `layer.py`
+  (`contribute`, `context`, `tools`, the actions `choose` and `confirm_assumptions`, hooks `loaded` and
+  `turn_finished`, expects `decisions`, `marks`, `added`). A4b adds `side.py`, the `side` action, the real `threads` and
+  the `side_threads` expectation to `layer.py`; until then `threads` is `[]` (the state shape wants the key once layer 4
+  is on) and the terminal's `/side` is refused as an unknown action.
+- **A4a · Tables.** `assumptions (id, key UNIQUE, text, status, words, ts)` and `run_assumptions` as SPEC 6.1;
+  `decisions` also has `message` (the decision message) and `status` (`open`, `answered`, `dropped`). The row is written
+  when the question is asked, with `choice` NULL. `loaded` marks every row still `open` as `dropped` (its process is
+  gone): the state then shows that decision as `answered` with `choice` null, nothing waits, nothing `needs_you`, and the
+  analyst is not told of it (it may be asked again). `Decision` and `Calls` in the state are read from the table on every
+  call, not from the message; the message keeps the decision as asked.
+- **A4a · Marks.** Assumptions are global (the key is unique), so one confirmation clears the same sentence wherever it
+  is the only unconfirmed one. A run's assumptions are stored by the `turn_finished` hook and, for a run no hook saw
+  (a turn that failed), when the state is read (`marks.of_run`: it only inserts what is missing). A step's `unconfirmed`
+  is its `last_run`'s assumptions whose status is not `confirmed`; `corrected` counts, so a corrected step keeps `◌`
+  until it is run again without the sentence. The notice goes on the turn's final message even when that is a withheld
+  or stopped notice (the steps are marked either way, and a notice is the only thing the person can confirm from).
+  A notice reads `confirmed` in the state once every assumption in it is confirmed, whichever answer confirmed them.
+  `confirm_assumptions` confirms all of the notice's assumptions (it overrides `corrected`: the person confirms again);
+  a "Change it" message corrects only those not yet confirmed (all of them when none is open). The `CORRECTED` line is
+  put before the person's words in the text given to `answers.agent.answer`, so the `ask.message` event holds that text.
+  A message with a notice reference that names no notice is an ordinary message.
+- **A4a · Calls.** `step` may be any plan step, added ones too, whatever its kind: a decision on a `from_you` step puts
+  `Needs you · your call` on it. `calls` is non-null for `your_call` steps and for any step a decision of this
+  conversation names; `records` are the answered ones. Decisions are scoped to the current conversation; the section
+  `decisions` too. "One per reply" of version 1 is not kept (a tool cannot tell which model reply a call came in); the
+  limit is two per person message, and a second question can only follow the first one's answer. `run_ids` accepts
+  `4`, `"4"` or `"r4"`. An answer in words: a number, `option N`, an option's words, `yes` for the suggestion; else
+  `something else` with the words. `choose` posts the option's text as the person's message (with the decision's step)
+  before it answers. A "Change it" message that arrives while a decision waits answers the decision (the core gives a
+  waiting job the message first); its notice is not processed.
+- **A4a · Requests.** The tool takes an optional `name` for a new step. Limit two per person message, counted once the
+  words pass the checks, whatever the outcome. The build runs inside the analyst's turn on the main lane (the person sees
+  `activity` with `what` `build` and the new step, and the harness message when it ends, before the answer); an
+  exception in the build is a `not_built` result. `request_module` for `step` is refused only when the step's status is
+  `built` (a stale step is built again). Posted: `BUILT_NOT_IN_PLAN` for `new`, else `BUILT_STEP`, or `NOT_BUILT_STEP`;
+  `you.module_requested` also carries `seconds`.
+- **A4a · Expectations.** `decisions`: a list of `{step, choice?, count?}`; each needs at least `count` (1) answered
+  decisions on the step, with that choice when given. `marks`: `{min?, max?}` open notices in the state at the end.
+  `added`: at least that many `you.module_requested` events of case `new` that did not end `not_built`.
+- **A4a · Changed outside layer 4.** `answers/agent.py`: `Turn.extra` (a dict a later layer's tools count in, within
+  the turn). Deleted: `calc/decisions.py` and `calc/analyst.md` (version 1, replaced by `needs_you/calls.py` and
+  `analyst.md`). `tests/layer0/state_shape.py`: `layer4_problems` (run by `problems(strict=True)`).
+- **A4a · For A5.** `turn_finished` of layer 4 runs before layer 5's (layer order), so a turn's notice exists when the
+  reviewer's hook looks at it. New assumptions are in the `assumptions` table (`marks.of_run(conn, run_id, sentences)`
+  gives a run's with their status); `request_module` builds go through `build_step`, so `step_built` fires for them.
+  `Turn.extra` is free for layer 5's tools.
+- **A4a · Seen with the real model** (`claude` CLI, wedding example, layer 4). The analyst marked a derived date and
+  a dinner price, but said some assumptions only in its prose (the 6,000 counting toward the total) and left them out of
+  the run's `assumptions`: the mark is only as complete as that list. Twice it wrote a run id in its reply ("run 15"), which
+  is not a number source, so one answer was withheld. An automatic build of a new step took 45 seconds.

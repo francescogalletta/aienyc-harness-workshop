@@ -147,6 +147,69 @@ def build_problems(state: dict) -> list[str]:
     return out
 
 
+def layer4_problems(state: dict) -> list[str]:
+    """What layer 4 must keep true of its keys, beyond their shape (ARCHITECTURE.md 3.3, 3.4; SPEC 2.4, 6)."""
+    out: list[str] = []
+    step_ids = {step["id"] for step in state["steps"]}
+    waiting = state["waiting"] or {}
+    decisions = {m["decision"]["id"]: m for m in state["chat"] if m["kind"] == "decision" and m.get("decision")}
+    open_ids = [each for each, m in decisions.items() if m["decision"]["status"] == "open"]
+    if len(open_ids) > 1:
+        out.append(f"more than one open decision: {open_ids}")
+    if open_ids and waiting.get("decision") != open_ids[0]:
+        out.append("an open decision that the main lane does not wait for")
+    for each, message in decisions.items():
+        decision = message["decision"]
+        if decision["step"] not in step_ids or message["step"] != decision["step"]:
+            out.append(f"{each}: a decision of an unknown step, or a message about another step")
+        if decision["suggested"] is not None and not 1 <= decision["suggested"] <= len(decision["options"]):
+            out.append(f"{each}: suggested is not an option")
+        if not 2 <= len(decision["options"]) <= 4:
+            out.append(f"{each}: {len(decision['options'])} options")
+        if decision["status"] == "open" and decision["choice"] is not None:
+            out.append(f"{each}: open but chosen")
+        if decision["choice"] not in (None, "something else") and not (
+                decision["choice"].isdigit() and 1 <= int(decision["choice"]) <= len(decision["options"])):
+            out.append(f"{each}: choice {decision['choice']!r} is none of the options")
+    for n, step in enumerate(state["steps"]):
+        where = f"steps[{n}] ({step['id']})"
+        calls = step.get("calls")
+        named = [each for each, m in decisions.items() if m["decision"]["step"] == step["id"]]
+        if step["kind"] == "your_call" and calls is None:
+            out.append(f"{where}: a your_call step with no calls")
+        if calls is None and named:
+            out.append(f"{where}: a decision names this step but it has no calls")
+        if calls is not None:
+            if calls["open"] is not None and calls["open"] != waiting.get("decision"):
+                out.append(f"{where}: calls.open is not the decision the main lane waits for")
+            if (calls["open"] is not None) != bool(step["needs_you"] and waiting.get("step") == step["id"]):
+                out.append(f"{where}: calls.open and needs_you disagree")
+            for record in calls["records"]:
+                if record["choice"] not in ("something else", *[str(k) for k in range(1, len(record["options"]) + 1)]):
+                    out.append(f"{where}: record {record['decision']} has choice {record['choice']!r}")
+        loose = step.get("unconfirmed") or []
+        if len({each["id"] for each in loose}) != len(loose):
+            out.append(f"{where}: an assumption twice in unconfirmed")
+        if loose and not step.get("last_run"):
+            out.append(f"{where}: unconfirmed assumptions but no last run")
+        if bool(loose) != any(mark["symbol"] == "◌" for mark in step["marks"]):
+            out.append(f"{where}: the ◌ mark and unconfirmed disagree")
+        if loose and (step.get("last_run") or {}).get("in_last_answer") and not step["needs_you"] \
+                and not (step["line"] or {}).get("text", "").endswith(" ◌"):
+            out.append(f"{where}: unconfirmed in the last answer but the line says {step['line']!r}")
+    for message in state["chat"]:
+        notice = message.get("notice")
+        if not notice:
+            continue
+        where = f"{message['id']}.notice"
+        if message["who"] == "you":
+            out.append(f"{where}: a notice on the person's own message")
+        if not notice["assumptions"] or not notice["steps"] and notice["status"] == "open":
+            out.append(f"{where}: a notice with nothing to confirm or no step")
+        out.extend(f"{where}: unknown step {each}" for each in notice["steps"] if each not in step_ids)
+    return out
+
+
 def problems(state: dict, strict: bool = False) -> list[str]:
     """What is wrong with the shape of `state`. `strict` also runs the checks a live state must keep
     (`build_problems`); the hand-written samples in `states/` are sparse and are checked without it."""
@@ -235,6 +298,8 @@ def problems(state: dict, strict: bool = False) -> list[str]:
             out.append("waiting: no open decision message of that id")
     if strict and 2 in layers:
         out.extend(build_problems(state))
+    if strict and 4 in layers:
+        out.extend(layer4_problems(state))
     if state["lanes"]["main"] == "waiting" and waiting is None:
         out.append("lanes.main waits but waiting is null")
     if len([step for step in state["steps"] if step["needs_you"]]) > 1:

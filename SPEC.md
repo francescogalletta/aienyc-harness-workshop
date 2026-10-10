@@ -507,7 +507,9 @@ case-folded.
 ### 6.2 Calls that are the person's: `calls.py`
 
 Table `decisions (id, ts, conversation, step_id, question, options, suggested,
-why, choice, words, runs)`.
+why, choice, words, runs, message, status)`; `status` is `open`, `answered` or
+`dropped` (asked by a process that ended before an answer; the state shows it as
+answered with no choice).
 
 - Tool `ask_decision {step, question, options, suggested?, why?, runs}`. `step`
   is required and must be a plan step. The version 1 checks are kept (two to
@@ -524,8 +526,9 @@ why, choice, words, runs)`.
 
 ### 6.3 Missing calculations: `requests.py`
 
-Tool `request_module {case: step | new | replace, target, works_out,
-from_what, gives, formula, why}` with the version 1 checks and limits. It does
+Tool `request_module {case: step | new | replace, target, name?, works_out,
+from_what, gives, formula, why}` (`name`: a short name for a new step; else it is
+cut from `works_out`) with the version 1 checks and limits. It does
 not ask. `step` builds that step; `new` adds a step (`added_<n>`, `in_plan`
 false) and builds it; `replace` keeps the words as a note and rebuilds the
 module. The harness posts `BUILT_NOT_IN_PLAN` (for `new`) or `BUILT_STEP` and
