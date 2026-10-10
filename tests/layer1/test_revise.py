@@ -2,8 +2,7 @@
 import json
 from pathlib import Path
 
-from conftest import SETTLE
-from layer1_helpers import asks, item, looks_up, small_brief, write_brief
+from layer1_helpers import SETTLE, asks, item, looks_up, small_brief, write_brief
 
 from harness.config import load_config
 from harness.grounding import revise_plan

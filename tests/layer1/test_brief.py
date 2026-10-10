@@ -2,8 +2,7 @@
 import json
 
 import pytest
-from conftest import EXAMPLES
-from layer1_helpers import PROPOSED, item, small_brief
+from layer1_helpers import EXAMPLES, PROPOSED, item, small_brief
 
 from harness.grounding import (ResearchDesk, draw, input_ids, load_brief, person_quotes, save_brief,
                                step_fingerprint, validate_brief)

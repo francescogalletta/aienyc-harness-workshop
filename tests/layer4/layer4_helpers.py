@@ -7,8 +7,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parents[1] / "layer3"))      # layer3_helpers
 sys.path.append(str(Path(__file__).resolve().parents[1] / "layer0"))      # state_shape
 
-from layer3_helpers import (SETTLE, assistant, call, events, number, reply, run, save,  # noqa: E402,F401
-                            small_plan, step_of, write_world)
+from layer3_helpers import (ASK, SETTLE, TOTAL, assistant, call, events, number, play, point_replay_at,  # noqa: E402,F401
+                            reply, run, save, scenario, small_plan, step_of, world_folder, write_world)
 from state_shape import problems  # noqa: E402,F401
 
 WAIT = 5

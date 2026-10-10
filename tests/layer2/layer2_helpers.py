@@ -81,6 +81,19 @@ TOTAL_EXAMPLES = [total_example(10, 20), total_example(0, 50), total_example(100
 DOUBLE_EXAMPLES = [double_example(15), double_example(0), double_example(250)]
 
 
+def write_built_modules(folder) -> None:
+    """The built module folders of both calculations (total for c1, double for c2), as the builder leaves them."""
+    for spec, step, examples, code in ((TOTAL_SPEC, "c1", TOTAL_EXAMPLES, TOTAL_CODE),
+                                       (DOUBLE_SPEC, "c2", DOUBLE_EXAMPLES, DOUBLE_CODE)):
+        module = Path(folder) / spec["name"]
+        module.mkdir(parents=True, exist_ok=True)
+        (module / "spec.json").write_text(json.dumps({**spec, "step_id": step}), encoding="utf-8")
+        (module / "golden.json").write_text(
+            json.dumps([{**each, "checked_by": "second_pass"} for each in examples]), encoding="utf-8")
+        (module / "module.py").write_text(code[0], encoding="utf-8")
+        (module / "tests.py").write_text(code[1], encoding="utf-8")
+
+
 # --- Scripted turns ---
 
 def call(tool, **arguments):

@@ -6,7 +6,8 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "layer0"))      # state_shape, the state validator
 
-from harness import db  # noqa: E402
+from harness import db, replay  # noqa: E402
+from harness.model import ScriptedModel  # noqa: E402
 
 PROPOSED = {"kind": "proposed"}
 SETTLE = 20
@@ -119,3 +120,39 @@ def assistant(state):
 
 def step_of(state, step_id):
     return next(step for step in state["steps"] if step["id"] == step_id)
+
+
+# --- Replay: a scripted person on the small world ---
+
+ASK = "what is 10 plus 20?"
+TOTAL = [run("total", {"a": 10, "b": 20}), reply("The total is 30.")]
+REFERENCE = Path(__file__).resolve().parents[2] / "reference" / "terms.json"
+
+
+def point_replay_at(monkeypatch, tmp_path):
+    """Replay's scratch folders and the researcher go to the test's own place."""
+    monkeypatch.setattr(replay, "REPLAY_DIR", tmp_path / "replay")
+    monkeypatch.setenv("HARNESS_RESEARCHER", "reference")
+    monkeypatch.setenv("HARNESS_REFERENCE", str(REFERENCE))
+
+
+def world_folder(tmp_path):
+    """A small example folder: c1, c2 with modules, c3 without, j1 a judgment."""
+    folder = tmp_path / "ex"
+    write_world(folder)
+    return folder
+
+
+def scenario(layer=4, **more):
+    found = {"name": "s", "layer": layer, "kind": "ask", "lines": [ASK],
+             "expect": {"runs": [{"module": "total", "inputs": {"a": "10", "b": "20"}}]}}
+    found.update(more)
+    return found
+
+
+def play(found, example, script=(), **options):
+    model = ScriptedModel(list(script))
+    options.setdefault("write", lambda text: None)
+    result = replay.run_scenario(found, example_dir=example, model_factory=lambda: model, **options)
+    result["model"] = model
+    return result

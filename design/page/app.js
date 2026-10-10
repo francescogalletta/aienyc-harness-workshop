@@ -316,6 +316,8 @@
   function hasAnswers() { return steps().some(function (s) { return has(s, 'last_run'); }); }
   function hasBuild() { return steps().some(function (s) { return has(s, 'build'); }); }
   function hasReview() { return !!(S && S.review && typeof S.review === 'object'); }
+  /* A message keeps what a later layer stored with it; show it only while that layer is on (ARCHITECTURE 3.4). */
+  function layerOn(n) { return !!(S && Array.isArray(S.layers) && S.layers.indexOf(n) >= 0); }
 
   function tagFor(s) {
     var parts = [];
@@ -351,7 +353,8 @@
       tagFor(s).forEach(function (p) { var sp = el('span', null, p[0]); if (p[1]) { sp.title = p[1]; } tag.appendChild(sp); });
       var nyou = !!s.needs_you;
       if (needShown[s.id] !== nyou) { F.needsYou(b, nyou); needShown[s.id] = nyou; }
-      var faded = (anyAnswer && !inAnswer[s.id] && !nyou) || (ui.review && hasReview() && !openChallenges(s).length && !nyou);
+      /* the Review view fades by challenges only; otherwise the last answer decides */
+      var faded = !nyou && (ui.review && hasReview() ? !openChallenges(s).length : anyAnswer && !inAnswer[s.id]);
       F.fade(b, faded);
       if (ui.selected === s.id) { b.classList.add('fah-step--selected'); }
     });
@@ -549,11 +552,14 @@
       if (b.status !== 'none' || b.module) {
         var foot = el('div', 'fah-pop__foot');
         if (b.tests) { foot.appendChild(el('span', null, b.tests + ' tests, ' + (b.passing === b.tests ? 'all passing' : b.passing + ' passing'))); }
-        if (b.code && b.code.module_py) { foot.appendChild(linkBtn(ui.code ? 'Hide code' : 'Code', function () { ui.code = !ui.code; refreshPop(); })); }
+        if (b.code && b.code.module_py) { foot.appendChild(linkBtn(ui.code ? 'Hide code' : (b.code.tests_py ? 'Code and tests' : 'Code'), function () { ui.code = !ui.code; refreshPop(); })); }
         if (b.module) { foot.appendChild(linkBtn('Run tests now', function () { act('run_tests', { step: s.id }); })); }
         if (foot.childNodes.length) { pop.appendChild(foot); }
         if (b.tested_at) { pop.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
-        if (ui.code && b.code && b.code.module_py) { pop.appendChild(el('pre', 'fa-code', b.code.module_py)); }
+        if (ui.code && b.code && b.code.module_py) {
+          pop.appendChild(el('pre', 'fa-code', b.code.module_py));
+          if (b.code.tests_py) { pop.appendChild(popHead('Tests')); pop.appendChild(el('pre', 'fa-code', b.code.tests_py)); }
+        }
       }
     }
 
@@ -680,7 +686,10 @@
       tools.appendChild(w);
     }
     if (hasReview() && S.phase === 'accepted') {
-      if (S.review.running) { var wk = el('div', 'fah-working'); wk.setAttribute('role', 'status'); wk.setAttribute('aria-label', 'The reviewer is looking at the plan'); wk.title = 'The reviewer is looking at the plan'; tools.appendChild(wk); }
+      if (S.review.running) {      /* a bar alone says nothing to a first-time user: name it */
+        var rw = el('span', 'fa-building fa-quiet fa-reviewing'); rw.setAttribute('role', 'status'); rw.title = 'The reviewer is looking at the plan';
+        var wk = el('span', 'fah-working'); wk.setAttribute('aria-hidden', 'true'); add(rw, wk, 'Reviewing'); tools.appendChild(rw);
+      }
       var open = S.review.open || 0;
       var rv = el('button', 'fah-btn', 'Review' + (open ? ' · ' + open : '')); rv.type = 'button';
       rv.setAttribute('aria-pressed', String(ui.review));
@@ -777,7 +786,7 @@
 
   /* ================= the chat ================= */
   function withFigures(p, m) {
-    var text = String(m.text || ''), figs = arr(m.figures).filter(function (f) { return f && f.step && stepById(f.step); }), pos = 0, spans = [];
+    var text = String(m.text || ''), figs = arr(layerOn(3) ? m.figures : null).filter(function (f) { return f && f.step && stepById(f.step); }), pos = 0, spans = [];
     figs.forEach(function (f) {
       var s = f.start, e = f.end;
       if (!(typeof s === 'number' && typeof e === 'number' && text.slice(s, e) === f.text)) { s = text.indexOf(f.text, pos); e = s + String(f.text).length; }
@@ -813,7 +822,7 @@
   function messageNode(m, ctx) {
     var wrap = document.createDocumentFragment(), nodes = [];
     var kind = m.kind || 'text';
-    if (kind === 'decision' && m.decision) {
+    if (kind === 'decision' && m.decision && layerOn(4)) {
       var d = m.decision;
       if (d.status === 'open') {
         var box = el('div', 'fah-decision'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Your call');
@@ -840,7 +849,7 @@
         nodes.push(add(el('div', 'fah-row'), btn('Accept plan', function (b) { b.setAttribute('aria-disabled', 'true'); act('accept_plan'); }, true)));
       }
     }
-    if (m.notice && m.notice.status === 'open') {
+    if (m.notice && m.notice.status === 'open' && layerOn(4)) {
       var nt = el('div', 'fah-notice'), as = arr(m.notice.assumptions);
       if (as.length === 1) { nt.appendChild(el('div', null, '◌ This rests on one thing you haven\'t confirmed: ' + lower(as[0].text))); }
       else {
@@ -1042,6 +1051,7 @@
     p.then(function (ok) {
       if (!ok) { if (!input.value) { input.value = text; } return; }
       ui.attached = null; ui.notice = null; ui.thread = null; setSide(false); drawComposer();
+      if (ui.selected && !ui.pop) { F.select(null, document); ui.selected = null; }   /* the step went with the message */
     });
   }
   input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); } });

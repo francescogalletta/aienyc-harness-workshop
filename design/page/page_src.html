@@ -41,6 +41,7 @@ body { min-height: 100vh; }
 .fah-btn[aria-disabled="true"]:hover { background: transparent; }
 .fah-btn[aria-disabled="true"]:active { transform: none; }
 .fa-building { display: inline-flex; align-items: center; gap: 10px; }
+.fa-reviewing { font-size: 13px; }
 
 .fa-scroll { overflow-x: auto; overflow-y: visible; margin: 0 -20px; padding: 4px 20px 12px; }
 .fa-canvas { position: relative; }
@@ -56,6 +57,8 @@ body { min-height: 100vh; }
 .fa-tag { position: absolute; top: calc(100% + 3px); right: 2px; font-size: 11px; line-height: 14px; font-weight: 400; color: var(--muted); white-space: nowrap; pointer-events: none; }
 .fa-tag > span + span { margin-left: 8px; }
 .fa-canvas .fah-pop { position: absolute; z-index: 5; max-height: min(70vh, 520px); overflow: auto; }
+.fa-canvas .fah-pop > * { flex-shrink: 0; }   /* the pop-up scrolls; its parts keep their height */
+.fah-pop .fa-sub, .fah-pop .fa-p { overflow-wrap: anywhere; }
 
 .fa-empty { max-width: 46ch; margin: 48px 0; color: var(--ink-2); }
 .fa-empty p { margin: 0 0 8px; }
@@ -91,6 +94,7 @@ body { min-height: 100vh; }
 .fa-log { flex: 1; min-height: 0; overflow: auto; padding: 20px 16px 12px; }
 .fa-log > .fah-chat + .fah-chat { margin-top: 14px; }
 .fa-log .fah-msg--you { max-width: 88%; }
+.fa-log .fah-msg, .fa-tmsg, .fah-decision__q { white-space: pre-line; overflow-wrap: anywhere; }   /* plain text: keep its line breaks; a long figure wraps */
 .fa-noanim, .fa-noanim > .fah-thread__body { animation: none !important; }
 .fa-muted { color: var(--ink-2); }
 .fa-meta { display: block; margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }

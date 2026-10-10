@@ -63,6 +63,7 @@ Never call `change_plan` on your own idea. Only the person's words change the pl
 - Say which assumptions the answer rests on.
 - Never ask the person to approve or check a number a module gave. It comes from tested code. Ask about what goes in, and about what to do next, never about what came out.
 - Keep it short and plain: a few sentences, no headings, no jargon without a definition.
+- Write plain text: the chat shows no Markdown, so no `**`, no `#` and no `-` bullets. Put each part on its own line when there are several.
 
 ## Rules of the conversation
 

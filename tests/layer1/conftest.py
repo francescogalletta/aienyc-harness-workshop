@@ -1,6 +1,5 @@
 """Every test here checks the harness at step 1 (ARCHITECTURE.md section 7)."""
 import json
-from pathlib import Path
 
 import pytest
 
@@ -8,6 +7,7 @@ from harness.config import load_config
 from harness.core import Session
 from harness.grounding import Lookup, ResearchDesk
 from harness.model import ScriptedModel
+from layer1_helpers import EXAMPLES
 
 
 @pytest.fixture(autouse=True)
@@ -21,8 +21,6 @@ def harness_at_step_1(monkeypatch, tmp_path):
     monkeypatch.delenv("HARNESS_EXAMPLE", raising=False)
 
 
-EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
-SETTLE = 10
 
 
 class FakeResearcher:
@@ -69,7 +67,3 @@ def open_session(researcher):
 def moving_brief():
     return json.loads((EXAMPLES / "moving" / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
 
-
-def say(session, text, step=None):
-    session.act("say", {"text": text, "step": step})
-    return session.settle(SETTLE)

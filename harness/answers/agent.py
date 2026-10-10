@@ -211,13 +211,22 @@ def sections(work, conn, runs_made: list[int]) -> dict:
              "goal": (brief.get("goal") or {}).get("text", ""),
              "particulars": [{key: item[key] for key in ("what", "handling", "step") if key in item}
                              for item in brief.get("particulars", [])],
-             "inputs the plan names": [{"name": item["name"], "description": item["description"]}
-                                       for item in brief.get("inputs", [])],
+             "inputs the plan names": [_plan_input(item) for item in brief.get("inputs", [])],
              "process": process, "modules": modules, "saved inputs": saved_inputs(conn),
              "notes": list_notes(conn)}
     if runs:
         found["earlier runs in this conversation"] = runs
     return found
+
+
+def _plan_input(item: dict) -> dict:
+    """A brief input for the analyst: name, description and, when the person stated it, their words,
+    so a figure they gave while the plan was made is not asked for again."""
+    shown = {"name": item["name"], "description": item["description"]}
+    origin = item.get("origin") or {}
+    if origin.get("kind") == "person" and origin.get("quote"):
+        shown["the person said"] = origin["quote"]
+    return shown
 
 
 def system_prompt(turn: Turn) -> str:

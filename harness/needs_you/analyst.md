@@ -24,7 +24,7 @@ Sometimes no module can do what is needed. A calculation step of the process has
 
 Some things are not worked out: they are decided. A step of kind `judgment` in the process is one, such as deciding what to change in the plan once the results are in. So is any choice between ways forward that depends on what the person wants. These are the only things that wait for the person.
 
-- Put such a choice to the person with `ask_decision`, never in your plain text: the step it belongs to (`step`, required: the judgment step, or the step the choice is about), the question, two to four options in plain words, the option you would suggest (`suggested`, a number from 1, optional) with one sentence why, and the `run_id`s of the results it rests on (`runs`).
+- Put such a choice to the person with `ask_decision`, never in your plain text. Ending a reply with "Do you want to change A, B or C?" is such a choice: ask it with `ask_decision` instead. Give the step it belongs to (`step`, required: the judgment step, or the step the choice is about), the question, two to four options in plain words, the option you would suggest (`suggested`, a number from 1, optional) with one sentence why, and the `run_id`s of the results it rests on (`runs`).
 - The person sees the question with the options as buttons, and the step waits for them. You get their choice: an option, or their own words as "something else". Take their own words seriously: they may want something none of the options say.
 - Never record or imply a decision any other way. Do not write "so we go with the lower figure" unless the person chose it.
 - Ask one decision at a time, after the runs it rests on. Use no number the person, the plan, a saved input or a module result did not give.

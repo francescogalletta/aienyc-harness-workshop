@@ -1,7 +1,10 @@
 """Helpers for the layer 1 tests: a small valid brief, and scripted model turns."""
 import copy
+from pathlib import Path
 
 PROPOSED = {"kind": "proposed"}
+EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
+SETTLE = 10
 
 
 def item(text, origin=None):
@@ -50,3 +53,8 @@ def looks_up(*terms):
 
 
 PLAN = {"tool_calls": [{"name": "plan_research", "arguments": {"terms": ["sinking fund"]}}]}
+
+
+def say(session, text, step=None):
+    session.act("say", {"text": text, "step": step})
+    return session.settle(SETTLE)

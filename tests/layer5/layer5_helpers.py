@@ -6,8 +6,9 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parents[1] / "layer4"))      # layer4_helpers and below
 
-from layer4_helpers import (SETTLE, act, assistant, ask, call, chat_of, events, notices, problems,  # noqa: E402,F401
-                            refused, reply, run, say, small_plan, step_of, until, write_world)
+from layer4_helpers import (ASK, SETTLE, act, assistant, ask, call, chat_of, events, notices, play,  # noqa: E402,F401
+                            point_replay_at, problems, refused, reply, run, say, scenario, small_plan, step_of, until,
+                            world_folder, write_world)
 
 from harness.grounding.research import Lookup  # noqa: E402
 from harness.model import ScriptedModel  # noqa: E402

@@ -3,8 +3,7 @@ import json
 from pathlib import Path
 
 import pytest
-from conftest import SETTLE, say
-from layer1_helpers import PLAN, asks, item, looks_up, small_brief, write_brief
+from layer1_helpers import PLAN, SETTLE, asks, item, looks_up, say, small_brief, write_brief
 
 from harness import db
 from harness.config import load_config
