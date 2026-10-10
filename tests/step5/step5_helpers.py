@@ -6,7 +6,7 @@ builders, a recording person, a running server) are reused: this file puts those
 
 The brief of `h.make_brief()` has one figure in its particulars, "Rent is fixed at 1,150 a month", so a message with a
 figure always has something to be checked against. The account files are small, written by the tests into
-`tmp_path`, except where a test says it reads the real files of `data/example/`.
+`tmp_path`, except where a test says it reads the real files of `tests/fixtures/accounts/example/`.
 """
 import json
 import sys
@@ -24,7 +24,7 @@ from harness.model import ScriptedModel                      # noqa: E402
 SESSION = h.SESSION
 DAY = h.DAY
 TODAY = DAY.isoformat()
-EXAMPLE_DATA = ROOT / "data" / "example"
+EXAMPLE_DATA = ROOT / "tests" / "fixtures" / "accounts" / "example"
 EXAMPLES = ROOT / "examples"
 
 # ---- 9.2: the adapter -------------------------------------------------------------------------------------------
@@ -268,7 +268,7 @@ def add_text(adapter, conn, folder, name, text, **options):
 
 
 def load_example(adapter, conn, which=("checking_2026.csv", "savings_2026.csv", "card_2026.csv"), session_id="loading"):
-    """The real files of data/example/: the bank files with money out negative, the card file positive."""
+    """The real files of tests/fixtures/accounts/example/: the bank files with money out negative, the card file positive."""
     imports = []
     for name in which:
         sign = "out_positive" if name.startswith("card") else "out_negative"

@@ -9,12 +9,12 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-EXAMPLE = ROOT / "data" / "example"
+EXAMPLE = ROOT / "tests" / "fixtures" / "accounts" / "example"
 FILES = ["card_2026.csv", "checking_2026.csv", "savings_2026.csv", "wedding_budget.csv"]
 
 
 def load_generator():
-    spec = importlib.util.spec_from_file_location("generate", ROOT / "data" / "generate.py")
+    spec = importlib.util.spec_from_file_location("generate", ROOT / "tests" / "fixtures" / "accounts" / "generate.py")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -45,7 +45,7 @@ def test_same_seed_gives_identical_files(tmp_path):
     gen.generate(tmp_path, tmp_path / "KEY.md")
     for name in FILES:
         assert (tmp_path / name).read_bytes() == (EXAMPLE / name).read_bytes(), name
-    assert (tmp_path / "KEY.md").read_bytes() == (ROOT / "data" / "FACILITATOR_KEY.md").read_bytes()
+    assert (tmp_path / "KEY.md").read_bytes() == (ROOT / "tests" / "fixtures" / "accounts" / "FACILITATOR_KEY.md").read_bytes()
 
 
 def test_bank_balances_reconcile():

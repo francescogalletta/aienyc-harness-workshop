@@ -12,14 +12,11 @@ The harness itself knows nothing about weddings. The example lives in
 | Path | What it is |
 | --- | --- |
 | `SPEC.md` | The contract every build step follows |
-| `BUILD_PLAN.md` | The steps, the proof for each, and what is done so far |
-| `prompts/` | One build prompt per step, for any coding agent |
+| `workshop/` | The workshop: `BUILD_PLAN.md` (the steps and the proof for each) and `prompts/` (one build prompt per step, for any coding agent). Optional: the harness never uses it |
 | `harness/` | The harness, as built so far |
-| `tests/` | Acceptance tests per step, plus tests for the example data |
-| `data/` | Older example data, its generator and key, kept as the source adapter's test fixture |
+| `tests/` | Acceptance tests per step, plus tests for the account-file fixture in `tests/fixtures/accounts/` (older example data, its generator and key, which the source adapter's tests read) |
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
-| `brief/` | The domain brief, once you have run the interview |
-| `modules/` | The tested calculation modules, once you have run the build |
+| `my/` | Yours: `my/brief/` (the domain brief, once you have run the interview), `my/modules/` (the tested calculation modules, once you have run the build) and `my/var/` (the database and other working files, never committed) |
 | `examples/` | Two complete seeded examples, `wedding` and `moving`: brief, modules, scenarios and, for the wedding, account files |
 
 ## Set up
@@ -126,8 +123,8 @@ up as you talk:
 - **The plan**: a diagram of the steps. Click one to see its method and formula.
 
 When the harness proposes a brief, press **Accept brief** or **Ask for
-changes**. The brief is saved as `brief/domain_brief.md` and
-`brief/domain_brief.json`. If a brief already exists, the page opens on it.
+changes**. The brief is saved as `my/brief/domain_brief.md` and
+`my/brief/domain_brief.json`. If a brief already exists, the page opens on it.
 
 Everything asked, answered and looked up is in the database:
 `uv run python -m harness events`.
@@ -190,7 +187,7 @@ Type `/quit` to stop.
 
 Code changes in one way only: `uv run python -m harness build --rebuild NAME`.
 If a module's files change any other way, it will not run until it is
-rebuilt. Commit `modules/` together with the brief. A fresh clone has the
+rebuilt. Commit `my/modules/` together with the brief. A fresh clone has the
 folders but an empty database, so run `uv run python -m harness adopt` once:
 it shows each module's worked examples, asks you to accept them, runs the
 tests, and registers only the modules that pass.
@@ -259,6 +256,10 @@ HARNESS_EXAMPLE=moving uv run python -m harness ask
 uv run python -m harness replay moving
 ```
 
+The first time, the harness copies the example to `my/var/examples/<name>/` and
+works on the copy, so `examples/` is never changed; delete that folder to start
+the example again.
+
 `examples/README.md` says how they were made and checked, how to write a
 scenario and how to add an example. Their worked examples were recomputed by
 an AI agent, not yet by a person.
@@ -268,9 +269,9 @@ an AI agent, not yet by a person.
 Every step has two branches. `step-N-start` holds the contract, tests and
 prompt for step N, before it is built. `step-N` is the repository at the end
 of step N. To rebuild a step with your own coding agent, check out its start
-branch and paste in the matching prompt from `prompts/`:
+branch and paste in the matching prompt from `workshop/prompts/`:
 
 ```
-git checkout step-1-start     # then run prompts/step1_shared_domain.md
+git checkout step-1-start     # then run workshop/prompts/step1_shared_domain.md
 git checkout step-1           # the finished step 1, to compare or catch up
 ```

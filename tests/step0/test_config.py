@@ -9,7 +9,7 @@ def test_defaults(monkeypatch):
     monkeypatch.delenv("HARNESS_DB", raising=False)
     monkeypatch.delenv("HARNESS_EXAMPLE", raising=False)
     config = load_config()
-    assert config.db_path == Path("var/harness.db")
+    assert config.db_path == Path("my/var/harness.db")
     assert config.example is None
     assert config.model_provider == "auto"
     assert config.model_name == "claude-sonnet-5-5"
@@ -34,3 +34,24 @@ def test_config_is_frozen():
     except Exception:
         return
     raise AssertionError("Config must be a frozen dataclass")
+
+
+def test_the_defaults_are_under_my(monkeypatch):
+    """SPEC 3.1, 4.1, 5.4: the database, the brief and the modules default to places under my/."""
+    for name in ("HARNESS_DB", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR", "HARNESS_EXAMPLE"):
+        monkeypatch.delenv(name, raising=False)
+    config = load_config()
+    assert (config.db_path, config.brief_dir, config.modules_dir) == (
+        Path("my/var/harness.db"), Path("my/brief"), Path("my/modules"))
+
+
+def test_the_example_copies_folder_is_under_my_var():
+    """SPEC 6.2."""
+    from harness.config import EXAMPLE_COPIES
+    assert EXAMPLE_COPIES == Path("my/var/examples")
+
+
+def test_the_replay_scratch_folder_is_under_my_var():
+    """SPEC 6.5."""
+    from harness.replay import REPLAY_DIR
+    assert REPLAY_DIR == "my/var/replay"

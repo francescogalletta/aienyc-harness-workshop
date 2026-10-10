@@ -37,7 +37,7 @@ Then build what sections 6 and 7 describe:
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `data/`, `prompts/`,
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`,
   `reference/` or `examples/`, or the given files: `harness/ui/evidence.html`
   and `harness/ui/grounding.html`, and the earlier given files. The only
   edits allowed in earlier files are the ones sections 6 and 7 specify. If

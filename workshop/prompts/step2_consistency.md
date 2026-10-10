@@ -37,7 +37,7 @@ Then build what section 5 describes:
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `data/`, `prompts/` or
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or
   `reference/`, or the given files: the five `.md` files in `harness/calc/`
   (`spec_writer.md`, `example_writer.md`, `example_helper.md`, `module_writer.md`,
   `analyst.md`),

@@ -150,10 +150,10 @@ def one_aside(aside, conn, brief):
 
 @pytest.fixture
 def replay_scratch(monkeypatch):
-    """Replay works in var/replay of the working folder. Run from the repository root, and take away what the
+    """Replay works in my/var/replay of the working folder. Run from the repository root, and take away what the
     test leaves behind."""
     monkeypatch.chdir(ROOT)
-    folder = ROOT / "var" / "replay"
+    folder = ROOT / "my" / "var" / "replay"
     existed = folder.exists()
     before = set(folder.iterdir()) if existed else set()
     yield folder

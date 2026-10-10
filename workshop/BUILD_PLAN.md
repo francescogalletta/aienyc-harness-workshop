@@ -6,7 +6,7 @@ prove the change on the same example.
 
 Every step has the same four parts:
 
-- **Prompt**: the file in `prompts/` that a coding agent runs.
+- **Prompt**: the file in `workshop/prompts/` that a coding agent runs.
 - **Builds**: what the prompt adds to `harness/`.
 - **Proof**: a before and after on the example that an audience can see.
 - **Done when**: a test command that passes. Each step has two branches:
@@ -46,7 +46,7 @@ Each step is prepared in this order, and the order matters:
 
 1. Fix that step's section of `SPEC.md`.
 2. Write its acceptance tests in `tests/stepN/`.
-3. Write its prompt in `prompts/`.
+3. Write its prompt in `workshop/prompts/`.
 4. Hand the prompt to a coding agent that has seen nothing else, and check
    that it reaches green tests on its own. If it cannot, the prompt or the
    contract is at fault, not the agent.
@@ -57,7 +57,7 @@ real on the example. Its output, the domain brief, decides which
 calculations step 2 has to provide.
 
 Step 2 leaves one task for a person: running `build` for real on that brief,
-checking each worked example by hand, and committing `modules/` with the
+checking each worked example by hand, and committing `my/modules/` with the
 brief. Source adapters are not part of step 2; they came in step 5.
 
 ## Running without a live model

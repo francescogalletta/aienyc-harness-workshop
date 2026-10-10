@@ -6,9 +6,9 @@ from step5_helpers import EXAMPLE_DATA, ROOT, h, s3
 
 SPANISH = "Fecha;Concepto;Importe;Saldo\n25/03/2026;Shop;-1.234,56;5.000,00\n26/03/2026;Pay;2.000,00;7.000,00\n"
 BANK = "Date,Description,Amount,Balance\n2026-03-25,Shop,-5.00,95.00\n2026-03-26,Pay,10.00,105.00\n"
-CHECKING = "data/example/checking_2026.csv"
-SAVINGS = "data/example/savings_2026.csv"
-CARD = "data/example/card_2026.csv"
+CHECKING = "tests/fixtures/accounts/example/checking_2026.csv"
+SAVINGS = "tests/fixtures/accounts/example/savings_2026.csv"
+CARD = "tests/fixtures/accounts/example/card_2026.csv"
 
 
 def cli(*args, typed=""):
@@ -415,8 +415,13 @@ def example_with_data(tmp_path, files=None):
     return tmp_path / "work"
 
 
+def stderr_of(result):
+    """What the command said on standard error, without the line that tells the example was copied (SPEC 6.2)."""
+    return "".join(line for line in result.stderr.splitlines(keepends=True) if not line.startswith("Copied the example"))
+
+
 def example_events(workdir):
-    return s3.stored_events(workdir / "var" / "examples" / "demo" / "harness.db")
+    return s3.stored_events(workdir / "my" / "var" / "examples" / "demo" / "harness.db")
 
 
 def test_in_example_mode_with_no_file_every_data_file_is_loaded_in_name_order(tmp_path):
@@ -431,7 +436,7 @@ def test_in_example_mode_with_no_file_every_data_file_is_loaded_in_name_order(tm
 def test_the_example_data_goes_into_the_database_of_the_example(tmp_path):
     work = example_with_data(tmp_path)
     run_in_example(work, "data", "add", "--sign", "negative")
-    rows = s3.sql(work / "var" / "examples" / "demo" / "harness.db", "SELECT account FROM imports ORDER BY id")
+    rows = s3.sql(work / "my" / "var" / "examples" / "demo" / "harness.db", "SELECT account FROM imports ORDER BY id")
     assert [r["account"] for r in rows] == ["a_bank", "b_other"]
     assert [e["payload"]["name"] for e in example_events(work) if e["kind"] == "data.imported"] == [
         "a_bank.csv", "b_other.csv"]
@@ -450,14 +455,14 @@ def test_an_example_without_account_files_says_so(tmp_path, files):
     work = example_with_data(tmp_path, files)
     result = run_in_example(work, "data", "add", "--sign", "negative")
     assert result.returncode == 1 and result.stdout == ""
-    assert result.stderr.strip() == s5.NO_EXAMPLE_DATA.format(name="demo", folder="examples/demo/data")
+    assert stderr_of(result).strip() == s5.NO_EXAMPLE_DATA.format(name="demo", folder="examples/demo/data")
 
 
 def test_an_example_with_no_data_folder_says_so(tmp_path):
     work = tmp_path / "work"
     s3.make_example(work / "examples", "demo")
     result = run_in_example(work, "data", "add", "--sign", "negative")
-    assert result.returncode == 1 and result.stderr.strip() == s5.NO_EXAMPLE_DATA.format(
+    assert result.returncode == 1 and stderr_of(result).strip() == s5.NO_EXAMPLE_DATA.format(
         name="demo", folder="examples/demo/data")
 
 
@@ -472,8 +477,8 @@ def test_in_example_mode_a_file_named_on_the_command_is_loaded_instead(tmp_path)
 def test_account_with_the_example_data_of_more_than_one_file_is_an_error(tmp_path):
     work = example_with_data(tmp_path)
     result = run_in_example(work, "data", "add", "--sign", "negative", "--account", "mine")
-    assert result.returncode == 1 and result.stdout == "" and result.stderr.strip() == s5.ONE_ACCOUNT
-    if (work / "var" / "examples" / "demo" / "harness.db").exists():
+    assert result.returncode == 1 and result.stdout == "" and stderr_of(result).strip() == s5.ONE_ACCOUNT
+    if (work / "my" / "var" / "examples" / "demo" / "harness.db").exists():
         assert not any(e["kind"].startswith("data.") for e in example_events(work))
 
 

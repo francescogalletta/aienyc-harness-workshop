@@ -1,4 +1,4 @@
-"""SPEC 9.2: the three account files of data/example/ load as they are. The figures are those of data/FACILITATOR_KEY.md,
+"""SPEC 9.2: the three account files of tests/fixtures/accounts/example/ load as they are. The figures are those of tests/fixtures/accounts/FACILITATOR_KEY.md,
 which the file contents also give by the rules of 9.2 (counts, balances, the rows left out)."""
 from decimal import Decimal
 

@@ -21,7 +21,7 @@ Read these first, in this order:
    given files as well: `harness/calc/verifier.md` (the instructions of the
    verifier), `harness/calc/analyst.md` (revised for this step: it now tells
    the agent how to raise a finding), `harness/ui/evidence.html` (the page you
-   will serve, with its new Data view), `data/example/` (account files in two
+   will serve, with its new Data view), `tests/fixtures/accounts/example/` (account files in two
    formats, which the adapter must read as they are) and `examples/` (the
    wedding example now has account files in `examples/wedding/data/` and
    scenarios that load them).
@@ -53,7 +53,7 @@ Then build what section 9 describes:
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `data/`, `prompts/`,
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`,
   `reference/` or `examples/`, or the given files: `harness/calc/verifier.md`,
   `harness/calc/analyst.md`, `harness/ui/evidence.html`, and the earlier given
   files. The only edits allowed in earlier files are the ones section 9

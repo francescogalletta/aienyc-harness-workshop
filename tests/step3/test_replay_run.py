@@ -15,7 +15,7 @@ SCENARIO_KEYS = ["scenario", "passed", "checks", "error", "folder"]
 
 @pytest.fixture(autouse=True)
 def scratch(replay_scratch):
-    """Every test here runs from the repository root and has what it leaves in var/replay taken away."""
+    """Every test here runs from the repository root and has what it leaves in my/var/replay taken away."""
     return replay_scratch
 
 
@@ -101,14 +101,14 @@ def test_the_example_is_left_as_it_was(replay, example):
 def test_the_folder_is_made_in_var_replay_of_the_working_folder(replay, example, scratch):
     result = run(replay, example, keep=True)
     folder = Path(result["folder"])
-    assert folder.is_dir() and folder.resolve().parent == (ROOT / "var" / "replay").resolve()
+    assert folder.is_dir() and folder.resolve().parent == (ROOT / "my" / "var" / "replay").resolve()
     assert folder.name.startswith("savings-upfront-") and len(folder.name) > len("savings-upfront-")
     assert folder in set(scratch.iterdir()) or folder.resolve() in {p.resolve() for p in scratch.iterdir()}
 
 
 def test_var_replay_is_made_when_it_is_not_there(replay, example, scratch):
     if scratch.exists():
-        pytest.skip("var/replay is already there, so nothing shows whether it would be made")
+        pytest.skip("my/var/replay is already there, so nothing shows whether it would be made")
     result = run(replay, example, keep=True)
     assert scratch.is_dir() and Path(result["folder"]).parent.resolve() == scratch.resolve()
 

@@ -36,7 +36,7 @@ OUTCOMES = ("built", "reused", "kept", "not_built")
 DECISION_KINDS = ("assumptions", "judgment", "build")       # what `expect.decisions` may name; a finding is checked by `findings`
 SNAKE = re.compile(r"^[a-z][a-z0-9_]*$")
 DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-REPLAY_DIR = "var/replay"
+REPLAY_DIR = "my/var/replay"
 
 
 def _is_date(value) -> bool:

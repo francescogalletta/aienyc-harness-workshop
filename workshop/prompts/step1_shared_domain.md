@@ -33,7 +33,7 @@ Then build what section 4 describes:
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `data/`, `prompts/` or
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or
   `reference/`, or the given files: the three `.md` files in
   `harness/grounding/` and `harness/ui/grounding.html`. If you believe one of them is wrong,
   stop and say so instead of changing it.

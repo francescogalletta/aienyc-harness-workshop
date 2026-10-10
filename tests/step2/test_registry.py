@@ -22,7 +22,7 @@ def test_the_modules_folder_setting(monkeypatch, tmp_path):
 
     assert load_config().modules_dir == tmp_path / "modules"
     monkeypatch.delenv("HARNESS_MODULES_DIR")
-    assert load_config().modules_dir == Path("modules")
+    assert load_config().modules_dir == Path("my/modules")
 
 
 def test_module_dir_follows_the_setting_at_the_time_of_the_call(registry, monkeypatch, tmp_path):

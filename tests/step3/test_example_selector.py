@@ -29,7 +29,7 @@ def test_without_an_example_the_defaults_are_the_old_ones(plain):
     config = load_config()
     assert config.example is None
     assert (config.db_path, config.brief_dir, config.modules_dir) == (
-        Path("var/harness.db"), Path("brief"), Path("modules"))
+        Path("my/var/harness.db"), Path("my/brief"), Path("my/modules"))
 
 
 def test_an_example_changes_the_three_defaults(plain, monkeypatch):
@@ -37,9 +37,9 @@ def test_an_example_changes_the_three_defaults(plain, monkeypatch):
     monkeypatch.setenv("HARNESS_EXAMPLE", "moving")
     config = load_config()
     assert config.example == "moving"
-    assert config.db_path == Path("var/examples/moving/harness.db")
-    assert config.brief_dir == Path("examples/moving/brief")
-    assert config.modules_dir == Path("examples/moving/modules")
+    assert config.db_path == Path("my/var/examples/moving/harness.db")
+    assert config.brief_dir == Path("my/var/examples/moving/brief")
+    assert config.modules_dir == Path("my/var/examples/moving/modules")
     assert isinstance(config.db_path, Path) and isinstance(config.brief_dir, Path)
 
 
@@ -53,8 +53,8 @@ def test_a_variable_set_explicitly_still_wins_and_only_for_its_own_field(plain, 
     monkeypatch.setenv(setting, value)
     config = load_config()
     assert getattr(config, field) == Path(value)
-    expected = {"db_path": Path("var/examples/moving/harness.db"), "brief_dir": Path("examples/moving/brief"),
-                "modules_dir": Path("examples/moving/modules")}
+    expected = {"db_path": Path("my/var/examples/moving/harness.db"), "brief_dir": Path("my/var/examples/moving/brief"),
+                "modules_dir": Path("my/var/examples/moving/modules")}
     for other, default in expected.items():
         if other != field:
             assert getattr(config, other) == default
@@ -76,15 +76,15 @@ def test_an_empty_variable_counts_as_unset(plain, monkeypatch, setting):
     monkeypatch.setenv("HARNESS_EXAMPLE", "moving")
     monkeypatch.setenv(setting, "")
     config = load_config()
-    assert config.db_path == Path("var/examples/moving/harness.db") and config.modules_dir == Path("examples/moving/modules")
-    assert config.brief_dir == Path("examples/moving/brief")
+    assert config.db_path == Path("my/var/examples/moving/harness.db") and config.modules_dir == Path("my/var/examples/moving/modules")
+    assert config.brief_dir == Path("my/var/examples/moving/brief")
 
 
 def test_an_empty_example_counts_as_unset(plain, monkeypatch):
     from harness.config import load_config
     monkeypatch.setenv("HARNESS_EXAMPLE", "")
     config = load_config()
-    assert config.example is None and config.db_path == Path("var/harness.db")
+    assert config.example is None and config.db_path == Path("my/var/harness.db")
 
 
 @pytest.mark.parametrize("name", ["no such example", "Bad-Name", "../up", "9lives"])
@@ -93,17 +93,17 @@ def test_load_config_does_not_check_the_name(plain, monkeypatch, name):
     monkeypatch.setenv("HARNESS_EXAMPLE", name)
     config = load_config()
     assert config.example == name
-    assert config.brief_dir == Path("examples") / name / "brief"
+    assert config.brief_dir == Path("my/var/examples") / name / "brief"
 
 
 def test_the_example_is_read_on_every_call(plain, monkeypatch):
     from harness.config import load_config
     monkeypatch.setenv("HARNESS_EXAMPLE", "one")
-    assert load_config().modules_dir == Path("examples/one/modules")
+    assert load_config().modules_dir == Path("my/var/examples/one/modules")
     monkeypatch.setenv("HARNESS_EXAMPLE", "two")
-    assert load_config().modules_dir == Path("examples/two/modules")
+    assert load_config().modules_dir == Path("my/var/examples/two/modules")
     monkeypatch.delenv("HARNESS_EXAMPLE")
-    assert load_config().modules_dir == Path("modules")
+    assert load_config().modules_dir == Path("my/modules")
 
 
 def test_other_settings_are_not_touched_by_an_example(plain, monkeypatch):
@@ -139,7 +139,7 @@ def test_an_unknown_example_is_refused_with_the_known_names(cwd):
     assert result.stderr.strip() == UNKNOWN_EXAMPLE.format(name="nope", names="moving, wedding")
     assert result.stderr.strip() == "There is no example called 'nope'. The examples are: moving, wedding."
     assert result.stdout == "" and "Traceback" not in result.stderr
-    assert not (cwd / "var").exists()                                 # nothing ran
+    assert not (cwd / "my").exists()                                  # nothing ran
 
 
 @pytest.mark.parametrize("args", [["check"], ["events"], ["modules"], ["adopt"], ["build"], ["ask", "Hi"],
@@ -194,20 +194,20 @@ def test_an_empty_examples_folder_gives_none(tmp_path):
 def test_a_known_example_runs_the_command_and_keeps_its_database_under_var(cwd):
     result = selected(cwd, ["events"], name="moving")
     assert result.returncode == 0, result.stderr
-    assert (cwd / "var" / "examples" / "moving" / "harness.db").is_file()
-    assert not (cwd / "var" / "harness.db").exists()
+    assert (cwd / "my" / "var" / "examples" / "moving" / "harness.db").is_file()
+    assert not (cwd / "my" / "var" / "harness.db").exists()
 
 
 def test_an_empty_example_name_means_no_example(cwd):
     result = selected(cwd, ["events"], name="")
     assert result.returncode == 0, result.stderr
-    assert (cwd / "var" / "harness.db").is_file()
+    assert (cwd / "my" / "var" / "harness.db").is_file()
 
 
 def test_an_explicit_database_wins_over_the_example(cwd, tmp_path):
     result = selected(cwd, ["events"], name="moving", HARNESS_DB=tmp_path / "mine.db")
     assert result.returncode == 0, result.stderr
-    assert (tmp_path / "mine.db").is_file() and not (cwd / "var").exists()
+    assert (tmp_path / "mine.db").is_file() and not (cwd / "my").exists()
 
 
 # ---- playing with an example --------------------------------------------------------------------------------------
@@ -220,7 +220,7 @@ def test_adopt_then_ask_play_with_the_example_and_keep_the_database(tmp_path, wr
     adopted = selected(cwd, ["adopt"], name="savings", typed_text=typed("yes"))
     assert adopted.returncode == 0, adopted.stdout + adopted.stderr
     assert adopted.stdout.splitlines()[-1] == s3.ALL_ADOPTED
-    database = cwd / "var" / "examples" / "savings" / "harness.db"
+    database = cwd / "my" / "var" / "examples" / "savings" / "harness.db"
     assert database.is_file()
 
     again = selected(cwd, ["adopt"], name="savings")                   # the database is kept between runs
@@ -239,4 +239,6 @@ def test_adopt_then_ask_play_with_the_example_and_keep_the_database(tmp_path, wr
     connection.close()
 
     after = {p.relative_to(folder): p.read_bytes() for p in sorted(folder.rglob("*")) if p.is_file()}
-    assert after == before                                              # files are not copied, and none were written
+    assert after == before                                              # nothing was written into the example
+    copy = cwd / "my" / "var" / "examples" / "savings"
+    assert (copy / "brief").is_dir() and (copy / "modules").is_dir()   # the work went on in a copy (6.2)

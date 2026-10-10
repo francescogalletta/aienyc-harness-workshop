@@ -12,21 +12,21 @@ examples/<name>/
   data/<file>                 (step 5) optional: account files, one delimited text file of transactions each
 ```
 
-The top-level `data/` folder is not an example. It holds older example data that
+`tests/fixtures/accounts/` is not an example. It holds older example data that
 was made before the brief existed and does not match the wedding story; it stays
 because the adapter's tests read it.
 
 | Example | Domain | Modules | Worked examples |
 | --- | --- | --- | --- |
-| `wedding` | Paying a wedding on time from income, savings and a family gift. The same brief as `brief/`, and three invented account files in `data/`. | 6: the five calculation steps `s1`, `s2`, `s3`, `s5`, `s6`, and `cost_per_guest_all_in`, a step the agent asked for in a conversation and that is not in the brief | 24 |
+| `wedding` | Paying a wedding on time from income, savings and a family gift. The same brief as the one the first real interview wrote, and three invented account files in `data/`. | 6: the five calculation steps `s1`, `s2`, `s3`, `s5`, `s6`, and `cost_per_guest_all_in`, a step the agent asked for in a conversation and that is not in the brief | 24 |
 | `moving` | Saving for a move to another city: deposit, van hire, months of overlapping rent. | 3: `m1`, `m2`, `m3` | 13 |
 
 Nothing under `harness/` names an example. They are data.
 
 ## How they were made, and how far to trust them
 
-**Wedding.** The brief is a byte-for-byte copy of `brief/` as it was when
-the example was made. The modules were built by the real pipeline
+**Wedding.** The brief is a byte-for-byte copy of the brief the first real
+run of the interview wrote. The modules were built by the real pipeline
 (`python -m harness build`) in a live run with a real model: the model wrote
 each plan, made-up examples and code, and the harness ran the tests. In that
 run the worked examples were accepted without being checked.
@@ -72,7 +72,10 @@ true of the person adopting; a person should still go through every
 ## Play with one
 
 `HARNESS_EXAMPLE=<name>` points the harness at the example: its brief, its
-modules, and a database of its own under `var/examples/<name>/`.
+modules, and a database of its own. The harness never writes into
+`examples/`: the first time, it copies the example's `brief/` and `modules/` to
+`my/var/examples/<name>/` and works on the copy there. Delete that folder to
+start the example again.
 
 ```
 HARNESS_EXAMPLE=moving uv run python -m harness adopt     # once: register the modules
@@ -88,13 +91,13 @@ money going out: `negative` for `checking.csv` and `savings.csv`, `positive` for
 
 `adopt` shows each module's worked examples and asks you to type `yes`. Then
 it runs their tests and registers the ones that pass. The database is kept
-between runs. Files are not copied: a `build` with an example set writes
-into `examples/`, and git shows it.
+between runs, with the copy, under `my/var/examples/`. A `build` with an example
+set changes the copy, never `examples/`.
 
 ## Replay
 
 A scenario is a scripted person. `replay` runs it against the configured
-model, in a scratch folder under `var/replay/`, and checks module runs and
+model, in a scratch folder under `my/var/replay/`, and checks module runs and
 numbers, never wording.
 
 ```

@@ -1,4 +1,4 @@
-"""SPEC 9.4 with the real files of data/example/. The spec states the money out of all accounts over the last three full
+"""SPEC 9.4 with the real files of tests/fixtures/accounts/example/. The spec states the money out of all accounts over the last three full
 months (4132.31, 4 transactions left out). The other figures are worked out from the files by the rules of 9.2 and 9.4, with
 the files loaded in the order checking, savings, card."""
 import pytest

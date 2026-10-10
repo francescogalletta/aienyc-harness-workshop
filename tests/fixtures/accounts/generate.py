@@ -6,8 +6,8 @@ has: bank exports in two different formats, and a wedding budget kept by
 hand. The mess is deliberate, and every planted quirk is listed in
 FACILITATOR_KEY.md, which this script also writes.
 
-    python data/generate.py            # rewrite data/example and the key
-    python data/generate.py --out DIR  # write somewhere else
+    python tests/fixtures/accounts/generate.py            # rewrite the example files and the key
+    python tests/fixtures/accounts/generate.py --out DIR  # write somewhere else
 
 The same seed always gives byte-identical files (tests/data checks this).
 Standard library only.
@@ -280,7 +280,7 @@ def facilitator_key(card_rows, card_totals, checking, savings) -> str:
 
 This older example data was made before the brief existed and does not match the wedding story; it is kept as the source adapter's test fixture, which the tests read (the wedding example's own account files and key are in `examples/wedding/data/`).
 
-Written by `data/generate.py` (seed {SEED}). Everything is invented.
+Written by `tests/fixtures/accounts/generate.py` (seed {SEED}). Everything is invented.
 Remove this file from any copy you hand to attendees if you want them to
 find these for themselves.
 

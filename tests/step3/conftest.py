@@ -101,10 +101,10 @@ def person():
 
 @pytest.fixture
 def replay_scratch(monkeypatch):
-    """Replay works in var/replay of the working folder. Run from the repository root, and take away what the
-    test leaves behind (the folders it kept, and var/replay itself when it made it)."""
+    """Replay works in my/var/replay of the working folder. Run from the repository root, and take away what the
+    test leaves behind (the folders it kept, and my/var/replay itself when it made it)."""
     monkeypatch.chdir(ROOT)
-    folder = ROOT / "var" / "replay"
+    folder = ROOT / "my" / "var" / "replay"
     existed = folder.exists()
     before = set(folder.iterdir()) if existed else set()
     yield folder

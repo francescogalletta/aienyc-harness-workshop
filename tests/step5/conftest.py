@@ -96,7 +96,7 @@ def installed(conn):
 
 @pytest.fixture
 def example_loaded(adapter, conn):
-    """The three real account files of data/example/ loaded (bank files money out negative, card positive)."""
+    """The three real account files of tests/fixtures/accounts/example/ loaded (bank files money out negative, card positive)."""
     return s5.load_example(adapter, conn)
 
 
@@ -133,10 +133,10 @@ def talk(agent, conn, brief, installed):
 
 @pytest.fixture
 def replay_scratch(monkeypatch):
-    """Replay works in var/replay of the working folder. Run from the repository root, and take away what the test
+    """Replay works in my/var/replay of the working folder. Run from the repository root, and take away what the test
     leaves behind."""
     monkeypatch.chdir(ROOT)
-    folder = ROOT / "var" / "replay"
+    folder = ROOT / "my" / "var" / "replay"
     existed = folder.exists()
     before = set(folder.iterdir()) if existed else set()
     yield folder

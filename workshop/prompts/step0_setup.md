@@ -26,8 +26,8 @@ Then build what section 3 of `SPEC.md` describes, under `harness/`:
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, anything under `data/`, or
-  anything under `prompts/`. If you believe one of them is wrong, stop and
+- Do not edit `SPEC.md`, anything under `tests/`, or
+  anything under `workshop/`. If you believe one of them is wrong, stop and
   say so instead of changing it.
 - Build only step 0. Do not start on anything in section 4 of `SPEC.md`.
 - Use only the Python standard library. The `anthropic` package may be

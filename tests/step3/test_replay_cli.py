@@ -182,7 +182,7 @@ def test_without_keep_nothing_stays(example, replay_cli, tmp_path):
     example()
     result = replay_cli("savings")
     assert "kept:" not in result.stdout and "open it with" not in result.stdout
-    assert not (tmp_path / "var" / "replay").exists() or list((tmp_path / "var" / "replay").iterdir()) == []
+    assert not (tmp_path / "my" / "var" / "replay").exists() or list((tmp_path / "my" / "var" / "replay").iterdir()) == []
 
 
 # ---- what is refused ----------------------------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ def test_an_unknown_example(example, replay_cli):
 def test_an_unknown_example_is_refused_before_any_scenario_runs(example, replay_cli, tmp_path):
     example()
     replay_cli("nope")
-    assert not (tmp_path / "var" / "replay").exists()
+    assert not (tmp_path / "my" / "var" / "replay").exists()
 
 
 def test_a_brief_that_is_still_a_draft(example, replay_cli, save_confirmed_brief):
@@ -239,7 +239,7 @@ def test_every_problem_of_the_scenarios_is_printed_one_per_line_before_any_runs(
     assert problems[0] == "a_first.json: lines must be a non-empty list of non-empty strings"
     assert problems[1].startswith("b_second.json: not valid JSON: ")
     assert problems[2] == "c_third.json: today must be a date written YYYY-MM-DD" and len(problems) == 3
-    assert not (tmp_path / "var" / "replay").exists()
+    assert not (tmp_path / "my" / "var" / "replay").exists()
 
 
 def test_the_scenarios_are_checked_against_the_brief_of_the_example(example, replay_cli):
