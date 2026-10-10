@@ -17,11 +17,25 @@ along best.
 (`N-build`) and **the end of step N** (`N-done`). A fresh clone is `5-done`,
 the finished harness.
 
-- `N-done`: `SPEC.md`, code, tests and examples exactly as they are when
-  step N is complete, with every later fix that applies to them.
-- `N-build`: `N-1-done`, plus step N's contract, tests and given files.
-  Step N's tests fail; the earlier steps' tests pass (with the exceptions
-  the manifest lists, 4.3). `0-build` has no harness code at all.
+- `N-done`: today's `SPEC.md`; the tests of steps 0 to N (the finished
+  tree's `tests/step0/` to `tests/step<N>/`, with the fixtures and shared
+  test support); and the harness code, the given files and the examples
+  exactly as they are when step N is complete, with every later fix that
+  applies to them.
+- `N-build`: `N-1-done`, plus step N's tests, given files and starting
+  files. Step N's tests fail; the tests of steps 0 to N-1 pass. `0-build`
+  has no harness code at all.
+
+Two rules of the harness's tests make this small:
+
+1. **A test of `tests/step<N>/` is true of the harness at the end of step N
+   and at the end of every later step.** So the tests are stored once, in the
+   finished tree, and a state simply has the test folders up to its step.
+   No state keeps an older version of a test. A test that breaks the rule
+   is fixed (or deleted) on the finished tree; `check` tells which.
+2. **`SPEC.md` is one file for every state**: today's. Each build prompt
+   says in one sentence that passages marked "(step M)" for a later step do
+   not apply yet.
 
 It only copies, removes and sets aside files under the **managed roots**:
 `SPEC.md`, `harness/`, `tests/`, `examples/` and `reference/`. It never calls
@@ -90,74 +104,68 @@ JSON, UTF-8, written with `json.dumps(value, indent=2, ensure_ascii=False) + "\n
           "built":   ["<file>", ...],      new code the person writes in this step
           "start":   ["<file>", ...],      new code given in a starting form; the person changes it in this step
           "changed": ["<file>", ...],      code of an earlier step that the person changes in this step
-          "given":   ["<file or folder/>", ...],   contract, tests, given files and data this step installs, new or revised
-          "red_at_start": {"<test file>": "<one-line reason>", ...}}
+          "given":   ["<file or folder/>", ...]}   given files, data and examples this step installs, new or revised
 ```
 
 - An entry ending in `/` is a folder: it stands for every known path below
   it. In `given`, it means "make this folder match `N-done`": add, replace
   and remove known paths below it.
 - `built`, `start` and `changed` hold files only, all under `harness/`.
-- `always`: test folders that hold in every state (the account-file
-  fixture's tests). They are run with the earlier steps' tests.
-- `red_at_start`: earlier-step test files (not under `tests/step<N>/`) that
-  may fail in `N-build`, beyond the test files `given` lists (which are
-  never run in `N-build`). Each needs a reason, for example "uses
-  `ASK_DECISION_SCHEMA` from `step2_helpers.py`, which step 5 changed". It
-  starts empty and is filled only from what `check` shows.
+- `tests` is the step's test folder. It is installed by the step along with
+  `given`, so `given` never lists tests or (after step 0) `SPEC.md`.
+- Step 0's `given` also holds what every state has and no step changes:
+  `SPEC.md`, `tests/data/` and `tests/fixtures/` (the account-file fixture).
+- `always`: test folders that hold in every state. They are run with the
+  earlier steps' tests.
 
 ### 4.2 Rules (checked by `check`, section 9.1)
 
 1. Every known path is **introduced** by exactly one step, through one of
-   its `built`, `start` or `given` entries (a `given` folder counts). A
-   later step may list it again: in `given` when the step revises it, in
-   `changed` when the person changes it. `SPEC.md` is introduced by step 0
-   and revised by every later step. "Introduced by step K" means: absent in
-   every state before `K-build`; absent in `K-build` too when `built`;
-   present in `K-done`.
+   its `built`, `start` or `given` entries, or through its `tests` folder.
+   A later step may list it again: in `given` when the step revises it, in
+   `changed` when the person changes it. "Introduced by step K" means:
+   absent in every state before `K-build`; absent in `K-build` too when
+   `built`; present in `K-done`.
 2. A `changed` path of step K was introduced by an earlier step through
    `built` or `start`. No code path is in any step's `given`.
 3. Between `K-1-done` and `K-done` (for K = 0, between the empty tree and
    `0-done`), every path whose content differs is in `built`, `start`,
-   `changed` or `given` of step K. Each file entry of those lists does
-   differ, and each `given` folder has at least one path that differs. So
-   the manifest explains every change, and lists nothing stale.
-4. Every `built` path of step N appears in the text of that step's
-   prompt, as written, or through its folder written with a final `/`
-   (step 0's prompt names `harness/model/`). Today this fails for step 2:
-   its prompt does not name `harness/calc/added.py` or
-   `harness/migrations/0005_added_steps.sql`, so the prompt is fixed.
+   `changed`, `given` or the `tests` folder of step K. Each file entry of
+   those lists does differ, and each `given` folder has at least one path
+   that differs. So the manifest explains every change, and lists nothing
+   stale.
+4. Each build prompt lists exactly what the manifest says, under three fixed
+   headings, one bullet per path, written "- `path` (comment)":
+   `Build these files (new):` is `built`;
+   `Change these files (they exist already):` is `start` and `changed`
+   (the section is left out when both are empty);
+   `Given files (do not edit):` is `SPEC.md`, the `tests` folder and
+   `given`. It also holds the sentence of decision 17.
 
-### 4.3 Initial content
+### 4.3 Content
 
 Derived from the history (`git diff --name-status` between the step ends
 of section 10) and from the files tables of `SPEC.md` sections 5 and 7 to 9.
 Fixes forward-ported to earlier states (section 10.3) make a file the same
-in two states, so they appear in no list. `SPEC.md` is in every step's
-`given`.
+in two states, so they appear in no list.
 
-| Step | Prompt | Built by the person | Given in a starting form (`start`) | Changed by the person | Given (installed by the step) |
+| Step | Prompt | Built by the person | Given in a starting form (`start`) | Changed by the person | Given (besides SPEC.md and the step's tests) |
 | --- | --- | --- | --- | --- | --- |
-| 0 setup | `step0_setup.md` | `harness/__init__.py`, `harness/config.py`, `harness/db.py`, `harness/migrations/0001_init.sql`, `harness/model/__init__.py`, `harness/model/interface.py`, `harness/model/scripted.py`, `harness/model/anthropic_provider.py`, `harness/model/providers.py`, `harness/model/claude_code_provider.py`, `harness/__main__.py` | | | `SPEC.md`, `tests/step0/` (with the new `test_layout.py`), `tests/data/`, `tests/fixtures/accounts/` |
-| 1 shared domain | `step1_shared_domain.md` | `harness/grounding/__init__.py`, `harness/grounding/brief.py`, `harness/grounding/claude_code_research.py`, `harness/grounding/interview.py`, `harness/grounding/research.py`, `harness/migrations/0002_lookups.sql`, `harness/ui/__init__.py`, `harness/ui/server.py`, `harness/ui/session.py` | | `harness/config.py`, `harness/__main__.py`, `harness/model/claude_code_provider.py` | `SPEC.md`, `tests/step1/`, `harness/grounding/interviewer.md`, `harness/grounding/researcher.md`, `harness/grounding/planner.md`, `harness/ui/grounding.html`, `reference/` |
-| 2 consistency | `step2_consistency.md` | `harness/calc/__init__.py`, `harness/calc/registry.py`, `harness/calc/notes.py`, `harness/calc/added.py`, `harness/calc/gate.py`, `harness/calc/builder.py`, `harness/calc/provenance.py`, `harness/calc/agent.py`, `harness/migrations/0004_notes.sql`, `harness/migrations/0005_added_steps.sql` | `harness/calc/safety.py`, `harness/calc/runner.py` | `harness/config.py`, `harness/__main__.py` | `SPEC.md`, `tests/step2/`, `harness/calc/values.py`, `harness/calc/spec_writer.md`, `harness/calc/example_writer.md`, `harness/calc/example_helper.md`, `harness/calc/module_writer.md`, `harness/calc/analyst.md`, `harness/migrations/0003_calc.sql` |
-| 3 evidence (with examples and replay) | `step3_evidence.md` | `harness/calc/adopt.py`, `harness/replay.py`, `harness/ui/evidence.py` | | `harness/config.py`, `harness/__main__.py`, `harness/calc/added.py`, `harness/calc/agent.py`, `harness/calc/provenance.py`, `harness/ui/server.py` | `SPEC.md`, `tests/step3/`, `harness/ui/evidence.html`, `harness/ui/grounding.html` (revised: a link to `/work`), `examples/README.md`, `examples/moving/`, `examples/wedding/`; earlier tests revised: `tests/step0/conftest.py`, `tests/step0/test_config.py`, `tests/step1/conftest.py`, `tests/step1/test_ui_cli.py`, `tests/step2/conftest.py`, `tests/step2/test_gate.py`, `tests/step2/test_request_decision.py` |
-| 4 human in the loop | `step4_human_in_the_loop.md` | `harness/migrations/0006_decisions.sql`, `harness/calc/decisions.py`, `harness/calc/aside.py` | | `harness/calc/agent.py`, `harness/__main__.py`, `harness/replay.py`, `harness/ui/evidence.py` | `SPEC.md`, `tests/step4/`, `harness/calc/aside.md`, `harness/calc/analyst.md` (revised), `harness/ui/evidence.html` (revised), `examples/README.md`, `examples/moving/scenarios/`, `examples/wedding/scenarios/`; earlier tests revised: `tests/step2/step2_helpers.py`, `tests/step2/test_agent.py`, `tests/step2/test_request_module.py`, `tests/step3/test_evidence_conversation.py`, `tests/step3/test_evidence_events.py`, `tests/step3/test_evidence_page.py`, `tests/step3/test_evidence_summary.py`, `tests/step3/test_scenario_validation.py` |
-| 5 verification | `step5_verification.md` | `harness/migrations/0007_data.sql`, `harness/sources/__init__.py`, `harness/sources/adapter.py`, `harness/sources/summaries.py`, `harness/calc/findings.py`, `harness/calc/verifier.py` | | `harness/calc/agent.py`, `harness/calc/decisions.py`, `harness/calc/provenance.py`, `harness/replay.py`, `harness/ui/evidence.py`, `harness/ui/server.py`, `harness/__main__.py` | `SPEC.md`, `tests/step5/`, `harness/calc/verifier.md`, `harness/calc/analyst.md` (revised), `harness/ui/evidence.html` (revised), `examples/README.md`, `examples/wedding/data/`, `examples/wedding/scenarios/`; earlier tests revised: `tests/step2/step2_helpers.py`, `tests/step2/test_added_cli.py`, `tests/step2/test_calc_cli.py`, `tests/step3/step3_evidence_helpers.py`, `tests/step3/test_evidence_page.py`, `tests/step3/test_example_selector.py`, `tests/step3/test_trace_function.py`, `tests/step3/test_unadopted_check.py`, `tests/step4/step4_helpers.py`, `tests/step4/test_aside_terminal.py`, `tests/step4/test_decisions_records.py`, `tests/step4/test_evidence_decisions.py`, `tests/step4/test_seeded_examples.py` |
+| 0 setup | `step0_setup.md` | `harness/__init__.py`, `harness/config.py`, `harness/db.py`, `harness/migrations/0001_init.sql`, `harness/model/__init__.py`, `harness/model/interface.py`, `harness/model/scripted.py`, `harness/model/anthropic_provider.py`, `harness/model/providers.py`, `harness/model/claude_code_provider.py`, `harness/__main__.py` | | | `tests/data/`, `tests/fixtures/` |
+| 1 shared domain | `step1_shared_domain.md` | `harness/grounding/__init__.py`, `harness/grounding/brief.py`, `harness/grounding/claude_code_research.py`, `harness/grounding/interview.py`, `harness/grounding/research.py`, `harness/migrations/0002_lookups.sql`, `harness/ui/__init__.py`, `harness/ui/server.py`, `harness/ui/session.py` | | `harness/config.py`, `harness/__main__.py`, `harness/model/claude_code_provider.py` | `harness/grounding/interviewer.md`, `harness/grounding/researcher.md`, `harness/grounding/planner.md`, `harness/ui/grounding.html`, `reference/` |
+| 2 consistency | `step2_consistency.md` | `harness/calc/__init__.py`, `harness/calc/registry.py`, `harness/calc/notes.py`, `harness/calc/added.py`, `harness/calc/gate.py`, `harness/calc/builder.py`, `harness/calc/provenance.py`, `harness/calc/agent.py`, `harness/migrations/0004_notes.sql`, `harness/migrations/0005_added_steps.sql` | `harness/calc/safety.py`, `harness/calc/runner.py` | `harness/config.py`, `harness/__main__.py` | `harness/calc/values.py`, `harness/calc/spec_writer.md`, `harness/calc/example_writer.md`, `harness/calc/example_helper.md`, `harness/calc/module_writer.md`, `harness/calc/analyst.md`, `harness/migrations/0003_calc.sql` |
+| 3 evidence (with examples and replay) | `step3_evidence.md` | `harness/calc/adopt.py`, `harness/replay.py`, `harness/ui/evidence.py` | | `harness/config.py`, `harness/__main__.py`, `harness/calc/added.py`, `harness/calc/agent.py`, `harness/calc/provenance.py`, `harness/ui/server.py` | `harness/ui/evidence.html`, `harness/ui/grounding.html` (revised: a link to `/work`), `examples/README.md`, `examples/moving/`, `examples/wedding/` |
+| 4 human in the loop | `step4_human_in_the_loop.md` | `harness/migrations/0006_decisions.sql`, `harness/calc/decisions.py`, `harness/calc/aside.py` | | `harness/calc/agent.py`, `harness/__main__.py`, `harness/replay.py`, `harness/ui/evidence.py` | `harness/calc/aside.md`, `harness/calc/analyst.md` (revised), `harness/ui/evidence.html` (revised), `examples/README.md`, `examples/moving/scenarios/`, `examples/wedding/scenarios/` |
+| 5 verification | `step5_verification.md` | `harness/migrations/0007_data.sql`, `harness/sources/__init__.py`, `harness/sources/adapter.py`, `harness/sources/summaries.py`, `harness/calc/findings.py`, `harness/calc/verifier.py` | | `harness/calc/agent.py`, `harness/calc/decisions.py`, `harness/calc/provenance.py`, `harness/replay.py`, `harness/ui/evidence.py`, `harness/ui/server.py`, `harness/__main__.py` | `harness/calc/verifier.md`, `harness/calc/analyst.md` (revised), `harness/ui/evidence.html` (revised), `examples/README.md`, `examples/wedding/data/`, `examples/wedding/scenarios/` |
 
 Notes on the table:
 
 - Every step's `prompt` is `workshop/prompts/<the file above>`, and `tests`
-  is `tests/step<N>/`. `red_at_start` is `{}` for every step at first.
-- Step 0's `given` holds the account-file fixture and its tests, which pass
-  with no harness code.
+  is `tests/step<N>/`. The tests of a step are not "given" in the manifest
+  sense: they are the finished tree's, and a state has them by rule (6).
 - Step 2's `safety.py` and `runner.py` are the only `start` files: SPEC 5.2
   and 5.3 give them, each with one change for the person to make. Their
   starting form is the one of commit `bb7ccb0`, restructured.
-- Step 3's earlier-test revisions are step 3's own (clearing
-  `HARNESS_EXAMPLE`, the `example` field, the `/work` line, the `adopt`
-  reason). The restructuring changes some of the same files in every
-  state; that is not a step 3 change.
 - `harness/calc/aside.md` is not in step 5's `given`: its one later change
   (commit `c1eeef0`, "stays neutral at a choice") is forward-ported to
   `4-done` as a prompt fix.
@@ -173,37 +181,48 @@ table is wrong or the snapshot is: fix whichever the history says.
 
 ```
 workshop/states/
-  finished/<path>            a full copy of the tree of 5-done: every file under the managed roots
-  <N>-done/files/<path>      for N = 0 to 4: the files of N-done whose content differs from finished/
-  <N>-done/absent.json       for N = 0 to 4: the sorted list of paths of finished/ that N-done does not have
+  finished/<path>            a full copy of the finished tree: every file under the managed roots
+  <N>-done/files/<path>      for N = 0 to 4: the harness, example and reference files of N-done that differ from finished/
+  <N>-done/absent.json       for N = 0 to 4: the sorted list of those paths of finished/ that N-done does not have
   <N>-build/files/<path>     only where a step has `start` files (today only 2-build): their starting form
 ```
 
 - `absent.json` is a JSON list of strings, written like the manifest.
-- An overlay file never equals the `finished/` file at the same path, and
-  `absent.json` names only paths of `finished/` (both checked, 9.1).
+- **`SPEC.md` and the tests are never in an overlay or an absent list**: a
+  state gets them from `finished/` by rule (6). An overlay file never equals
+  the `finished/` file at the same path, and `absent.json` names only paths
+  of `finished/` (all checked, 9.1).
 - `N-build` is not stored: it is derived (section 6). `<N>-build/files/`
   holds exactly the `start` paths of step N, nothing else.
-- Expected size: about 6 overlay files in `0-done`, 9 in `1-done`, 21 in
-  `2-done`, 28 in `3-done`, 24 in `4-done`, and 2 in `2-build`: about 90
-  files, five of them copies of `SPEC.md`. `finished/` holds about 255
-  files (2.6 MB).
+- Built size (files in the overlay): 3 in `0-done`, 4 in `1-done`, 8 in
+  `2-done`, 13 in `3-done`, 10 in `4-done`, and 2 in `2-build`. `finished/`
+  holds 251 files.
 
 ## 6. The content of a state
 
+A path is **shared** when it is `SPEC.md` or under `tests/`. The test folder
+of a shared path is `K` when the path is under `tests/step<K>/`; `tests/data/`
+and `tests/fixtures/` belong to no step.
+
 ```
-content("5-done", p)  = finished/p, or None
-content("N-done", p)  = N-done/files/p                    if stored there
-                      = None                              if p is in N-done/absent.json
-                      = finished/p, or None               otherwise
+content("N-done", p) = finished/p                         if p is SPEC.md, or under tests/data/ or tests/fixtures/,
+                                                           or under tests/step<K>/ with K <= N; None for K > N
+                     = N-done/files/p                     if stored there (p is not shared)
+                     = None                               if p is in N-done/absent.json
+                     = finished/p, or None                otherwise
+content("5-done", p) = finished/p, or None
 content("N-build", p) = N-build/files/p                   if p is in start(N)
-                      = content("N-done", p)              if p is in given(N), folders expanded over U
+                      = content("N-done", p)              if p is in given(N), folders expanded over U;
+                                                           given(N) includes the tests folder of step N
                       = content("N-1-done", p)            otherwise; for N = 0, None
 ```
 
 `U` is the union of the paths of `finished/`, of every overlay, and of
 every `absent.json`. A state is resolved in memory as a map from path to
-bytes; nothing is cached on disk.
+bytes; nothing is cached on disk. `given(N)` is the manifest's `given`
+entries of step N and its `tests` folder, expanded over `U`. Because the
+tests of a state are the finished tree's up to its step, the earlier tests
+of `N-build` are exactly those of `N-1-done`.
 
 ## 7. Materialising a state
 
@@ -220,7 +239,8 @@ and the paths `next` installs (8.4) for `next`. For each path `p` in
    versions of `p`, **set it aside** (7.3) first.
 4. Write `want` (creating parent folders), or, when `want` is `None`,
    remove the file and then every parent folder that is now empty, up to
-   but not including its managed root.
+   but not including its managed root. A folder that holds only ignored
+   names (`__pycache__`) is not removed.
 
 If `ROOT/p` is a folder where a file should be, or the other way round, the
 command stops before writing anything and prints `IN_THE_WAY` (8.8), exit 1.
@@ -327,10 +347,12 @@ prompt and given files, and leaves their code alone.
 2. If any `built` path of step L is missing from the tree:
    `NEXT_UNFINISHED`, exit 1. (It does not run tests: a step that is
    there but red is the person's to judge; the hint says how.)
-3. The paths installed are `given(N)`, folders expanded over `U`, plus
-   `start(N)`. `apply(state map of N-build, those paths)`. No code path is
-   in any `given` (rule 2), and the `start` paths of step N are new, so the
-   person's code is untouched.
+3. The paths installed are `given(N)`, folders expanded over `U` (step N's
+   given files and its tests, no other step's), plus `start(N)`.
+   `apply(state map of N-build, those paths)`. `SPEC.md` and the earlier
+   tests are the same in every state, so they are not replaced. No code path
+   is in any `given` (rule 2), and the `start` paths of step N are new, so
+   the person's code is untouched.
 4. `NEXT_DONE`, then `HINT_BUILD`. Exit 0.
 
 The prompt itself is in `workshop/prompts/`, which no state changes: it is
@@ -360,8 +382,11 @@ temporary folder and prints its path.
 - `store STATE DIR` reads the tree of `DIR` and stores it as that state:
   - `N-done` (N from 0 to 4): rewrites `N-done/files/` and `absent.json`
     against `finished/`, so that `content("N-done", p)` equals the tree of
-    `DIR` for every path. Overlay files equal to `finished/` are not kept.
-  - `N-build`: every path whose content in `DIR` differs from the derived
+    `DIR` for every path that is not shared (6). `SPEC.md` and the tests in
+    `DIR` are ignored: they come from `finished/`. Overlay files equal to
+    `finished/` are not kept.
+  - `N-build`: `DIR` is a full tree (`export N-build DIR`, then replace the
+    start files). Every path whose content in `DIR` differs from the derived
     `N-build` (section 6, without the overlay) must be in `start(N)`;
     otherwise `STORE_NOT_START` lists them and nothing is stored, exit 1.
     Stores those files.
@@ -371,7 +396,9 @@ temporary folder and prints its path.
     prints `STORE_PINNED` per overlay file this added. A fix to the finished
     tree therefore never reaches an earlier state by accident: removing
     those overlay files, or editing them, is a deliberate act (section 11).
-  - Then `STORED`. Exit 0.
+    `SPEC.md` and the tests are never pinned: a change to them in the
+    finished tree reaches every state that has them, which is the point.
+  - Then `STORED` (`STORED_FINISHED` for `finished`). Exit 0.
 
 These two are not in the attendee guide.
 
@@ -387,7 +414,7 @@ STATUS_EXACT      = "This copy is at {label}."
 STATUS_CONTRACT   = "This copy has the contract of step {n}: SPEC.md, the tests and the given files of step {n}."
 STATUS_OWN_CODE   = "Code: your own. {count} code files differ from the reference at the end of step {n}."
 STATUS_NO_MATCH   = "This copy matches no step: the closest is step {n}, and these files differ from it: {paths}."
-STATUS_TESTS_INTRO   = "Running the tests of each step. This takes a few minutes, about 6 for all six steps; --quick skips it."
+STATUS_TESTS_INTRO   = "Running the tests of each step. This takes about a minute for all six steps; --quick skips it."
 STATUS_TEST_LINE     = "  step {k}: {result} ({seconds} s)"
 STATUS_TESTS_SKIPPED = "Tests not run (--quick)."
 NO_PYTEST         = "pytest is not installed here. Run the workshop with: uv run python -m workshop status"
@@ -398,7 +425,7 @@ HINT_WHEN_GREEN   = "When the tests of step {n} pass: python -m workshop next"
 HINT_FINISHED     = "This is the finished harness. To keep it without the workshop: python -m workshop leave"
 HINT_NO_MATCH     = "Put those files back with git checkout -- <file>, or move the whole copy with: python -m workshop start N, or finish N"
 
-APPLIED           = "{written} files written and {removed} removed in SPEC.md, harness/, tests/, examples/ and reference/. my/ was not touched."
+APPLIED           = "{written} files written and {removed} removed in SPEC.md, harness/, tests/, examples/ and reference/. Your my/brief, my/modules and database were not touched."
 ALREADY           = "This copy was already there. Nothing changed."
 START_DONE        = "This copy is at the start of step {n}: the contract, tests and given files of step {n}, with the reference code at the end of step {prev}."
 START_DONE_ZERO   = "This copy is at the start of step 0: the contract, tests and test fixture of step 0, and no harness code yet."
@@ -414,7 +441,7 @@ LEAVE_ASK         = "This removes workshop/: the build plan, the prompts, the gu
 LEAVE_DONE        = "Removed workshop/. If this copy is in git, commit the removal; git checkout -- workshop brings it back."
 LEAVE_KEPT        = "Nothing removed."
 
-CHECK_INTRO       = "Each state runs its tests in a temporary folder. All twelve take about 25 minutes."
+CHECK_INTRO       = "Each state runs its tests in a temporary folder. All twelve take a few minutes."
 CHECK_LINE        = "{name:<10} {mark}  {detail}"
 CHECK_DONE        = "{passed} of {total} checks passed."
 
@@ -422,6 +449,7 @@ DIR_NOT_EMPTY     = "{dir} is not empty."
 STORE_NOT_START   = "Only the start files of step {n} can differ from the derived start of step {n}, and these differ too: {paths}. Nothing was stored."
 STORE_PINNED      = "Kept {state} as it was: stored its own {path}."
 STORED            = "Stored {state}: {files} files in its overlay, {absent} absent."
+STORED_FINISHED   = "Stored finished: {files} files."
 ```
 
 - `{label}`: `the start of step N` (N-build) or `the end of step N`
@@ -441,10 +469,9 @@ finished tree have drifted apart in a way some test notices.
 | Name | Passes when |
 | --- | --- |
 | `manifest` | `manifest.json` has the format of 4.1, and rules 1 and 2 of 4.2 hold |
-| `snapshots` | every overlay file differs from `finished/`; every `absent.json` names only paths of `finished/`; every `N-build/files/` holds exactly `start(N)`; rule 3 of 4.2 holds for every step |
+| `snapshots` | every overlay file differs from `finished/`; every `absent.json` names only paths of `finished/`; no overlay or absent list holds `SPEC.md` or a test; every `N-build/files/` holds exactly `start(N)`; rule 3 of 4.2 holds for every step |
 | `finished` | the working tree equals `finished/` over `U` (on `main`; after `start`, `next` or `finish` this line fails, and its detail says so) |
-| `spec` | in every state, `SPEC.md` has no marker `(step M)` with M above the state's step, and no `## <k>.` heading beyond the state's last section (step 0: 3; 1: 4; 2: 5; 3: 7; 4: 8; 5: 9) |
-| `prompts` | rule 4 of 4.2 holds for every step |
+| `prompts` | rule 4 of 4.2 holds for every step: the three lists equal the manifest's, and the sentence about passages of a later step is there |
 
 A failing static check prints up to five offending paths in its detail.
 
@@ -453,14 +480,16 @@ A failing static check prints up to five offending paths in its detail.
 Each state is materialised into its own temporary folder (7.2) and pytest
 runs there, as in 8.2 (`sys.executable -m pytest -q -p no:cacheprovider`,
 current folder the temporary one, `PYTHONDONTWRITEBYTECODE=1`, every
-`HARNESS_*` variable removed from the environment).
+`HARNESS_*` variable removed from the environment). The static checks of 9.1
+always run and do not gate the state runs; a check that raises is reported
+as `FAIL`. Marks are `ok` and `FAIL`. An unknown state name is a usage
+error, exit 2. `IN_THE_WAY` and the `NEXT_*` refusals go to stdout.
 
 - **`N-done`**: run every test folder of the state. Passes on exit 0.
 - **`N-build`**:
   - *earlier*: the `always` folders and `tests/step0/` to `tests/step<N-1>/`,
-    with `--ignore=<p>` for every `test_*.py` path of `given(N)` under those
-    folders and every key of `red_at_start` of step N. Must exit 0. For
-    N = 0 only the `always` folders.
+    all of them, nothing ignored. Must exit 0. For N = 0 only the `always`
+    folders.
   - *this step*: `tests/step<N>/`. Must exit 1 (tests failed) or 2
     (collection errors, as when a module is missing). Exit 0 is a
     surprise ("step N passes before it is built"); 5 is a surprise ("step
@@ -476,21 +505,25 @@ temporary folder is removed unless `--keep`.
 
 ### 9.3 What it cannot tell
 
-- A fix made on the finished tree that no test notices in an earlier state:
-  a reworded prompt (`analyst.md`), a page change in `evidence.html`, SPEC
-  prose, `examples/README.md`. Such a fix is either pinned away from the
-  earlier states by `store finished` or missing from them, silently.
+- A fix made on the finished tree to a harness, given or example file that
+  no test notices in an earlier state: a reworded prompt (`analyst.md`), a
+  page change in `evidence.html`, `examples/README.md`. Such a fix is either
+  pinned away from the earlier states by `store finished` or missing from
+  them, silently. (Fixes to tests and `SPEC.md` reach every state by rule.)
 - Whether an `N-build` can be built from its prompt by a coding agent. Only
   running the prompt tells.
-- Whether `SPEC.md` in a state describes that state's code exactly, beyond
-  the markers and section headings.
+- Whether a state's code matches the parts of `SPEC.md` that apply to it:
+  there is one `SPEC.md`, and only the tests of the state judge the code.
 - Whether a test that should fail in `N-build` fails for the right reason.
 
-## 10. Building the snapshots from history (one-off)
+## 10. Building the snapshots from history (one-off, done)
 
-Do this after Part 1 of the restructuring is committed on `main` (call that
-commit `R`): that tree is `5-done`. Work in a scratch folder outside the
-repository. Store with `store` (8.7), never by hand-copying into `states/`.
+This is how the stored states were made the first time. The log of what was
+actually done, file by file, is `workshop/states/NOTES.md`. Work in a
+scratch folder outside the repository. Store with `store` (8.7), never by
+hand-copying into `states/`. Only `harness/`, `examples/` and `reference/`
+are built this way: the tests and `SPEC.md` of every state are the finished
+tree's (rule 1 and 2 of section 1), so no history of them is needed.
 
 ### 10.1 Step ends
 
@@ -500,90 +533,62 @@ repository. Store with `store` (8.7), never by hand-copying into `states/`.
 | `1-done` | `f8da442` |
 | `2-done` | `c28b41a` |
 | `3-done` | `a793043` |
-| `4-done` | `0129b62`, then from `36c0f51`: all of `examples/`, `tests/step4/test_seeded_examples.py`, and the one step 4 hunk of `harness/calc/analyst.md` (the bullet "Never put a figure or a date of your own in a question ..."). Not its step 5 hunks of `analyst.md`, not `harness/calc/verifier.md`, not its SPEC section 9. |
-| `5-done` | `R` (`store finished .`) |
+| `4-done` | `0129b62`, then from `36c0f51`: all of `examples/` and the one step 4 hunk of `harness/calc/analyst.md` (the bullet "Never put a figure or a date of your own in a question ..."). Not its step 5 hunks of `analyst.md`, not `harness/calc/verifier.md`. |
+| `5-done` | the finished tree (`store finished .`) |
 | `2-build` | `harness/calc/safety.py` and `harness/calc/runner.py` from `bb7ccb0` |
 
-For each, `git archive <commit> SPEC.md harness tests examples reference | tar -x -C <scratch>/<state>`
-(drop the names a commit does not have). Root `brief/` and `modules/` are
-not taken: they left the repository. `data/` is not taken: the fixture is
-the same in every state (next step).
+For each, `git archive <commit> harness examples reference | tar -x -C <scratch>/<state>`
+(drop the names a commit does not have).
 
-### 10.2 Apply the restructuring
+### 10.2 Apply the restructuring (F4)
 
-In every state:
+In every state, apply the restructuring hunks of the finished tree to the
+harness and example files the state has, taking only the hunks for features
+the state has:
 
-1. `tests/fixtures/accounts/` and `tests/data/test_example_data.py`: copy
-   from `R`. Add `tests/step0/test_layout.py` from `R`.
-2. Apply the hunks of `R` to each file the state has: `git diff <R's parent> R -- <file>`
-   (if `R` is several commits, diff across all of them), then
-   `patch -p1 -d <scratch>/<state>` or by hand where it does not apply,
-   taking only the hunks for features the state has:
+| Change | From state |
+| --- | --- |
+| `HARNESS_DB` default `my/var/harness.db` (`config.py`) | 0 |
+| `HARNESS_BRIEF_DIR` default `my/brief`; `LEGACY_COMMANDS`, `LEGACY_LAYOUT` and their check in `main()` (SPEC 4.5) | 1 |
+| `HARNESS_MODULES_DIR` default `my/modules` | 2 |
+| example mode under `my/var/examples/`, `EXAMPLE_COPIES`, `EXAMPLE_COPIED` and the copy (SPEC 6.2); `REPLAY_DIR` | 3 |
+| `examples/README.md`: `my/var/...` paths, the copy in example mode | 3 |
 
-   | Change | From state |
-   | --- | --- |
-   | `HARNESS_DB` default `my/var/harness.db` (`config.py`, `tests/step0/test_config.py`) | 0 |
-   | the domain scan of `tests/step0/test_model.py` (`data/example` becomes `tests/fixtures`) | 0 |
-   | `HARNESS_BRIEF_DIR` default `my/brief`; `LEGACY_COMMANDS`, `LEGACY_LAYOUT` and their check in `main()` (SPEC 4.5), and its tests | 1 |
-   | `HARNESS_MODULES_DIR` default `my/modules` (`tests/step2/test_registry.py`) | 2 |
-   | example mode under `my/var/examples/`, `EXAMPLE_COPIES`, `EXAMPLE_COPIED` and the copy (SPEC 6.2); `REPLAY_DIR`; `my/var/...` in `tests/step3/` (`conftest.py`, `test_example_selector.py`, `test_replay_run.py`, `test_replay_cli.py`, `test_work_cli.py`) | 3 |
-   | `examples/README.md`: `my/var/...` paths, the copy in example mode, the fixture's new place | 3 |
-   | `my/var/replay` in `tests/step4/conftest.py` | 4 |
-   | `tests/step5/conftest.py`, `EXAMPLE_DATA` in `tests/step5/step5_helpers.py` | 5 (already in `R`) |
-
-3. Check: `grep -rnE "\"var/|'var/|Path\(\"(brief|modules)\"\)|data/example" harness tests`
-   in the state finds nothing that is not `my/var/` or `tests/fixtures/`.
+Check: `grep -rnE "\"var/|'var/|Path\(\"(brief|modules)\"\)" harness` in the state
+finds nothing that is not `my/var/`.
 
 ### 10.3 Forward-port the later fixes
 
 | Fix | Where it was made | Files | Into |
 | --- | --- | --- | --- |
-| F1 the `auto` provider default and plain provider errors | `c28b41a` | `harness/config.py` (the default only), `harness/model/__init__.py`, `harness/model/providers.py`, the `check()` hunks of `harness/__main__.py` (`resolve_provider`), `tests/step0/test_config.py`, `tests/step0/test_model.py` | `0-done`, `1-done` |
-| F2 the reworded Claude Code tool rules | `c28b41a` | `TOOL_RULES` in `harness/model/claude_code_provider.py` and `tests/step0/test_claude_code_adapter.py` | `0-done`, `1-done` |
+| F1 the `auto` provider default and plain provider errors | `c28b41a` | `harness/config.py` (the default only), `harness/model/__init__.py`, `harness/model/providers.py`, the `check()` hunks of `harness/__main__.py` (`resolve_provider`) | `0-done`, `1-done` |
+| F2 the reworded Claude Code tool rules | `c28b41a` | `TOOL_RULES` in `harness/model/claude_code_provider.py` | `0-done`, `1-done` |
 | F3 prompt fixes | `36c0f51` (`analyst.md`, the bullet above), `c1eeef0` (`aside.md`, neutral at a choice) | `harness/calc/analyst.md`, `harness/calc/aside.md` | `4-done` |
-| F4 the restructuring | `R` | 10.2 | all |
+| F4 the restructuring | the finished tree | 10.2 | all |
 
 How to recognise any other fix: for each file of a state, list the later
-commits that touched it (`git log --oneline <start>..R -- <file>`) and
+commits that touched it (`git log --oneline <start>..HEAD -- <file>`) and
 read each hunk. It belongs to the later step when that step's SPEC files
 table lists the file as changed or revised, or the hunk carries a
 "(step M)" mark, or it serves something only that step has. Otherwise it is
-a fix: port it. When unsure, leave it out and add a line to section 11's
-log.
+a fix: port it. When unsure, leave it out and add a line to
+`states/NOTES.md`.
 
-### 10.4 `SPEC.md` for each state
+### 10.4 Store and accept
 
-Start from `SPEC.md` of `R` (it has every fix and the restructuring), then:
-
-1. Remove the sections of later steps (step 0 keeps 1 to 3; 1: to 4; 2: to
-   5; 3: to 7; 4: to 8) and their rows in the status table.
-2. Remove every passage marked "(step M)" with M above the state's step: a
-   sentence, list item, table row or code-block line. Where the mark labels
-   a rewording of older text, put back the older wording from the step end
-   commit. In section 2, remove the lines that name a later step's folder or
-   files (`sources/`, the `calc/` notes about sections 8 and 9, `replay.py`,
-   `examples/` before step 3).
-3. Diff the result against `git show <step end>:SPEC.md` (for `4-done`,
-   against `0129b62`, and `36c0f51` for section 8.8). Every remaining hunk
-   is a fix (keep it), a restructuring hunk (keep it), or a later step's
-   unmarked change (revert it). Known unmarked later changes: section 6.6
-   ("Changes to step 2") is step 3's and is a section of its own; 3.7's
-   `auto` is F1 and stays.
-4. The status table says, for the last section of the state, "Fixed,
-   covered by `tests/step<N>`".
-
-`N-build` uses `N-done`'s `SPEC.md`: an attendee building step 2 reads the
-step 2 contract as it was, never step 4's in-place edits.
-
-### 10.5 Store and accept
-
-1. `python -m workshop store finished .` on a clean `main` at `R`.
+1. `python -m workshop store finished .` on a clean `main`.
 2. For each state: `python -m workshop store <state> <scratch>/<state>`.
-3. Write `manifest.json` from 4.3.
-4. `python -m workshop check`. **Acceptance: every line passes.** Fill
-   `red_at_start` only for failures that come from a revised helper or
-   given file of step N, each with its reason; anything else is fixed in
-   the snapshot.
+   (A tree that also holds `SPEC.md` and tests is fine: they are ignored.)
+3. Write `manifest.json` from 4.3 and the prompts from its lists.
+4. `python -m workshop check`. **Acceptance: every line passes.** When a
+   state fails, decide which it is, and fix that:
+   - the snapshot lacks a forward-port: fix the snapshot, and log it in
+     `states/NOTES.md` (what, why, from which commit);
+   - the manifest gives a file to the wrong step: fix the manifest;
+   - a test breaks rule 1 of section 1 (it is not true at the end of its own
+     step and every later one): fix the test on the finished tree, with the
+     smallest change that keeps what it protects at its own step, or delete
+     it when it only makes sense later. Then `store finished .`.
 5. Read the diffs once: `export` two consecutive states and `diff -r` them;
    every difference should match the manifest row of the later step.
 
@@ -592,17 +597,20 @@ step 2 contract as it was, never step 4's in-place edits.
 History is never read at run time; the stored states are maintained by
 hand.
 
-- **A fix on the finished tree.** Commit it on `main`, then
+- **A fix to `SPEC.md` or a test.** Make it on `main`, then
+  `python -m workshop store finished .`. Every state has it at once; nothing
+  else to do. Run `check`: a test that is no longer true at an earlier step
+  breaks rule 1 of section 1, and is fixed (or deleted) there.
+- **A fix to harness, given or example files.** Commit it on `main`, then
   `python -m workshop store finished .`: every earlier state is pinned as it
   was (`STORE_PINNED` lines). For each earlier state the fix applies to,
   `export` it, apply the fix, `store` it. Run `check`.
-- **A change to an earlier step's contract or tests.** `export` the
-  `N-done` states concerned, edit, `store`, update the manifest if a file's
-  step changes, run `check`.
+- **A change to which step a file belongs to.** Update the manifest (and the
+  prompt lists, which `check` compares with it), run `check`.
 - **A new file.** Add it to the manifest row of the step that introduces it.
   `check` rule 3 fails until it is there.
-- Keep a short log at the end of this file of fixes deliberately not
-  ported, with the reason.
+- Keep a short log of fixes deliberately not ported, with the reason, in
+  `states/NOTES.md` (the `analyst.md` bullet is not in `2-done` or `3-done`).
 - `check` runs before every release of the workshop and after every change
   to `harness/`, `tests/`, `examples/`, `reference/` or `SPEC.md`.
 
@@ -645,15 +653,15 @@ pinning. They do not run the harness's tests. The real data is checked by
 8. **`next` checks that the previous step's built files exist, and runs no
    tests.** The hint says which tests to run. A copy whose contract files
    match no step is refused, with the files that differ.
-9. **In `N-build`, earlier test files that step N revised are not run**,
-   and `red_at_start` names any other earlier test that a revised helper
-   breaks, with a reason.
+9. **No state stores an older test, and `N-build` runs every earlier test.**
+   A test that is not true in an earlier "done" state is fixed on the
+   finished tree, never skipped or excused in the manifest.
 10. **`store finished` pins every other state.** A fix reaches an earlier
     state only by a deliberate edit, so a step-5 change can never leak into
     `2-done`.
 11. **The account-file fixture (`tests/fixtures/accounts/`, moved as is
-    from `data/`) and `tests/data/` are the same in every state** and pass
-    with no harness code; the later note added to its key is a fix.
+    from `data/`) and `tests/data/` are in every state** and pass with no
+    harness code.
 12. **`aside.md`'s "neutral at a choice" line is ported to `4-done`**: it
     applies to judgment calls as well as to findings.
 13. **`leave` sets nothing aside**: `workshop/` is ours and git restores it.
@@ -662,6 +670,16 @@ pinning. They do not run the harness's tests. The real data is checked by
     new ones. If a person's own migration differs from the reference under
     the same name, they start a fresh database by moving `my/var/harness.db`
     away (the attendee guide says so).
+
+17. **One `SPEC.md` for every state, and one sentence in each prompt.**
+    Each build prompt says: `Passages of `SPEC.md` marked "(step M)" for a
+    step later than this one do not apply yet.` `check` looks for it. The
+    reader of step 2's contract therefore also sees step 4's marked
+    changes; the prompt and the tests say which section is theirs.
+18. **A state's tests are derived, not stored.** `content` takes the test
+    folders `tests/step0/` to `tests/step<N>/` from `finished/`. `next`
+    installs step N's folder; `finish` and `start` install whatever the state
+    has. A person's edit to a test is set aside like any other file.
 
 Decisions in `SPEC.md` made for the restructuring:
 
@@ -677,10 +695,10 @@ Decisions in `SPEC.md` made for the restructuring:
 
 | Risk | How to detect it |
 | --- | --- |
-| A hunk is put in the wrong step: a later step's change ported back as a fix, or a fix left out | `check` rule 3 (every difference between consecutive states is listed in the manifest); the tests of each state; the `diff -r` read of 10.5 |
-| `SPEC.md` of a state keeps a later step's unmarked wording, or loses a fix | the `spec` static check catches markers and headings only; read the diff of 10.4 step 3 hunk by hunk |
-| A revised helper of step N (`step2_helpers.py` in steps 4 and 5) breaks unchanged earlier tests in `N-build` | `check` reports the `N-build` line; the honest fix is a `red_at_start` entry with its reason, never a weakened test |
-| The restructuring is incomplete in an early state (an old `var/` default left in `2-done`) | the grep of 10.2 step 3; `test_config` and `test_registry` defaults; `check` |
+| A hunk is put in the wrong step: a later step's change ported back as a fix, or a fix left out | `check` rule 3 (every difference between consecutive states is listed in the manifest); the tests of each state; the `diff -r` read of 10.4 |
+| A test is written that is true at its own step only (it counts events, names a key a later step adds, lists every scenario) | `check` fails an `N-done` or `N-build` line; fix the test on the finished tree (smallest change that keeps what it protects) |
+| A given file of step N needs code the person builds in step N, so an earlier test fails in `N-build` (scenarios with keys the old `replay.py` rejects) | `check` reports the `N-build` line; the test of the earlier step must name the files of its own step, not every file in a folder |
+| The restructuring is incomplete in an early state (an old `var/` default left in `2-done`) | the grep of 10.2; `tests/step0/test_config.py` and `test_registry.py`; `check` |
 | `evidence.html` in `3-done` and `4-done` misses a fix made later to a view it already had | not visible to `check`; diff the page between `4-done` and `5-done` and classify each hunk outside the Data view |
 | `finished/` lags `main` after a change | the `finished` static check |
 | A test depends on the repository root (`ROOT / "my" / "var" / "replay"`) or on timing, and fails only in a temporary folder | `check --keep`, rerun the state alone |

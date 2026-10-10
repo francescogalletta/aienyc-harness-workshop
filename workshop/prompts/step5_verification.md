@@ -10,6 +10,8 @@ already built under `harness/`. The repository holds the contract, the
 tests, and the given files for this step. Your job is to write the code that
 makes the step 5 tests pass without breaking the earlier steps.
 
+Passages of `SPEC.md` marked "(step M)" for a step later than this one do not apply yet.
+
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules), sections 5.8 and 5.9 (the number
@@ -27,38 +29,43 @@ Read these first, in this order:
    scenarios that load them).
 3. `tests/step5/`. These tests are the definition of done.
 
-Then build what section 9 describes:
+Then build what section 9 describes.
+
+Build these files (new):
 
 - `harness/migrations/0007_data.sql` (exactly as in 9.1)
-- `harness/sources/__init__.py` and `harness/sources/adapter.py` (reading an
-  account file into one table: delimiter, heading row, column roles, date and
-  number formats, repeated rows, the sign convention, 9.2)
-- `harness/sources/summaries.py` (the data summaries: full calendar months,
-  own transfers, the four measures, 9.4)
-- `harness/calc/findings.py` (a figure, when two figures disagree, the finding
-  block, opening and closing a finding, 9.5)
-- `harness/calc/verifier.py` (the sub-agent loop and the checks the harness
-  makes on everything it reports, 9.6)
-- the changes to `harness/calc/agent.py`: the verifier after each person
-  message, findings kept open, `save_input` over a saved value, `ask_decision`
-  with `finding`, and the sources of the number check (9.7)
-- the fourth decision kind, `finding`, in `harness/calc/decisions.py` (8.1)
-  and the `data` label in `harness/calc/provenance.py` (7.1)
-- `data add`, `data list` and `data clear`, and `verify=True` for `ask`, in
-  `harness/__main__.py` (9.3)
-- the new keys and expectations of `harness/replay.py`: `verify`, `data`,
-  `findings` and `max_findings` (6.4, 6.5)
-- the changes to `harness/ui/evidence.py` and `harness/ui/server.py`: the
-  `data` label, three summary keys and one path (9.9)
+- `harness/sources/__init__.py`
+- `harness/sources/adapter.py` (reading an account file into one table: delimiter, heading row, column roles, date and number formats, repeated rows, the sign convention, 9.2)
+- `harness/sources/summaries.py` (the data summaries: full calendar months, own transfers, the four measures, 9.4)
+- `harness/calc/findings.py` (a figure, when two figures disagree, the finding block, opening and closing a finding, 9.5)
+- `harness/calc/verifier.py` (the sub-agent loop and the checks the harness makes on everything it reports, 9.6)
+
+Change these files (they exist already):
+
+- `harness/calc/agent.py` (the verifier after each person message, findings kept open, `save_input` over a saved value, `ask_decision` with `finding`, and the sources of the number check, 9.7)
+- `harness/calc/decisions.py` (the fourth decision kind, `finding`, 8.1)
+- `harness/calc/provenance.py` (the `data` label, 7.1)
+- `harness/replay.py` (the new keys and expectations `verify`, `data`, `findings` and `max_findings`, 6.4 and 6.5)
+- `harness/ui/evidence.py` (the `data` label and three summary keys, 9.9)
+- `harness/ui/server.py` (one path, 9.9)
+- `harness/__main__.py` (`data add`, `data list` and `data clear`, and `verify=True` for `ask`, 9.3)
+
+Given files (do not edit):
+
+- `SPEC.md`
+- `tests/step5/` (the definition of done)
+- `harness/calc/verifier.md` (the instructions of the verifier)
+- `harness/calc/analyst.md` (revised: it now tells the agent how to raise a finding)
+- `harness/ui/evidence.html` (the page you will serve, with its new Data view)
+- `examples/README.md`
+- `examples/wedding/data/` (the account files of the wedding example)
+- `examples/wedding/scenarios/` (scenarios that load them)
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`,
-  `reference/` or `examples/`, or the given files: `harness/calc/verifier.md`,
-  `harness/calc/analyst.md`, `harness/ui/evidence.html`, and the earlier given
-  files. The only edits allowed in earlier files are the ones section 9
-  specifies. If you believe a given file is wrong, stop and say so instead of
-  changing it.
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`, `reference/` or `examples/`, or the given files
+  above. In the files you change, make only the changes section 9 specifies. If you believe a given file is wrong,
+  stop and say so instead of changing it.
 - Build only step 5.
 - Use only the Python standard library.
 - Do not run the `claude` command yourself, and do not make any network

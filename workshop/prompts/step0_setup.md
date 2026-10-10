@@ -6,8 +6,11 @@ this repository.
 ---
 
 You are building step 0 of a small agent harness. The repository already
-holds the contract, the tests and the example data. Your job is to write the
+holds the contract, the tests and the account-file fixture
+(`tests/fixtures/accounts/`). Your job is to write the
 code that makes the step 0 tests pass.
+
+Passages of `SPEC.md` marked "(step M)" for a step later than this one do not apply yet.
 
 Read these first, in this order:
 
@@ -15,19 +18,32 @@ Read these first, in this order:
    signatures and behaviour exactly.
 2. `tests/step0/`. These tests are the definition of done.
 
-Then build what section 3 of `SPEC.md` describes, under `harness/`:
+Then build what section 3 of `SPEC.md` describes, under `harness/`.
+
+Build these files (new):
 
 - `harness/__init__.py` (a one-line docstring is enough)
 - `harness/config.py`
-- `harness/model/` (the interface, the scripted stand-in, the provider table,
-  the Claude API adapter and the Claude Code adapter)
-- `harness/db.py` and `harness/migrations/0001_init.sql`
+- `harness/db.py`
+- `harness/migrations/0001_init.sql`
+- `harness/model/__init__.py`
+- `harness/model/interface.py` (the interface)
+- `harness/model/scripted.py` (the scripted stand-in)
+- `harness/model/anthropic_provider.py` (the Claude API adapter)
+- `harness/model/providers.py` (the provider table)
+- `harness/model/claude_code_provider.py` (the Claude Code adapter)
 - `harness/__main__.py`
+
+Given files (do not edit):
+
+- `SPEC.md`
+- `tests/step0/` (the definition of done)
+- `tests/data/` (tests of the account-file fixture)
+- `tests/fixtures/` (the account-file fixture, with its generator and key)
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, or
-  anything under `workshop/`. If you believe one of them is wrong, stop and
+- Do not edit `SPEC.md`, anything under `tests/`, or anything under `workshop/`. If you believe one of them is wrong, stop and
   say so instead of changing it.
 - Build only step 0. Do not start on anything in section 4 of `SPEC.md`.
 - Use only the Python standard library. The `anthropic` package may be

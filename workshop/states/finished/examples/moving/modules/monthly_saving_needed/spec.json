@@ -1,0 +1,28 @@
+{
+  "name": "monthly_saving_needed",
+  "description": "Works out how much to put aside each month to have the upfront cost of the move by the move date, rounded up to the next whole cent.",
+  "step_id": "m2",
+  "method": "Sinking fund",
+  "formula": "If savings so far are equal to or more than the upfront cost, the result is 0. Otherwise the result is (upfront cost - savings so far) / months until the move, rounded up to the next whole cent (any part of a cent is rounded up, never down), so that saving this amount each month always reaches the cost.",
+  "inputs": [
+    {
+      "name": "upfront_cost",
+      "type": "number",
+      "description": "The total sum needed before the move, as an amount of money in your currency. This is the result of the earlier step that adds up the deposit, van, overlapping rent and other one-off costs."
+    },
+    {
+      "name": "savings_so_far",
+      "type": "number",
+      "description": "The money already put aside for the move, as an amount of money in your currency. Leave out the emergency fund. May be zero."
+    },
+    {
+      "name": "months_until_move",
+      "type": "integer",
+      "description": "How many whole months are left to save before the move. Must be one or more."
+    }
+  ],
+  "output": {
+    "type": "number",
+    "description": "The amount to put aside each month to have the upfront cost by the move date, as an amount of money in your currency, rounded up to the next whole cent. It is 0 if the savings already cover the cost."
+  }
+}

@@ -10,6 +10,8 @@ built under `harness/`. The repository holds the contract, the tests, and the
 given files for this step. Your job is to write the code that makes the
 step 2 tests pass without breaking the earlier steps.
 
+Passages of `SPEC.md` marked "(step M)" for a step later than this one do not apply yet.
+
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules) and section 5 (step 2). Section 5
@@ -20,31 +22,45 @@ Read these first, in this order:
    `runner.py` and the five `.md` files.
 3. `tests/step2/`. These tests are the definition of done.
 
-Then build what section 5 describes:
+Then build what section 5 describes.
 
-- the `modules_dir` setting in `harness/config.py` (5.4)
+Build these files (new):
+
 - `harness/calc/__init__.py` (a docstring only)
 - `harness/calc/registry.py` (module folders, the spec check, fingerprints, registering)
 - `harness/calc/notes.py` (the notes kept during a build)
+- `harness/calc/added.py` (the steps the agent adds to the plan, 5.5)
 - `harness/migrations/0004_notes.sql` (the notes table, exactly as in 5.5)
+- `harness/migrations/0005_added_steps.sql` (the added steps table, exactly as in 5.5)
 - `harness/calc/gate.py` (running tests, and the one way a calculation runs)
 - `harness/calc/builder.py` (the phases: spec and plan check, worked examples checked by the person, code)
 - `harness/calc/provenance.py` (the number check)
 - `harness/calc/agent.py` (the agent that answers questions with tested modules)
-- the `build`, `modules` and `ask` commands in `harness/__main__.py`
-- the one change to `harness/calc/safety.py` that section 5.2 asks for
-- the one change to `harness/calc/runner.py` that section 5.3 asks for
+
+Change these files (they exist already):
+
+- `harness/config.py` (the `modules_dir` setting, 5.4)
+- `harness/__main__.py` (the `build`, `modules` and `ask` commands)
+- `harness/calc/safety.py` (given in a starting form: the one change that section 5.2 asks for)
+- `harness/calc/runner.py` (given in a starting form: the one change that section 5.3 asks for)
+
+Given files (do not edit):
+
+- `SPEC.md`
+- `tests/step2/` (the definition of done)
+- `harness/calc/values.py`
+- `harness/calc/spec_writer.md`
+- `harness/calc/example_writer.md`
+- `harness/calc/example_helper.md`
+- `harness/calc/module_writer.md`
+- `harness/calc/analyst.md`
+- `harness/migrations/0003_calc.sql`
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or
-  `reference/`, or the given files: the five `.md` files in `harness/calc/`
-  (`spec_writer.md`, `example_writer.md`, `example_helper.md`, `module_writer.md`,
-  `analyst.md`),
-  `harness/calc/values.py` and `harness/migrations/0003_calc.sql`. The only
-  edits allowed in `safety.py` and `runner.py` are the one change each that
-  section 5 specifies. If you believe a given file is wrong, stop and say so
-  instead of changing it.
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or `reference/`, or the given files above. In
+  the files you change, make only the changes section 5 specifies. If you believe a given file is wrong, stop and
+  say so instead of changing it.
 - Build only step 2. Do not start on anything in section 6 of `SPEC.md`.
 - Use only the Python standard library.
 - Do not run the `claude` command yourself, and do not make any network

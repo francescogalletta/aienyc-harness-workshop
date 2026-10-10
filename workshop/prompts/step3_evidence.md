@@ -10,6 +10,8 @@ already built under `harness/`. The repository holds the contract, the
 tests, and the given files for this step. Your job is to write the code that
 makes the step 3 tests pass without breaking the earlier steps.
 
+Passages of `SPEC.md` marked "(step M)" for a step later than this one do not apply yet.
+
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules), section 6 (seeded examples and
@@ -22,26 +24,39 @@ Read these first, in this order:
    will serve) and `examples/` (the data you will load, adopt and replay).
 3. `tests/step3/`. These tests are the definition of done.
 
-Then build what sections 6 and 7 describe:
+Then build what sections 6 and 7 describe.
 
-- the `example` setting and `EXAMPLES_DIR` in `harness/config.py` (6.2)
+Build these files (new):
+
 - `harness/calc/adopt.py` (registering module folders that are already on disk, 6.3)
 - `harness/replay.py` (scenarios, their checks, and running them in a scratch folder, 6.4 and 6.5)
-- the change to `harness/calc/added.py`: `add_step` can keep a given id (6.6)
-- the changes to `harness/calc/agent.py`: `says_yes` for a build request (6.6) and the `ask.started` event (7.2)
-- the change to `harness/calc/provenance.py`: `trace` (7.1)
 - `harness/ui/evidence.py` (reading the evidence, 7.3)
-- the changes to `harness/ui/server.py`: the evidence API and `/work` (7.4 and 7.5)
-- the `adopt`, `replay` and `work` commands, the check for an unknown example, the check for unregistered module folders before `build` and `ask`, and the extra line from `ui`, all in `harness/__main__.py` (6.2, 6.6, 6.7 and 7.7)
-- the `adopt` reason of a test run (6.6), wherever the code checks the reason
+
+Change these files (they exist already):
+
+- `harness/config.py` (the `example` setting and `EXAMPLES_DIR`, 6.2)
+- `harness/__main__.py` (the `adopt`, `replay` and `work` commands, the check for an unknown example, the check for unregistered module folders before `build` and `ask`, and the extra line from `ui` (6.2, 6.6, 6.7, 7.7))
+- `harness/calc/added.py` (`add_step` can keep a given id, 6.6)
+- `harness/calc/agent.py` (`says_yes` for a build request (6.6) and the `ask.started` event (7.2))
+- `harness/calc/provenance.py` (`trace`, 7.1)
+- `harness/ui/server.py` (the evidence API and `/work`, 7.4 and 7.5)
+
+Given files (do not edit):
+
+- `SPEC.md`
+- `tests/step3/` (the definition of done)
+- `harness/ui/evidence.html` (the page you will serve)
+- `harness/ui/grounding.html`
+- `examples/README.md`
+- `examples/moving/` (the data you will load, adopt and replay)
+- `examples/wedding/` (the data you will load, adopt and replay)
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`,
-  `reference/` or `examples/`, or the given files: `harness/ui/evidence.html`
-  and `harness/ui/grounding.html`, and the earlier given files. The only
-  edits allowed in earlier files are the ones sections 6 and 7 specify. If
-  you believe a given file is wrong, stop and say so instead of changing it.
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`, `reference/` or `examples/`, or the given files
+  above. In the files you change, make only the changes sections 6 and 7 specify (they include the `adopt` reason
+  of a test run, 6.6, wherever the code checks the reason). If you believe a given file is wrong, stop and say so
+  instead of changing it.
 - Build only step 3. Do not start on anything in section 8 of `SPEC.md`.
 - Use only the Python standard library.
 - Do not run the `claude` command yourself, and do not make any network

@@ -1,0 +1,28 @@
+{
+  "name": "months_to_save_upfront_cost",
+  "description": "Works out how many whole months the current monthly saving would take to cover the upfront cost of the move.",
+  "step_id": "m3",
+  "method": "arithmetic",
+  "formula": "If savings so far are equal to or more than the upfront cost, the result is 0. Otherwise the result is (upfront cost - savings so far) / monthly amount you can save, rounded up to the next whole month.",
+  "inputs": [
+    {
+      "name": "upfront_cost",
+      "type": "number",
+      "description": "The total sum needed before the move, as an amount of money in your currency. This is the result of the earlier step that adds up the deposit, van, overlapping rent and other one-off costs."
+    },
+    {
+      "name": "savings_so_far",
+      "type": "number",
+      "description": "The money already put aside for the move, as an amount of money in your currency. Leave out the emergency fund. May be zero."
+    },
+    {
+      "name": "monthly_saving",
+      "type": "number",
+      "description": "What you can put aside for the move each month, as an amount of money in your currency. Must be more than zero."
+    }
+  ],
+  "output": {
+    "type": "integer",
+    "description": "The number of whole months until the savings would cover the upfront cost. It is 0 if the savings already cover the cost."
+  }
+}

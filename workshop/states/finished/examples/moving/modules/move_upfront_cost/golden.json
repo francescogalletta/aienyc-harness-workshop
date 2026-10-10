@@ -1,0 +1,69 @@
+[
+  {
+    "inputs": {
+      "deposit": "1000",
+      "van_hire": "100",
+      "monthly_rent_old_home": "500",
+      "overlap_months": "1",
+      "other_one_off_costs": [
+        {
+          "name": "cleaning",
+          "amount": "50"
+        },
+        {
+          "name": "boxes",
+          "amount": "30"
+        }
+      ]
+    },
+    "expected": "1680",
+    "working": "1 x 500 = 500; 50 + 30 = 80; 1000 + 100 = 1100; 1100 + 500 = 1600; 1600 + 80 = 1680",
+    "decision": "accepted"
+  },
+  {
+    "inputs": {
+      "deposit": "800",
+      "van_hire": "150",
+      "monthly_rent_old_home": "400",
+      "overlap_months": "0",
+      "other_one_off_costs": []
+    },
+    "expected": "950",
+    "working": "0 x 400 = 0; other costs sum = 0; 800 + 150 = 950; 950 + 0 = 950; 950 + 0 = 950",
+    "decision": "accepted"
+  },
+  {
+    "inputs": {
+      "deposit": "600",
+      "van_hire": "200",
+      "monthly_rent_old_home": "250",
+      "overlap_months": "3",
+      "other_one_off_costs": [
+        {
+          "name": "packing",
+          "amount": "40"
+        }
+      ]
+    },
+    "expected": "1590",
+    "working": "3 x 250 = 750; other costs sum = 40; 600 + 200 = 800; 800 + 750 = 1550; 1550 + 40 = 1590",
+    "decision": "accepted"
+  },
+  {
+    "inputs": {
+      "deposit": "0",
+      "van_hire": "0",
+      "monthly_rent_old_home": "0",
+      "overlap_months": "2",
+      "other_one_off_costs": [
+        {
+          "name": "cleaning",
+          "amount": "100"
+        }
+      ]
+    },
+    "expected": "100",
+    "working": "2 x 0 = 0; other costs sum = 100; 0 + 0 = 0; 0 + 0 = 0; 0 + 100 = 100",
+    "decision": "accepted"
+  }
+]

@@ -10,6 +10,8 @@ under `harness/`. The repository holds the contract, the tests, and the
 given files for this step. Your job is to write the code that makes the
 step 1 tests pass without breaking step 0.
 
+Passages of `SPEC.md` marked "(step M)" for a step later than this one do not apply yet.
+
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules) and section 4 (step 1). Section 4
@@ -18,24 +20,40 @@ Read these first, in this order:
 2. `harness/`, to see what step 0 built and how it is written.
 3. `tests/step1/`. These tests are the definition of done.
 
-Then build what section 4 describes:
+Then build what section 4 describes.
 
-- three new settings in `harness/config.py`
+Build these files (new):
+
 - `harness/grounding/__init__.py`
 - `harness/grounding/research.py` (lookups, the researchers and their table, the research desk, the research plan)
 - `harness/migrations/0002_lookups.sql`
 - `harness/grounding/claude_code_research.py` (web lookups through Claude Code)
 - `harness/grounding/brief.py` (the brief's shape, checks and output)
 - `harness/grounding/interview.py` (the interview loop)
-- `harness/ui/__init__.py`, `harness/ui/session.py` and `harness/ui/server.py` (the web interface's backend)
-- the `ground` and `ui` commands in `harness/__main__.py`
-- the small change to `harness/model/claude_code_provider.py` that section 4.2 asks for
+- `harness/ui/__init__.py`
+- `harness/ui/session.py`
+- `harness/ui/server.py` (the web interface's backend)
+
+Change these files (they exist already):
+
+- `harness/config.py` (three new settings)
+- `harness/__main__.py` (the `ground` and `ui` commands)
+- `harness/model/claude_code_provider.py` (the small change that section 4.2 asks for)
+
+Given files (do not edit):
+
+- `SPEC.md`
+- `tests/step1/` (the definition of done)
+- `harness/grounding/interviewer.md`
+- `harness/grounding/researcher.md`
+- `harness/grounding/planner.md`
+- `harness/ui/grounding.html`
+- `reference/`
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or
-  `reference/`, or the given files: the three `.md` files in
-  `harness/grounding/` and `harness/ui/grounding.html`. If you believe one of them is wrong,
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or `reference/`, or the other given files
+  above. In the files you change, make only the changes section 4 specifies. If you believe a given file is wrong,
   stop and say so instead of changing it.
 - Build only step 1. Do not start on anything in section 5 of `SPEC.md`.
 - Use only the Python standard library.

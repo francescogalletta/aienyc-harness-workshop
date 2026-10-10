@@ -10,6 +10,8 @@ already built under `harness/`. The repository holds the contract, the
 tests, and the given files for this step. Your job is to write the code that
 makes the step 4 tests pass without breaking the earlier steps.
 
+Passages of `SPEC.md` marked "(step M)" for a step later than this one do not apply yet.
+
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules), section 5.9 (the agent) and
@@ -24,24 +26,37 @@ Read these first, in this order:
    data you will run).
 3. `tests/step4/`. These tests are the definition of done.
 
-Then build what section 8 describes:
+Then build what section 8 describes.
+
+Build these files (new):
 
 - `harness/migrations/0006_decisions.sql` (exactly as in 8.1)
 - `harness/calc/decisions.py` (decision records, the gate block, the decision block and how an answer is read, 8.1 to 8.3)
 - `harness/calc/aside.py` (side conversations: the wrapped `ask` and `say`, one side conversation, its context and its limits, 8.5)
-- the changes to `harness/calc/agent.py`: the assumption gate, the `ask_decision` tool, the build decision, the carried texts and the wrapped `ask` and `say` (8.2 to 8.6)
-- the `decisions` command, and the `aside>` prompt of the terminal `ask`, in `harness/__main__.py` (8.7)
-- the two new expectations of `harness/replay.py`, `decisions` and `asides` (6.4, 6.5)
-- the changes to `harness/ui/evidence.py`: the new traced kinds and the new `person` sources (8.9)
+
+Change these files (they exist already):
+
+- `harness/calc/agent.py` (the assumption gate, the `ask_decision` tool, the build decision, the carried texts and the wrapped `ask` and `say`, 8.2 to 8.6)
+- `harness/__main__.py` (the `decisions` command, and the `aside>` prompt of the terminal `ask`, 8.7)
+- `harness/replay.py` (the two new expectations, `decisions` and `asides`, 6.4 and 6.5)
+- `harness/ui/evidence.py` (the new traced kinds and the new `person` sources, 8.9)
+
+Given files (do not edit):
+
+- `SPEC.md`
+- `tests/step4/` (the definition of done)
+- `harness/calc/aside.md` (the instructions of the side assistant)
+- `harness/calc/analyst.md` (revised: it now tells the agent about assumptions, gates and `ask_decision`)
+- `harness/ui/evidence.html` (the page you will serve)
+- `examples/README.md`
+- `examples/moving/scenarios/` (the data you will run)
+- `examples/wedding/scenarios/` (the data you will run)
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`,
-  `reference/` or `examples/`, or the given files: `harness/calc/aside.md`,
-  `harness/calc/analyst.md`, `harness/ui/evidence.html`, and the earlier given
-  files. The only edits allowed in earlier files are the ones section 8
-  specifies. If you believe a given file is wrong, stop and say so instead of
-  changing it.
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`, `reference/` or `examples/`, or the given files
+  above. In the files you change, make only the changes section 8 specifies. If you believe a given file is wrong,
+  stop and say so instead of changing it.
 - Build only step 4. Do not start on anything in section 9 of `SPEC.md`.
 - Use only the Python standard library.
 - Do not run the `claude` command yourself, and do not make any network

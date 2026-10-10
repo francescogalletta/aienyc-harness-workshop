@@ -1,0 +1,53 @@
+{
+  "name": "wedding_payment_schedule",
+  "description": "Works out the amount and due date of each of the three wedding payments for one total cost.",
+  "step_id": "s2",
+  "method": "arithmetic",
+  "formula": "payment 1 = first_payment_amount, due today + first_payment_days_from_today days; remaining = total_cost - first_payment_amount; payment 2 = remaining x second_payment_share, rounded to 2 decimals (halves round up), due wedding_date - second_payment_days_before_wedding days; payment 3 = remaining - payment 2 (so the three payments add up exactly to total_cost), due wedding_date - third_payment_days_before_wedding days.",
+  "inputs": [
+    {
+      "name": "total_cost",
+      "type": "number",
+      "description": "Total wedding cost for this case, in your currency. Use the result of the total cost step. It must be at least the first payment amount."
+    },
+    {
+      "name": "first_payment_amount",
+      "type": "number",
+      "description": "The fixed first payment, in your currency. It counts toward the total cost."
+    },
+    {
+      "name": "today",
+      "type": "date",
+      "description": "Today's date."
+    },
+    {
+      "name": "first_payment_days_from_today",
+      "type": "integer",
+      "description": "Whole number of days from today until the first payment is due."
+    },
+    {
+      "name": "wedding_date",
+      "type": "date",
+      "description": "The date of the wedding."
+    },
+    {
+      "name": "second_payment_days_before_wedding",
+      "type": "integer",
+      "description": "Whole number of days before the wedding when the second payment is due."
+    },
+    {
+      "name": "third_payment_days_before_wedding",
+      "type": "integer",
+      "description": "Whole number of days before the wedding when the third payment is due."
+    },
+    {
+      "name": "second_payment_share",
+      "type": "number",
+      "description": "Share of the remaining cost paid as the second payment, as a fraction: 0.5 means 50%. The third payment gets the rest."
+    }
+  ],
+  "output": {
+    "type": "object",
+    "description": "Flat object with six keys: payment_1_amount, payment_1_due_date, payment_2_amount, payment_2_due_date, payment_3_amount, payment_3_due_date. Amounts are money in your currency; dates are calendar dates."
+  }
+}

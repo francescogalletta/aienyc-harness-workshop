@@ -1,0 +1,343 @@
+{
+  "goal": "Build and keep up to date a savings plan (sinking fund) that, using a cash flow forecast, shows whether the person can cover each wedding payment on its due date from their own net income, existing savings and the expected family contribution.",
+  "mode": "ongoing",
+  "scope": {
+    "in": [
+      "Saving enough from current monthly net income and the 10k already saved to meet the wedding payments",
+      "Timing of the three payments: fixed 6k due in 21 days, then 50% of the remaining cost 30 days before the wedding, then the other 50% 14 days before",
+      "The 20k contribution from the person's and partner's families, expected about 2 weeks before the wedding",
+      "An uncertain total cost that depends on guest count (about 200 invited; final count known the day before the 30-day payment)",
+      "Re-running the plan as guest numbers, dates and amounts change"
+    ],
+    "out": [
+      "Deciding whether to hold the wedding money in cash, savings or elsewhere",
+      "Building a full household budget or reorganising spending categories",
+      "How the wedding fits into wider finances (debt, investing, long-term goals, life after the wedding)",
+      "Negotiating or reducing wedding costs",
+      "Tax advice or any recommendation on products"
+    ]
+  },
+  "glossary": [
+    {
+      "term": "Sinking fund",
+      "definition": "Money set aside in regular, usually equal, amounts over time to pay for a specific future cost. In personal finance it is sized by dividing the target amount by the number of periods until it is due (interest ignored unless added). NOT verified against a source: web search was unavailable.",
+      "person_says": "saving to pay for the wedding",
+      "source": ""
+    },
+    {
+      "term": "Cash flow forecast",
+      "definition": "An estimate of money expected to come in and go out over future periods. For each period: opening balance plus expected inflows minus expected outflows gives the closing balance, which is the next period's opening balance. It shows when shortfalls or surpluses may occur. NOT verified against a source: web search was unavailable.",
+      "person_says": "timing the payments; 'projections and estimations'",
+      "source": ""
+    },
+    {
+      "term": "Savings goal",
+      "definition": "A specific amount to be saved by a set date for a particular purpose. The regular saving needed is the amount still to be saved divided by the number of periods until the date, ignoring interest. NOT verified against a source: web search was unavailable.",
+      "person_says": "saving enough for the wedding",
+      "source": ""
+    },
+    {
+      "term": "Net income",
+      "definition": "Income after taxes and deductions. For an individual, take-home pay: the amount that actually reaches the bank account. NOT verified against a source: web search was unavailable.",
+      "person_says": "net pay (10k per month); first said 'gross' and then corrected it",
+      "source": ""
+    },
+    {
+      "term": "Gross income",
+      "definition": "Total income before taxes, deductions or other withholdings. Net income is gross income minus taxes and deductions. NOT verified against a source: web search was unavailable.",
+      "person_says": "initially used 'gross income' for the 10k, then corrected it to net",
+      "source": ""
+    },
+    {
+      "term": "Budget",
+      "definition": "A plan comparing expected income over a period, usually a month, with planned spending and saving. NOT verified against a source: web search was unavailable.",
+      "person_says": "'current budget'; described as about 5k a month that they 'consume', which seems to mean monthly spending",
+      "source": ""
+    }
+  ],
+  "particulars": [
+    {
+      "what": "The wedding cost is not fixed: it depends on guest count (about 200 invited now; final count known the day before the 30-day payment).",
+      "handling": "Plan with an estimated total (ideally a low/high range) until the final count is confirmed, then recalculate the two instalments on the confirmed figure."
+    },
+    {
+      "what": "Payment schedule is a fixed 6k in 21 days, then two equal instalments of 50% each of the remaining cost, at 30 days and 14 days before the wedding.",
+      "handling": "Treat 'remaining cost' as total cost minus the 6k, and each instalment as half of that. Confirm with the contract that the 6k counts toward the total."
+    },
+    {
+      "what": "A 20k contribution from the person's and partner's families is expected about 2 weeks before the wedding ('I think'; may change).",
+      "handling": "Enter it as an inflow dated 14 days before the wedding, flagged as uncertain. Do not rely on it to fund the 6k or the 30-day payment, and update the date or amount when confirmed."
+    },
+    {
+      "what": "The person first called their 10k monthly income 'gross' and then corrected it to net.",
+      "handling": "Use 10k per month net income (take-home pay). Check against payslips or bank deposits."
+    },
+    {
+      "what": "The person says they 'consume' about 5k a month.",
+      "handling": "Read this as monthly spending (outflows) of about 5k, excluding wedding payments. Confirm that it covers all regular costs and whether it varies."
+    },
+    {
+      "what": "The person has 10k already saved for the wedding.",
+      "handling": "Use it as the opening balance of the wedding fund in the forecast."
+    },
+    {
+      "what": "The person asked whether to upload bank statements or connect to the bank, or whether variation in spending matters.",
+      "handling": "Not needed to start: use the 5k average for now. Statements can later be used to check the average and its month-to-month variation. The choice of how to supply data is left open."
+    },
+    {
+      "what": "The person expects to adjust projections as things happen.",
+      "handling": "The plan is re-run whenever dates, guest count, contribution or spending change, and at least monthly."
+    }
+  ],
+  "inputs": [
+    {
+      "name": "Wedding date",
+      "description": "The date from which all payment dates are counted. Not yet stated."
+    },
+    {
+      "name": "Payment schedule",
+      "description": "6k due in 21 days; 50% of the remaining cost 30 days before; 50% 14 days before. Described in conversation; the contract is the source."
+    },
+    {
+      "name": "Guest count",
+      "description": "About 200 invited; final count known the day before the 30-day payment."
+    },
+    {
+      "name": "Cost per guest or estimated total cost",
+      "description": "Needed to estimate the total from the guest count. Not yet provided."
+    },
+    {
+      "name": "Net monthly income",
+      "description": "About 10k per month take-home pay, stable."
+    },
+    {
+      "name": "Monthly spending",
+      "description": "About 5k per month on average, stated from memory. Bank statements or a bank connection could be supplied later."
+    },
+    {
+      "name": "Current wedding savings",
+      "description": "10k already saved. Where it is held is out of scope."
+    },
+    {
+      "name": "Family and partner contribution",
+      "description": "20k in total, expected about 2 weeks before the wedding, not yet firm."
+    }
+  ],
+  "process": [
+    {
+      "id": "s1",
+      "name": "Estimate total wedding cost",
+      "kind": "calculation",
+      "method": "arithmetic",
+      "formula": "estimated total cost = guest count x cost per guest (plus any fixed costs, if the person has them)",
+      "needs": [
+        "Guest count",
+        "Cost per guest or estimated total cost"
+      ],
+      "produces": "Estimated (later confirmed) total wedding cost, as a low, expected and high case",
+      "cadence": "when guest count or prices change"
+    },
+    {
+      "id": "s2",
+      "name": "Work out the three payment amounts",
+      "kind": "calculation",
+      "method": "arithmetic",
+      "formula": "payment 1 = 6k; remaining = total cost - 6k; payment 2 = payment 3 = remaining x 50%",
+      "needs": [
+        "s1",
+        "Payment schedule"
+      ],
+      "produces": "Amount and due date of each of the three payments",
+      "cadence": "when s1 changes"
+    },
+    {
+      "id": "s3",
+      "name": "Work out monthly surplus",
+      "kind": "calculation",
+      "method": "arithmetic",
+      "formula": "monthly surplus = net monthly income - monthly spending",
+      "needs": [
+        "Net monthly income",
+        "Monthly spending"
+      ],
+      "produces": "Amount available to save each month before the wedding",
+      "cadence": "monthly"
+    },
+    {
+      "id": "s4",
+      "name": "Confirm contribution timing and amount",
+      "kind": "input",
+      "needs": [
+        "Family and partner contribution"
+      ],
+      "produces": "Confirmed (or still estimated) date and amount of the 20k, an input to s5",
+      "cadence": "when anything changes"
+    },
+    {
+      "id": "s5",
+      "name": "Project wedding fund balance at each payment date (running balance, cash flow forecast style)",
+      "kind": "calculation",
+      "method": "arithmetic",
+      "formula": "closing balance = opening balance + inflows (monthly saving, contribution) - outflows (payments due), repeated per period; opening balance starts at current savings",
+      "needs": [
+        "s2",
+        "s3",
+        "s4",
+        "Current wedding savings"
+      ],
+      "produces": "Balance of the wedding fund at each payment date, showing any shortfall or surplus",
+      "cadence": "monthly and whenever inputs change"
+    },
+    {
+      "id": "s6",
+      "name": "Work out monthly saving needed to cover any shortfall (savings goal style)",
+      "kind": "calculation",
+      "method": "arithmetic",
+      "formula": "monthly saving needed = shortfall before a payment date / months until that payment date",
+      "needs": [
+        "s5"
+      ],
+      "produces": "Required monthly saving per payment, set against the monthly surplus from s3",
+      "cadence": "monthly"
+    },
+    {
+      "id": "s7",
+      "name": "Review results and decide updates",
+      "kind": "judgment",
+      "needs": [
+        "s5",
+        "s6"
+      ],
+      "produces": "Plain explanation of whether the plan is on track, which assumptions (guest count, contribution date, spending) matter most, and what to update next",
+      "cadence": "monthly and after the guest count is confirmed"
+    }
+  ],
+  "definition_of_done": [
+    "The person can see, for each of the three payments, how much is due, when, and whether the wedding fund covers it on that date.",
+    "The plan is refreshed at least monthly, and straight away when the guest count is confirmed or the contribution date or amount changes.",
+    "All calculations run as tested code and give the same answer each time; the person can trace each number back to its inputs.",
+    "The person feels less stressed about the money because they know in advance of any shortfall."
+  ],
+  "open_questions": [
+    "What is the wedding date? Without it the payment dates cannot be fixed.",
+    "What is the cost per guest, or the expected total cost? The size of the shortfall depends on it.",
+    "Does the 6k count toward the total cost, so that 'remaining cost' means total minus 6k?",
+    "Is the 5k monthly spending a reliable average, and does it include all regular costs? Bank statements or a bank connection could help; the format is still to be decided.",
+    "How firm is the 20k contribution, and will it really arrive about 2 weeks before the wedding?",
+    "Does the person have other costs apart from the venue payments (for example attire, travel or rings) that should be added to the plan?",
+    "IMPORTANT: every look_up failed because web search was unavailable, so no glossary definition has a source. The definitions are from general knowledge and must be re-checked. Because no source could be found, steps s5 and s6 are written as plain arithmetic (they are a running balance and a simple division) and are only described as 'cash flow forecast style' and 'savings goal style' in their names. Once sources are available, they should be re-labelled with those methods.",
+    "Where to hold the money (cash or savings) and the wider budget are out of scope for now and could be a later piece of work."
+  ],
+  "meta": {
+    "written_at": "2026-10-09T16:40:51+00:00",
+    "session_id": "8a069e64f6e9402c86b2d861a28ab1a1",
+    "lookups": [
+      {
+        "query": "sinking fund",
+        "found": false,
+        "name": "Sinking fund",
+        "definition": "I could not check this against any source, because web search was unavailable (the tool returned an error), so no sources are listed. From general knowledge, and not verified: a sinking fund is money set aside in regular amounts over time to pay a specific future cost, such as repaying a debt or replacing a big item. In personal finance it usually means saving a fixed amount each period, found by dividing the target cost by the number of periods, with interest ignored or added on top. Please re-run the lookup once search is available to confirm this.",
+        "sources": []
+      },
+      {
+        "query": "budget",
+        "found": false,
+        "name": "Budget",
+        "definition": "I could not look this up, because web search returned an error in this session. I am not giving a sourced definition. From general knowledge, and unverified, a personal budget is a plan that compares the income you expect over a period, usually a month, with your planned spending and saving. It is usually built by listing income, subtracting planned expenses and savings, and adjusting until the total is not more than income.",
+        "sources": []
+      },
+      {
+        "query": "cash flow forecast",
+        "found": false,
+        "name": "cash flow forecast",
+        "definition": "I could not look this up because web search was unavailable, so I have no verified source for a standard definition.",
+        "sources": []
+      },
+      {
+        "query": "sinking fund",
+        "found": false,
+        "name": "Sinking fund",
+        "definition": "A sinking fund is money set aside regularly in a separate account to pay for a specific future cost or to repay a debt, such as a bond, when it comes due. In personal finance it is usually a fixed amount saved each period, found by dividing the target amount by the number of periods until the date it is needed (ignoring interest). Note: web search was unavailable, so this comes from general knowledge and I could not check it against a source.",
+        "sources": []
+      },
+      {
+        "query": "cash flow projection",
+        "found": false,
+        "name": "Cash flow projection (cash flow forecast)",
+        "definition": "I could not check this against any source because web search was unavailable, so this is not a verified standard definition. From general knowledge, a cash flow projection is an estimate of the money expected to come in and go out over a future period, usually by month. It is normally calculated as opening cash balance plus projected inflows minus projected outflows, which gives the closing balance for each period and shows when shortfalls might happen.",
+        "sources": []
+      },
+      {
+        "query": "savings goal",
+        "found": false,
+        "name": "Savings goal",
+        "definition": "I could not verify this term, because web search failed with an error saying it is not enabled for this organization. From general knowledge only, and not checked against any source, a savings goal is a specific amount of money you plan to save by a set date for a particular purpose. The usual way to work out the saving needed is: monthly saving = (target amount − amount already saved) ÷ number of months until the target date, ignoring interest.",
+        "sources": []
+      },
+      {
+        "query": "net income",
+        "found": false,
+        "name": "Net income",
+        "definition": "I could not verify this on the web, because web search was unavailable, so this comes from general knowledge and not from a cited source. Net income is what is left of revenue after all expenses are subtracted, including operating costs, interest, taxes and other charges. For a business it is the \"bottom line\" of the income statement. For an individual it is often used to mean take-home pay after taxes and deductions.",
+        "sources": []
+      },
+      {
+        "query": "gross income",
+        "found": false,
+        "name": "Gross income",
+        "definition": "Gross income is your total income from all sources before taxes, deductions or other withholdings are taken out. For tax purposes in the US, it covers all income you receive in the form of money, goods, property or services that isn't specifically exempt, such as wages, interest, dividends, rental income and business income. Net income is gross income minus taxes and deductions. Web search failed in this session, so this definition comes from general knowledge and I could not check it against a source.",
+        "sources": []
+      },
+      {
+        "query": "cash flow forecast",
+        "found": false,
+        "name": "Cash flow forecast",
+        "definition": "A cash flow forecast is an estimate of the money expected to come in and go out over a future period, usually set out week by week or month by month. For each period you take the opening cash balance, add expected cash inflows (such as sales receipts, wages or loans), subtract expected cash outflows (such as rent, bills, tax and loan repayments), and arrive at the closing balance, which becomes the next period's opening balance. It is used to spot future cash shortfalls or surpluses early, so you can plan for them. (Web search was unavailable, so this comes from general knowledge and not from a page I checked.)",
+        "sources": []
+      },
+      {
+        "query": "cash flow forecast",
+        "found": false,
+        "name": "Cash flow forecast",
+        "definition": "I could not verify this term, because web search was unavailable and I found no sources. From general knowledge, and unchecked, a cash flow forecast is an estimate of the money expected to come in and go out over a future period. It is usually built by starting with the opening cash balance, adding expected inflows, and subtracting expected outflows to get the expected closing balance for each period.",
+        "sources": []
+      },
+      {
+        "query": "savings goal",
+        "found": false,
+        "name": "savings goal",
+        "definition": "I could not look this up, because web search returned an error (\"Web search is not enabled for this organization\"). I have no sources to cite. From general knowledge only, and not verified: a savings goal is a specific amount of money you plan to save for a defined purpose by a target date. The usual way to work out the regular saving needed is to divide the target amount by the number of periods until the deadline, such as months. Please re-run this once web search is available if you need a sourced definition.",
+        "sources": []
+      },
+      {
+        "query": "sinking fund",
+        "found": false,
+        "name": "Sinking fund",
+        "definition": "A sinking fund is money set aside in regular, usually equal, amounts over time to pay for a specific future cost or to pay off a debt. In personal finance, it covers a planned expense such as a car repair, insurance premium or holiday. To size it, divide the target amount by the number of periods until it is due, and add the interest the fund earns if you want to be exact. In corporate finance, it is a fund an issuer builds to retire a bond or other debt before or at maturity. Note: web search was unavailable, so this comes from general knowledge and I could not check it against any source.",
+        "sources": []
+      },
+      {
+        "query": "cash flow projection",
+        "found": false,
+        "name": "Cash flow projection",
+        "definition": "I could not verify this term because web search was unavailable, so I have no sources to cite. From general knowledge only, and not checked against a source: a cash flow projection estimates the cash a person or business expects to receive and pay out over a future period. It is usually built by starting with the opening cash balance, adding expected inflows, subtracting expected outflows, and carrying the closing balance into the next period.",
+        "sources": []
+      },
+      {
+        "query": "cash budget",
+        "found": false,
+        "name": "cash budget",
+        "definition": "Not verified: web search returned an error (not enabled for this organization), so I could not check an authoritative source. From general knowledge, and unconfirmed, a cash budget is a forecast of the cash coming in and going out over a period. It is usually calculated as opening cash plus expected receipts, minus expected payments, which gives the projected closing cash balance. In personal finance the term can also mean \"cash envelope budgeting\", where spending money is set aside as physical cash per category. Please retry once search is available.",
+        "sources": []
+      },
+      {
+        "query": "savings target",
+        "found": false,
+        "name": "savings target",
+        "definition": "I could not look this term up because web search was unavailable, so I can't confirm a standard definition from any source. From general knowledge, and unverified, a savings target is a specific amount of money you plan to save by a set date for a stated purpose. The usual way to work out the monthly amount is (target amount − current savings) ÷ number of months until the deadline, ignoring interest.",
+        "sources": []
+      }
+    ],
+    "status": "confirmed"
+  }
+}
