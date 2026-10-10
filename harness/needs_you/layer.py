@@ -1,13 +1,12 @@
 """Layer 4, when the harness needs the person (SPEC 6): run and mark (`marks.py`), calls that are the person's
-(`calls.py`), missing calculations built without asking (`requests.py`). Side threads (`side.py`, package A4b)
-are added to this file by that package.
+(`calls.py`), missing calculations built without asking (`requests.py`), side threads (`side.py`).
 """
 import json
 from pathlib import Path
 
-from ..core import BadAction
+from ..core import BadAction, list_threads
 from ..layers import Expect, Layer
-from . import calls, marks, requests
+from . import calls, marks, requests, side
 
 PROMPT = Path(__file__).with_name("analyst.md")
 SECTION_LIMIT = 40
@@ -17,7 +16,8 @@ SECTION_LIMIT = 40
 
 def contribute(view, state: dict) -> None:
     """`unconfirmed` and `calls` on every step, `notice` and `decision` on every message, the single
-    "needs you" on the step of an open decision, and `threads` (empty until side threads exist)."""
+    "needs you" on the step of an open decision, and `threads` (the conversation's side threads, and the
+    review threads layer 5 started, which are in the same table)."""
     conn = view.conn
     rows = calls.rows_of(conn, view.conversation)
     named = {row["step_id"] for row in rows}
@@ -47,7 +47,9 @@ def contribute(view, state: dict) -> None:
         notice = message.setdefault("notice", None)
         if notice:
             message["notice"] = {**notice, "status": marks.notice_status(conn, notice)}
-    state.setdefault("threads", [])
+    state["threads"] = [{**thread, "challenge": None,
+                         "messages": [{"sources": [], **message} for message in thread["messages"]]}
+                        for thread in list_threads(conn, view.conversation)]
 
 
 # --- What the analyst is told ---
@@ -79,6 +81,18 @@ def confirm_assumptions(core, payload: dict) -> None:
     if not isinstance(message, str) or not message:
         raise BadAction("message must be a message id")
     marks.confirm(core, message)
+
+
+def _validate_side_threads(value):
+    return None if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else \
+        "side_threads must be a whole number, 0 or more"
+
+
+def _check_side_threads(value, context) -> dict:
+    threads = [thread for thread in context.state()["threads"] if thread["kind"] == "side"
+               and any(message["who"] == "assistant" for message in thread["messages"])]
+    return {"what": f"at least {value} side threads answered", "passed": len(threads) >= value,
+            "seen": f"{len(threads)} answered"}
 
 
 def tools(turn) -> list:
@@ -144,10 +158,12 @@ def _check_added(value, context) -> dict:
 
 LAYER = Layer(
     number=4, name="needs you", schema=Path(__file__).with_name("schema.sql"),
-    contribute=contribute, actions={"choose": calls.choose, "confirm_assumptions": confirm_assumptions},
+    contribute=contribute,
+    actions={"choose": calls.choose, "confirm_assumptions": confirm_assumptions, "side": side.side},
     route=marks.route, tools=tools, prompt=PROMPT, context=context,
     hooks={"loaded": loaded, "turn_finished": marks.turn_finished},
     expects={"decisions": Expect(_validate_decisions, _check_decisions),
              "marks": Expect(_validate_marks, _check_marks),
-             "added": Expect(_validate_added, _check_added)},
+             "added": Expect(_validate_added, _check_added),
+             "side_threads": Expect(_validate_side_threads, _check_side_threads)},
 )

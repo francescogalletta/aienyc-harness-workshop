@@ -167,3 +167,12 @@ def test_the_analyst_is_told_each_assumption_with_its_status_and_words(open_sess
     say(session, "Anything else?")
     known = session.script.calls[-1]["system"].split("## What you know")[1]
     assert "[assumptions]" in known and ASSUMED in known and '"corrected"' in known and "B is 25 in fact" in known
+
+
+def test_a_withheld_reply_carries_no_notice_but_the_step_keeps_its_mark(open_session):
+    session = open_session([run("total", {"a": 10, "b": 20}, [ASSUMED]), reply("The total is 9,999."),
+                            reply("It is 9,999 for sure.")])
+    state = say(session, "A is 10 and B is 20, what is the total?")
+    assert assistant(state)[-1]["kind"] == "withheld" and notices(state) == []
+    assert [each["text"] for each in step_of(state, "c1")["unconfirmed"]] == [ASSUMED]
+    assert problems(state, strict=True) == []

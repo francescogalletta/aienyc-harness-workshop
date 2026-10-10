@@ -116,8 +116,9 @@ def make_notice(turn: Turn) -> dict | None:
 
 
 def turn_finished(work, turn: Turn) -> None:
-    """Hook: a turn that ran modules on unconfirmed assumptions gets a notice on its final message."""
-    if not turn.runs or not turn.reply:
+    """Hook: a turn that ran modules on unconfirmed assumptions gets a notice on its final message. A reply
+    that was withheld gets none: the person never saw what the assumptions were for (the steps keep the mark)."""
+    if not turn.runs or not turn.reply or turn.withheld:
         return
     notice = make_notice(turn)
     if notice is not None:

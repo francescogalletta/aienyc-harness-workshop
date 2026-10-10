@@ -18,6 +18,7 @@ CASES = ("step", "new", "replace")
 
 BUILT_NOT_IN_PLAN = "A calculation that is not in the plan was needed: {name}. It is built and tested."
 BUILT_STEP = "Step {number} {name} is built and tested."
+BUILDING = "Building {name}, which this answer needs. It is written and tested first, so it can take a minute."
 NOT_BUILT_STEP = "Step {number} {name} could not be built. Click it to see why."
 
 REQUEST_MODULE = ToolSpec(
@@ -117,6 +118,7 @@ def request_module(turn: Turn, call) -> dict:
     else:
         step = steps[target]
     work.changed()
+    work.post(BUILDING.format(name=step["name"]), who="harness", step=step["id"])        # at once, not after the build
     started = time.monotonic()
     try:
         built = build_step(work, step, rebuild=rebuild)

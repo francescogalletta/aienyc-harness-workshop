@@ -143,7 +143,8 @@ changes. It reads a line when the main lane waits or is idle:
 | `/wrap` | `wrap` |
 | `/build` | `build` |
 | `/confirm` | `confirm_assumptions` on the latest open notice |
-| `/side TEXT` | `side` with a new thread |
+| `/side TEXT` | `side` with a new thread (`/side @STEP TEXT`: about that step) |
+| `/reply TEXT` | `side` in the latest side thread (`/side tN TEXT`: in thread tN) |
 | `/quit`, end of input | stop the driver |
 | anything else | `say` (a decision reads a number or an option's words) |
 

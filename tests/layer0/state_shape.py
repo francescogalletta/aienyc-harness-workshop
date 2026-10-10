@@ -210,6 +210,58 @@ def layer4_problems(state: dict) -> list[str]:
     return out
 
 
+def layer5_problems(state: dict) -> list[str]:
+    """What layer 5 must keep true of its keys, beyond their shape (ARCHITECTURE.md 3.3, 3.4; SPEC 2.4, 7)."""
+    out: list[str] = []
+    threads = {thread["id"]: thread for thread in state.get("threads") or []}
+    challenges = {}
+    for thread in threads.values():
+        found = thread["challenge"]
+        if (thread["kind"] == "review") != (found is not None):
+            out.append(f"{thread['id']}: a review thread has a challenge, and a side thread has none")
+        if found is None:
+            continue
+        where = f"{thread['id']}.challenge {found['id']}"
+        challenges[found["id"]] = (thread, found)
+        if found["step"] != thread["step"] or found["step"] not in {step["id"] for step in state["steps"]}:
+            out.append(f"{where}: its step is not the thread's step, or not a step")
+        if found["status"] != thread["status"]:
+            out.append(f"{where}: status {found['status']} but the thread is {thread['status']}")
+        if not 1 <= len(thread["title"]) <= 45:
+            out.append(f"{where}: title of {len(thread['title'])} characters")
+        if found["kind"] == "question" and (found["proposal"] or found["change"] != "none"):
+            out.append(f"{where}: a question with a proposal or a change")
+        if found["kind"] == "challenge" and not found["proposal"]:
+            out.append(f"{where}: a challenge with no proposal")
+        if found["rank"] < 1 or found["pass"] < 1:
+            out.append(f"{where}: rank or pass below 1")
+        if not thread["messages"] or thread["messages"][0]["who"] != "reviewer":
+            out.append(f"{where}: the first message is not the reviewer's")
+        elif thread["messages"][0]["sources"] != found["sources"]:
+            out.append(f"{where}: the first message does not carry the challenge's sources")
+    ranks = [(found["pass"], found["rank"]) for _, found in challenges.values()]
+    if len(set(ranks)) != len(ranks):
+        out.append("two challenges of one pass have the same rank")
+    listed = []
+    for n, step in enumerate(state["steps"]):
+        where = f"steps[{n}] ({step['id']})"
+        ids = step.get("challenges") or []
+        listed += ids
+        for each in ids:
+            if each not in challenges or challenges[each][1]["status"] != "open" or challenges[each][1]["step"] != step["id"]:
+                out.append(f"{where}: {each} is not an open challenge of this step")
+        mark = [m for m in step["marks"] if m["symbol"] == "▲"]
+        if bool(ids) != bool(mark) or (mark and mark[0]["count"] != len(ids)):
+            out.append(f"{where}: the ▲ mark and challenges disagree")
+    if sorted(listed) != sorted(each for each, (_, found) in challenges.items() if found["status"] == "open"):
+        out.append("an open challenge is on no step, or on two")
+    if state["review"]["open"] != len(listed):
+        out.append("review.open is not the number of open challenges")
+    if state["review"]["running"] != (state["lanes"]["review"] != "idle"):
+        out.append("review.running and lanes.review disagree")
+    return out
+
+
 def problems(state: dict, strict: bool = False) -> list[str]:
     """What is wrong with the shape of `state`. `strict` also runs the checks a live state must keep
     (`build_problems`); the hand-written samples in `states/` are sparse and are checked without it."""
@@ -300,6 +352,8 @@ def problems(state: dict, strict: bool = False) -> list[str]:
         out.extend(build_problems(state))
     if strict and 4 in layers:
         out.extend(layer4_problems(state))
+    if strict and 5 in layers:
+        out.extend(layer5_problems(state))
     if state["lanes"]["main"] == "waiting" and waiting is None:
         out.append("lanes.main waits but waiting is null")
     if len([step for step in state["steps"] if step["needs_you"]]) > 1:

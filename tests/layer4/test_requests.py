@@ -27,7 +27,7 @@ def test_a_calculation_the_plan_has_no_step_for_is_built_without_asking(open_ses
     assert (step["in_plan"], step["name"], step["kind"], step["build"]["status"]) == (
         False, "Triple an amount", "calculation", "built")
     assert state["steps"][-1]["id"] == "added_1" and step["number"] == len(state["steps"])
-    (told,) = [m for m in chat_of(state, "harness") if m["step"] == "added_1"]
+    *_, told = [m for m in chat_of(state, "harness") if m["step"] == "added_1"]
     assert "Triple an amount" in told["text"] and told["kind"] == "text"
     assert int(told["id"][1:]) < int(assistant(state)[-1]["id"][1:])          # told before the answer
     result = json.loads(session.script.calls[-2]["messages"][-1]["content"])
@@ -45,7 +45,7 @@ def test_a_step_of_the_plan_without_a_working_module_is_built_and_the_person_is_
     state = say(session, "Can you work out the tax?")
     assert step_of(state, "c3")["build"]["status"] == "built" and step_of(state, "c3")["in_plan"]
     assert not [s for s in state["steps"] if s["id"].startswith("added_")]
-    (told,) = chat_of(state, "harness")
+    *_, told = chat_of(state, "harness")
     assert told["step"] == "c3" and "Tax" in told["text"]
     assert problems(state, strict=True) == []
 
@@ -56,7 +56,7 @@ def test_a_build_that_fails_is_told_and_the_analyst_says_what_cannot_be_answered
     state = say(session, "What is three times 7?")
     step = step_of(state, "added_1")
     assert step["build"]["status"] == "not_built" and step["build"]["reason"] and step["needs_you"]
-    (told,) = chat_of(state, "harness")
+    *_, told = chat_of(state, "harness")
     assert told["step"] == "added_1" and "could not" in told["text"]
     assert json.loads(session.script.calls[-1]["messages"][-1]["content"])["outcome"] == "not_built"
     assert events(session, "you.module_requested")[0]["outcome"] == "not_built"
@@ -90,7 +90,7 @@ def test_a_module_that_does_not_fit_is_built_again_and_the_words_are_kept_as_a_n
     assert step_of(state, "c1")["build"]["status"] == "built" and step_of(state, "c1")["build"]["module"] == "total"
     assert any("list of costs" in note["text"] and note["step"] == "c1" for note in list_notes(session.conn))
     assert events(session, "build.started")[-1]["rebuild"] == "total"
-    (told,) = chat_of(state, "harness")
+    *_, told = chat_of(state, "harness")
     assert told["step"] == "c1"
 
 
@@ -138,3 +138,16 @@ def test_the_expectations_for_marks_and_added_steps(open_session):
     assert marks.check({"min": 1, "max": 1}, session)["passed"] and not marks.check({"max": 0}, session)["passed"]
     assert added.validate(1) is None and added.validate("1") and added.validate(-1)
     assert added.check(1, session)["passed"] and not added.check(2, session)["passed"]
+
+
+def test_the_chat_says_a_build_has_begun_before_it_starts(open_session):
+    from harness import db
+    session = open_session([request("new", name="Triple an amount"), *triple_turns(),
+                            run("triple", {"amount": 7}), reply("Three times 7 is 21.")])
+    state = say(session, "What is three times 7?")
+    first, *_ = [m for m in chat_of(state, "harness") if m["step"] == "added_1"]
+    assert "Triple an amount" in first["text"]
+    told = next(row for row in db.list_events(session.conn, kind="core.message")
+                if json.loads(row["payload"])["id"] == first["id"])
+    started = next(row for row in db.list_events(session.conn, kind="build.started"))
+    assert told["id"] < started["id"]

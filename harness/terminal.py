@@ -10,8 +10,19 @@ from .core import BadAction
 ACTIONS = {"/accept": "accept_plan", "/wrap": "wrap", "/build": "build"}
 NOTICE_PROMPT = "Type /confirm, or say what is different."
 NOT_HERE = "That is not available here."
+NO_THREAD = "There is no side thread to reply in. Start one with /side TEXT."
 NOTHING_TO_CONFIRM = "There is nothing to confirm."
 PROMPT = "> "
+
+
+def side_payload(rest: str) -> dict:
+    """`/side [tN | @STEP] TEXT`: a reply in thread tN (ids count from t1), or a new thread about a step, or a new thread."""
+    first, _, after = rest.partition(" ")
+    if len(first) > 1 and first[0] == "t" and first[1:].isdigit():
+        return {"text": after.strip(), "thread": first}
+    if len(first) > 1 and first[0] == "@":
+        return {"text": after.strip(), "step": first[1:]}
+    return {"text": rest}
 
 
 class Terminal:
@@ -54,8 +65,15 @@ class Terminal:
                 self.write(NOTHING_TO_CONFIRM)
                 return
             action, payload = "confirm_assumptions", {"message": notice}
+        elif line == "/reply" or line.startswith("/reply "):
+            latest = next((thread["id"] for thread in reversed(state.get("threads", []))
+                           if thread["kind"] == "side"), None)
+            if latest is None:
+                self.write(NO_THREAD)
+                return
+            action, payload = "side", {"text": line[len("/reply"):].strip(), "thread": latest}
         elif line == "/side" or line.startswith("/side "):
-            action, payload = "side", {"text": line[len("/side"):].strip()}
+            action, payload = "side", side_payload(line[len("/side"):].strip())
         else:
             action, payload = "say", {"text": line}
         try:

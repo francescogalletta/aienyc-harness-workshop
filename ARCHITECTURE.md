@@ -833,3 +833,64 @@ Each has the default the work plan takes.
   a dinner price, but said some assumptions only in its prose (the 6,000 counting toward the total) and left them out of
   the run's `assumptions`: the mark is only as complete as that list. Twice it wrote a run id in its reply ("run 15"), which
   is not a number source, so one answer was withheld. An automatic build of a new step took 45 seconds.
+- **A4b · Files and interfaces.** `side.py` (the `side` action, `reply(work, thread, upto)`, the sections the side assistant
+  reads); `layer.py` registers the action, makes `threads` from `core.list_threads` (review threads of layer 5 are in the same
+  table; each message gets `sources: []` and each thread `challenge: null`, which layer 5 overwrites) and the expectation
+  `side_threads` (int: at least that many side threads with an assistant message). The terminal has `/side @STEP TEXT`, `/side tN
+  TEXT` and `/reply TEXT` (the latest side thread); it reads a line only when the main lane is not working, so from the terminal a
+  thread opens while the main lane waits or is idle, not during a build.
+- **A4b · What it sees.** Built from `state()` on the side lane, so it is what the person sees: the plan (goal, scope, assumptions,
+  done, open questions, glossary, inputs with saved values, every step with formula, needs, produces, particulars), the attached
+  step in detail (spec, examples with `checked_by` and the second answer, disagreement, last run, unconfirmed, decisions, open
+  challenges; never code), the last ten main-chat lines as text and, in a review thread, its challenge. The model's messages are the
+  thread's own (person and its replies, up to the message answered; reviewer words and withheld notices left out). Number sources: all
+  of that, the thread's messages and this reply's lookups.
+- **A4b · Rules.** `side` with a `thread` that is not in this conversation is refused (NotNow); an unknown `step` or a malformed id
+  is a BadAction. Six person messages per thread (NotNow after). Any thread, whatever its status, takes a reply. One job per message;
+  two quick messages give two replies, the first one seeing only up to its own message. Three lookups per thread, counted by
+  `you.side_lookup` events and including refused ones; only a general term goes out (`look_up_general`). A second unbacked reply is
+  posted as an assistant message of kind `withheld` (thread messages carry no `kind` in the state; the page shows it as text), and
+  no model failure is caught: a failed call is a `core.job_failed` and `error`. Events as SPEC 6.5, with `thread` in every payload;
+  `you.side_withheld {thread, numbers, text}`. There is no `you.side_correction`.
+- **A4b · Three fixes of A4a.** A withheld reply gets no notice (the steps keep `◌`; a stopped turn still gets one). The chat says
+  `BUILDING` (a harness message with the step) before an automatic build starts, then `BUILT_*` or `NOT_BUILT_STEP` as before. The
+  layer 4 analyst part now says every assumption relied on must be in the run's `assumptions`, not only in the reply's words.
+- **A4b · Seen with the real model** (`claude` CLI, wedding example, layer 4). A thread opened on step 1 while the main lane worked
+  was answered in about 6 seconds and a follow-up in about 5, the main answer finished after, with no mention of the thread; the
+  thread followed the person's message. The side assistant did not call `look_up` for "sinking fund" (the plan's glossary had it,
+  noted as from general knowledge) and offered to.
+- **A4b · Changed outside layer 4.** `harness/terminal.py` (`/reply`, `@STEP`, `tN` forms), `SPEC.md` 2.5 (the two table rows). No core change.
+- **A5 · Files and interfaces.** `reviewer.py` (a pass: `run_pass(work, trigger)`, `queue_pass(core_or_work, trigger)`, the
+  user message, the checks `check`/`keep`, `new_assumptions`), `layer.py` (hooks, `contribute`, the two actions, the
+  `challenges` expectation), `schema.sql` (`challenges` has one more column than SPEC 7.4, `conversation`; `review_passes` has
+  `conversation`, `seconds` and `assumption_mark`). A pass is its own model conversation: `reviewer.md` as the system prompt
+  and one user message of sections (today, plan, built specs, assumptions with their steps and status, decisions, saved inputs,
+  last eight runs, earlier challenges, the person's replies in review threads). It never sees the main chat, the analyst's
+  messages or any code. Challenges belong to the current conversation (a new interview starts them afresh).
+- **A5 · When.** Besides SPEC 7.1, a session that opens on an accepted plan with no pass yet in the conversation queues one
+  (`loaded`, trigger `loaded`): a seeded example is accepted from the start and would otherwise never be reviewed. "A
+  never-seen assumption" is an assumption id of the turn's runs above the highest id when the last pass began
+  (`review_passes.assumption_mark`); `step_built` starts nothing. A pass with no accepted plan does nothing.
+- **A5 · Checks and cap.** Any step of the process may carry a challenge, an added one too. Kept per pass: `min(3, 5 - open)`
+  (SPEC: first three, none at five open; with three open this keeps two). A drop is recorded with a `reason`: `unknown_step`,
+  `bad_title`, `bad_value`, `bad_question`, `no_proposal`, `source_not_fetched`, `number_unbacked`, `repeat`, `over_cap`,
+  `too_many_open`. "Cites outside information" is decided by what the harness can see: a listed source that no lookup of this
+  pass returned, a URL in the text that none returned, or the word Wikipedia with no source. A reasoned challenge with no
+  source is kept. The number check reads the user message and the lookups' names and definitions.
+- **A5 · Thread.** One first message by `reviewer`: the concern, then `Proposed: ...` (a question has no such line), with the
+  challenge's `sources`. The thread's `after` and title follow `add_thread` and the challenge title. `contribute` adds review
+  threads only if layer 4 has not drawn them (it does draw every thread, with `challenge` null) and then sets `challenge`;
+  `review.running` is "the review lane is not idle". A5 reads the `challenges` table; layer 4's side assistant reads the
+  challenge from the state document, so nothing in `needs_you/` was touched.
+- **A5 · Use this.** `use_challenge` sets the challenge and thread `used`, then goes through the core's `say` with the step
+  attached, so the message is the person's, visible, and routed as any message (analyst, or the step helper for a step that
+  is not built). A correction of an assumption or an input is therefore only what the analyst does on that message; in the live
+  run it asked the person for the missing figure. Refused: a `question` (answered in its thread; it can be dismissed), a
+  settled challenge, an unknown id, a step no longer in the plan, and while the main lane waits on a decision (the message
+  would answer it). `dismiss_challenge` has none of these but the first two. Replying is layer 4's `side` action.
+- **A5 · Expectation.** `challenges {min?, max?, steps?}` counts the challenges raised in the conversation, whatever became of
+  them; each of `steps` needs at least one.
+- **A5 · Seen with the real model** (`claude` CLI, wedding example, all layers). Passes took 15.5, 20.9 and 15.9 s; one model call
+  each and no lookup was asked for (the reviewer did not ask). Wikipedia is unreachable from this machine (proxy answers
+  403), and the research chain then returns `not_found` for a term the reference file lacks, without an error. A second
+  message sent while a pass ran was answered in 6 s.
