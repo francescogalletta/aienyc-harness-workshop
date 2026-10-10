@@ -139,6 +139,8 @@ Step = {
 
   "build": null | Build,          (layer 2) calculation steps only
   "last_run": null | LastRun,     (layer 3)
+  "runs": [Run],                  (layer 3) its last five runs, newest first
+  "near": null | "s5",            (layer 4) added steps: the step that asked for it
   "unconfirmed": [Assumption],    (layer 4) of last_run, still unconfirmed
   "calls": null | Calls,          (layer 4) your_call steps, and any step a decision named
   "challenges": ["c3"]            (layer 5) open challenge ids
@@ -152,16 +154,22 @@ Build = {
   "plan_check": null | {"departures": [str], "confirmed": bool},
   "spec": null | {"formula": str, "inputs": [{"name", "type", "description"}], "output": {...}},
   "example_list": [Example],
-  "disagreement": [{"n": 2, "expected": json, "code_gives": json | "an error"}],
+  "disagreement": [{"n": 2, "expected": json, "code_gives": json | "an error",
+                    "shown": {"expected": Shown, "code_gives": Shown}}],
   "code": null | {"module_py": str, "tests_py": str},
   "tested_at": null | ISO time    the latest test run of this module
 }
 Example = {"n": 1, "inputs": {...}, "expected": json, "working": str,
            "checked_by": "second_pass" | "you" | null,      null: left out, the passes disagreed
-           "second_pass": null | json}                       the checker's answer when it differed
-LastRun = {"run": "r17", "message": "m12" | null,   the reply it fed, if any
-           "in_last_answer": bool, "inputs": {...}, "output": json,
-           "assumptions": [str], "ts": ISO time, "test_run": int}
+           "second_pass": null | json,                      the checker's answer when it differed
+           "shown": {"inputs": [[name, Shown]], "expected": Shown, "second_pass": null | Shown}}
+Run     = {"run": "r17", "message": "m12" | null,   the message that ended the turn it was made in
+           "inputs": {...}, "output": json, "assumptions": [str], "ts": ISO time, "test_run": int,
+           "shown": {"inputs": [[name, Shown]], "output": Shown}}
+LastRun = Run + {"in_last_answer": bool}           the step is in the last answer (SPEC 5.2)
+Shown   = {"text": "1,888.89"}                     a value as the harness writes it (SPEC 2.4)
+        | {"text": "6 values", "rows": [[name, text]]}                       an object, or a list of values
+        | {"text": "3 values", "columns": [name], "table": [[text]]}         a list of rows
 Assumption = {"id": "a3", "text": str}
 Calls = {"open": null | "d4",
          "records": [{"decision": "d2", "question": str, "options": [str], "choice": "2" | "something else",
@@ -214,7 +222,9 @@ page puts "Accept plan" under it while `waiting.kind` is `plan`.
 **How a number refers to its step.** Every assistant message in the main chat
 carries `figures`: one entry per number or date the number check reads in its
 text, from `provenance.trace` (layer 2). A figure whose source is a module run
-gets that run's id and the step the run's module carries out. A figure from a
+(a value the run produced, not one it was given: SPEC 5.2) gets that run's id
+and the step the run's module carries out; clicking it opens that step's
+pop-up on that run. A figure from a
 saved input gets the input id when the input's name matches a brief input id,
 else none. Every other figure (the person's words, the brief, today, a small
 number) gets neither and is shown as plain text. `start` and `end` are
@@ -238,7 +248,7 @@ its `text` is the decision's `question`, and its `figures` index that text.
             "method": "arithmetic", "formula": "guests x price + fixed costs", "produces": "total",
             "cadence": "", "needs": ["in:guest_count"], "inputs": ["in:guest_count"],
             "origin": {"kind": "proposed"}, "particulars": [], "open_questions": [],
-            "line": {"text": "→ 43,000.00 ◌", "kind": "result"},
+            "line": {"text": "→ 43,000 ◌", "kind": "result"},
             "marks": [{"symbol": "◌", "count": null, "title": "rests on something unconfirmed"}],
             "needs_you": false,
             "build": {"status": "built", "module": "total_cost", "examples": 4, "tests": 6, "passing": 6,
@@ -759,14 +769,14 @@ Each has the default the work plan takes.
   (`reason` `run_module` or `save_input`). The reply check is corrected once per turn (`reason` `reply`), then
   withheld. A withheld or stopped notice is a `harness` message (kinds `withheld`, `text`) and carries no `figures`;
   the model is told of a withheld reply in the person's next message.
-- **A3 · Figures.** For `trace`, only a run's result is labelled `run` (a run's inputs back a number but never
+- **A3 · Figures** (the order of runs and "a number the person gave that a result repeats" are superseded by E2E, below). For `trace`, only a run's result is labelled `run` (a run's inputs back a number but never
   lead to the step), and runs are given newest first so that of several runs showing the same number (a later step
   repeats what an earlier one produced) the earliest is the source. A `run` figure carries the run's id and its
   module's own step (`spec.step_id`), or no step when the plan no longer has it. `run` wins over `input`, `input`
   over the person's words, as `trace` orders them; so a number the person gave that a step's result happens to
   repeat leads to that step. A figure from a saved input gets `input` only when the name is a brief input id
   without `in:` (the model is told to use the plan's names). Only assistant replies carry `figures`.
-- **A3 · Runs and the last answer.** A turn's reply (or withheld or stop notice) keeps the turn's run ids in its
+- **A3 · Runs and the last answer** (what counts as the last answer is widened by E2E, below). A turn's reply (or withheld or stop notice) keeps the turn's run ids in its
   private `_runs`. "The last answer" is the latest such message with at least one run, so a reply that only asks or
   explains leaves the steps and inputs of the answer before it lit; a newer answer with runs replaces them. A
   withheld answer still lights the steps it ran. `last_run` is the module's latest run in the conversation; for a
@@ -783,8 +793,8 @@ Each has the default the work plan takes.
   `check(value, session)` is given the Session and reads `calc_runs` and the `ask.*` events of its conversation. A
   `runs` entry matches when the module ran with those inputs written as text (`"150"`, not `150`).
 - **A3 · Not changed outside layer 3.** Nothing in `harness/core/` or `harness/calc/`. Shared: `tests/layer0/state_shape.py`
-  checks layer 3 (assistant messages carry `figures`, figures name known inputs, `last_run.message` is in the chat, the
-  steps of the last answer share one message, `used` agrees with them).
+  checks layer 3 (assistant messages carry `figures`, figures name known inputs, `last_run.message` is in the chat,
+  `used` agrees with the steps of the last answer).
 - **A4a · Files and interfaces.** `marks.py` (assumption store, notices, `confirm`, `correct`, `route`, hook
   `turn_finished`), `calls.py` (`ask_decision`, `choose`, `read_choice`), `requests.py` (`request_module`), `layer.py`
   (`contribute`, `context`, `tools`, the actions `choose` and `confirm_assumptions`, hooks `loaded` and
@@ -933,3 +943,19 @@ Each has the default the work plan takes.
 - **A6 · Seen with the real model** (`claude` CLI, all layers). Whole-example runs take 6 to 7 minutes for wedding, about 2.5 for
   moving. The new-step build for "what share of the upfront cost is the deposit" worked in a side-thread scenario. The reviewer
   raised three challenges in the seeded wedding plan; `use` made the analyst answer, `dismiss` closed the next.
+- **E2E · Fixes from the second browser run.** (1) `core/state.py` is the one place values are written for the eye:
+  `show_number`, `show_scalar`, `show_value(value, output)` (the line; `key_value` picks an obvious key of an object or
+  of a list's last row), `display`/`display_inputs` (the `Shown` of runs and examples, ARCHITECTURE 3.3) and
+  `tidy_numbers` (a decision's longer decimals, after the number check). Layers 2 to 4 import them from the core.
+  (2) `provenance.trace` takes a run as `("run", id, output, inputs)` and counts only what it produced
+  (`_produced`: a single output; of an object or a list, the values not among its inputs; dates whole, never their parts); the first source of a label wins,
+  and `answers.agent.trace_sources(..., turn_runs)` orders runs: this turn's newest first, then the others newest
+  first. A later step that only repeats an earlier result no longer competes with it (its input holds the value).
+  (3) The last answer is the latest turn-ending message with runs or with a figure leading to a step; its steps are
+  those its turn ran and those its figures lead to. `state_shape` no longer wants the steps of the last answer to name
+  one message. (4) Each step has `runs` (five). (5) `brief.describe_changes(old, new)`; `PLAN_REVISED` after a
+  correction, `PLAN_CHANGED` after `revise_plan`. (6) `interviewer.md` names inputs and never asks for files or their
+  form; `propose_spec`'s departures have kinds and `made_exact` is kept out of the plan check
+  (`builder.read_departures`); `answers.layer.connect_added` gives an added step needs, pills and edges from its latest
+  run; `you.module_requested` records `near` (`requests.asked_from`) and layer 4 sets it on added steps; layer 1's
+  `loaded` posts `PREPARED` in example mode on an empty chat.

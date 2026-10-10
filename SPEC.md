@@ -115,15 +115,29 @@ gives `line`:
    built`; kind `strong`.
 2. `build.status` is `building`: `Building`; kind null.
 3. `last_run.in_last_answer`: `→ ` and the output, then ` ◌` when `unconfirmed`
-   is not empty; kind `result`. A number is written with thousands separators
-   and its decimals as given; a date as given; text cut to 18 characters; a
-   list or an object as `{n} values`.
+   is not empty; kind `result`. A number is shown as below; a date as given;
+   text cut to 18 characters; a list or an object as its key value with the
+   key's name (`shortfall 5,600`, `last balance 29,400` for a list of rows)
+   when one is obvious (the only numeric key the step's output description
+   names, else the only numeric key), else `{n} values`.
 4. `build.status` is `built`: `{examples} examples · {passing}/{tests}`; kind
    `tested` when every test and example passes, else null.
 5. `build.status` is `stale`: `Stale · rebuild`; `not_built`: `Not built`;
    kind null.
 6. `calls.records` is not empty: `Decided`; kind null.
 7. Otherwise `line` is null.
+
+**How values are shown** (`core/state.py`, the one place): modules compute
+exactly; what the harness shows on a step's line, in a pop-up's runs and
+examples, and in a decision is written with thousands separators and at most
+two decimals, the trailing zeros of a whole amount dropped (`1,888.89`,
+`43,000`); a value below 1 keeps up to four decimals (`0.3095`). A whole
+number under a key naming a year has no separators. Runs and examples in the
+state carry `shown` (ARCHITECTURE.md 3.3): each value as text, an object as
+rows of name and value, a list of rows as a small table. A decision's
+question, options and reason have every longer decimal rewritten this way
+after the number check. Formatting is presentation, never a source of
+numbers: the exact values stay in the record and in the state.
 
 `marks`, in this order, each only when it applies: `●` with the number of open
 questions; `plan check` when departures are not confirmed; `▲` with the number
@@ -203,7 +217,10 @@ the composer, step chip, "On the side" toggle and placeholders; decisions,
 notices and threads; the Review toggle (top right, after acceptance, with the
 open count); "Whole plan" opening the context section. Once an answer exists,
 steps not in it are faded and the inputs it used are darkened; a number with a
-`step` is underlined and selects its step. Text is inserted as text, never
+`step` is underlined, selects its step and opens its pop-up on the figure's
+`run` (the step's other recent runs one click away). Values are drawn as the
+state's `shown` writes them, with the exact values on demand. A step nothing
+connects is placed in the column of its `near` step. Text is inserted as text, never
 HTML. A feature whose keys are absent is not drawn.
 
 ## 3. Layer 1: the plan (`harness/grounding/`)
@@ -253,7 +270,11 @@ waits with `{"kind": "message"}`; its progress lines set `activity`. The state
   `[harness] About step {id} ({name}):`.
 - A valid `write_brief` makes the brief **proposed**: `phase` is `proposed`,
   the steps are drawn from it, the harness posts `PLAN_PROPOSED` (kind `plan`)
-  and waits with `{"kind": "plan"}`.
+  and waits with `{"kind": "plan"}`. After a correction it posts
+  `PLAN_REVISED` instead, with `changes` worked out by the harness from the
+  two versions (`brief.describe_changes`): the steps added, changed (step
+  fingerprint or name) and removed, by number and name; with none, what
+  around them changed.
 - `accept_plan`: the brief is saved as confirmed, the harness posts
   `PLAN_ACCEPTED`, `phase` is `accepted`, hook `plan_accepted`.
 - A message instead: it is a correction. The tool result to the interviewer is
@@ -263,8 +284,14 @@ waits with `{"kind": "message"}`; its progress lines set `activity`. The state
 
 ```
 PLAN_PROPOSED = "This is the plan as I understand it. Click a step to say what is wrong, or accept it."
+PLAN_REVISED  = "The plan is revised: {changes}. Click a step to say what is wrong, or accept it."
 PLAN_ACCEPTED = "The plan is accepted."
+PREPARED      = "This is a prepared plan: {goal}. Ask a question about it, or click a step to see what it does."
 ```
+
+In example mode (`HARNESS_EXAMPLE`), `loaded` posts `PREPARED` (a `harness`
+message; `goal` is the first sentence of the plan's goal) when the plan is
+accepted and the conversation has no message yet.
 
 ### 3.3 Revising an accepted plan: `revise.py`
 
@@ -274,7 +301,8 @@ brief, and a `[harness]` line asking for exactly the change in `words`
 (about `step` when given), with `look_up` and `write_brief` as tools, up to three
 attempts. A valid brief is saved as confirmed with a new `revisions` entry.
 `changed` lists the steps added, removed, or whose step fingerprint (4.4)
-changed. Hook `plan_changed(changed)`. A reply with no `write_brief` returns
+changed. The harness posts `PLAN_CHANGED = "The plan is changed: {changes}."`
+(`changes` as in 3.2). Hook `plan_changed(changed)`. A reply with no `write_brief` returns
 `{"error": "the plan was not changed: <reply>"}`.
 
 ### 3.4 Lookups
@@ -312,10 +340,14 @@ its inputs. The tables `test_runs`, `modules`, `step_modules`, `calc_runs`,
 - `modules` gains `step_fingerprint`.
 - `golden.json` entries are `{"inputs", "expected", "working", "checked_by":
   "second_pass" | "you"}`. `register` needs at least two.
-- `propose_spec` gains `departures`: a required list of sentences, each one way
-  the spec departs from the brief's step (an input the step does not list, a
-  formula made exact where the brief leaves it open, a need left out). Empty
-  when there are none. The person is not asked about the spec.
+- `propose_spec` gains `departures`: a required list of `{kind, text}`, each
+  one way the spec departs from the brief's step in substance: `formula` (a
+  different quantity would come out), `input` (one the step's needs do not
+  name), `left_out` (a need left out), `output` (a different output); or
+  `made_exact` (the brief's step made exact: an input's shape, rounding,
+  units, wording), which is recorded in `build.spec_proposed` and kept out of
+  the plan check. A plain sentence counts as a departure. Empty when there are
+  none. The person is not asked about the spec.
 - New table `build_steps (step_id PRIMARY KEY, status, module, spec, departures,
   departures_confirmed, examples, disagreement, reason, ts)`; `spec`,
   `departures`, `examples`, `disagreement` are JSON. New table
@@ -471,10 +503,26 @@ on the main lane.
 ### 5.2 Figures and last runs: `figures.py`
 
 `figures(text, sources) -> [Figure]` uses `provenance.trace` and maps as in
-ARCHITECTURE.md 3.4. `contribute` sets `last_run` on each calculation step:
-its module's latest run in this conversation, with `in_last_answer` true when
-the run was made in the turn of the latest posted reply; and `used` on inputs
-named by a step in the last answer.
+ARCHITECTURE.md 3.4. A figure leads to a step only when it matches what one of
+that step's runs **produced**: its output, or a value inside an object or a
+list output that is not also among that run's inputs (a value passed through).
+A number that runs were only given is traced to where it came from (the
+person's words, a saved input, the plan) and leads to no step. Of several runs that produced it, a run of the
+current turn wins, the most recent first, then earlier turns, the most recent
+first. A date leads to a step only when a run's output holds that date whole;
+a year or any other part of a date never does. The number check (what may be
+shown at all) is unchanged.
+
+The **last answer** is the latest message ending an analyst turn that ran
+modules or has a figure leading to a step. A step is in it (`in_last_answer`)
+when the turn ran its module or a figure of the answer leads to it, whenever
+that run was made. `contribute` sets on each calculation step `last_run` (the
+latest of its runs the last answer used while it is in it, else its latest
+run in this conversation) and `runs` (its last five runs, newest first, each
+with `shown`); on an added step, `needs`, `inputs` and `edges` from its latest
+run (an input named as a plan input, or held by a saved one, is a pill; an
+input an earlier run of another step produced is an edge from that step); and
+`used` on inputs named by a step in the last answer.
 
 ### 5.3 What it registers
 
@@ -539,7 +587,9 @@ not ask. `step` builds that step; `new` adds a step (`added_<n>`, `in_plan`
 false) and builds it; `replace` keeps the words as a note and rebuilds the
 module. The harness posts `BUILT_NOT_IN_PLAN` (for `new`) or `BUILT_STEP` and
 the result goes to the analyst (`built`, `reused` or `not_built` with the
-spec or the reason).
+spec or the reason). `you.module_requested` records `near`: the step attached
+to the person's message, else the step of the turn's latest run; an added
+step carries it as `near` in the state.
 
 ```
 BUILT_NOT_IN_PLAN = "A calculation that is not in the plan was needed: {name}. It is built and tested."

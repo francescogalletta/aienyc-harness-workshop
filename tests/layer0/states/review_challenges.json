@@ -322,12 +322,64 @@
         "output": "34500.00",
         "assumptions": [],
         "ts": "2026-10-10T10:00:00+00:00",
-        "test_run": 11
+        "test_run": 11,
+        "shown": {
+          "inputs": [
+            [
+              "guest count",
+              {
+                "text": "150"
+              }
+            ],
+            [
+              "cost per guest",
+              {
+                "text": "230"
+              }
+            ]
+          ],
+          "output": {
+            "text": "34,500"
+          }
+        }
       },
       "unconfirmed": [],
       "calls": null,
       "challenges": [
         "c2"
+      ],
+      "runs": [
+        {
+          "run": "r1",
+          "message": "m12",
+          "inputs": {
+            "guest_count": 150,
+            "cost_per_guest": 230
+          },
+          "output": "34500.00",
+          "assumptions": [],
+          "ts": "2026-10-10T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "guest count",
+                {
+                  "text": "150"
+                }
+              ],
+              [
+                "cost per guest",
+                {
+                  "text": "230"
+                }
+              ]
+            ],
+            "output": {
+              "text": "34,500"
+            }
+          }
+        }
       ]
     },
     {
@@ -434,11 +486,95 @@
         ],
         "assumptions": [],
         "ts": "2026-10-10T10:00:00+00:00",
-        "test_run": 11
+        "test_run": 11,
+        "shown": {
+          "inputs": [
+            [
+              "total cost",
+              {
+                "text": "34,500"
+              }
+            ],
+            [
+              "first payment",
+              {
+                "text": "6,000"
+              }
+            ]
+          ],
+          "output": {
+            "text": "3 values",
+            "rows": [
+              [
+                "1",
+                "6,000"
+              ],
+              [
+                "2",
+                "14,250"
+              ],
+              [
+                "3",
+                "14,250"
+              ]
+            ]
+          }
+        }
       },
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": [
+        {
+          "run": "r2",
+          "message": "m12",
+          "inputs": {
+            "total_cost": "34500.00",
+            "first_payment": 6000
+          },
+          "output": [
+            6000,
+            14250,
+            14250
+          ],
+          "assumptions": [],
+          "ts": "2026-10-10T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "total cost",
+                {
+                  "text": "34,500"
+                }
+              ],
+              [
+                "first payment",
+                {
+                  "text": "6,000"
+                }
+              ]
+            ],
+            "output": {
+              "text": "3 values",
+              "rows": [
+                [
+                  "1",
+                  "6,000"
+                ],
+                [
+                  "2",
+                  "14,250"
+                ],
+                [
+                  "3",
+                  "14,250"
+                ]
+              ]
+            }
+          }
+        }
+      ]
     },
     {
       "id": "s3",
@@ -529,11 +665,63 @@
         "output": "800.00",
         "assumptions": [],
         "ts": "2026-10-10T10:00:00+00:00",
-        "test_run": 11
+        "test_run": 11,
+        "shown": {
+          "inputs": [
+            [
+              "net monthly income",
+              {
+                "text": "5,800"
+              }
+            ],
+            [
+              "monthly spending",
+              {
+                "text": "5,000"
+              }
+            ]
+          ],
+          "output": {
+            "text": "800"
+          }
+        }
       },
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": [
+        {
+          "run": "r3",
+          "message": "m12",
+          "inputs": {
+            "net_monthly_income": 5800,
+            "monthly_spending": 5000
+          },
+          "output": "800.00",
+          "assumptions": [],
+          "ts": "2026-10-10T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "net monthly income",
+                {
+                  "text": "5,800"
+                }
+              ],
+              [
+                "monthly spending",
+                {
+                  "text": "5,000"
+                }
+              ]
+            ],
+            "output": {
+              "text": "800"
+            }
+          }
+        }
+      ]
     },
     {
       "id": "s4",
@@ -571,7 +759,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s5",
@@ -684,12 +873,92 @@
           "The family contribution of 20,000 arrives two weeks before the wedding."
         ],
         "ts": "2026-10-10T10:00:00+00:00",
-        "test_run": 11
+        "test_run": 11,
+        "shown": {
+          "inputs": [
+            [
+              "opening balance",
+              {
+                "text": "4,000"
+              }
+            ],
+            [
+              "monthly saving",
+              {
+                "text": "800"
+              }
+            ],
+            [
+              "contribution",
+              {
+                "text": "20,000"
+              }
+            ],
+            [
+              "payments",
+              {
+                "text": "3 values"
+              }
+            ]
+          ],
+          "output": {
+            "text": "16,800"
+          }
+        }
       },
       "unconfirmed": [],
       "calls": null,
       "challenges": [
         "c1"
+      ],
+      "runs": [
+        {
+          "run": "r4",
+          "message": "m12",
+          "inputs": {
+            "opening_balance": 4000,
+            "monthly_saving": "800.00",
+            "contribution": 20000,
+            "payments": "3 values"
+          },
+          "output": "16800.00",
+          "assumptions": [
+            "The family contribution of 20,000 arrives two weeks before the wedding."
+          ],
+          "ts": "2026-10-10T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "opening balance",
+                {
+                  "text": "4,000"
+                }
+              ],
+              [
+                "monthly saving",
+                {
+                  "text": "800"
+                }
+              ],
+              [
+                "contribution",
+                {
+                  "text": "20,000"
+                }
+              ],
+              [
+                "payments",
+                {
+                  "text": "3 values"
+                }
+              ]
+            ],
+            "output": {
+              "text": "16,800"
+            }
+          }
+        }
       ]
     },
     {
@@ -771,7 +1040,8 @@
       "calls": null,
       "challenges": [
         "c3"
-      ]
+      ],
+      "runs": []
     },
     {
       "id": "s7",
@@ -804,7 +1074,8 @@
         "open": null,
         "records": []
       },
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "added_1",
@@ -885,7 +1156,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     }
   ],
   "edges": [

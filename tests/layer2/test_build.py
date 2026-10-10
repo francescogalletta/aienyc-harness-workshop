@@ -13,6 +13,11 @@ from layer2_helpers import (SETTLE, TOTAL_CODE, TOTAL_EXAMPLES, TOTAL_SPEC, WRON
                             spec_turn, step_of, total_example, total_turns, write_plan)
 
 
+def plain(items):
+    """Disagreements without how the pop-up shows them."""
+    return [{key: value for key, value in each.items() if key != "shown"} for each in items]
+
+
 def harness_messages(state):
     return [message for message in state["chat"] if message["who"] == "harness"]
 
@@ -127,7 +132,7 @@ def test_code_that_disagrees_with_an_example_leaves_the_step_not_built(plan, ope
     state = build(session)
     found = step_of(state, "c1")["build"]
     assert (found["status"], found["reason"]) == ("not_built", builder.REASON_CODE)
-    assert found["disagreement"] == [{"n": 1, "expected": "30", "code_gives": "31"},
+    assert plain(found["disagreement"]) == [{"n": 1, "expected": "30", "code_gives": "31"},
                                      {"n": 2, "expected": "50", "code_gives": "51"},
                                      {"n": 3, "expected": "350", "code_gives": "351"}]
     assert found["code"]["module_py"] == WRONG_TOTAL_CODE[0]
@@ -147,6 +152,26 @@ def test_departures_put_a_plan_check_on_the_step_until_the_person_confirms_them(
     state = session.state()
     assert step_of(state, "c1")["build"]["plan_check"]["confirmed"] and step_of(state, "c1")["marks"] == []
     assert events(session, "build.departures_confirmed")[0]["step"] == "c1"
+
+
+def test_only_departures_in_substance_put_a_plan_check_on_the_step(plan, open_session, build):
+    kinds = [{"kind": "made_exact", "text": "Takes the extra costs as a list"},
+             {"kind": "input", "text": "Takes a date the plan does not name"}]
+    session = open_session(total_turns(departures=kinds) + double_turns(departures=[
+        {"kind": "made_exact", "text": "Rounds to the cent"}]))
+    state = build(session)
+    assert step_of(state, "c1")["build"]["plan_check"] == {"departures": ["Takes a date the plan does not name"],
+                                                           "confirmed": False}
+    assert step_of(state, "c2")["build"]["plan_check"] is None and step_of(state, "c2")["marks"] == []
+    proposed = events(session, "build.spec_proposed")
+    assert proposed[0]["made_exact"] == ["Takes the extra costs as a list"] and proposed[1]["departures"] == []
+
+
+def test_a_departure_of_an_unknown_kind_sends_the_spec_back(plan, open_session, build):
+    session = open_session(total_turns(departures=[{"kind": "style", "text": "Nicer"}]))
+    build(session)
+    assert any(builder.BAD_DEPARTURES in error for each in events(session, "build.spec_rejected")
+               for error in each["errors"])
 
 
 def test_a_step_may_reuse_a_registered_module(plan, open_session, build):
@@ -239,7 +264,7 @@ def test_a_corrected_example_rebuilds_the_code_and_a_disagreement_stops_the_gate
     run_job(session, lambda work: build_step(work, "c1", code_only=True))
     found = step_of(session.state(), "c1")["build"]
     assert (found["status"], found["reason"]) == ("not_built", builder.REASON_CODE)
-    assert found["disagreement"] == [{"n": 1, "expected": "31", "code_gives": "30"}]
+    assert plain(found["disagreement"]) == [{"n": 1, "expected": "31", "code_gives": "30"}]
     assert found["example_list"][0]["checked_by"] == "you" and found["module"] == "total"
     assert events(session, "build.example_corrected")[0] == {"step": "c1", "n": 1, "answer": "31"}
     with pytest.raises(gate.Refused, match="not built"):

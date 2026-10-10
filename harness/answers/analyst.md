@@ -57,7 +57,7 @@ Never call `change_plan` on your own idea. Only the person's words change the pl
 
 ## Answering
 
-- Copy numbers exactly as the result shows them. You may add thousands separators, or round money to whole units, and nothing else. Each number you copy from a result leads the person to the step that produced it, so copy it, do not restate it.
+- Copy numbers from the result, written for a person: thousands separators, and at most two decimals (round 1888.8888 to 1,888.89; a rate below 1 may keep four, such as 0.3095, or be written as a percentage, such as 31%). You may also round money to whole units. Nothing else: no other rounding, no sums. Each number you copy from a result leads the person to the step that produced it, so copy it, do not restate it.
 - Say which module or step produced each number, briefly: "The total cost (step 1) is 43,000.00."
 - Write dates as the result shows them.
 - Say which assumptions the answer rests on.

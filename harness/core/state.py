@@ -6,12 +6,13 @@ page and the terminal show these as they come.
 """
 import json
 import re
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 
 PRODUCT = "Financial Advisor Harness"
 NUMBER = re.compile(r"^-?\d+(\.\d+)?$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 TEXT_LENGTH = 18
+KEY_VALUE_LENGTH = 24      # a key value with its name may run a little longer
 MARK_TITLES = {
     "●": "open questions",
     "plan check": "the built calculation departs from the plan",
@@ -79,7 +80,8 @@ def step_line(step: dict) -> dict | None:
     if build.get("status") == "building":
         return {"text": "Building", "kind": None}
     if last_run.get("in_last_answer"):
-        text = "→ " + show_value(last_run.get("output"))
+        output = ((step.get("build") or {}).get("spec") or {}).get("output")
+        text = "→ " + show_value(last_run.get("output"), output)
         if step.get("unconfirmed"):
             text += " ◌"
         return {"text": text, "kind": "result"}
@@ -114,27 +116,136 @@ def step_marks(step: dict) -> list[dict]:
     return marks
 
 
-def show_value(value) -> str:
-    """A run's output on the step line: numbers with thousands separators and their decimals as
-    given, dates as given, text cut to 18 characters, a list or an object as `{n} values`."""
-    if isinstance(value, bool):
-        return "yes" if value else "no"
-    if isinstance(value, (int, float, Decimal)):
-        value = str(value)
+def show_value(value, output: dict | None = None) -> str:
+    """A run's output on the step line (SPEC 2.4): a number as `show_number` writes it, a date as given, text cut
+    to 18 characters; an object or a list as its key value with the key's name when the output's description
+    makes one obvious (`key_value`), else `{n} values`."""
     if isinstance(value, (list, dict)):
-        return f"{len(value)} values"
-    if value is None:
-        return "nothing"
-    text = str(value) if isinstance(value, str) else json.dumps(value)
-    if NUMBER.match(text):
-        return group_thousands(text)
-    if DATE.match(text):
-        return text
+        found = key_value(value, (output or {}).get("description") or "")
+        return found if found is not None else count(value)
+    text = show_scalar(value)
     return text if len(text) <= TEXT_LENGTH else text[:TEXT_LENGTH - 1] + "…"
 
 
-def group_thousands(text: str) -> str:
-    """'-1234567.50' -> '-1,234,567.50'; the decimals stay as written."""
-    sign = "-" if text.startswith("-") else ""
-    whole, dot, decimals = text.lstrip("-").partition(".")
-    return f"{sign}{int(whole):,}{dot}{decimals}"
+# --- How values are shown (SPEC 2.4): one place, used for the step line, the pop-up's runs and examples,
+# and the numbers of a decision. Modules compute exactly; this only writes a value for the eye. ---
+
+def _decimal(value) -> Decimal | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, (int, float, Decimal)):
+        return Decimal(str(value))
+    if isinstance(value, str) and NUMBER.match(value.strip()):
+        return Decimal(value.strip())
+    return None
+
+
+def show_number(number, key: str = "") -> str:
+    """Thousands separators and at most two decimals, the trailing zeros of a whole amount dropped; up to four
+    decimals (trailing zeros dropped) for a value below 1. A whole number under a key naming a year is written
+    without separators."""
+    number = Decimal(number) if not isinstance(number, Decimal) else number
+    if number != 0 and abs(number) < 1:
+        text = format(number.quantize(Decimal("0.0001"), rounding=ROUND_HALF_UP), "f").rstrip("0").rstrip(".")
+        return "0" if text in ("-0", "") else text
+    rounded = number.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if rounded == rounded.to_integral():
+        whole = int(rounded)
+        return str(whole) if "year" in key.lower() else f"{whole:,}"
+    return f"{rounded:,.2f}"
+
+
+def show_scalar(value, key: str = "") -> str:
+    """One value as it is shown: yes or no, a number by `show_number`, a date or text as given, a list or an
+    object as `{n} values`."""
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if value is None:
+        return "nothing"
+    if isinstance(value, (list, dict)):
+        return count(value)
+    number = _decimal(value)
+    if number is not None:
+        return show_number(number, key)
+    return str(value)
+
+
+def count(value) -> str:
+    """`{n} values` (`1 value`) for a list or an object."""
+    return "1 value" if len(value) == 1 else f"{len(value)} values"
+
+
+def key_name(key) -> str:
+    return str(key).replace("_", " ")
+
+
+def _numeric_keys(rows: list[dict]) -> list[str]:
+    keys = [key for key in rows[0] if all(isinstance(row, dict) for row in rows)]
+    return [key for key in keys if all(_decimal(row.get(key)) is not None for row in rows)]
+
+
+def key_value(value, description: str) -> str | None:
+    """The key value of an object, or of the last row of a list of objects, written `name value` (`last name
+    value` for a list), when one is obvious: the only numeric key the output's description names, else the only
+    numeric key there is. None when none is obvious."""
+    if isinstance(value, dict):
+        rows, prefix = [value], ""
+    elif isinstance(value, list) and value and all(isinstance(row, dict) and row for row in value):
+        rows, prefix = value, "last "
+    else:
+        return None
+    if not rows or not rows[0]:
+        return None
+    numeric = _numeric_keys(rows)
+    words = " ".join(description.casefold().replace("_", " ").split())
+    named = [key for key in numeric if re.search(r"\b" + re.escape(key_name(key).casefold()) + r"\b", words)]
+    chosen = named if len(named) == 1 else numeric if len(numeric) == 1 else []
+    if len(chosen) != 1:
+        return None
+    key = chosen[0]
+    shown = show_scalar(rows[-1][key], key)
+    name = prefix + key_name(key)
+    room = KEY_VALUE_LENGTH - len(shown) - 1
+    if len(name) > room:
+        name = name[:max(1, room - 1)] + "…"
+    return f"{name} {shown}"
+
+
+def display(value) -> dict:
+    """A value as the pop-up shows it: `text` always (a short form), and `rows` ([name, text] for an object, or
+    [index, text] for a list of single values) or `columns` and `table` (a list of objects, one row each)."""
+    if isinstance(value, dict):
+        return {"text": count(value),
+                "rows": [[key_name(key), show_scalar(each, str(key))] for key, each in value.items()]}
+    if isinstance(value, list):
+        if value and all(isinstance(row, dict) for row in value):
+            columns = []
+            for row in value:
+                columns += [key for key in row if key not in columns]
+            return {"text": count(value), "columns": [key_name(key) for key in columns],
+                    "table": [[show_scalar(row[key], key) if key in row else "" for key in columns] for row in value]}
+        return {"text": count(value),
+                "rows": [[str(n), show_scalar(each)] for n, each in enumerate(value, start=1)]}
+    return {"text": show_scalar(value)}
+
+
+def display_inputs(inputs) -> list:
+    """A run's or an example's inputs for the pop-up: [name, Display] in their order."""
+    if not isinstance(inputs, dict):
+        return []
+    return [[key_name(key), display(each) if isinstance(each, (list, dict)) else {"text": show_scalar(each, str(key))}]
+            for key, each in inputs.items()]
+
+
+LONG_DECIMAL = re.compile(r"(?<![\w.,])(-?)(\d{1,3}(?:,\d{3})+|\d+)\.(\d+)(?![\w.]|,\d)")
+
+
+def tidy_numbers(text: str) -> str:
+    """Numbers written with more decimals than `show_number` keeps, written as it writes them; every other
+    number as it was. For text the harness shows from a model, such as a decision."""
+    def tidy(match) -> str:
+        sign, whole, decimals = match.groups()
+        number = Decimal(sign + whole.replace(",", "") + "." + decimals)
+        keeps = 4 if abs(number) < 1 else 2
+        return show_number(number) if len(decimals) > keeps else match.group()
+    return LONG_DECIMAL.sub(tidy, text)

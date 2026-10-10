@@ -6,6 +6,7 @@ from layer1_helpers import SETTLE, asks, item, looks_up, small_brief, write_brie
 
 from harness.config import load_config
 from harness.grounding import revise_plan
+from harness.grounding.revise import PLAN_CHANGED
 from harness.grounding.layer import LAYER
 
 
@@ -45,6 +46,8 @@ def test_a_revision_saves_the_new_plan_records_it_and_lists_the_steps_that_chang
     [revision] = state["context"]["revisions"]
     assert (revision["words"], revision["step"], revision["by"]) == ("include the deposit", "a1", "person")
     assert seen == [["a1", "a3"]]
+    *_, told = state["chat"]
+    assert (told["who"], told["text"]) == ("harness", PLAN_CHANGED.format(changes="added step 3 Extra; changed step 1 Move cost"))
     sent = session.script.calls[0]["messages"][0]["content"]
     assert "include the deposit" in sent and "a1" in sent
     assert json.loads((Path(load_config().brief_dir) / "domain_brief.json").read_text())["meta"]["status"] == "confirmed"
@@ -85,3 +88,16 @@ def test_a_revision_can_look_a_term_up(open_session, researcher):
 
 def test_with_no_accepted_plan_there_is_nothing_to_change(open_session):
     assert "error" in revise(open_session([]), words="anything")
+
+
+def test_what_changed_is_said_by_the_harness_from_the_two_plans():
+    from harness.grounding.brief import describe_changes
+    old = small_brief()
+    new = small_brief()
+    new["process"][1]["name"] = "Decide now"
+    new["process"].append({"id": "a3", "name": "Extra", "kind": "judgment", "method": "", "formula": "",
+                           "needs": ["a2"], "produces": "x", "cadence": "", "origin": {"kind": "proposed"}})
+    assert describe_changes(old, new) == "added step 3 Extra; changed step 2 Decide now"
+    assert describe_changes(new, old) == "changed step 2 Keep the date?; removed step 3 Extra"
+    assert describe_changes(old, {**old, "goal": item("Another goal")}) == "no step changed; the goal did"
+    assert describe_changes(old, old) == "nothing changed"

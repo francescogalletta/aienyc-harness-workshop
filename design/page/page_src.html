@@ -80,6 +80,18 @@ body { min-height: 100vh; }
 .fa-ex { display: flex; flex-direction: column; gap: 2px; }
 .fa-ex .fa-sub .fah-link { margin-left: 8px; font-size: 12px; color: var(--ink); }
 .fah-pop .fah-row .fah-btn { min-height: 36px; padding: 0 12px; }
+.fa-tablewrap { overflow-x: auto; }
+.fa-table { border-collapse: collapse; font-size: 12px; line-height: 16px; }
+.fa-table th { text-align: left; font-weight: 600; color: var(--ink-2); }
+.fa-table th, .fa-table td { padding: 2px 12px 2px 0; white-space: nowrap; vertical-align: top; }
+.fa-table td { color: var(--ink); }
+.fa-rows { display: flex; flex-direction: column; gap: 2px; padding-left: 10px; }
+.fa-rows .fah-pop__row { font-weight: 400; font-size: 13px; }
+.fa-runs { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12px; line-height: 16px; }
+.fa-runs .fah-link { font-size: 12px; }
+.fa-runs .fah-link[aria-current="true"] { font-weight: 600; text-decoration: none; cursor: default; }
+.fa-exact summary { font-size: 12px; line-height: 16px; color: var(--muted); cursor: pointer; }
+.fa-exact .fa-code { margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* Whole plan and the Review list */
 .fa-section { max-width: 760px; margin-top: 28px; padding-top: 16px; box-shadow: inset 0 1px 0 var(--line); }

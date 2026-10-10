@@ -1,7 +1,10 @@
 """SPEC 2.4: the step line, the marks and the one step that needs the person, worked out by the core."""
 import pytest
 
-from harness.core.state import finish, show_value, step_line, step_marks
+from decimal import Decimal
+
+from harness.core.state import (display, display_inputs, finish, show_number, show_scalar, show_value, step_line,
+                                step_marks, tidy_numbers)
 
 
 def step(**fields) -> dict:
@@ -18,18 +21,54 @@ def checked(n: int) -> list[dict]:
 
 
 @pytest.mark.parametrize("value, shown", [
-    ("43000.00", "43,000.00"),
+    ("43000.00", "43,000"),
     (1234567, "1,234,567"),
-    ("-1234.5", "-1,234.5"),
+    ("-1234.5", "-1,234.50"),
     ("12.30", "12.30"),
+    ("1888.888888888888888888888889", "1,888.89"),
+    ("0.30952380952380952", "0.3095"),
+    ("0.5", "0.5"),
     ("2026-10-10", "2026-10-10"),
     ("short text", "short text"),
     ("a much longer piece of text than fits", "a much longer pie…"),
     (["a", "b", "c"], "3 values"),
     ({"x": "1", "y": "2"}, "2 values"),
+    (["a"], "1 value"),
 ])
 def test_how_a_result_is_written_on_the_step_line(value, shown):
     assert show_value(value) == shown
+
+
+def test_an_object_or_a_list_of_rows_shows_its_key_value_when_one_is_obvious():
+    rows = [{"month": "2027-01", "balance": "1300"}, {"month": "2028-03", "balance": "29400.004"}]
+    assert show_value(rows) == "last balance 29,400"                  # the only numeric key
+    named = {"description": "The gap to the target: shortfall, and the target and balance it compares."}
+    found = {"name": "x", "shortfall": "5600", "target": "40000", "balance": "34400"}
+    assert show_value(found, {"description": "Each has a shortfall."}) == "shortfall 5,600"
+    assert show_value(found, named) == "4 values"                       # three keys named: none is obvious
+    assert show_value([{"x": "1", "y": "2"}], {"description": "a list"}) == "1 value"
+    assert show_value({"rate": "0.30952"}) == "rate 0.3095"
+
+
+def test_how_a_value_is_written_for_the_eye():
+    assert [show_number(Decimal(each)) for each in ("1300.00", "1888.885", "-2.5", "0.123456", "0", "1999999.999")] \
+        == ["1,300", "1,888.89", "-2.50", "0.1235", "0", "2,000,000"]
+    assert show_number(Decimal("2027"), "year") == "2027" and show_number(Decimal("2027")) == "2,027"
+    assert show_scalar(True) == "yes" and show_scalar("2027-05-13") == "2027-05-13" and show_scalar(None) == "nothing"
+    assert display("43000.00") == {"text": "43,000"}
+    assert display({"payment_1_amount": "18500", "payment_1_due_date": "2027-05-13"}) == {
+        "text": "2 values", "rows": [["payment 1 amount", "18,500"], ["payment 1 due date", "2027-05-13"]]}
+    assert display([{"name": "first", "amount": "6000"}, {"name": "second", "left": "0.5"}]) == {
+        "text": "2 values", "columns": ["name", "amount", "left"],
+        "table": [["first", "6,000", ""], ["second", "", "0.5"]]}
+    assert display(["1", "2.345"]) == {"text": "2 values", "rows": [["1", "1"], ["2", "2.35"]]}
+    assert display_inputs({"guest_count": "150", "costs": [{"amount": "5000"}]}) == [
+        ["guest count", {"text": "150"}], ["costs", {"text": "1 value", "columns": ["amount"], "table": [["5,000"]]}]]
+
+
+def test_longer_decimals_in_text_are_rewritten_and_nothing_else():
+    text = "Save 1888.888888888888888888888889 a month, rate 0.30952380952, 1,234.5 and 12.25, on 2027-05-13."
+    assert tidy_numbers(text) == "Save 1,888.89 a month, rate 0.3095, 1,234.5 and 12.25, on 2027-05-13."
 
 
 def test_needs_you_comes_first_and_names_the_call_when_a_decision_is_open():
@@ -42,9 +81,12 @@ def test_needs_you_comes_first_and_names_the_call_when_a_decision_is_open():
 def test_building_then_the_last_answer_then_built():
     assert step_line(step(build=built(status="building"))) == {"text": "Building", "kind": None}
     run = {"in_last_answer": True, "output": "43000.00"}
-    assert step_line(step(build=built(), last_run=run)) == {"text": "→ 43,000.00", "kind": "result"}
+    assert step_line(step(build=built(), last_run=run)) == {"text": "→ 43,000", "kind": "result"}
     shown = step_line(step(build=built(), last_run=run, unconfirmed=[{"id": "a1", "text": "x"}]))
-    assert shown == {"text": "→ 43,000.00 ◌", "kind": "result"}
+    assert shown == {"text": "→ 43,000 ◌", "kind": "result"}
+    rows = {"in_last_answer": True, "output": [{"name": "a", "shortfall": "0"}, {"name": "b", "shortfall": "5250"}]}
+    spec = {"spec": {"output": {"type": "list", "description": "each has name and shortfall"}}}
+    assert step_line(step(build=built(**spec), last_run=rows))["text"] == "→ last shortfall 5,250"
     old_run = {"in_last_answer": False, "output": "1"}
     assert step_line(step(build=built(), last_run=old_run)) == {"text": "4 examples · 6/6", "kind": "tested"}
 

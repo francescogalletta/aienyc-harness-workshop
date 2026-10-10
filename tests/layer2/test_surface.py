@@ -18,6 +18,11 @@ from layer2_helpers import (SETTLE, TOTAL_CODE, TOTAL_EXAMPLES, TOTAL_SPEC, WRON
 HELPER_PROMPT = Path(helper.__file__).with_name("step_helper.md").read_text(encoding="utf-8")
 
 
+def plain(items):
+    """Disagreements without how the pop-up shows them."""
+    return [{key: value for key, value in each.items() if key != "shown"} for each in items]
+
+
 def built(open_session, build, *, departures=(), left_out=False, extra=()):
     """A session whose two steps are built. `left_out`: the second pass disagrees with total's example 3,
     so it is left out. `extra` are the model turns that follow the build."""
@@ -96,6 +101,8 @@ def test_the_popup_detail_names_who_checked_each_example_and_the_departures(plan
     assert found["spec"]["formula"] == "a + b" and found["tested_at"] and found["code"]["module_py"]
     assert found["plan_check"] == {"departures": ["Takes a list of costs"], "confirmed": False}
     assert "plan check" in [mark["symbol"] for mark in step_of(state, "c1")["marks"]]
+    assert found["example_list"][2]["shown"] == {"inputs": [["a", {"text": "100"}], ["b", {"text": "250"}]],
+                                                 "expected": {"text": "350"}, "second_pass": {"text": "349"}}
 
 
 def test_a_step_added_in_a_conversation_is_drawn_last_and_not_in_the_plan(plan, open_session):
@@ -240,7 +247,7 @@ def test_the_other_passs_answer_may_be_taken_and_a_failing_correction_leaves_the
     state = say(session, "the second answer is right")                  # 349 is in no word of theirs
     found = step_of(state, "c1")["build"]
     assert (found["status"], found["reason"]) == ("not_built", builder.REASON_CODE)
-    assert found["disagreement"] == [{"n": 3, "expected": "349", "code_gives": "350"}]
+    assert plain(found["disagreement"]) == [{"n": 3, "expected": "349", "code_gives": "350"}]
     assert found["example_list"][2]["checked_by"] == "you" and step_of(state, "c1")["needs_you"]
     assert harness_lines(state)[-1] == helper.STEP_NOT_BUILT.format(name="Total", reason=builder.REASON_CODE)
     assert problems(state, strict=True) == []

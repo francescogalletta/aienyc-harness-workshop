@@ -8,7 +8,7 @@ import copy
 import json
 from datetime import datetime, timezone
 
-from .brief import load_brief, person_quotes, save_brief, step_fingerprint, validate_brief
+from .brief import describe_changes, load_brief, person_quotes, save_brief, step_fingerprint, validate_brief
 from .interview import INSTRUCTIONS, TOOLS, look_up_all
 from .research import default_desk
 
@@ -18,6 +18,7 @@ ASK = ("[harness] The plan was accepted. This is the plan:\n{brief}\n\n[harness]
        "way, {about}and in what follows from it, keep everything else as it was, and submit the whole brief "
        "with write_brief. The person said: {words}")
 NO_PLAN = "there is no accepted plan to change"
+PLAN_CHANGED = "The plan is changed: {changes}."
 
 
 def revise_plan(work, *, words: str, step: str | None = None, by: str = "person") -> dict:
@@ -98,6 +99,7 @@ def _save(work, accepted: dict, new: dict, state: dict, words: str, step, by: st
     changed = changed_steps(old, new)
     work.record("plan.revised", {"words": words, "step": step, "by": by, "changed": changed},
                 "person" if by == "person" else "agent")
+    work.post(PLAN_CHANGED.format(changes=describe_changes(old, new)), who="harness")
     work.changed()
     work.hook("plan_changed", work, changed)
     return {"changed": changed}

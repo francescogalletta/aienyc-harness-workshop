@@ -6,6 +6,7 @@ from it) and in `grounding_state.json` beside the database so a later process ca
 accepted the confirmed brief in `brief_dir` is the plan.
 """
 import json
+import re
 from pathlib import Path
 
 from ..core import BadAction, NotNow, list_messages
@@ -20,6 +21,7 @@ NOT_WAITING_PLAN = "No plan is waiting to be accepted."
 NOT_WAITING_ANSWER = "The interview is not waiting for an answer."
 INTRO = "Tell me what you want help with, in your own words. Type /quit to stop."
 PLAN_HINT = "Type /accept to accept this plan, or say what is wrong with it."
+PREPARED = "This is a prepared plan: {goal}. Ask a question about it, or click a step to see what it does."
 
 
 def state_path(config) -> Path:
@@ -130,7 +132,30 @@ def route(core, message: dict):
 
 
 def loaded(core) -> None:
-    """Resume an interview a former process left unfinished."""
+    """Resume an interview a former process left unfinished; open a seeded example's empty chat with a word."""
+    _resume(core)
+    _introduce(core)
+
+
+def _introduce(core) -> None:
+    """In example mode, an accepted plan with an empty chat gets one harness message: a prepared plan, what it
+    covers (the first sentence of its goal), and what the person can do."""
+    if not core.config.example or core.memory.get("plan") is not None:
+        return
+    brief = _saved(core.memory, core.config)
+    if brief is None or list_messages(core.conn, core.conversation):
+        return
+    core.post(PREPARED.format(goal=first_sentence((brief.get("goal") or {}).get("text", ""))), who="harness")
+
+
+def first_sentence(text: str) -> str:
+    """The first sentence of a text, without its full stop, its first letter small unless it starts a name."""
+    words = " ".join(str(text).split())
+    found = re.split(r"(?<=[.!?])\s", words, maxsplit=1)[0].rstrip(".!? ")
+    return found[0].lower() + found[1:] if len(found) > 1 and found[0].isupper() and found[1].islower() else found
+
+
+def _resume(core) -> None:
     path = state_path(core.config)
     if not path.exists():
         return

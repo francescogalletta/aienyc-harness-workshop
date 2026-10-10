@@ -156,17 +156,21 @@ def number_sources(conn, config, conversation: str, memory: dict) -> list:
     return found
 
 
-def trace_sources(conn, config, conversation: str, memory: dict) -> list[tuple[str, int | None, object]]:
-    """The same sources with their labels for `trace`. Only a run's result is labelled `run`, so a number leads to
-    the step that produced it, not to a step that was given it. Runs go newest first, so that of two runs
-    that show the same number (a later step repeats what an earlier one produced) the earliest is the source."""
+def trace_sources(conn, config, conversation: str, memory: dict, turn_runs=()) -> list[tuple]:
+    """The same sources with their labels for `trace`, in order of preference. A run is given with its inputs, so
+    a number leads only to a step whose run produced it, never to one that was given it (`trace`). Runs come in
+    the order a figure prefers them (SPEC 5.2): those of this turn (`turn_runs`), the most recent first, then the
+    earlier ones, the most recent first."""
     found = [("brief", None, without_meta(plan_of(config))), ("today", None, today_of(memory).isoformat())]
     found += [("person", None, text) for text in person_words(conn, conversation)]
     found += [("input", None, each["value"]) for each in saved_inputs(conn).values()]
     found += [("note", None, note["text"]) for note in list_notes(conn)]
     found += [("brief", None, added) for added in list_added_steps(conn)]
-    for row in conn.execute("SELECT id, output FROM calc_runs WHERE session_id = ? ORDER BY id DESC", (conversation,)):
-        found.append(("run", row["id"], json.loads(row["output"])))
+    rows = conn.execute("SELECT id, inputs, output FROM calc_runs WHERE session_id = ? ORDER BY id DESC",
+                        (conversation,)).fetchall()
+    current = set(turn_runs)
+    for row in sorted(rows, key=lambda row: row["id"] not in current):        # stable: newest first in each part
+        found.append(("run", row["id"], json.loads(row["output"]), json.loads(row["inputs"])))
     return found
 
 
@@ -187,7 +191,7 @@ def reply_figures(turn: Turn, text: str) -> list[dict]:
         "SELECT id, module FROM calc_runs WHERE session_id = ?", (turn.conversation,))}
     saved = [(f"in:{name}" if f"in:{name}" in ids else None, each["value"])
              for name, each in saved_inputs(conn).items()]
-    return figures(text, trace_sources(conn, config, turn.conversation, turn.work.session.memory),
+    return figures(text, trace_sources(conn, config, turn.conversation, turn.work.session.memory, turn.runs),
                    step_of_run=lambda run: step_of_module(conn, modules.get(run, ""), step_ids),
                    input_of=lambda written: input_backing(written, saved))
 

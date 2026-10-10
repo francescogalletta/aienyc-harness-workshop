@@ -38,6 +38,15 @@ def contribute(view, state: dict) -> None:
             step["calls"] = None
         if open_row is not None and step["id"] == open_row["step_id"]:
             step["needs_you"] = True
+    near = {}
+    for row in conn.execute("SELECT payload FROM events WHERE kind = 'you.module_requested' ORDER BY id"):
+        payload = json.loads(row["payload"])
+        if payload.get("near"):
+            near[payload.get("step")] = payload["near"]
+    ids = {step["id"] for step in state["steps"]}
+    for step in state["steps"]:
+        if not step.get("in_plan", True):
+            step["near"] = near.get(step["id"]) if near.get(step["id"]) in ids else None
     by_id = {f"d{row['id']}": row for row in rows}
     for message in state["chat"]:
         decision = message.get("decision")

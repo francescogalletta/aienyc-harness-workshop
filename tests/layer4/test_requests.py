@@ -151,3 +151,31 @@ def test_the_chat_says_a_build_has_begun_before_it_starts(open_session):
                 if json.loads(row["payload"])["id"] == first["id"])
     started = next(row for row in db.list_events(session.conn, kind="build.started"))
     assert told["id"] < started["id"]
+
+
+def test_an_added_step_is_connected_to_what_fed_its_run_or_placed_near_the_step_that_asked(open_session):
+    session = open_session([run("total", {"a": 100, "b": 250}), request("new", name="Triple an amount"),
+                            *triple_turns(), run("triple", {"amount": 350}), reply("Three times 350 is 1,050.")])
+    state = say(session, "A is 100 and B is 250. What is three times the total?")
+    step = step_of(state, "added_1")
+    assert step["needs"] == ["c1"] and step["inputs"] == [] and step["near"] == "c1"
+    assert {"from": "c1", "to": "added_1"} in state["edges"]
+    assert problems(state, strict=True) == []
+
+
+def test_an_added_step_takes_a_saved_input_as_a_pill(open_session):
+    session = open_session([call("save_input", name="amount_a", value="7", note="said"), request("new"),
+                            *triple_turns(), run("triple", {"amount": 7}), reply("Three times 7 is 21.")])
+    state = say(session, "Amount A is 7. What is three times it?", step="c2")
+    step = step_of(state, "added_1")
+    assert step["needs"] == ["in:amount_a"] and step["inputs"] == ["in:amount_a"] and step["near"] == "c2"
+    assert "added_1" in state["inputs"]["in:amount_a"]["steps"] and state["inputs"]["in:amount_a"]["used"]
+    assert not [edge for edge in state["edges"] if edge["to"] == "added_1"]
+
+
+def test_an_added_step_nothing_fed_stays_unconnected(open_session):
+    session = open_session([request("new"), *triple_turns(), run("triple", {"amount": 7}), reply("It is 21.")])
+    state = say(session, "What is three times 7?")
+    step = step_of(state, "added_1")
+    assert step["needs"] == [] and step["near"] is None
+    assert events(session, "you.module_requested")[0]["near"] is None

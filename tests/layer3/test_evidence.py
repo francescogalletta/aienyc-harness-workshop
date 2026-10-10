@@ -118,11 +118,55 @@ def test_a_newer_answer_replaces_the_steps_that_are_lit(open_session):
     assert not any(entry["used"] for entry in state["inputs"].values())
 
 
-def test_when_two_steps_show_the_same_number_it_leads_to_the_earlier_one(open_session):
+def test_when_two_runs_produced_the_same_number_the_latest_of_this_turn_wins(open_session):
     session = open_session([run("total", {"a": 100, "b": 250}), run("double", {"total": 175}),
                             reply("Both come to 350.")])
     state = valid(say(session, "A is 100 and B is 250, or half of that, 175"))
-    assert assistant(state)[-1]["figures"][-1]["step"] == "c1"
+    assert [(f["step"], f["run"]) for f in assistant(state)[-1]["figures"] if f["text"] == "350"] == [("c2", "r2")]
+
+
+def test_a_run_of_this_turn_wins_over_an_earlier_turns(open_session):
+    session = open_session([run("total", {"a": 100, "b": 250}), reply("The total is 350."),
+                            run("total", {"a": 200, "b": 150}), reply("Still 350.")])
+    say(session, "A is 100 and B is 250")
+    state = valid(say(session, "And with A at 200 and B at 150?"))
+    (figure,) = [f for f in assistant(state)[-1]["figures"] if f["text"] == "350"]
+    assert (figure["step"], figure["run"]) == ("c1", "r2")
+
+
+def test_a_number_a_later_step_was_only_given_leads_to_the_step_that_produced_it(open_session):
+    session = open_session([run("total", {"a": 100, "b": 250}), reply("The total is 350."),
+                            run("double", {"total": 350}), reply("From 350, doubled: 700.")])
+    say(session, "A is 100 and B is 250")
+    state = valid(say(session, "Double it"))
+    by_text = {f["text"]: f for f in assistant(state)[-1]["figures"]}
+    assert (by_text["350"]["step"], by_text["350"]["run"]) == ("c1", "r1")
+    assert (by_text["700"]["step"], by_text["700"]["run"]) == ("c2", "r2")
+
+
+def test_a_step_the_last_answer_cites_is_in_it_whenever_it_ran(open_session):
+    session = open_session([run("total", {"a": 100, "b": 250}), reply("The total is 350."),
+                            run("double", {"total": 350}), reply("From 350, doubled: 700."),
+                            reply("The total was 350.")])
+    say(session, "A is 100 and B is 250")
+    say(session, "Double it")
+    state = valid(say(session, "What was the total again?"))
+    first, second = step_of(state, "c1"), step_of(state, "c2")
+    assert first["last_run"]["in_last_answer"] and first["last_run"]["run"] == "r1"
+    assert first["line"] == {"text": "→ 350", "kind": "result"}
+    assert not second["last_run"]["in_last_answer"] and second["line"]["kind"] == "tested"
+    assert all(entry["used"] for entry in state["inputs"].values())
+
+
+def test_a_step_gives_its_recent_runs_newest_first_with_how_they_are_shown(open_session):
+    script = [run("total", {"a": n, "b": "0.125"}) for n in range(1, 8)] + [reply("Done.")]
+    state = valid(say(open_session(script), "Add 0.125 to each of one to seven"))
+    runs = step_of(state, "c1")["runs"]
+    assert [each["run"] for each in runs] == ["r7", "r6", "r5", "r4", "r3"]
+    assert runs[0]["output"] == "7.125" and runs[0]["shown"] == {
+        "inputs": [["a", {"text": "7"}], ["b", {"text": "0.125"}]], "output": {"text": "7.13"}}
+    assert step_of(state, "c1")["last_run"]["shown"] == runs[0]["shown"]
+    assert step_of(state, "c2")["runs"] == [] and step_of(state, "j1")["runs"] == []
 
 
 def test_a_withheld_answer_still_shows_the_runs_it_was_made_from(open_session):

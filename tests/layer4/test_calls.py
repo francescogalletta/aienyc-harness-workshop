@@ -166,3 +166,17 @@ def test_the_decisions_expectation_counts_what_was_decided_on_a_step(open_sessio
     assert expect.check([{"step": "j1", "choice": "2"}], session)["passed"]
     assert not expect.check([{"step": "j1", "choice": "1"}], session)["passed"]
     assert not expect.check([{"step": "j1", "count": 2}], session)["passed"]
+
+
+def test_a_decision_shows_longer_decimals_as_the_harness_writes_numbers(open_session):
+    session = open_session([run("total", {"a": "1000", "b": "888.888888888"}),
+                            ask("j1", "Save 1888.888888888 a month?", ["Yes, 1888.888888888", "No"], runs=[1],
+                                suggested=1, why="It leaves 1888.888888888 spare."), reply("Noted.")])
+    state = say(session, "A is 1000 and B is 888.888888888. Should I save it?")
+    (message,) = [each for each in state["chat"] if each["kind"] == "decision"]
+    decision = message["decision"]
+    assert message["text"] == decision["question"] == "Save 1,888.89 a month?"
+    assert decision["options"] == ["Yes, 1,888.89", "No"] and decision["why"] == "It leaves 1,888.89 spare."
+    (figure,) = [each for each in message["figures"] if each["text"] == "1,888.89"]
+    assert (figure["step"], figure["run"]) == ("c1", "r1")
+    assert problems(state, strict=True) == []

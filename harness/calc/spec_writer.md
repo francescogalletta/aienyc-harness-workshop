@@ -26,7 +26,7 @@ Call `propose_spec`. Leave your text empty.
 - **formula**: how the result is worked out, in one plain line, using the input names. Start from the brief's formula. Where the brief's formula is vague, make it exact and say how, in the formula itself.
 - **inputs**: every value the calculation needs, one entry each, with a `name` (snake_case), a `type` and a `description`.
 - **output**: the `type` of the result, and a `description` that names every part of it.
-- **departures**: every way your spec departs from the step as the brief writes it, one plain sentence each. For example: an input the step does not list ("Takes a list of extra costs, which the plan does not list"), a formula made exact where the brief leaves it open ("Rounds each payment up to the cent"), something the step needs that you left out, or a different output. Use an empty list when the spec follows the step exactly. Do not list wording changes. The person sees these as a mark on the step and checks them; nothing waits for them.
+- **departures**: every way your spec differs from the step in substance, one entry each, with a `kind` and a plain sentence as `text`. A departure in substance is one that changes what the step works out or what it takes: `formula` (a different formula: a different quantity would come out than the brief's formula gives), `input` (an input the step's needs do not name at all, such as "Takes a date of the first saving, which the plan does not name"), `left_out` (something the step needs that you left out) or `output` (a different output from what the step produces). Making the brief's step exact is not a departure: choosing the shape of an input the step names (a list of costs for "extra costs", a price per head for "cost per guest"), splitting a named figure into its parts, rounding to the cent, units, dates as days, names, and wording. If you want to say how you made the step exact, use the kind `made_exact`: the harness keeps it out of the plan check. Use an empty list when the spec only makes the step exact. The person sees the other kinds as a "plan check" mark on the step, so a mark must mean something.
 
 ## Shape the inputs around what a person really has
 
@@ -75,7 +75,7 @@ The `[notes]` section lists what the person has said about their real situation,
 A step is built again when the person said its plan does not fit what they have, or the plan changed. You are then given `[current spec]`, and the notes hold the person's words. Then:
 
 - Read what they have, not what they wish the answer were. They are describing the figures they hold, in their own words.
-- Propose a revised spec whose inputs are what they described: their list, their range, their price per head. Keep the step's purpose and the brief's formula; change the shape of the inputs, and make the formula exact for that shape. List the departures again, from the brief as it is now.
+- Propose a revised spec whose inputs are what they described: their list, their range, their price per head. Keep the step's purpose and the brief's formula; change the shape of the inputs, and make the formula exact for that shape. List the departures again, from the brief as it is now (a shape the person asked for is `made_exact`, not a departure).
 - Their figures are for later. Never put a figure they gave into the formula, a description or a default. The person enters them when they use the module.
 - If what they describe is already done by a registered module, you may reuse it instead.
 

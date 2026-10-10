@@ -13,6 +13,7 @@ from ..answers.agent import Turn, reply_figures, tool_result
 from ..calc.added import process_steps
 from ..calc.builder import plan_of
 from ..core import BadAction, NotNow, number_of
+from ..core.state import tidy_numbers
 from ..model import ToolSpec
 
 SOMETHING_ELSE = "something else"
@@ -162,8 +163,8 @@ def ask_decision(turn: Turn, call) -> dict:
         turn.record("ask.correction", {"reason": "ask_decision", "numbers": numbers, "text": json.dumps(arguments)})
         return tool_result(call, INPUTS_UNBACKED.format(numbers=", ".join(numbers)), True)
 
-    options = [one_line(each) for each in options]
-    question = one_line(question)
+    options = [tidy_numbers(one_line(each)) for each in options]     # shown as the harness writes numbers (SPEC 2.4)
+    question, why = tidy_numbers(one_line(question)), tidy_numbers(why)
     turn.extra["decisions_asked"] = turn.extra.get("decisions_asked", 0) + 1
     cursor = conn.execute(
         "INSERT INTO decisions (ts, conversation, step_id, question, options, suggested, why, runs)"

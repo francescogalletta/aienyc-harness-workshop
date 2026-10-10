@@ -143,7 +143,8 @@ def step_section(state: dict, step_id: str | None) -> dict | None:
                           "examples": [{"n": each["n"], "inputs": each["inputs"], "expected": each["expected"],
                                         "working": each["working"], "checked_by": each["checked_by"],
                                         "second_pass": each["second_pass"]} for each in build["example_list"]],
-                          "disagreement": build["disagreement"]}
+                          "disagreement": [{key: value for key, value in each.items() if key != "shown"}
+                                           for each in build["disagreement"]]}
     run = step.get("last_run")
     if run:
         found["last run"] = {"inputs": run["inputs"], "output": run["output"], "assumptions": run["assumptions"]}

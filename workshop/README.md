@@ -4,28 +4,34 @@ This is for people taking part. The facilitator's notes are in `FACILITATOR.md`.
 
 ## Read this first
 
-The session is not made for building an entirely different harness, or a
-very different plan, from scratch. It will likely not fit in two hours. The
-interview and the build alone take about twenty minutes of model time.
+The session is not made for building an entirely different harness, or a very different plan, from scratch. It will likely not fit in two hours.
 
-- Following the main example works best. So does a variation of it with your
-  own figures, dates and files.
-- Your plan must be a money question that arithmetic on amounts and dates can
-  answer.
+- Following the main example works best. So does a variation of it with your own figures and dates.
+- Your plan must be a money question that arithmetic on amounts and dates can answer.
 - You need model access on your own machine.
 
-## Before you start
+## What you need
 
-1. Install [uv](https://docs.astral.sh/uv/). The root `README.md` has the line.
-2. Get model access: Claude Code signed in with your plan, or an Anthropic
-   API key (see "Choose how the harness reaches a model" in `README.md`).
-3. From the repository root, check it works:
+1. [uv](https://docs.astral.sh/uv/). The root `README.md` has the install line.
+2. Model access: Claude Code signed in with your plan, or an Anthropic API key (see "Set up" in `README.md`).
+3. A check, from the repository root:
 
 ```
 uv run python -m harness check
 ```
 
-It should end with `Setup works`. Each model call takes 20 to 60 seconds.
+It should end with `Setup works`. A model reply takes 20 to 60 seconds.
+
+## The six steps
+
+The harness is a core (step 0) and five layers (steps 1 to 5): the plan, build, answers, needs you, review. "The harness at step N" is the finished harness with layers above N off. `workshop/STEPS.md` has the table.
+
+```
+uv run python -m workshop status --quick   # which layers are present and on
+uv run python -m workshop at N             # run this copy as the harness at step N
+```
+
+`at N` removes and copies nothing. It writes `N` to `my/var/layers`, and `harness` reads it. `at 5` is the whole harness. If `HARNESS_LAYERS` is set in your shell, it wins, and `at` says so.
 
 ## Three ways to take part
 
@@ -33,140 +39,71 @@ Pick one. You can change at any step.
 
 ### (a) Follow the main example
 
-You use the seeded wedding example. Nothing you do here touches `my/`: the
-example's brief and modules are copied to `my/var/examples/wedding/` the first
-time, and your database lives beside them. Delete that folder to start the
-example again.
-
-Put `HARNESS_EXAMPLE=wedding` in front of a command to use the example. Which
-commands exist depends on the step your copy is at (`uv run python -m workshop
-status` says where it stands; `finish N` puts it at the end of step N):
-
-| After step | What you can run (commands are `uv run python -m harness ...`) |
-| --- | --- |
-| 0 | `check`, `events` |
-| 1 | `ui` (the interview in your browser) and `ground` (in the terminal). With the example, `ui` opens on the wedding brief. |
-| 2 | `adopt`, `modules`, `ask`, `build` |
-| 3 | `work` and `replay wedding [scenario]` |
-| 4 | `decisions`. `ask` now stops at gates and takes `/aside` |
-| 5 | `data add`, `data list`, `data clear`. `ask` now checks the figures you state against your files |
-
-What each one does:
-
-- `adopt` shows the worked examples of each module and asks you to type `yes`.
-  Anything else adopts nothing. It is once, at the start: it registers the
-  example's modules in your database, so `ask` can use them.
-- `ask "your question"` answers with tested modules and stays open for
-  follow-ups until you type `/quit`.
-- `work` prints `The evidence page is at http://127.0.0.1:8765/work`, opens it in
-  your browser and keeps running until you press Ctrl+C. It shows what your
-  `ask` did, so run an `ask` first.
-- `replay wedding cover_each_payment` plays a scripted person against the real
-  model: the example is an argument, and the scenario is optional (without it,
-  every scenario runs). It takes a few minutes. To look at the result in the
-  evidence page, add `--keep`: it prints a line that starts `open it with:`.
-  Run that line from the repository root (it ends in `python -m harness work`;
-  put `uv run` before `python` if you use uv).
-- `decisions` lists every assumption you accepted and every choice you made.
-- At step 4, `ask` shows a gate only when the assistant is about to calculate on
-  something you have not confirmed, so most questions never show one. This one
-  asks it to take something as given, and it showed a gate every time we tried it.
-  Type `yes` at the gate to go ahead, or say in your own words what is not right.
-  Then run `decisions` to see what you decided.
+The seeded wedding plan. Nothing you do touches `my/`: the example is copied to `my/var/examples/wedding/` the first time, and your database lives beside it. Delete that folder to start again.
 
 ```
-HARNESS_EXAMPLE=wedding uv run python -m harness ask "Can I cover each wedding payment? The wedding is on 12 June 2027 with 200 guests at 230 each for dinner. Extras are 5,000, the DJ is 2,000 and the bar is 1,500. The first payment is 6,000 and counts towards the total, the second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend 5,000 a month, and I have not decided how much of what is left goes towards the wedding. I have 10,000 saved. My families will give 20,000 on 29 May 2027. Do not ask me anything else: take whatever you need as given, and I will approve it before it is used."
+uv run python -m workshop at 1
+HARNESS_EXAMPLE=wedding uv run python -m harness ui
 ```
 
-- At step 5 the wedding account files are loaded with one command per file,
-  because `--sign` covers every file of a command and the card file writes
-  money going out the other way round (the sign of each file is given on the
-  command line, so nothing is asked):
+Then `at 2`, `at 3` and so on, and reload the page. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment` (the example is an argument, so `HARNESS_EXAMPLE` is not needed).
+
+### (b) A variation with your own figures and plan
+
+Same kind of plan (saving towards dated payments). It all lives in `my/`, without `HARNESS_EXAMPLE`.
 
 ```
-HARNESS_EXAMPLE=wedding uv run python -m harness data add examples/wedding/data/checking.csv --sign negative
-HARNESS_EXAMPLE=wedding uv run python -m harness data add examples/wedding/data/savings.csv --sign negative
-HARNESS_EXAMPLE=wedding uv run python -m harness data add examples/wedding/data/credit_card.csv --sign positive
-HARNESS_EXAMPLE=wedding uv run python -m harness data list
+uv run python -m workshop at 5
+uv run python -m harness ui
 ```
 
-  `data list` shows 120, 11 and 214 transactions. Then `ask` something like
-  "I spend about 5,000 a month and have 10,000 saved" and the harness puts a
-  finding to you: type `1` to keep what you said or `2` to use the figure from
-  your files.
+Say what you want help with, answer the questions, accept the plan, click **Build the calculations**, then ask. A build takes one to four minutes. Check each worked example with a calculator: a second model pass checks them, and a mistake both passes make gets through. Never type account numbers or passwords.
 
-Change a figure, choose differently, and look at what changes.
+### (c) Build a layer's code yourself
 
-### (b) A variation of the main example
-
-Same kind of plan (saving towards dated payments), your own figures and files.
-It all lives in `my/`.
+You write the code with your own coding agent, one layer at a time. Each step has a contract (`SPEC.md`, `ARCHITECTURE.md`), tests and a build prompt.
 
 ```
-uv run python -m harness ui                        # step 1: the interview, in your browser
-uv run python -m harness build                     # step 2: the calculation modules; check each example by hand
-uv run python -m harness ask "..."                 # step 2: ask about your plan; /quit ends it
-uv run python -m harness work                      # step 3: show your work (Ctrl+C stops it)
-uv run python -m harness data add statement.csv --sign negative    # step 5, one command per file
+uv run python -m workshop start 1       # removes layer 1's code and every later layer; keeps the tests
 ```
 
-Check every proposed answer in the build with a calculator. Never type account
-numbers or passwords. Without `HARNESS_EXAMPLE`, every command uses `my/`.
-
-### (c) Build the harness code yourself
-
-You write the code with your own coding agent, one step at a time. Each step
-gives you its contract and tests. You write the code that passes them.
+Paste the prompt `workshop/prompts/step1_plan.md` into your coding agent. It says what to build and what is given. Done means:
 
 ```
-uv run python -m workshop start 1     # step 1's contract, tests and prompt; no step 1 code yet
+uv run pytest tests/layer1 -q           # this layer's tests pass
+uv run pytest tests/layer0 -q           # and earlier layers still pass
 ```
 
-Paste the prompt it names (`workshop/prompts/step1_shared_domain.md`) into
-your coding agent. Then:
+Run each `tests/layerN` folder on its own. Tests of layers above N fail until you build them. Then `start 2` and the next prompt. If you get stuck, `uv run python -m workshop finish N` restores layers 1 to N from git. Anything of yours it would replace is copied first to `my/var/set-aside/<time>/`. Do not let your coding agent read the git history of `harness/`: it holds the finished code. The prompts are `step1_plan.md`, `step2_build.md`, `step3_answers.md`, `step4_needs_you.md` and `step5_review.md`. Step 0 builds nothing: the core is given.
 
-```
-uv run pytest tests/step1
-uv run python -m workshop next        # step 2's contract and tests; your code stays
-```
+## What you can do after each step
 
-Repeat. Use `start 0` to build from nothing. `next` refuses if the step you
-are on does not look built, and names the missing files.
+Commands are `uv run python -m harness ...`; `harness --help` lists what exists at the step.
 
-Please do not let your coding agent read `workshop/states/`. It holds the
-reference code.
+| After step | Commands | In the page |
+| --- | --- | --- |
+| 0 core | `check`, `events`, `ui`, `replay` | An empty shell: no plan, nothing to draw yet |
+| 1 the plan | adds `ground` | Describe a goal and an interview agrees a plan. On the example the plan is already drawn: steps, inputs, origins, open questions. Click a step to say what is wrong |
+| 2 build | adds `build` | A build button. Each calculation step shows its examples and how many tests pass. Open a step to see examples, tests and code |
+| 3 answers | adds `ask` | Ask in the chat. Each number in an answer leads to the step that made it. Steps used light up, the rest fade |
+| 4 needs you | same commands | An answer that rests on something unconfirmed is marked `◌`: confirm or change it. Your calls ask with options. A missing calculation is built and shows as "not in the plan". "On the side" opens a side thread. In the terminal: `/confirm`, `/side TEXT`, `/reply TEXT` |
+| 5 review | same commands | A reviewer challenges steps. A **Review** toggle shows them. Use or dismiss each, or reply in its thread |
 
-## Catching up, or skipping ahead
+## Catching up
 
 ```
 uv run python -m workshop status          # where this copy stands (--quick skips the tests)
-uv run python -m workshop finish N        # put this copy at the end of step N
-uv run python -m workshop start N         # put this copy at the start of step N
+uv run python -m workshop at N            # see the finished harness as it is at step N
+uv run python -m workshop finish N        # if you built it yourself: restore layers 1 to N from git
 ```
 
-`finish N` replaces the harness code, tests and examples with the reference at
-the end of step N. Anything of yours that it would replace is first copied to
-`my/var/set-aside/<time>/`, with the same path, and it says so in one line.
-Your `my/brief`, `my/modules` and database are never touched.
-
-## Switching between your plan and the main example
-
-Your plan uses `my/`. The main example uses `HARNESS_EXAMPLE=wedding`. They do
-not share anything, so switch whenever you like:
-
-```
-uv run python -m harness ask "..."                        # your plan
-HARNESS_EXAMPLE=wedding uv run python -m harness ask      # the main example
-```
+`at N` is enough to follow along. `finish N` is only for path (c).
 
 ## Taking it home
 
 ```
+uv run python -m workshop at 5            # the whole harness
 uv run python -m workshop leave
 ```
 
-It asks first (type `yes`, `y` or `ok`), then removes `workshop/`. What is left is the harness
-(`harness/`, `tests/`, `reference/`, `examples/`, `SPEC.md`) and your `my/`.
-Commit the removal, `my/brief` and `my/modules`. `my/var/` is never committed.
-If you leave midway, the harness stays at that step: run
-`uv run python -m workshop finish 5` first for the whole harness.
+`leave` asks first (type `yes`, `y` or `ok`), then removes `workshop/`. What is left is the harness (`harness/`, `tests/`, `reference/`, `examples/`, `design/`, `SPEC.md`, `ARCHITECTURE.md`) and your `my/`. Commit the removal, `my/brief` and `my/modules`. `my/var/` is never committed. `my/var/layers` stays as it is, so `at 5` first, or delete that file, and the whole harness runs.

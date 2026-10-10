@@ -14,7 +14,7 @@
   var canvas = $('canvas'), scroller = $('scroll'), input = $('say'), sideBtn = $('sidebtn'), composer = $('composer');
 
   var S = null, drawnVersion = -1, first = true, timer = null, failing = false;
-  var ui = { selected: null, attached: null, notice: null, thread: null, side: false, pop: null, code: false,
+  var ui = { selected: null, attached: null, notice: null, thread: null, side: false, pop: null, popRun: null, code: false,
              review: false, whole: false, openThread: null, knownThreads: null, wantNewThread: false };
   var stepEls = {}, lineShown = {}, needShown = {}, lay = null, layKey = '', edgeSegs = {}, pillEls = [];
   var msgEls = {}, thrEls = {}, answerKey = null, animating = {}, animRun = 0, popEl = null;
@@ -46,6 +46,30 @@
     if (typeof v === 'number') { return v.toLocaleString('en-US', { maximumFractionDigits: 10 }); }
     if (typeof v === 'string') { return v; }
     try { return JSON.stringify(v); } catch (e) { return String(v); }
+  }
+  /* A value as the harness wrote it for the eye (SPEC 2.4): `text`, and `rows` or `columns` and `table`. */
+  function shownText(d, raw) { return d && typeof d === 'object' && d.text != null ? String(d.text) : fmt(raw); }
+  function structured(d) { return !!(d && (Array.isArray(d.rows) || (Array.isArray(d.table) && Array.isArray(d.columns)))); }
+  function shownNode(d) {
+    if (d && Array.isArray(d.table) && Array.isArray(d.columns)) {
+      var wrap = el('div', 'fa-tablewrap'), tb = el('table', 'fa-table'), hr = el('tr');
+      d.columns.forEach(function (c) { hr.appendChild(el('th', null, c)); });
+      add(tb, add(el('thead'), hr));
+      var body = el('tbody');
+      d.table.forEach(function (row) { var tr = el('tr'); arr(row).forEach(function (c) { tr.appendChild(el('td', null, c)); }); body.appendChild(tr); });
+      tb.appendChild(body); wrap.appendChild(tb);
+      return wrap;
+    }
+    var box = el('div', 'fa-rows');
+    arr(d && d.rows).forEach(function (r) { box.appendChild(popRow(String(r[0]), String(r[1]))); });
+    return box;
+  }
+  function exactValues(obj) {
+    var dt = el('details', 'fa-exact'); dt.appendChild(el('summary', null, 'Exact values'));
+    var txt; try { txt = JSON.stringify(obj, null, 1); } catch (e) { txt = String(obj); }
+    dt.appendChild(el('pre', 'fa-code', txt));
+    dt.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    return dt;
   }
   function when(ts) {
     if (!ts) { return ''; }
@@ -144,6 +168,8 @@
         col[id] = Math.max(0, m - 1);
       }
     });
+    /* a step nothing connects goes in the column of the step that asked for it, under it */
+    list.forEach(function (s) { if (!preds[s.id].length && !succs[s.id].length && s.near && has(idx, s.near)) { col[s.id] = col[s.near]; } });
     var ncol = 1; ids.forEach(function (id) { ncol = Math.max(ncol, col[id] + 1); });
     for (var c = 0; c < ncol; c++) {
       var inCol = ids.filter(function (id) { return col[id] === c; });
@@ -365,7 +391,7 @@
 
     /* layout (only when the shape or the room changes) */
     var avail = Math.max(0, availWidth());
-    var key = JSON.stringify([list.map(function (s) { return s.id; }), S.edges || [], Math.round(avail / 8)]);
+    var key = JSON.stringify([list.map(function (s) { return s.id + (s.near ? '<' + s.near : ''); }), S.edges || [], Math.round(avail / 8)]);
     if (key !== layKey) {
       layKey = key;
       lay = computeLayout(list, S.edges, avail);
@@ -473,7 +499,7 @@
 
   function clickStep(id) {
     var wasOpen = ui.pop === id;
-    ui.selected = id; ui.attached = id; ui.thread = null; ui.notice = null;
+    ui.selected = id; ui.attached = id; ui.thread = null; ui.notice = null; ui.popRun = null;
     F.select(stepEls[id], document);
     document.querySelectorAll('.fah-num.is-traced').forEach(function (n) { n.classList.remove('is-traced'); });
     drawComposer();
@@ -540,14 +566,21 @@
       arr(b.example_list).forEach(function (ex) {
         var box = el('div', 'fa-ex');
         box.appendChild(popRow('Example ' + ex.n, ex.checked_by ? CHECKED[ex.checked_by] || ex.checked_by : 'left out: the passes disagreed', ex.checked_by === 'you'));
-        var io = Object.keys(ex.inputs || {}).map(function (k) { return k.replace(/_/g, ' ') + ' ' + fmt(ex.inputs[k]); }).join(', ');
-        var sub = el('span', 'fa-sub', io + ' → ' + fmt(ex.expected) + (ex.second_pass != null && ex.checked_by == null ? ' (second pass: ' + fmt(ex.second_pass) + ')' : ''));
+        var sh = ex.shown || {};
+        var io = sh.inputs ? sh.inputs.map(function (q) { return q[0] + ' ' + shownText(q[1]); }).join(', ')
+          : Object.keys(ex.inputs || {}).map(function (k) { return k.replace(/_/g, ' ') + ' ' + fmt(ex.inputs[k]); }).join(', ');
+        var sub = el('span', 'fa-sub', io + ' → ' + shownText(sh.expected, ex.expected) + (ex.second_pass != null && ex.checked_by == null ? ' (second pass: ' + shownText(sh.second_pass, ex.second_pass) + ')' : ''));
         if (ex.checked_by !== 'you') { sub.appendChild(linkBtn('Confirm', function () { act('confirm_example', { step: s.id, n: ex.n }); }, 'Confirm example ' + ex.n)); }
         box.appendChild(sub);
+        if (structured(sh.expected)) { box.appendChild(shownNode(sh.expected)); }
+        if (sh.inputs && (structured(sh.expected) || sh.inputs.some(function (q) { return structured(q[1]); }))) {
+          box.appendChild(exactValues({ inputs: ex.inputs, expected: ex.expected }));
+        }
         pop.appendChild(box);
       });
       arr(b.disagreement).forEach(function (d) {
-        pop.appendChild(el('p', 'fa-p', 'Example ' + d.n + ': expected ' + fmt(d.expected) + ', the code gives ' + fmt(d.code_gives) + '.'));
+        var dsh = d.shown || {};
+        pop.appendChild(el('p', 'fa-p', 'Example ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
       });
       if (b.status !== 'none' || b.module) {
         var foot = el('div', 'fah-pop__foot');
@@ -563,13 +596,32 @@
       }
     }
 
-    var r = s.last_run;
+    var r = runShown(s), lr = s.last_run;
     if (r) {
-      pop.appendChild(popHead(r.in_last_answer ? 'In the last answer' : 'Last run'));
-      var rc = el('div', 'fa-receipt');
-      Object.keys(r.inputs || {}).forEach(function (k) { rc.appendChild(popRow(k.replace(/_/g, ' '), fmt(r.inputs[k]))); });
-      var out = popRow('Came out', fmt(r.output)); out.classList.add('fa-receipt__out'); rc.appendChild(out);
+      var inAnswer = !!(lr && lr.in_last_answer && (r.run === lr.run || (r.message && r.message === lr.message)));
+      var runHead = popHead(inAnswer ? 'In the last answer' : (lr && r.run === lr.run ? 'Last run' : 'Run'));
+      runHead.classList.add('fa-runhead'); pop.appendChild(runHead);
+      var others = arr(s.runs);
+      if (others.length > 1) {
+        var picker = el('div', 'fa-runs'); picker.setAttribute('aria-label', 'Recent runs');
+        others.forEach(function (o) {
+          var b = linkBtn(shownText(o.shown && o.shown.output, o.output), function () { ui.popRun = o.run; refreshPop(); }, 'Show run ' + o.run);
+          b.title = 'Run ' + o.run + (o.ts ? ', ' + when(o.ts) : '');
+          if (o.run === r.run) { b.setAttribute('aria-current', 'true'); }
+          picker.appendChild(b);
+        });
+        pop.appendChild(picker);
+      }
+      var rc = el('div', 'fa-receipt'), rs = r.shown || {};
+      if (rs.inputs) {
+        rs.inputs.forEach(function (q) { rc.appendChild(popRow(q[0], shownText(q[1]))); if (structured(q[1])) { rc.appendChild(shownNode(q[1])); } });
+      } else {
+        Object.keys(r.inputs || {}).forEach(function (k) { rc.appendChild(popRow(k.replace(/_/g, ' '), fmt(r.inputs[k]))); });
+      }
+      var out = popRow('Came out', shownText(rs.output, r.output)); out.classList.add('fa-receipt__out'); rc.appendChild(out);
+      if (structured(rs.output)) { rc.appendChild(shownNode(rs.output)); }
       arr(r.assumptions).forEach(function (a) { rc.appendChild(el('span', 'fa-sub', '◌ ' + a)); });
+      rc.appendChild(exactValues({ inputs: r.inputs, output: r.output }));
       rc.appendChild(el('span', 'fa-sub', 'Run ' + (r.run || '') + (r.test_run != null ? ', after test run ' + r.test_run : '') + (r.ts ? ', ' + when(r.ts) : '')));
       pop.appendChild(rc);
     }
@@ -609,6 +661,15 @@
     }
     pop.addEventListener('click', function (ev) { ev.stopPropagation(); });
     return pop;
+  }
+
+  /* The run the pop-up shows: the one a clicked figure named, else the step's run of the last answer or latest. */
+  function runShown(s) {
+    if (ui.popRun) {
+      var all = arr(s.runs).concat(s.last_run ? [s.last_run] : []);
+      for (var i = 0; i < all.length; i++) { if (all[i].run === ui.popRun) { return all[i]; } }
+    }
+    return s.last_run || arr(s.runs)[0] || null;
   }
 
   function challengeBlock(t, inPop) {
@@ -799,7 +860,15 @@
       var n = el('span', 'fah-num', text.slice(sp[0], sp[1])), sid = sp[2].step;
       n.tabIndex = 0; n.setAttribute('role', 'button');
       n.setAttribute('aria-label', text.slice(sp[0], sp[1]) + ', from step ' + label(stepById(sid)));
-      function go(ev) { ev.preventDefault(); ev.stopPropagation(); ui.selected = sid; F.trace(n, stepEls[sid] || null, document); }
+      var runId = sp[2].run || null;
+      function go(ev) {
+        ev.preventDefault(); ev.stopPropagation(); ui.selected = sid; F.trace(n, stepEls[sid] || null, document);
+        if (stepEls[sid]) {
+          ui.popRun = runId; openPop(sid);
+          var rh = popEl && popEl.querySelector('.fa-runhead');      /* open on the run the figure came from */
+          if (rh) { popEl.scrollTop = Math.max(0, rh.offsetTop - 12); }
+        }
+      }
       n.addEventListener('click', go);
       n.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { go(ev); } });
       p.appendChild(n); pos = sp[1];

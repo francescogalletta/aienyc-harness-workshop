@@ -1,36 +1,19 @@
-# Finance harness workshop
+# Financial Advisor Harness
 
-A small agent harness for personal finance work, built one design principle
-at a time. The running example is an agent that helps one person stay on
-top of their money so that their wedding is paid for without surprises.
+A small agent harness for personal finance, built one layer at a time. You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and answers your questions with every number traced to a step. It shows you what it assumed, asks only where the call is yours, and has a reviewer challenge the plan.
 
-The harness itself knows nothing about weddings. The example lives in
-`examples/wedding/`.
+The running example is a plan to pay for a wedding on time (`examples/wedding/`). The harness itself knows nothing about weddings.
 
 ## Who this is for
 
-The repository serves four uses. They are listed in order of how well a
-two-hour workshop fits them.
+The repository serves four uses. They are listed in order of how well a two-hour workshop fits them.
 
-1. **Presenting.** Show the harness being built one principle at a time on the
-   main example, and what each step adds: before, the model's word; after,
-   something you can check.
-2. **Following along.** Run each step on the main example as it is presented,
-   change figures and choices, and see what changes. If you fall behind, you
-   catch up to the current step.
-3. **A variation of the main example.** Keep the same kind of plan (saving
-   towards dated payments) with your own figures, dates and data. This follows
-   along well.
-4. **Your own plan, or your own harness, from scratch.** Possible, and the
-   contract and tests are there for it, but it will likely not fit in the
-   session. The interview and build alone take about twenty minutes of model
-   time. The plan must be a money question that arithmetic on amounts and
-   dates can answer.
+1. **Presenting.** Show the harness being built one layer at a time on the main example, and what each layer adds.
+2. **Following along.** Run each layer on the main example as it is presented, change figures and choices, and see what changes. If you fall behind, you catch up.
+3. **A variation of the main example.** Keep the same kind of plan (saving towards dated payments) with your own figures and dates. This follows along well.
+4. **Your own plan, or your own harness, from scratch.** Possible, and the contract and tests are there for it, but building an entirely different harness or a very different plan from scratch will likely not fit a two-hour session. The plan must be a money question that arithmetic on amounts and dates can answer.
 
-Whichever you choose, you leave with a working harness: the code in
-`harness/`, your own plan in `my/`, and nothing from the workshop mixed in.
-Everyone needs model access on their own machine (Claude Code signed in, or
-an Anthropic API key).
+Whichever you choose, you leave with a working harness: the code in `harness/`, your own plan in `my/`, and nothing from the workshop mixed in. Everyone needs model access on their own machine.
 
 ## How it fits together
 
@@ -38,87 +21,68 @@ an Anthropic API key).
 flowchart TB
     person([You])
 
-    subgraph s1["1 Shared domain"]
-        interview["Interview<br/>one question at a time"] --> brief[("Brief<br/>goal, terms, steps")]
+    subgraph page["The page: one screen"]
+        diagram["The plan as a diagram<br/>steps, inputs, marks, evidence"]
+        chat["Chat<br/>main thread, side threads, review threads"]
     end
 
-    subgraph s2["2 Consistency"]
-        build["Build<br/>plan check, worked examples you confirm,<br/>code written without seeing them"] --> modules[("Tested modules<br/>code + tests + examples")]
-        gate{"Test gate<br/>runs only if tests pass now"}
+    subgraph core["Core: knows no layer"]
+        direction TB
+        state[("Plan state document<br/>the only thing the page draws from")]
+        main["Main lane<br/>interview, build, answers"]
+        side["Side lane<br/>side and review replies"]
+        review["Review lane<br/>reviewer passes"]
     end
 
-    subgraph s4["4 Human in the loop"]
-        gates["Gates on assumptions<br/>and judgment calls"]
-        aside["Side conversation<br/>own assistant, own context"]
+    subgraph layers["Five layers plug into the core"]
+        l1["1 The plan<br/>interview, research, brief you accept"]
+        l2["2 Build<br/>unattended build, second-pass check of examples"]
+        l3["3 Answers<br/>each number leads to the step that made it"]
+        l4["4 Needs you<br/>marks, your calls, side threads"]
+        l5["5 Review<br/>a reviewer challenges the plan"]
     end
 
-    subgraph s5["5 Verification"]
-        files[("Your account files")] --> verifier["Verifier<br/>your figures vs files, brief, earlier words"]
-        verifier --> finding["Finding<br/>two figures, you choose"]
+    subgraph fixed["Fixed code, no model"]
+        modules[("Tested modules<br/>code, tests, worked examples")]
+        gate{"Test gate<br/>a module runs only if its tests pass now"}
+        numcheck{"Number check<br/>every number needs a source"}
     end
 
-    subgraph s3["3 Evidence"]
-        db[("Database<br/>every event, run and decision")] --> page["Show your work<br/>number to run to module to tests"]
-    end
+    db[("Database<br/>every message, run, decision, challenge")]
 
-    person -->|"what I want help with"| interview
-    brief --> build
-    person -->|"a question, in my own words"| agent["Agent<br/>asks for inputs, never does arithmetic"]
+    person --> page
+    page -->|"POST /api/act"| core
+    state -->|"GET /api/state"| page
+    core --- layers
+    l2 --> modules
+    l3 -->|"run a module"| gate
     modules --> gate
-    agent -->|"run a module"| gates --> gate
-    gate -->|"result"| check{"Number check<br/>every number must have a source"}
-    check -->|"answer"| person
-    agent -. "missing module" .-> build
-    person -. "/aside" .-> aside
-    person -->|"a figure I state"| verifier
-    finding --> gates
-    agent --> db
+    gate --> numcheck
+    numcheck -->|"answer with evidence"| chat
+    l4 -. "missing calculation: built automatically" .-> l2
+    l5 -->|"challenge on a step"| chat
+    core --> db
     gate --> db
-    gates --> db
-    finding --> db
-    page --> person
 ```
 
-The model talks, asks and explains. Everything that produces or admits a
-number is fixed code: the modules, the test gate, the number check, the
-account-file reader. The numbered boxes are the five principles, in the order
-the workshop adds them.
+The model talks, asks and explains. Everything that produces or admits a number is fixed code: the tested modules, the test gate and the number check. The five layers are what the workshop adds, in order. There are no account files and no verifier in version 2.
 
 ## What is here
 
 | Path | What it is |
 | --- | --- |
-| `SPEC.md` | The contract every build step follows |
-| `harness/` | The harness |
-| `tests/` | Acceptance tests per step, plus tests for the account-file fixture in `tests/fixtures/accounts/` (older example data, its generator and key, which the source adapter's tests read) |
+| `SPEC.md`, `ARCHITECTURE.md` | The contract (behaviour, state document, actions) and how it is built |
+| `design/` | The product design, the design system and the source of the page (`design/page/`) |
+| `harness/` | The harness: the core, and one package per layer |
+| `tests/` | Offline tests, one folder per layer (`tests/layer0` to `tests/layer5`) |
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
-| `examples/` | Two complete seeded examples, `wedding` and `moving`: brief, modules, scenarios and, for the wedding, account files |
-| `my/` | Yours: `my/brief/` (the domain brief, once you have run the interview), `my/modules/` (the tested calculation modules, once you have run the build) and `my/var/` (the database and other working files, never committed) |
-| `workshop/` | The workshop: `README.md` (the guide for attendees), `FACILITATOR.md`, `BUILD_PLAN.md`, `prompts/` (one build prompt per step, for any coding agent), and the `workshop` command. Optional: the harness never uses it |
-
-## Moving through the steps
-
-The workshop builds the harness in six steps, 0 to 5.
-This command moves your copy between them. It never touches `my/brief`,
-`my/modules` or your database, and it copies any file of yours it would
-replace to `my/var/set-aside/` first.
-
-```
-uv run python -m workshop status      # where this copy stands
-uv run python -m workshop start N     # the start of step N: its contract, tests and prompt
-uv run python -m workshop next        # install the next step's tests; your own code stays
-uv run python -m workshop finish N    # the end of step N, to catch up or skip ahead
-uv run python -m workshop leave       # remove workshop/ and keep the harness
-```
-
-`workshop/README.md` is the guide for attendees.
+| `examples/` | Two seeded examples, `wedding` and `moving`: plan, built modules, scenarios. See `examples/README.md` |
+| `my/` | Yours: `my/brief/` (your plan), `my/modules/` (your tested calculations) and `my/var/` (database and working files, never committed) |
+| `workshop/` | The workshop guides, build prompts and the `workshop` command. Optional: the harness never uses it |
 
 ## Set up
 
-The simplest way is [uv](https://docs.astral.sh/uv/). It is one small tool
-that fetches a suitable Python if your machine has none, and keeps
-everything this project needs in a `.venv` folder inside the repository.
-Nothing else on your machine changes, and deleting `.venv` undoes it.
+Install [uv](https://docs.astral.sh/uv/), a small tool that fetches a suitable Python and keeps everything in a `.venv` folder in the repository. Deleting `.venv` undoes it.
 
 ```
 curl -LsSf https://astral.sh/uv/install.sh | sh     # macOS or Linux (or: brew install uv)
@@ -126,234 +90,81 @@ curl -LsSf https://astral.sh/uv/install.sh | sh     # macOS or Linux (or: brew i
 
 On Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
 
-Then, from the repository root:
+Then you need model access, one of:
+
+- **Claude Code** installed and signed in with your Claude plan. Check with `claude auth status`. Usage counts against your plan. If `ANTHROPIC_API_KEY` is set in your shell, unset it, or it is used instead.
+- **An Anthropic API key**: `export ANTHROPIC_API_KEY=...`, and run with `uv run --extra claude`.
+
+`HARNESS_MODEL_PROVIDER` can force `claude_code`, `anthropic` or `scripted` (prepared replies, used by every test). The default `auto` picks `anthropic` when a key and the package are present, else `claude_code`. `HARNESS_MODEL` picks the model; the default is `claude-sonnet-5-5`.
 
 ```
-uv run pytest -q                                           # sets everything up, then runs the tests
-HARNESS_MODEL_PROVIDER=scripted uv run python -m harness check
-uv run python -m harness events
-```
-
-Put `uv run` in front of any command in this repository and it runs inside
-that environment.
-
-Without uv, any Python 3.11 or later works:
-
-```
-python3 -m venv .venv && source .venv/bin/activate
-pip install pytest
-python -m pytest -q
-```
-
-## Choose how the harness reaches a model
-
-The harness talks to a model through one interface. `HARNESS_MODEL_PROVIDER`
-picks what sits behind it. If you set nothing, the default is `auto`, which
-uses the `anthropic` provider when `ANTHROPIC_API_KEY` is set and the
-`anthropic` package is installed, and otherwise `claude_code` when the
-`claude` command is on your path. If neither is there, it stops and tells
-you what to install.
-
-| Provider | What you need | Notes |
-| --- | --- | --- |
-| `auto` | Either of the two below | The default. Picks one as described above. |
-| `scripted` | Nothing | Replays prepared responses. Used by every test. |
-| `claude_code` | [Claude Code](https://code.claude.com/docs/en/overview) installed and signed in with your Claude plan | No API key. Usage counts against your plan. |
-| `anthropic` | A Claude API key | Billed to the key. Needs the `claude` extra (see below). |
-
-With a Claude subscription and no API key:
-
-```
-claude auth status                        # should say you are logged in
 uv run python -m harness check
 ```
 
-Nothing needs exporting: `auto` finds Claude Code. The check prints which
-provider it used. To choose it yourself, add
-`export HARNESS_MODEL_PROVIDER=claude_code`.
+It sends the model a one-line test and should end with `Setup works: the model replied and the check was saved as event 1.` A model reply takes 20 to 60 seconds through Claude Code.
 
-The check sends the model a one-line test and should end with
-`Setup works: the model replied and the check was saved as event 1.`
-
-If `ANTHROPIC_API_KEY` is set in your shell, Claude Code uses that key
-instead of your plan, and `auto` prefers the `anthropic` provider when the
-package is installed, so unset the key first. If the check reports an unknown
-option, update Claude Code with `claude update`.
-
-With an API key:
+## Use it
 
 ```
-export ANTHROPIC_API_KEY=...
-export HARNESS_MODEL_PROVIDER=anthropic     # optional: auto would pick it too
-uv run --extra claude python -m harness check
+uv run python -m harness ui                             # your own plan
+HARNESS_EXAMPLE=wedding uv run python -m harness ui     # the main example
 ```
 
-If you choose `anthropic` without the package, the harness says so and
-shows the install command (`uv sync --extra claude`).
+The page opens in your browser, served from your machine. It has two parts that never change: the plan as a diagram, and the chat beside it. Click a step to attach it to your next message, or open its details. Add `--port N` or `--no-browser` if you need to.
 
-`HARNESS_MODEL` picks the model. The default is `claude-sonnet-5-5`; with
-`claude_code` you can also use an alias such as `sonnet` or `haiku`.
+1. **Describe a goal.** On an empty page, say what you want help with. The harness reads up on the finance terms you use, asks one question at a time, and draws a plan. Or open the main example, which starts with an accepted plan.
+2. **Accept the plan.** Click a step and say what is wrong to correct it; the diagram redraws. A plan with open questions can still be accepted.
+3. **Build.** One button builds every calculation step without stopping, which takes one to four minutes. Each step shows how many worked examples it has and how many tests pass. Examples are checked by a second model pass and are marked "checked by a second pass" until you confirm them.
+4. **Ask.** Ask about your plan in the chat. Every number in an answer leads to the step that produced it. A number no tested step produced is held back.
+5. **Marks and your calls.** An answer that rests on something you did not confirm carries a mark: confirm it or change it. A call that is yours to make stops and asks, with options as buttons or in your own words. A calculation the plan lacks is built for you and shows as "not in the plan".
+6. **Side threads.** Use "On the side" to ask what a term means or why, without changing anything. To make something count, say it in the main chat.
+7. **Review.** After the plan is accepted a reviewer looks for weak assumptions and challenges them, each as a thread on a step. Choose "use this" or "dismiss". It never blocks. The **Review** toggle shows the challenged steps.
 
-## Run the grounding interview
+Your work is kept in `my/` (or, with `HARNESS_EXAMPLE`, in a copy under `my/var/examples/<name>/`; delete that folder to start the example again). Do not type account numbers or passwords into the chat.
 
-Step 1 is a short interview. The harness asks what you want help with, checks
-the finance terms you use against their standard meaning, and writes a
-**domain brief**: your goal, the terms you agreed, what is particular to you,
-and the steps needed, with the ones that must run as code marked.
-
-```
-uv run python -m harness ui
-```
-
-This opens a page in your browser, served from your own machine. The
-conversation is on the left. On the right, the shared understanding builds
-up as you talk:
-
-- **Reading**: what the harness is reading up on, and where each answer came from.
-- **Concept map**: your words next to the standard term, with its source. Terms you had no word for are marked as new to you.
-- **Assumptions**: what is different about you, and how it will be handled.
-- **Open questions**: answer any of them right there once a brief is proposed.
-- **Needed from you**: the figures and dates the steps will ask for when they run.
-- **The plan**: a diagram of the steps. Click one to see its method and formula.
-
-When the harness proposes a brief, press **Accept brief** or **Ask for
-changes**. The brief is saved as `my/brief/domain_brief.md` and
-`my/brief/domain_brief.json`. If a brief already exists, the page opens on it.
-
-Everything asked, answered and looked up is in the database:
-`uv run python -m harness events`.
-
-**Lookups.** The harness reads up on a few terms before the first question,
-side by side, and never looks the same term up twice. By default it checks
-the saved file `reference/terms.json` first and asks Wikipedia only for
-terms the file does not know. Only the term itself is sent. Set
-`HARNESS_RESEARCHER=reference` to stay offline, or `claude_code` to use
-Claude Code's web search where that is available.
-
-**In a terminal instead.** `uv run python -m harness ground` runs the same
-interview as text. Type `/accept` to accept the brief, `/wrap` to finish
-with what you have, or `/quit` to stop; `--resume` carries on.
-
-Do not type account numbers or passwords into the interview.
-
-### Add another provider
-
-Any other model API, a free tier or a local model is one new file under
-`harness/model/` and one new line in the table in
-`harness/model/providers.py`. Nothing else in the harness changes. `SPEC.md`
-section 3.7 has the recipe, and the Claude Code adapter is a worked example
-of a provider that is not an API at all.
-
-## Build the calculations and ask
-
-Step 2 turns each calculation step of your brief into code that is tested
-before it is allowed to run. You need a confirmed brief first.
+**In a terminal instead.** The same actions, as text:
 
 ```
-uv run python -m harness build
+uv run python -m harness ground          # the interview; /accept, /wrap, /quit
+uv run python -m harness build           # build the calculation steps of the accepted plan
+uv run python -m harness ask "..."       # ask; /confirm, /side TEXT, /reply TEXT, /quit
+uv run python -m harness events          # everything recorded
 ```
 
-Each model call can take up to a minute through Claude Code. A full build of
-five steps took about eight minutes. A progress line tells you what is being
-written.
+Which commands exist depends on the layers on (below). `ground`, `build` and `ask` come with layers 1, 2 and 3.
 
-For each calculation step, in the terminal:
+**Lookups.** The harness checks `reference/terms.json` first and asks Wikipedia only for terms the file does not know. Only a short general term is sent, never your figures. Set `HARNESS_RESEARCHER=reference` to stay offline. The reviewer's outside lookups also need Wikipedia to be reachable.
 
-- The harness shows its plan in plain words: what it needs from you and what it gives back. It asks whether that fits what you have. Type `yes`, or say in your own words what you do have, and the plan is reshaped. If the module already exists, it is reused and nothing is asked.
-- It then shows made-up examples with small round numbers. They are not your figures. Check each one by hand. Answer `yes`, type the right answer, say in your own words what is wrong, or ask a question. `/skip` leaves a step or an example out. `/quit` stops the build.
-- The code is written by a separate model call that never sees the examples, your brief or your notes.
-- The harness runs the tests and the examples you confirmed. Only code that passes is registered.
+## Check a change
 
-What you say about your real situation during the build is kept as notes. `ask` uses them.
+Tests run offline with the scripted model: `uv run pytest -q` (a few hundred tests, about 40 seconds). They are in `tests/layer0` to `tests/layer5`, and the tests of layer K pass with layers above K off.
 
-**Check every proposed answer with a calculator.** The proposed answers can be wrong. In a live run, one proposed answer contradicted its own working, and accepting it made that module fail to build.
+To see a change with the real model, replay a seeded scenario, a scripted person playing against it:
 
 ```
-uv run python -m harness modules
-uv run python -m harness ask "How much can I put aside each month?"
+uv run python -m harness replay wedding                       # every scenario of the example
+uv run python -m harness replay wedding cover_each_payment    # one; add --keep to keep the scratch copy
 ```
 
-`modules` lists what is built and runs every module's tests again now.
-`ask` answers from the brief and the tested modules. It asks you for missing
-inputs one at a time and remembers them, and it runs only tested modules. If
-its reply contains a number that no module produced, the reply is held back.
-Type `/quit` to stop.
+It prints a line per expectation and exits 0 only when all pass. A scenario takes 30 seconds to two minutes, a whole example 2 to 7 minutes. The model varies between runs, so run a failure twice before believing it. `examples/README.md` lists the scenarios.
 
-Code changes in one way only: `uv run python -m harness build --rebuild NAME`.
-If a module's files change any other way, it will not run until it is
-rebuilt. Commit `my/modules/` together with the brief. A fresh clone has the
-folders but an empty database, so run `uv run python -m harness adopt` once:
-it shows each module's worked examples, asks you to accept them, runs the
-tests, and registers only the modules that pass.
+## Moving through the steps
 
-## Show your work
+The workshop builds the harness in six steps, 0 (the core) and 1 to 5 (the layers). The `workshop` command moves your copy between them. It never touches `my/brief`, `my/modules` or your database, and it copies any file of yours it would replace to `my/var/set-aside/` first. `workshop/README.md` is the guide.
 
 ```
-uv run python -m harness work
+uv run python -m workshop status          # which layers are present and on
+uv run python -m workshop at N            # run this copy as the harness at step N; removes nothing
+uv run python -m workshop start N         # remove step N's code (and later layers), to build it yourself
+uv run python -m workshop finish N        # restore the code of layers 1 to N from git
+uv run python -m workshop leave           # remove workshop/ and keep the harness
+uv run python -m workshop check           # the drift check, about five minutes
 ```
 
-This opens a page on your own machine that shows how every number was
-reached. It only reads the database and never calls a model. Its views:
+## The three places
 
-- **Conversations**: each reply as it was shown, with every number marked by where it came from: a module run, a saved input, a note, the brief, your own words, today's date. A number with no source stands out as `none`.
-- **Runs**: the inputs, the assumptions, what the agent expected beforehand, the output, and the test run it relied on.
-- **Modules**: the process, each module's formula, worked examples, code and build history.
-- **Everything**: the raw event log, with filters.
+- `harness/` is the product. Nothing under it names an example, and it never imports `workshop/`.
+- `my/` is yours. The harness writes only there. Nothing we ship overwrites it.
+- `workshop/` is teaching material and the `workshop` command. Delete it and the harness's tests still pass.
 
-On a module, **Run the tests now** runs its tests and worked examples again
-(up to 30 seconds), records the run, and shows which passed. "Tests passing"
-always comes from running the code, never from a stored flag.
-
-## Gates, decisions and side conversations
-
-`ask` stops only for what matters. Before a calculation runs on something you
-have not confirmed (a figure it assumed, a date it guessed) it shows what it
-takes as given and what it expects. Type `yes` to go ahead, or say what is
-wrong and nothing runs. When a call is yours to make, such as which date to
-keep, it lists two to four options, often with a suggestion. It never asks you
-to approve a computed number, and saving a figure you gave never stops.
-
-At any such question, type `/aside` (with a question after it, or not) to talk
-it through with a separate assistant that explains but cannot run or decide
-anything. `/back` returns you to the same question. Only a sentence you type at
-"Before you go back" reaches the main conversation.
-`uv run python -m harness decisions` lists every decision in your own words.
-On the `work` page, gates and decisions sit in the conversation, side
-conversations are nested and labelled, and **Decisions** lists them all.
-
-## Checking what you say against your own data
-
-Step 5 checks the figures you state against things that do not depend on your sentence: your own account files, the brief, and what you saved earlier.
-
-```
-uv run python -m harness data add statement.csv --sign negative   # without --sign it asks, file by file
-uv run python -m harness data list                                # what is loaded, and each account's full months
-uv run python -m harness data clear
-```
-
-`data add` reads a delimited text file with one row per transaction (a date, a description and one amount column) by fixed rules, with no model. It never guesses how a file writes money going out, and it refuses a file it cannot read whole with one plain reason. What it leaves out (a repeated heading row, a repeated row) it reports. Only tested code summarises the rows: money in, money out and balances, by full calendar month, with moves between your own loaded accounts left out.
-
-When you state a figure ("I spend about 5k a month"), a separate verifier compares it with those summaries and the brief. A **finding** is a claim and a reference that differ by more than 5%. You see it in a fixed block the harness builds: what you said, what your files show, and two options, keep your figure or use the one from your files, or answer in your own words. Until you decide, nothing is calculated with the figure and the agent's replies are held back. `/aside` works there. Giving a different value for something already saved opens the same block.
-
-Nothing is checked against outside benchmarks such as what people typically spend. The verifier can also miss a disagreement, and the harness cannot see one it is never shown.
-
-## Examples and replay
-
-`examples/` holds two seeded examples, `wedding` and `moving`: a confirmed
-brief, built modules and scenarios. They let you try `ask` and `work` without
-a seven-minute build, and they let you test a change by replaying a scripted
-person against the real model.
-
-```
-HARNESS_EXAMPLE=moving uv run python -m harness adopt
-HARNESS_EXAMPLE=moving uv run python -m harness ask
-uv run python -m harness replay moving
-```
-
-The first time, the harness copies the example to `my/var/examples/<name>/` and
-works on the copy, so `examples/` is never changed; delete that folder to start
-the example again.
-
-`examples/README.md` says how they were made and checked, how to write a
-scenario and how to add an example. Their worked examples were recomputed by
-an AI agent, not yet by a person.
+To add another model provider, add one file under `harness/model/` and one line in `harness/model/providers.py`.

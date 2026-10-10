@@ -24,6 +24,7 @@ from ..grounding.brief import step_fingerprint
 from .added import ADDED_PREFIX, list_added_steps
 from .safety import check_code
 from .values import TYPES, from_json
+from ..core.state import display, display_inputs
 
 MIN_CONFIRMED = 2       # worked examples a module needs before it is registered
 FILES = ("spec.json", "golden.json", "module.py", "tests.py")
@@ -374,11 +375,20 @@ def build_view(conn, brief: dict | None, step_id: str, *, building: bool = False
         "plan_check": ({"departures": departures, "confirmed": bool(record.get("departures_confirmed"))}
                        if departures else None),
         "spec": ({key: spec[key] for key in ("formula", "inputs", "output") if key in spec} if spec else None),
-        "example_list": examples,
-        "disagreement": (record.get("disagreement") or []) if status == "not_built" and not building else [],
+        "example_list": [shown_example(each) for each in examples],
+        "disagreement": [{**each, "shown": {"expected": display(each.get("expected")),
+                                            "code_gives": display(each.get("code_gives"))}}
+                         for each in ((record.get("disagreement") or []) if status == "not_built" and not building else [])],
         "code": _code(named),
         "tested_at": run["ts"] if run else None,
     }
+
+
+def shown_example(example: dict) -> dict:
+    """An Example with how the pop-up shows its values (`shown`), written by the harness (SPEC 2.4)."""
+    return {**example, "shown": {"inputs": display_inputs(example.get("inputs")), "expected": display(example.get("expected")),
+                                 "second_pass": None if example.get("second_pass") is None
+                                 else display(example["second_pass"])}}
 
 
 def examples_from_golden(path) -> list[dict]:

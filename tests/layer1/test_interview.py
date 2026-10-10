@@ -9,8 +9,8 @@ from harness import db
 from harness.config import load_config
 from harness.core import BadAction
 from harness.grounding.interview import (LIMIT_REACHED, NOT_CONFIRMED, ONE_QUESTION, PLAN_ACCEPTED,
-                                         PLAN_PROPOSED, WRAP_UP)
-from harness.grounding.layer import run_ground
+                                         PLAN_PROPOSED, PLAN_REVISED, WRAP_UP)
+from harness.grounding.layer import PREPARED, run_ground
 
 OPENING = "I want to save for a move next spring"
 
@@ -124,6 +124,7 @@ def test_a_correction_with_a_step_reaches_the_interviewer_and_the_plan_is_redraw
     assert state["steps"][0]["formula"] == "van hire + rent + deposit" != before
     assert [message["kind"] for message in state["chat"]].count("plan") == 2
     assert state["chat"][-2]["step"] == "a1"                             # the chip stays on the person's message
+    assert state["chat"][-1]["text"] == PLAN_REVISED.format(changes="changed step 1 Move cost")
     assert {"plan.changes"} <= kinds(session)
 
 
@@ -258,6 +259,21 @@ def test_an_example_brief_in_the_brief_folder_is_an_accepted_plan(open_session, 
     state = open_session().state()
     assert state["phase"] == "accepted" and [step["id"] for step in state["steps"]] == ["m1", "m2", "m3", "m4"]
     assert state["context"]["glossary"] and state["goal"]["mode"] == "ongoing"
+    assert state["chat"] == []                                          # not an example: nothing is said
+
+
+def test_a_seeded_example_opens_with_one_harness_message_naming_what_the_plan_covers(open_session, moving_brief,
+                                                                                    monkeypatch, tmp_path):
+    folder = tmp_path / "example"
+    folder.mkdir()
+    (folder / "domain_brief.json").write_text(json.dumps(moving_brief), encoding="utf-8")
+    monkeypatch.setenv("HARNESS_BRIEF_DIR", str(folder))
+    monkeypatch.setenv("HARNESS_EXAMPLE", "moving")
+    (message,) = open_session().state()["chat"]
+    goal = moving_brief["goal"]["text"].split(". ")[0].rstrip(".")
+    assert message["who"] == "harness" and message["kind"] == "text"
+    assert message["text"] == PREPARED.format(goal=goal[0].lower() + goal[1:])
+    assert len(open_session().state()["chat"]) == 1                    # said once, not on every start
 
 
 def test_a_new_interview_after_an_older_conversation_starts_a_new_conversation(open_session):

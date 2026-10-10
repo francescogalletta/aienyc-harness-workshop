@@ -253,7 +253,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s2",
@@ -310,7 +311,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s3",
@@ -356,7 +358,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s4",
@@ -394,7 +397,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s5",
@@ -447,7 +451,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s6",
@@ -489,7 +494,8 @@
       "last_run": null,
       "unconfirmed": [],
       "calls": null,
-      "challenges": []
+      "challenges": [],
+      "runs": []
     },
     {
       "id": "s7",
@@ -522,7 +528,8 @@
         "open": null,
         "records": []
       },
-      "challenges": []
+      "challenges": [],
+      "runs": []
     }
   ],
   "edges": [

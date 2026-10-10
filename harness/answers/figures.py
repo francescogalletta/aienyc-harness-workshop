@@ -7,10 +7,10 @@ draws those as numbers that lead to their step.
 from ..calc.provenance import trace, unbacked
 
 
-def figures(text: str, sources: list[tuple[str, int | None, object]], *, step_of_run=None, input_of=None) -> list[dict]:
+def figures(text: str, sources: list[tuple], *, step_of_run=None, input_of=None) -> list[dict]:
     """One Figure per number or date the number check reads in `text`, in order of appearance.
 
-    `sources` are `(label, ref, value)` as `trace` takes them, oldest first (the latest of a label wins).
+    `sources` are as `trace` takes them, in order of preference (the first of a label wins).
     `step_of_run(run_id)` gives the step id a run's module carries out, or None; `input_of(written)` gives
     the brief input id a saved input backs a figure for, or None. Without them a figure has no step or input.
     """

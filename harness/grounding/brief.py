@@ -294,6 +294,33 @@ def step_fingerprint(brief: dict, step_id: str) -> str | None:
                                      ensure_ascii=False).encode("utf-8")).hexdigest()
 
 
+def describe_changes(old: dict, new: dict) -> str:
+    """What changed between two versions of a plan, in one line, worked out by the harness (never the model):
+    the steps added, changed (fingerprint or name) and removed, by number and name; else what around them changed."""
+    before = {step["id"]: (number, step) for number, step in enumerate(old.get("process", []), start=1)}
+    after = {step["id"]: (number, step) for number, step in enumerate(new.get("process", []), start=1)}
+
+    def named(number, step) -> str:
+        return f"{number} {step.get('name', step['id'])}"
+    added = [named(*after[each]) for each in after if each not in before]
+    changed = [named(*after[each]) for each in after if each in before
+               and (step_fingerprint(old, each) != step_fingerprint(new, each)
+                    or before[each][1].get("name") != after[each][1].get("name"))]
+    removed = [named(*before[each]) for each in before if each not in after]
+    parts = [f"{word} step{'s' if len(found) > 1 else ''} {', '.join(found)}" for word, found in
+             (("added", added), ("changed", changed), ("removed", removed)) if found]
+    if parts:
+        return "; ".join(parts)
+    around = [label for label, key in (("the goal", "goal"), ("the inputs", "inputs"), ("the scope", "scope"),
+                                       ("the open questions", "open_questions"), ("the particulars", "particulars"),
+                                       ("the terms", "glossary"), ("what counts as done", "definition_of_done"))
+              if old.get(key) != new.get(key)]
+    if not around:
+        return "nothing changed"
+    return "no step changed; " + (" and ".join([", ".join(around[:-1]), around[-1]]) if len(around) > 1
+                                  else around[0]) + " did"
+
+
 # --- The plan state document's layer 1 part ---
 
 def input_id(name: str) -> str:

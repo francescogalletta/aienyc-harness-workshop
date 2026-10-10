@@ -65,7 +65,11 @@ ONE_CALL = "Only one tool call is handled per reply. This one was ignored."
 SPEC_REJECTED = "The spec was not accepted. Fix these and propose it again:"
 NAME_TAKEN = "a module called '{name}' already exists: reuse it, or choose another name"
 CANNOT_REUSE = "There is no registered module called '{name}' with unchanged files. Propose a spec instead."
-BAD_DEPARTURES = "departures must be a list of sentences, one per way the spec departs from the step; [] when none"
+BAD_DEPARTURES = ("departures must be a list, one entry per way the spec departs from the step, each with a kind ("
+                  + ", ".join(("formula", "input", "left_out", "output", "made_exact")) + ") and a plain sentence as "
+                  "text; [] when none")
+DEPARTURE_KINDS = ("formula", "input", "left_out", "output", "made_exact")
+NOT_A_DEPARTURE = "made_exact"      # the brief's own step made exact: kept out of the plan check
 EXAMPLES_REJECTED = "The examples were not accepted. Fix these and propose them again:"
 MORE_EXAMPLES = ("[harness] The second pass agreed with too few of these examples. Write three to five new examples "
                  "with different inputs, simpler where you can.")
@@ -81,7 +85,8 @@ SPEC_SCHEMA = {"type": "object", "properties": {
         "name": _TEXT, "type": _TYPE, "description": _TEXT}, "required": ["name", "type", "description"]}},
     "output": {"type": "object", "properties": {"type": _TYPE, "description": _TEXT},
                "required": ["type", "description"]},
-    "departures": {"type": "array", "items": _TEXT}},
+    "departures": {"type": "array", "items": {"type": "object", "properties": {
+        "kind": {"type": "string", "enum": list(DEPARTURE_KINDS)}, "text": _TEXT}, "required": ["kind", "text"]}}},
     "required": ["name", "description", "method", "formula", "inputs", "output", "departures"]}
 REUSE_SCHEMA = {"type": "object", "properties": {"module": _TEXT, "reason": _TEXT},
                 "required": ["module", "reason"]}
@@ -231,6 +236,23 @@ def record_confirmation(conn, step_id: str, n: int, *, answer=None, session_id: 
                     kind="build.example_corrected" if corrected else "build.example_confirmed",
                     payload={"step": step_id, "n": n, "answer": final})
     return {"rebuild": corrected or not tested}
+
+
+def read_departures(given) -> tuple[list[str], list[str]] | None:
+    """The departures of a proposed spec: (those that put a plan check on the step, those that only make the
+    brief's own step exact). An entry is {kind, text}; a plain sentence counts as a departure. None when malformed."""
+    if not isinstance(given, list):
+        return None
+    real, exact = [], []
+    for each in given:
+        if isinstance(each, str) and each.strip():
+            real.append(each.strip())
+        elif (isinstance(each, dict) and each.get("kind") in DEPARTURE_KINDS and isinstance(each.get("text"), str)
+              and each["text"].strip()):
+            (exact if each["kind"] == NOT_A_DEPARTURE else real).append(" ".join(each["text"].split()))
+        else:
+            return None
+    return real, exact
 
 
 def confirm_departures(conn, step_id: str, *, session_id: str) -> None:
@@ -393,15 +415,16 @@ class _Builder:
             name = spec.get("name")
             if rebuild is None and isinstance(name, str) and get_module(conn, name) is not None:
                 errors.append(NAME_TAKEN.format(name=name))
-            departures = call.arguments.get("departures")
-            if not isinstance(departures, list) or not all(isinstance(each, str) and each.strip()
-                                                           for each in departures):
+            given = call.arguments.get("departures")
+            read = read_departures(given)
+            if read is None:
                 errors.append(BAD_DEPARTURES)
             if errors:
                 self.record("build.spec_rejected", {"errors": errors})
                 return _bullets(SPEC_REJECTED, errors), True, None
-            departures = [each.strip() for each in departures]
-            self.record("build.spec_proposed", {"spec": spec, "departures": departures}, "agent")
+            departures, made_exact = read
+            self.record("build.spec_proposed", {"spec": spec, "departures": departures, "made_exact": made_exact},
+                        "agent")
             return "Spec accepted.", False, ("spec", spec, departures)
 
         messages = [{"role": "user", "content": format_sections(sections)}]

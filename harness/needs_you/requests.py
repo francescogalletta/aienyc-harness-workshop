@@ -66,6 +66,21 @@ def number_of_step(conn, brief, step_id: str) -> int:
     return ids.index(step_id) + 1 if step_id in ids else len(ids)
 
 
+def asked_from(turn: Turn, steps: dict, built: str) -> str | None:
+    """The step that asked for a build: the step attached to the person's message, else the step of the latest run
+    of this turn, else none. The page places an added step near it while nothing connects it."""
+    attached = turn.message.get("step")
+    if attached in steps and attached != built:
+        return attached
+    for run in reversed(turn.runs):
+        row = turn.conn.execute("SELECT module FROM calc_runs WHERE id = ?", (run,)).fetchone()
+        registered = get_module(turn.conn, row["module"]) if row else None
+        found = (registered or {}).get("spec", {}).get("step_id")
+        if found in steps and found != built:
+            return found
+    return None
+
+
 def request_module(turn: Turn, call) -> dict:
     arguments, conn, work = call.arguments, turn.conn, turn.work
 
@@ -136,5 +151,6 @@ def request_module(turn: Turn, call) -> dict:
     work.post(told.format(number=number_of_step(conn, brief, step["id"]), name=step["name"]),
               who="harness", step=step["id"])
     turn.record("you.module_requested", {"case": case, "target": target, "step": step["id"], "arguments": arguments,
-                                         "outcome": result["outcome"], "seconds": seconds}, "agent")
+                                         "outcome": result["outcome"], "seconds": seconds,
+                                         "near": asked_from(turn, steps, step["id"])}, "agent")
     return tool_result(call, json.dumps(result))

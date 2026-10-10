@@ -78,8 +78,10 @@ BUILD = {"status": ("none", "building", "built", "not_built", "stale"), "module"
                                "checked_by": (None, "second_pass", "you"), "second_pass": ANY}),
          "disagreement": LIST({"n": INT, "expected": ANY, "code_gives": ANY}),
          "code": OPT({"module_py": STR, "tests_py": STR}), "tested_at": OPT(STR)}
-LAST_RUN = {"run": STR, "message": OPT(STR), "in_last_answer": BOOL, "inputs": dict, "output": ANY,
-            "assumptions": LIST(STR), "ts": STR, "test_run": INT}
+SHOWN = {"text": STR}
+RUN = {"run": STR, "message": OPT(STR), "inputs": dict, "output": ANY, "assumptions": LIST(STR), "ts": STR,
+       "test_run": INT, "shown": {"inputs": LIST(LIST(ANY)), "output": SHOWN}}
+LAST_RUN = {**RUN, "in_last_answer": BOOL}
 CALLS = {"open": OPT(STR), "records": LIST({"decision": STR, "question": STR, "options": LIST(STR),
                                              "choice": STR, "words": STR, "ts": STR})}
 STEP = {"id": STR, "number": INT, "name": STR, "kind": ("calculation", "from_you", "your_call"), "in_plan": BOOL,
@@ -88,7 +90,7 @@ STEP = {"id": STR, "number": INT, "name": STR, "kind": ("calculation", "from_you
         "line": OPT({"text": STR, "kind": (None, "tested", "result", "strong")}),
         "marks": LIST({"symbol": ("●", "▲", "◌", "plan check"), "count": OPT(INT), "title": STR}),
         "needs_you": BOOL}
-LAYER_STEP_KEYS = {2: {"build": OPT(BUILD)}, 3: {"last_run": OPT(LAST_RUN)},
+LAYER_STEP_KEYS = {2: {"build": OPT(BUILD)}, 3: {"last_run": OPT(LAST_RUN), "runs": LIST(RUN)},
                    4: {"unconfirmed": LIST({"id": STR, "text": STR}), "calls": OPT(CALLS)},
                    5: {"challenges": LIST(STR)}}
 INPUT = {"id": STR, "name": STR, "description": STR, "origin": ORIGIN_SHAPE, "steps": LIST(STR)}
@@ -329,10 +331,6 @@ def problems(state: dict, strict: bool = False) -> list[str]:
         if message.get("notice") is not None:
             check(message["notice"], NOTICE, f"{where}.notice", out)
     if 3 in layers:
-        answered = {step["last_run"]["message"] for step in state["steps"]
-                    if step.get("last_run") and step["last_run"]["in_last_answer"]}
-        if len(answered) > 1:
-            out.append(f"steps of the last answer name different messages: {sorted(answered)}")
         for step in state["steps"]:
             run = step.get("last_run")
             if run and run["message"] is not None and run["message"] not in messages:

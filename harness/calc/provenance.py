@@ -79,27 +79,67 @@ def unbacked(text: str, sources: list) -> list[str]:
     return missing
 
 
-def trace(text: str, sources: list[tuple[str, int | None, object]]) -> list[dict]:
-    """Where each date and number in `text` came from (SPEC 7.1), with the reading of `unbacked`.
+def _produced(output, given) -> tuple[list[Decimal], set[str]]:
+    """What a run produced, for `trace`: the numbers in its output (never the parts of a date) and its dates
+    written whole. Of an object or a list output, every number and date that is also among its inputs is left
+    out: a value passed through is not produced. A single value is the result, whatever its inputs were."""
+    out_text = output if isinstance(output, str) else json.dumps(output, ensure_ascii=False)
+    if not isinstance(output, (list, dict)):
+        given = None
+    in_text = "" if given is None else given if isinstance(given, str) else json.dumps(given, ensure_ascii=False)
+    given_items = _read(in_text)
+    given_numbers = {item["value"] for item in given_items if not item["parts"]}
+    given_dates = {item["written"] for item in given_items if item["parts"]}
+    numbers, dates = [], set()
+    for item in _read(out_text):
+        if item["parts"]:
+            if item["written"] not in given_dates:
+                dates.add(item["written"])
+        elif item["value"] not in given_numbers:
+            numbers.append(item["value"])
+            if item["percent"]:
+                numbers.append(item["value"] / 100)
+    return numbers, dates
 
-    `sources` holds `(label, ref, value)`, the label one of `SOURCE_LABELS`, `ref` a run id (a data
-    summary id for `data`) or None.
+
+def trace(text: str, sources: list[tuple]) -> list[dict]:
+    """Where each date and number in `text` came from (SPEC 5.2), with the reading of `unbacked`.
+
+    `sources` holds `(label, ref, value)` or, for a run, `(label, ref, output, inputs)`: the label one of
+    `SOURCE_LABELS`, `ref` a run id (a data summary id for `data`) or None. Labels are tried in the order of
+    `SOURCE_LABELS`; of several sources of one label the first given wins, so callers give them in order of
+    preference. A `run` source counts only for what its run produced (`_produced`): a number in its output that
+    is not among its inputs, or a date written whole that its output holds. The parts of a date never lead to a
+    run, so a year or a day is never traced to one.
     """
-    known = [(label, ref, _known(value)) for label, ref, value in sources]
+    known, produced = [], []
+    for source in sources:
+        label, ref, value = source[0], source[1], source[2]
+        if label == "run":
+            produced.append((ref, *_produced(value, source[3] if len(source) > 3 else None)))
+        else:
+            known.append((label, ref, _known(value)))
 
-    def label_of(value: Decimal, precision: Decimal, percent: bool) -> tuple[str, int | None]:
+    def label_of(value: Decimal, precision: Decimal, percent: bool, *, runs: bool = True) -> tuple[str, int | None]:
+        def near(values):
+            return _near(values, value, precision) or (percent and _near(values, value / 100, precision / 100))
         for label in SOURCE_LABELS:
-            refs = [ref for each, ref, values in known if each == label
-                    and (_near(values, value, precision) or (percent and _near(values, value / 100, precision / 100)))]
+            if label == "run":
+                refs = [ref for ref, numbers, _ in produced if runs and near(numbers)]
+            else:
+                refs = [ref for each, ref, values in known if each == label and near(values)]
             if refs:
-                return label, refs[-1]          # the latest source of that label wins
+                return label, refs[0]
         return NONE_LABEL, None
 
     items = []
     for item in _read(text):
         if item["parts"]:
-            parts = [label_of(Decimal(part), Decimal(1), False) for part in item["parts"] if part > SMALL]
-            if not parts:                       # a year of 12 or below: nothing was ever checked
+            whole = [ref for ref, _, dates in produced if item["written"] in dates]
+            parts = [label_of(Decimal(part), Decimal(1), False, runs=False) for part in item["parts"] if part > SMALL]
+            if whole:
+                label, run_id = "run", whole[0]
+            elif not parts:                     # a year of 12 or below: nothing was ever checked
                 label, run_id = SMALL_LABEL, None
             elif any(label == NONE_LABEL for label, _ in parts):
                 label, run_id = NONE_LABEL, None

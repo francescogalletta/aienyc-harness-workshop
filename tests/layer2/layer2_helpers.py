@@ -126,8 +126,8 @@ def total_turns(departures=()):
             code_turn(TOTAL_CODE)]
 
 
-def double_turns():
-    return [spec_turn(DOUBLE_SPEC), examples_turn(DOUBLE_EXAMPLES), checker_turn(DOUBLE_EXAMPLES),
+def double_turns(departures=()):
+    return [spec_turn(DOUBLE_SPEC, departures), examples_turn(DOUBLE_EXAMPLES), checker_turn(DOUBLE_EXAMPLES),
             code_turn(DOUBLE_CODE)]
 
 

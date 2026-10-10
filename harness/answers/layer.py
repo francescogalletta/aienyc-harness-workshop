@@ -7,9 +7,10 @@ Which run belongs to which answer is kept on the message that ended the turn, in
 import json
 from pathlib import Path
 
-from ..calc.provenance import _read, unbacked
+from ..calc.provenance import _produced, _read, unbacked
 from ..calc.registry import module_for_step
 from ..core import Session
+from ..core.state import display, display_inputs
 from ..grounding.layer import phase_of
 from ..layers import Command, Expect, Layer
 from .agent import answer, saved_inputs, tools
@@ -20,48 +21,91 @@ INTRO = "Ask about your plan, in your own words. Type /quit to stop."
 
 # --- The state document ---
 
-def latest_answer(conn, conversation: str) -> tuple[str | None, set[int]]:
-    """The latest message that ended an analyst turn in which modules ran (a reply that only asks or explains
-    leaves the last answer as it was), and the runs made in that turn."""
-    found, runs = None, set()
+RECENT_RUNS = 5         # the runs of a step the state document gives, newest first
+
+
+def _answers(conn, conversation: str):
+    """The main chat's assistant and harness messages, oldest first, with their private data."""
     for row in conn.execute("SELECT id, data FROM messages WHERE conversation = ? AND thread IS NULL"
                             " AND who IN ('assistant', 'harness') ORDER BY id", (conversation,)):
-        data = json.loads(row["data"])
-        if data.get("_runs"):
-            found, runs = f"m{row['id']}", set(data["_runs"])
-    return found, runs
+        yield f"m{row['id']}", json.loads(row["data"])
+
+
+def _cited(data: dict) -> tuple[set[str], set[int]]:
+    """The steps a message's figures lead to, and the runs they name."""
+    steps, runs = set(), set()
+    for figure in data.get("figures") or []:
+        if figure.get("step"):
+            steps.add(figure["step"])
+            if isinstance(figure.get("run"), str) and figure["run"][1:].isdigit():
+                runs.add(int(figure["run"][1:]))
+    return steps, runs
+
+
+def latest_answer(conn, conversation: str) -> tuple[str | None, set[int], set[str]]:
+    """The last answer: the latest message that ended an analyst turn in which modules ran, or that has a figure
+    leading to a step (a reply that only asks or explains leaves the last answer as it was). Returns its id, the
+    runs it used (made in its turn, or named by its figures) and the steps its figures lead to."""
+    found, runs, steps = None, set(), set()
+    for message, data in _answers(conn, conversation):
+        cited_steps, cited_runs = _cited(data)
+        if data.get("_runs") or cited_steps:
+            found, runs, steps = message, set(data.get("_runs") or []) | cited_runs, cited_steps
+    return found, runs, steps
 
 
 def reply_of_runs(conn, conversation: str) -> dict[int, str]:
     """{run id: the message that ended the turn the run was made in}."""
     found = {}
-    for row in conn.execute("SELECT id, data FROM messages WHERE conversation = ? AND thread IS NULL"
-                            " AND who IN ('assistant', 'harness') ORDER BY id", (conversation,)):
-        for run in json.loads(row["data"]).get("_runs", []):
-            found[run] = f"m{row['id']}"
+    for message, data in _answers(conn, conversation):
+        for run in data.get("_runs", []):
+            found[run] = message
     return found
 
 
-def last_run(conn, conversation: str, module: str | None, replies: dict, in_answer: set) -> dict | None:
-    row = conn.execute("SELECT * FROM calc_runs WHERE session_id = ? AND module = ? ORDER BY id DESC LIMIT 1",
-                       (conversation, module)).fetchone() if module else None
-    if row is None:
+def run_entry(row, replies: dict) -> dict:
+    """A run as the state document gives it, with how the pop-up shows its values (`shown`)."""
+    inputs, output = json.loads(row["inputs"]), json.loads(row["output"])
+    return {"run": f"r{row['id']}", "message": replies.get(row["id"]), "inputs": inputs, "output": output,
+            "assumptions": json.loads(row["assumptions"]), "ts": row["ts"], "test_run": row["test_run_id"],
+            "shown": {"inputs": display_inputs(inputs), "output": display(output)}}
+
+
+def recent_runs(conn, conversation: str, module: str | None, limit: int = RECENT_RUNS) -> list:
+    if not module:
+        return []
+    return conn.execute("SELECT * FROM calc_runs WHERE session_id = ? AND module = ? ORDER BY id DESC LIMIT ?",
+                        (conversation, module, limit)).fetchall()
+
+
+def last_run(conn, conversation: str, module: str | None, replies: dict, in_answer: set, lit: bool = False) -> dict | None:
+    """The run a step shows: while the step is in the last answer, the latest of its runs that answer used;
+    else its latest run. `in_last_answer` is whether the step is in the last answer."""
+    rows = recent_runs(conn, conversation, module, limit=10_000 if lit else 1)
+    if not rows:
         return None
-    return {"run": f"r{row['id']}", "message": replies.get(row["id"]), "in_last_answer": row["id"] in in_answer,
-            "inputs": json.loads(row["inputs"]), "output": json.loads(row["output"]),
-            "assumptions": json.loads(row["assumptions"]), "ts": row["ts"], "test_run": row["test_run_id"]}
+    row = next((each for each in rows if each["id"] in in_answer), rows[0]) if lit else rows[0]
+    return {**run_entry(row, replies), "in_last_answer": lit}
 
 
 def contribute(view, state: dict) -> None:
-    """`last_run` on every step, and `used` and `value` on every input (SPEC 5.2)."""
+    """`last_run` and `runs` on every step, edges and inputs of added steps from the runs that fed them, and
+    `used` and `value` on every input (SPEC 5.2)."""
     conn = view.conn
     accepted = state["phase"] == "accepted"
-    _, in_answer = latest_answer(conn, view.conversation) if accepted else (None, set())
+    _, in_answer, cited = latest_answer(conn, view.conversation) if accepted else (None, set(), set())
     replies = reply_of_runs(conn, view.conversation) if accepted else {}
+    modules_run = {row["module"] for row in conn.execute(
+        f"SELECT module FROM calc_runs WHERE id IN ({','.join('?' * len(in_answer))})", tuple(in_answer))} \
+        if in_answer else set()
     for step in state["steps"]:
         calculation = accepted and step.get("kind") == "calculation"
-        step["last_run"] = (last_run(conn, view.conversation, module_for_step(conn, step["id"]), replies, in_answer)
-                            if calculation else None)
+        module = module_for_step(conn, step["id"]) if calculation else None
+        lit = calculation and (step["id"] in cited or (module is not None and module in modules_run))
+        step["last_run"] = last_run(conn, view.conversation, module, replies, in_answer, lit) if calculation else None
+        step["runs"] = [run_entry(row, replies) for row in recent_runs(conn, view.conversation, module)]
+    if accepted:
+        connect_added(conn, view.conversation, state)
     lit = {step["id"] for step in state["steps"] if (step["last_run"] or {}).get("in_last_answer")}
     saved = saved_inputs(conn)
     for input_id, entry in state["inputs"].items():
@@ -69,6 +113,59 @@ def contribute(view, state: dict) -> None:
         value = found["value"] if found else None
         entry["value"] = value if value is None or isinstance(value, str) else json.dumps(value, ensure_ascii=False)
         entry["used"] = any(step in lit for step in entry.get("steps", []))
+
+
+def connect_added(conn, conversation: str, state: dict) -> None:
+    """An added step's needs, pills and edges, from what fed its latest run: an input named as a plan input, or
+    whose value a saved input holds, is a pill; an input whose value an earlier run of another step produced is
+    an edge from that step. A step with no such run stays unconnected."""
+    steps = {step["id"]: step for step in state["steps"]}
+    saved = {f"in:{name}": each["value"] for name, each in saved_inputs(conn).items()}
+    rows = conn.execute("SELECT id, module, inputs, output FROM calc_runs WHERE session_id = ? ORDER BY id DESC",
+                        (conversation,)).fetchall()
+    for step in state["steps"]:
+        if step.get("in_plan", True) or step.get("kind") != "calculation":
+            continue
+        module = module_for_step(conn, step["id"])
+        run = next((row for row in rows if row["module"] == module), None)
+        if run is None:
+            continue
+        needs = []
+        for key, value in json.loads(run["inputs"]).items():
+            pill = f"in:{key}" if f"in:{key}" in state["inputs"] else next(
+                (input_id for input_id, held in saved.items() if input_id in state["inputs"]
+                 and not isinstance(value, (list, dict)) and str(held) == str(value)), None)
+            if pill:
+                needs.append(pill)
+                continue
+            wanted = _read(value if isinstance(value, str) else json.dumps(value, ensure_ascii=False))
+            numbers = {item["value"] for item in wanted if not item["parts"] and not item["exempt"]}
+            dates = {item["written"] for item in wanted if item["parts"]}
+            for row in rows:
+                if row["id"] >= run["id"] or row["module"] == module:
+                    continue
+                made, made_dates = _produced(json.loads(row["output"]), json.loads(row["inputs"]))
+                if numbers & set(made) or dates & made_dates:
+                    source = _step_of(conn, row["module"], steps)
+                    if source and source != step["id"]:
+                        needs.append(source)
+                    break
+        for need in dict.fromkeys(needs):
+            if need in step["needs"]:
+                continue
+            step["needs"].append(need)
+            if need.startswith("in:"):
+                step["inputs"].append(need)
+                state["inputs"][need].setdefault("steps", []).append(step["id"])
+            elif {"from": need, "to": step["id"]} not in state["edges"]:
+                state["edges"].append({"from": need, "to": step["id"]})
+
+
+def _step_of(conn, module: str, steps: dict) -> str | None:
+    from ..calc.registry import get_module
+    registered = get_module(conn, module)
+    found = (registered or {}).get("spec", {}).get("step_id")
+    return found if found in steps else None
 
 
 # --- Routing ---

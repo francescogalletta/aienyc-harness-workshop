@@ -14,7 +14,7 @@ import json
 from pathlib import Path
 
 from ..model import ToolSpec
-from .brief import BRIEF_SCHEMA, save_brief, validate_brief
+from .brief import BRIEF_SCHEMA, describe_changes, save_brief, validate_brief
 from .research import MAX_QUERY_LENGTH, as_lookup, plan_research, term_key
 
 INSTRUCTIONS = Path(__file__).with_name("interviewer.md")
@@ -34,6 +34,7 @@ WRITE_BRIEF = ToolSpec(
 TOOLS = (LOOK_UP, WRITE_BRIEF)
 
 PLAN_PROPOSED = "This is the plan as I understand it. Click a step to say what is wrong, or accept it."
+PLAN_REVISED = "The plan is revised: {changes}. Click a step to say what is wrong, or accept it."
 PLAN_ACCEPTED = "The plan is accepted."
 DRAFT_SAVED = ("I could not make a plan that passes the harness checks, so I saved a draft at {path}. "
                "Tell me what to change, or type /wrap to try again with what we have.")
@@ -176,13 +177,15 @@ def run_interview(work, state: dict, *, desk, brief_dir, state_path=None, answer
                 {"id": call.id, "name": call.name, "arguments": call.arguments} for call in response.tool_calls]})
             messages.extend(results)
             if proposal is not None:
+                before = state["shown"]
                 state["proposed"] = state["shown"] = proposal
                 state["pending_call"] = next(call.id for call in response.tool_calls if call.name == "write_brief")
                 state["rejections"] = 0
                 save_state()
                 work.record("plan.proposed", {"steps": len(proposal["process"]),
                                               "open_questions": len(proposal["open_questions"])}, "agent")
-                work.post(PLAN_PROPOSED, who="harness", kind="plan")
+                work.post(PLAN_REVISED.format(changes=describe_changes(before, proposal)) if before else PLAN_PROPOSED,
+                          who="harness", kind="plan")
             continue
 
         text = response.text.strip()
