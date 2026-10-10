@@ -15,7 +15,7 @@ Passages of `SPEC.md` marked "(step M)" for a step later than this one do not ap
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules) and section 4 (step 1). Section 4
-   is the contract for this step. Follow its names, signatures, messages and
+   (4.8 included) is the contract for this step. Follow its names, signatures, messages and
    behaviour exactly.
 2. `harness/`, to see what step 0 built and how it is written.
 3. `tests/step1/`. These tests are the definition of done.
@@ -36,8 +36,8 @@ Build these files (new):
 
 Change these files (they exist already):
 
-- `harness/config.py` (three new settings)
-- `harness/__main__.py` (the `ground` and `ui` commands)
+- `harness/config.py` (three new settings, and `example` with `EXAMPLES_DIR`, 4.8)
+- `harness/__main__.py` (the `ground` and `ui` commands, the check for an unknown example and the copy of the example's brief, 4.8)
 - `harness/model/claude_code_provider.py` (the small change that section 4.2 asks for)
 
 Given files (do not edit):
@@ -49,10 +49,12 @@ Given files (do not edit):
 - `harness/grounding/planner.md`
 - `harness/ui/grounding.html`
 - `reference/`
+- `examples/moving/brief/` (a brief to open the interview on, 4.8)
+- `examples/wedding/brief/` (a brief to open the interview on, 4.8)
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or `reference/`, or the other given files
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`, `reference/` or `examples/`, or the other given files
   above. In the files you change, make only the changes section 4 specifies. If you believe a given file is wrong,
   stop and say so instead of changing it.
 - Build only step 1. Do not start on anything in section 5 of `SPEC.md`.

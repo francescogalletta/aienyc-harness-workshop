@@ -1,9 +1,10 @@
-"""SPEC 6.3 (step 3.3) and 6.6: an added step is re-created when its module is adopted, and `add_step` can keep an id."""
+"""SPEC 5.13 and 5.5: an added step is re-created when its module is adopted, and `add_step` can keep an id."""
 import json
 
 
-import step3_helpers as s3
-from step3_helpers import ADOPTED_STEP, h, result, run_adopt
+import step2_adopt_helpers as s3
+import step2_helpers as h
+from step2_adopt_helpers import (ADOPTED_STEP, result, run_adopt)
 
 SESSION = h.SESSION
 
@@ -41,7 +42,7 @@ def test_the_module_is_mapped_to_the_re_created_step_and_the_process_holds_it(ad
 # ---- a module that fails never leaves a step behind ----------------------------------------------------------
 
 
-# ---- add_step with a step_id (SPEC 6.6) ------------------------------------------------------------------------
+# ---- add_step with a step_id (SPEC 5.5) ------------------------------------------------------------------------
 
 def add(conn, **options):
     from harness.calc import added

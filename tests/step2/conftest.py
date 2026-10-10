@@ -108,6 +108,11 @@ def notes():
 
 
 @pytest.fixture
+def adopt():
+    return importlib.import_module("harness.calc.adopt")
+
+
+@pytest.fixture
 def agent():
     return importlib.import_module("harness.calc.agent")
 

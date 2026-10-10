@@ -64,7 +64,9 @@
         "harness/grounding/researcher.md",
         "harness/grounding/planner.md",
         "harness/ui/grounding.html",
-        "reference/"
+        "reference/",
+        "examples/moving/brief/",
+        "examples/wedding/brief/"
       ]
     },
     {
@@ -81,6 +83,7 @@
         "harness/calc/builder.py",
         "harness/calc/provenance.py",
         "harness/calc/agent.py",
+        "harness/calc/adopt.py",
         "harness/migrations/0004_notes.sql",
         "harness/migrations/0005_added_steps.sql"
       ],
@@ -99,7 +102,9 @@
         "harness/calc/example_helper.md",
         "harness/calc/module_writer.md",
         "harness/calc/analyst.md",
-        "harness/migrations/0003_calc.sql"
+        "harness/migrations/0003_calc.sql",
+        "examples/moving/modules/",
+        "examples/wedding/modules/"
       ]
     },
     {
@@ -108,15 +113,12 @@
       "prompt": "workshop/prompts/step3_evidence.md",
       "tests": "tests/step3/",
       "built": [
-        "harness/calc/adopt.py",
         "harness/replay.py",
         "harness/ui/evidence.py"
       ],
       "start": [],
       "changed": [
-        "harness/config.py",
         "harness/__main__.py",
-        "harness/calc/added.py",
         "harness/calc/agent.py",
         "harness/calc/provenance.py",
         "harness/ui/server.py"
@@ -125,8 +127,8 @@
         "harness/ui/evidence.html",
         "harness/ui/grounding.html",
         "examples/README.md",
-        "examples/moving/",
-        "examples/wedding/"
+        "examples/moving/scenarios/",
+        "examples/wedding/scenarios/"
       ]
     },
     {

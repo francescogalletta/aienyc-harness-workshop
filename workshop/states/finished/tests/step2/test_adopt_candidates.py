@@ -1,6 +1,7 @@
-"""SPEC 6.3: `candidates(conn)`, the module folders that are not registered (or whose files changed)."""
+"""SPEC 5.13: `candidates(conn)`, the module folders that are not registered (or whose files changed)."""
 
-from step3_helpers import h
+import step2_helpers as h
+
 
 
 def test_unregistered_folders_are_candidates_sorted_by_name(adopt, conn, modules_dir):

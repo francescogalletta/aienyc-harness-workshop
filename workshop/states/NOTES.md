@@ -109,3 +109,15 @@ finished tree:
 
 No snapshot lacked a forward-port and no file moved between steps: the
 harness, example and reference overlays of the first pass passed unchanged.
+
+## Third pass: the main example usable from step 1 and step 2
+
+The example selector (`HARNESS_EXAMPLE`, SPEC 6.2, now 4.8) moved from step 3 to step 1, and `adopt` (SPEC 6.3, 6.6
+and 6.7, now 5.13, 5.5 and 5.10) from step 3 to step 2. The briefs of the examples are step 1's given files, their
+modules step 2's, their scenarios step 3's. No state was rebuilt from history; each was edited from the one before:
+
+| State | Change |
+| --- | --- |
+| `1-done` | `config.py`: `example`, `EXAMPLES_DIR`, `EXAMPLE_COPIES`, the brief and database defaults. `__main__.py`: `known_example`, `copy_example`, `unknown_example`, the check at the top of `main()`. `examples/<name>/brief/` |
+| `2-done` | `config.py` is the finished one (it gains `modules_dir`'s example default). `__main__.py`: the above, `adopt`, `unadopted()` and the refusal before `build` and `ask`. `adopt.py` and `added.py` (`add_step` keeps an id) are the finished ones. `examples/<name>/modules/` |
+| `3-done`, `4-done` | `config.py`, `adopt.py`, `added.py` are the finished ones; three docstring references in `__main__.py`. The examples are unchanged. |

@@ -1,13 +1,15 @@
-"""Command line (SPEC 3.6, 4.5 and 4.7): `python -m harness check`, `events`, `ground` and `ui`."""
+"""Command line (SPEC 3.6, 4.5, 4.7 and 4.8): `python -m harness check`, `events`, `ground` and `ui`."""
 import argparse
 import json
 import os
+import re
+import shutil
 import sys
 import uuid
 from pathlib import Path
 
 from . import db
-from .config import load_config
+from .config import EXAMPLE_COPIES, EXAMPLES_DIR, UNKNOWN_EXAMPLE, load_config
 from .model import get_model, resolve_provider
 
 
@@ -136,10 +138,29 @@ def ui(port: int, browser: bool, max_questions: int) -> int:
     return 0
 
 
+def known_example(name: str) -> bool:
+    return bool(re.match(r"^[a-z][a-z0-9_]*$", name)) and (EXAMPLES_DIR / name).is_dir()
+
+
+EXAMPLE_COPIED = ("Copied the example '{name}' to {folder}. What you change there stays there; "
+                  "delete that folder to start the example again.")
 LEGACY_COMMANDS = ("ground", "ui", "build", "modules", "ask", "adopt", "work")
 LEGACY_LAYOUT = ("This copy has brief/ or modules/ at the top, but the harness now keeps them in my/. "
                  "Move each one you have: mkdir -p my && git mv brief my/brief && git mv modules my/modules "
                  "(plain mv if they are not committed). Then run the command again.")
+
+
+def copy_example(name: str) -> None:
+    """Example mode works on a copy of the example's brief and modules, made once (SPEC 4.8)."""
+    copied = False
+    for part in ("brief", "modules"):
+        source, target = EXAMPLES_DIR / name / part, EXAMPLE_COPIES / name / part
+        if source.is_dir() and not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copytree(source, target, ignore=shutil.ignore_patterns("__pycache__"))
+            copied = True
+    if copied:
+        print(EXAMPLE_COPIED.format(name=name, folder=EXAMPLE_COPIES / name), file=sys.stderr)
 
 
 def legacy_layout() -> bool:
@@ -151,7 +172,18 @@ def legacy_layout() -> bool:
     return Path("brief").is_dir() or Path("modules").is_dir()
 
 
+def unknown_example(name: str) -> None:
+    names = sorted(path.name for path in EXAMPLES_DIR.iterdir() if path.is_dir()) if EXAMPLES_DIR.is_dir() else []
+    print(UNKNOWN_EXAMPLE.format(name=name, names=", ".join(names) or "(none)"), file=sys.stderr)
+
+
 def main() -> int:
+    config = load_config()
+    if config.example is not None and not known_example(config.example):
+        unknown_example(config.example)
+        return 1
+    if config.example is not None:
+        copy_example(config.example)
     parser = argparse.ArgumentParser(prog="python -m harness")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("check", help="prove the setup works end to end")

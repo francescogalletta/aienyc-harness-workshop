@@ -1,8 +1,9 @@
-"""SPEC 6.6: `build` and `ask` refuse to run while module folders that are not registered sit in the modules folder."""
+"""SPEC 5.13: `build` and `ask` refuse to run while module folders that are not registered sit in the modules folder."""
 import pytest
 
-import step3_helpers as s3
-from step3_helpers import UNADOPTED, h, typed
+import step2_adopt_helpers as s3
+import step2_helpers as h
+from step2_adopt_helpers import (UNADOPTED, typed)
 
 
 @pytest.fixture

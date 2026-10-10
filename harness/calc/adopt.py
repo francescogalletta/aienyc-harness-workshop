@@ -1,4 +1,4 @@
-"""Adopting module folders that are already on disk (SPEC 6.3).
+"""Adopting module folders that are already on disk (SPEC 5.13).
 
 The person accepts worked examples someone else checked, as a whole. Then each
 module's tests and examples run here, and `register` re-checks everything.
@@ -33,7 +33,7 @@ _UNREADABLE = object()
 
 
 def candidates(conn) -> list[str]:
-    """Module folders that are not registered, or whose registered files changed or are gone (SPEC 6.3)."""
+    """Module folders that are not registered, or whose registered files changed or are gone (SPEC 5.13)."""
     folder = load_config().modules_dir
     if not folder.is_dir():
         return []
@@ -110,7 +110,7 @@ def adopt(*, conn, brief, ask, say=print, session_id, how="asked") -> list[dict]
                 answer = ask(ADOPT_QUESTION).strip()
                 if answer:
                     break
-            accepted = answer.lower() in ACCEPT_WORDS       # strict: no leniency here (SPEC 6.3)
+            accepted = answer.lower() in ACCEPT_WORDS       # strict: no leniency here (SPEC 5.13)
             db.record_event(conn, session_id=session_id, kind="calc.adopt_decision", actor="person",
                             payload={"modules": names, "decision": "accepted" if accepted else "declined",
                                      "text": answer, "how": "asked"})

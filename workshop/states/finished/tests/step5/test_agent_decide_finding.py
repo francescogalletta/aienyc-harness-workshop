@@ -42,6 +42,13 @@ def test_the_block_is_said_and_then_the_plain_question_is_asked(talk, example_lo
 
 # ---- reading the answer ---------------------------------------------------------------------------------------------------
 
+@pytest.mark.parametrize("answer", ["1", "2"])
+def test_an_option_number_is_read_as_that_option_as_at_a_judgment(talk, conn, example_loaded, answer):
+    result, _, _ = decide(talk, answer)
+    assert (result["choice"], result["option"], result["said"]) == (answer, OPTIONS_DATA[int(answer) - 1], answer)
+    [decision] = h.rows(conn, "decisions")
+    assert (decision["choice"], decision["words"]) == (answer, answer) and decision["choice"] != "something else"
+
 
 
 

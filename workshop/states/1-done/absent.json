@@ -1,7 +1,5 @@
 [
   "examples/README.md",
-  "examples/moving/brief/domain_brief.json",
-  "examples/moving/brief/domain_brief.md",
   "examples/moving/modules/monthly_saving_needed/golden.json",
   "examples/moving/modules/monthly_saving_needed/module.py",
   "examples/moving/modules/monthly_saving_needed/spec.json",
@@ -19,8 +17,6 @@
   "examples/moving/scenarios/keep_or_move_date.json",
   "examples/moving/scenarios/months_at_current_saving.json",
   "examples/moving/scenarios/upfront_and_monthly.json",
-  "examples/wedding/brief/domain_brief.json",
-  "examples/wedding/brief/domain_brief.md",
   "examples/wedding/data/.FACILITATOR_KEY.md",
   "examples/wedding/data/.generate.py",
   "examples/wedding/data/checking.csv",

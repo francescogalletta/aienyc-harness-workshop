@@ -53,6 +53,7 @@ LEAVE_ASK = ("This removes workshop/: the build plan, the prompts, the guides, t
              "The harness, its tests and my/ stay as they are. Type yes to remove it.")
 LEAVE_DONE = "Removed workshop/. If this copy is in git, commit the removal; git checkout -- workshop brings it back."
 LEAVE_KEPT = "Nothing removed."
+ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}     # the words the harness takes as a yes
 
 CHECK_INTRO = "Each state runs its tests in a temporary folder. All twelve take a few minutes."
 CHECK_LINE = "{name:<10} {mark}  {detail}"
@@ -210,7 +211,7 @@ def command_leave(data, root, args):
     print(LEAVE_ASK)
     sys.stdout.flush()
     answer = sys.stdin.readline().strip().lower()
-    if answer == "yes":
+    if answer in ACCEPT_WORDS:
         shutil.rmtree(root / "workshop")
         print(LEAVE_DONE)
     else:

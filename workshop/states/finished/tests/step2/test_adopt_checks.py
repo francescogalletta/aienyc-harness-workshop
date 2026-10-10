@@ -1,10 +1,11 @@
-"""SPEC 6.3: the checks `adopt` makes on each folder, in their order, with their reasons."""
+"""SPEC 5.13: the checks `adopt` makes on each folder, in their order, with their reasons."""
 import json
 
 import pytest
 
-from step3_helpers import (ADOPT_BAD_EXAMPLES, ADOPT_BAD_SPEC, ADOPT_MISSING, ADOPT_NO_STEP, ADOPT_STEP_TAKEN,
-                           dump, h, refused_line, renamed_files, run_adopt, with_spec)
+import step2_helpers as h
+from step2_adopt_helpers import (ADOPT_BAD_EXAMPLES, ADOPT_BAD_SPEC, ADOPT_MISSING, ADOPT_NO_STEP,
+                                 ADOPT_STEP_TAKEN, dump, refused_line, renamed_files, run_adopt, with_spec)
 
 FILES = ("spec.json", "golden.json", "module.py", "tests.py")
 

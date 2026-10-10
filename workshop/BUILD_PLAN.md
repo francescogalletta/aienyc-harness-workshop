@@ -18,9 +18,9 @@ your code alone. The reference for each step is stored in `workshop/states/`.
 | Step | Principle | Builds | Proof on the example | Done when | Move there |
 | --- | --- | --- | --- | --- | --- |
 | 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `start 0`, `finish 0` |
-| 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `start 1`, `finish 1` |
-| 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `start 2`, `finish 2` |
-| 3 | Evidence | The show-your-work page (`work`) that follows each number to its run, module and tests; `adopt`, seeded examples and `replay` (built) | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `start 3`, `finish 3` |
+| 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the example selector (`HARNESS_EXAMPLE`, on the seeded examples' briefs), the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `start 1`, `finish 1` |
+| 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check, `adopt` for module folders that are already on disk (the seeded examples') | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `start 2`, `finish 2` |
+| 3 | Evidence | The show-your-work page (`work`) that follows each number to its run, module and tests; seeded example scenarios and `replay` (built) | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `start 3`, `finish 3` |
 | 4 | Human in the loop | Built: a gate on unconfirmed assumptions, `ask_decision` for judgment calls, side conversations (`/aside`, `/back`) with their own assistant, decision records | At a gate the person steps aside to ask what a term means; the main conversation receives only the sentence they choose to pass back | `pytest tests/step4` | `start 4`, `finish 4` |
 | 5 | Verification | Built: a fixed adapter that reads account files into one table (`data add`, `data list`, `data clear`), data summaries, a verifier sub-agent whose findings the harness checks, findings the person decides in a fixed block before the figure is used | The person says they spend about 5,000 a month and have 10,000 saved; their loaded files show about 5,640 and 9,230. The harness notices, asks, and calculates only with what they decide | `pytest tests/step5` | `start 5`, `finish 5` |
 
@@ -35,10 +35,10 @@ your code alone. The reference for each step is stored in `workshop/states/`.
 | 4 | Fixed (SPEC 8) | Written | Written | Yes: gates, `ask_decision`, side conversations, decision records, new seeded scenarios |
 | 5 | Fixed (SPEC 9) | Written | Written | Yes: account files and their adapter, data summaries, the verifier, findings and their decisions, the Data view, wedding account files and four new scenarios |
 
-Examples and replay (SPEC 6) are part of step 3: two seeded examples in
-`examples/` (a confirmed brief, built modules and scenarios), `adopt` to
-register their modules on a fresh clone, and `replay` to run their scenarios
-against a real model. Built; see `examples/README.md`, which also lists the
+Examples are part of three steps: two seeded examples in `examples/`. Their
+briefs come with step 1 (with `HARNESS_EXAMPLE`, SPEC 4.8), their modules with
+step 2 (with `adopt`, SPEC 5.13, to register them on a fresh clone), and their
+scenarios with step 3 (SPEC 6), with `replay` to run them against a real model. Built; see `examples/README.md`, which also lists the
 step 4 and step 5 scenarios. The worked examples in `examples/` were
 recomputed by an AI agent, not yet by a person.
 

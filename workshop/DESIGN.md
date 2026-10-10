@@ -4,7 +4,7 @@ This is the contract of the workshop tool, the way `SPEC.md` is the
 contract of the harness. It covers the step machinery: the manifest, the
 stored snapshots, the commands and the drift check. The harness side of
 the restructuring (the three places, `my/`, the new defaults, the message
-for an older copy) is in `SPEC.md`, sections 1, 2, 4.5, 6.2 and 6.5.
+for an older copy) is in `SPEC.md`, sections 1, 2, 4.5, 4.8 and 6.5.
 
 The workshop is not built to help someone write an entirely different
 harness from scratch in two hours. Variations on the main example follow
@@ -152,9 +152,9 @@ in two states, so they appear in no list.
 | Step | Prompt | Built by the person | Given in a starting form (`start`) | Changed by the person | Given (besides SPEC.md and the step's tests) |
 | --- | --- | --- | --- | --- | --- |
 | 0 setup | `step0_setup.md` | `harness/__init__.py`, `harness/config.py`, `harness/db.py`, `harness/migrations/0001_init.sql`, `harness/model/__init__.py`, `harness/model/interface.py`, `harness/model/scripted.py`, `harness/model/anthropic_provider.py`, `harness/model/providers.py`, `harness/model/claude_code_provider.py`, `harness/__main__.py` | | | `tests/data/`, `tests/fixtures/` |
-| 1 shared domain | `step1_shared_domain.md` | `harness/grounding/__init__.py`, `harness/grounding/brief.py`, `harness/grounding/claude_code_research.py`, `harness/grounding/interview.py`, `harness/grounding/research.py`, `harness/migrations/0002_lookups.sql`, `harness/ui/__init__.py`, `harness/ui/server.py`, `harness/ui/session.py` | | `harness/config.py`, `harness/__main__.py`, `harness/model/claude_code_provider.py` | `harness/grounding/interviewer.md`, `harness/grounding/researcher.md`, `harness/grounding/planner.md`, `harness/ui/grounding.html`, `reference/` |
-| 2 consistency | `step2_consistency.md` | `harness/calc/__init__.py`, `harness/calc/registry.py`, `harness/calc/notes.py`, `harness/calc/added.py`, `harness/calc/gate.py`, `harness/calc/builder.py`, `harness/calc/provenance.py`, `harness/calc/agent.py`, `harness/migrations/0004_notes.sql`, `harness/migrations/0005_added_steps.sql` | `harness/calc/safety.py`, `harness/calc/runner.py` | `harness/config.py`, `harness/__main__.py` | `harness/calc/values.py`, `harness/calc/spec_writer.md`, `harness/calc/example_writer.md`, `harness/calc/example_helper.md`, `harness/calc/module_writer.md`, `harness/calc/analyst.md`, `harness/migrations/0003_calc.sql` |
-| 3 evidence (with examples and replay) | `step3_evidence.md` | `harness/calc/adopt.py`, `harness/replay.py`, `harness/ui/evidence.py` | | `harness/config.py`, `harness/__main__.py`, `harness/calc/added.py`, `harness/calc/agent.py`, `harness/calc/provenance.py`, `harness/ui/server.py` | `harness/ui/evidence.html`, `harness/ui/grounding.html` (revised: a link to `/work`), `examples/README.md`, `examples/moving/`, `examples/wedding/` |
+| 1 shared domain | `step1_shared_domain.md` | `harness/grounding/__init__.py`, `harness/grounding/brief.py`, `harness/grounding/claude_code_research.py`, `harness/grounding/interview.py`, `harness/grounding/research.py`, `harness/migrations/0002_lookups.sql`, `harness/ui/__init__.py`, `harness/ui/server.py`, `harness/ui/session.py` | | `harness/config.py`, `harness/__main__.py`, `harness/model/claude_code_provider.py` | `harness/grounding/interviewer.md`, `harness/grounding/researcher.md`, `harness/grounding/planner.md`, `harness/ui/grounding.html`, `reference/`, `examples/moving/brief/`, `examples/wedding/brief/` |
+| 2 consistency | `step2_consistency.md` | `harness/calc/__init__.py`, `harness/calc/registry.py`, `harness/calc/notes.py`, `harness/calc/added.py`, `harness/calc/gate.py`, `harness/calc/builder.py`, `harness/calc/provenance.py`, `harness/calc/agent.py`, `harness/calc/adopt.py`, `harness/migrations/0004_notes.sql`, `harness/migrations/0005_added_steps.sql` | `harness/calc/safety.py`, `harness/calc/runner.py` | `harness/config.py`, `harness/__main__.py` | `harness/calc/values.py`, `harness/calc/spec_writer.md`, `harness/calc/example_writer.md`, `harness/calc/example_helper.md`, `harness/calc/module_writer.md`, `harness/calc/analyst.md`, `harness/migrations/0003_calc.sql`, `examples/moving/modules/`, `examples/wedding/modules/` |
+| 3 evidence (with examples and replay) | `step3_evidence.md` | `harness/replay.py`, `harness/ui/evidence.py` | | `harness/__main__.py`, `harness/calc/agent.py`, `harness/calc/provenance.py`, `harness/ui/server.py` | `harness/ui/evidence.html`, `harness/ui/grounding.html` (revised: a link to `/work`), `examples/README.md`, `examples/moving/scenarios/`, `examples/wedding/scenarios/` |
 | 4 human in the loop | `step4_human_in_the_loop.md` | `harness/migrations/0006_decisions.sql`, `harness/calc/decisions.py`, `harness/calc/aside.py` | | `harness/calc/agent.py`, `harness/__main__.py`, `harness/replay.py`, `harness/ui/evidence.py` | `harness/calc/aside.md`, `harness/calc/analyst.md` (revised), `harness/ui/evidence.html` (revised), `examples/README.md`, `examples/moving/scenarios/`, `examples/wedding/scenarios/` |
 | 5 verification | `step5_verification.md` | `harness/migrations/0007_data.sql`, `harness/sources/__init__.py`, `harness/sources/adapter.py`, `harness/sources/summaries.py`, `harness/calc/findings.py`, `harness/calc/verifier.py` | | `harness/calc/agent.py`, `harness/calc/decisions.py`, `harness/calc/provenance.py`, `harness/replay.py`, `harness/ui/evidence.py`, `harness/ui/server.py`, `harness/__main__.py` | `harness/calc/verifier.md`, `harness/calc/analyst.md` (revised), `harness/ui/evidence.html` (revised), `examples/README.md`, `examples/wedding/data/`, `examples/wedding/scenarios/` |
 
@@ -194,9 +194,9 @@ workshop/states/
   of `finished/` (all checked, 9.1).
 - `N-build` is not stored: it is derived (section 6). `<N>-build/files/`
   holds exactly the `start` paths of step N, nothing else.
-- Built size (files in the overlay): 3 in `0-done`, 4 in `1-done`, 8 in
+- Built size (files in the overlay): 3 in `0-done`, 4 in `1-done`, 6 in
   `2-done`, 13 in `3-done`, 10 in `4-done`, and 2 in `2-build`. `finished/`
-  holds 251 files.
+  holds 252 files.
 
 ## 6. The content of a state
 
@@ -362,8 +362,10 @@ The prompt itself is in `workshop/prompts/`, which no state changes: it is
 
 1. Prints `LEAVE_STATE` with where the copy stands (its exact state's label,
    or "the contract of step N with your own code", or "no step").
-2. Asks `LEAVE_ASK` and reads one line. `yes` (stripped, lower-cased)
-   removes `ROOT/workshop` with `shutil.rmtree` and prints `LEAVE_DONE`.
+2. Asks `LEAVE_ASK` and reads one line. An accept word (stripped,
+   lower-cased: `yes`, `y`, `ok`, `okay`, `/accept`, `yes.`, `si`, `sí`, the
+   words of `ACCEPT_WORDS` in the harness's `builder.py`, repeated here
+   because the workshop imports nothing from `harness/`) removes `ROOT/workshop` with `shutil.rmtree` and prints `LEAVE_DONE`.
    Anything else, or the end of input, prints `LEAVE_KEPT`. Exit 0 both.
 
 It sets nothing aside: `workshop/` is ours, and git brings it back. It does
@@ -551,7 +553,8 @@ the state has:
 | `HARNESS_DB` default `my/var/harness.db` (`config.py`) | 0 |
 | `HARNESS_BRIEF_DIR` default `my/brief`; `LEGACY_COMMANDS`, `LEGACY_LAYOUT` and their check in `main()` (SPEC 4.5) | 1 |
 | `HARNESS_MODULES_DIR` default `my/modules` | 2 |
-| example mode under `my/var/examples/`, `EXAMPLE_COPIES`, `EXAMPLE_COPIED` and the copy (SPEC 6.2); `REPLAY_DIR` | 3 |
+| example mode under `my/var/examples/`, `EXAMPLE_COPIES`, `EXAMPLE_COPIED` and the copy (SPEC 4.8) | 1 |
+| `REPLAY_DIR` | 3 |
 | `examples/README.md`: `my/var/...` paths, the copy in example mode | 3 |
 
 Check: `grep -rnE "\"var/|'var/|Path\(\"(brief|modules)\"\)" harness` in the state
@@ -685,7 +688,7 @@ Decisions in `SPEC.md` made for the restructuring:
 
 15. **Example mode works on a copy** under `my/var/examples/<name>/`
     (brief, modules, database), made once and never refreshed, so the
-    harness never writes into `examples/` (SPEC 6.2). This replaces "files
+    harness never writes into `examples/` (SPEC 4.8). This replaces "files
     are not copied".
 16. **The older-copy check** is defined once, in step 1 (SPEC 4.5), with a
     fixed tuple of the commands that read or write the brief or modules,

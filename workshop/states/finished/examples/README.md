@@ -84,10 +84,23 @@ HARNESS_EXAMPLE=moving uv run python -m harness ask       # needs a model
 HARNESS_EXAMPLE=moving uv run python -m harness work      # the evidence page
 ```
 
-The wedding example also has account files. `HARNESS_EXAMPLE=wedding uv run python
--m harness data add` loads all of them (it asks, file by file, how each one writes
-money going out: `negative` for `checking.csv` and `savings.csv`, `positive` for
-`credit_card.csv`), and a following `ask` checks what you say against them.
+The wedding example also has account files (step 5). `--sign` applies to every file
+of one command, and the files do not all write money going out the same way, so load
+them one command each (the card writes a charge as a positive number):
+
+```
+HARNESS_EXAMPLE=wedding uv run python -m harness data add examples/wedding/data/checking.csv --sign negative
+HARNESS_EXAMPLE=wedding uv run python -m harness data add examples/wedding/data/savings.csv --sign negative
+HARNESS_EXAMPLE=wedding uv run python -m harness data add examples/wedding/data/credit_card.csv --sign positive
+HARNESS_EXAMPLE=wedding uv run python -m harness data list    # 120, 11 and 214 transactions
+```
+
+`data list` should show `checking` and `savings` written negative and `credit_card`
+written positive. With no `--sign`, and no file at all, `data add` loads all three in
+name order (`checking.csv`, `credit_card.csv`, `savings.csv`) and asks for each file
+in turn, so the answers are `negative`, `positive`, `negative`. (The first rows of
+`savings.csv` are deposits and look positive, but its money out is negative.) A
+following `ask` checks what you say against the files.
 
 `adopt` shows each module's worked examples and asks you to type `yes`. Then
 it runs their tests and registers the ones that pass. The database is kept

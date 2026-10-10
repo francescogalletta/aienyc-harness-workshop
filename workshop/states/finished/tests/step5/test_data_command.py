@@ -230,7 +230,7 @@ def example_with_data(tmp_path, files=None):
 
 
 def stderr_of(result):
-    """What the command said on standard error, without the line that tells the example was copied (SPEC 6.2)."""
+    """What the command said on standard error, without the line that tells the example was copied (SPEC 4.8)."""
     return "".join(line for line in result.stderr.splitlines(keepends=True) if not line.startswith("Copied the example"))
 
 

@@ -1,11 +1,12 @@
-"""SPEC 6.3 and 6.8: adopting module folders, the question, the lines said, the events and the registry."""
+"""SPEC 5.13: adopting module folders, the question, the lines said, the events and the registry."""
 import json
 
 import pytest
 
-import step3_helpers as s3
-from step3_helpers import (ADOPT_INTRO, ADOPT_QUESTION, REASON_DECLINED, REASON_TESTS, adopted_line, h, listing,
-                           refused_line, result, run_adopt)
+import step2_adopt_helpers as s3
+import step2_helpers as h
+from step2_adopt_helpers import (ADOPT_INTRO, ADOPT_QUESTION, REASON_DECLINED, REASON_TESTS, adopted_line,
+                                 listing, refused_line, result, run_adopt)
 
 SESSION = h.SESSION
 

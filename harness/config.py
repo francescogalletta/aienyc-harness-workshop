@@ -1,10 +1,10 @@
-"""Settings, read from environment variables (SPEC 3.1, 4.1, 5.4 and 6.2)."""
+"""Settings, read from environment variables (SPEC 3.1, 4.1, 4.8 and 5.4)."""
 import os
 from dataclasses import dataclass
 from pathlib import Path
 
 EXAMPLES_DIR = Path("examples")     # the seeded examples (SPEC 6.1)
-EXAMPLE_COPIES = Path("my/var/examples")    # example mode works on a copy here (SPEC 6.2)
+EXAMPLE_COPIES = Path("my/var/examples")    # example mode works on a copy here (SPEC 4.8)
 UNKNOWN_EXAMPLE = "There is no example called '{name}'. The examples are: {names}."
 
 
@@ -18,14 +18,14 @@ class Config:
     reference_path: Path        # step 1: the saved reference file
     brief_dir: Path             # step 1: where the domain brief is written
     modules_dir: Path           # step 2: where the module folders live
-    example: str | None = None  # step 3: play with examples/<name>/ (6.2)
+    example: str | None = None  # step 1: play with examples/<name>/ (4.8)
 
 
 def load_config() -> Config:
     """Read the environment afresh on every call. An empty variable counts as unset."""
     script = os.environ.get("HARNESS_SCRIPT")
     example = os.environ.get("HARNESS_EXAMPLE") or None
-    # With an example, three defaults move to a copy of it; a variable set explicitly still wins (6.2).
+    # With an example, the defaults move to a copy of it; a variable set explicitly still wins (4.8).
     db_default = f"{EXAMPLE_COPIES}/{example}/harness.db" if example else "my/var/harness.db"
     brief_default = f"{EXAMPLE_COPIES}/{example}/brief" if example else "my/brief"
     modules_default = f"{EXAMPLE_COPIES}/{example}/modules" if example else "my/modules"

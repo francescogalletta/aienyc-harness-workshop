@@ -18,7 +18,7 @@ Status of each section:
 | 3. Step 0: setup | Fixed, covered by `tests/step0` |
 | 4. Step 1: shared domain | Fixed, covered by `tests/step1` |
 | 5. Step 2: consistency | Fixed, covered by `tests/step2` |
-| 6. Seeded examples and replay | Fixed, covered by `tests/step3` |
+| 6. Seeded examples and replay | Fixed, covered by `tests/step3`. The example selector is in 4.8 (step 1) and `adopt` in 5.13 (step 2); an example's folders arrive step by step (6.1). |
 | 7. Step 3: evidence | Fixed, covered by `tests/step3` |
 | 8. Step 4: human in the loop | Fixed, covered by `tests/step4`. It changes parts of sections 5 to 7 in place; each change is marked "(step 4)". |
 | 9. Step 5: verification | Fixed, covered by `tests/step5`. It changes parts of sections 1, 2 and 5 to 8 in place; each change is marked "(step 5)". |
@@ -58,7 +58,7 @@ These hold for every step.
    interview's state, example copies, replay scratch folders) is under
    `my/`, and most of it under `my/var/`. It never writes into `examples/`,
    `workshop/` or anywhere else in the repository. Only an environment
-   variable set by the person or a test (3.1, 4.1, 5.4) points it
+   variable set by the person or a test (3.1, 4.1, 4.8, 5.4) points it
    elsewhere. Python's own `__pycache__` folders do not count.
 9. **The harness never uses `workshop/`.** Nothing under `harness/` or
    `tests/` imports from `workshop/`, reads it, or names it. Deleting
@@ -83,16 +83,17 @@ harness/              the harness (built by the build prompts)
   model/              the only place a provider SDK may be imported
   migrations/         numbered .sql files, applied in order
   grounding/          step 1: the interview, the lookups and the brief
-  calc/               step 2: modules, the gate, the agent; adoption (section 6);
+  calc/               step 2: modules, the gate, the agent; adoption (5.13);
                       decisions and side conversations (section 8); findings
                       and the verifier (section 9)
   sources/            step 5: the source adapter and the data summaries
   ui/                 the local web pages: the interview and the evidence
   replay.py           scenarios and replay (section 6)
 reference/            saved reference terms for offline lookups (given)
-examples/<name>/      seeded examples: brief, modules, scenarios and, from
-                      step 5, account files (data, section 6). The harness
-                      reads them and never writes into them.
+examples/<name>/      seeded examples (section 6): the brief from step 1, the
+                      modules from step 2, scenarios from step 3 and, from
+                      step 5, account files (data). The harness reads them
+                      and never writes into them.
 tests/stepN/          acceptance tests for step N (given, never edited)
 tests/data/           tests for the account-file fixture (given)
 tests/fixtures/accounts/
@@ -105,7 +106,7 @@ my/                   the person's own: not in the repository until they add it
   var/                runtime files, never committed (git ignores my/var/):
                       harness.db, the database; grounding_state.json, an
                       unfinished interview; examples/<name>/, example mode
-                      (6.2); replay/, replay scratch folders (6.5);
+                      (4.8); replay/, replay scratch folders (6.5);
                       set-aside/, files the workshop command set aside
 workshop/             the workshop (optional; see workshop/README.md)
 ```
@@ -493,10 +494,12 @@ Four files are **given** and must not be rewritten: in `harness/grounding/`,
 `interviewer.md`, `researcher.md` and `planner.md` (the instructions of the
 interviewer, the web researcher and the research planner), and
 `harness/ui/grounding.html` (the web page). The file `reference/terms.json`
-is also given.
+is also given. So are the briefs of the seeded examples,
+`examples/<name>/brief/` (6.1), which section 4.8 lets a person work on.
 
 Sections 4.1 to 4.5 describe the interview itself. Sections 4.6 and 4.7 add
-to them: where they differ, the later section wins.
+to them: where they differ, the later section wins. Section 4.8 adds the
+example selector.
 
 ### 4.1 Settings
 
@@ -1016,6 +1019,77 @@ request log to the terminal.
 starts the server, prints the address, opens it in the browser unless told
 not to, and runs until interrupted.
 
+### 4.8 Choosing an example: `HARNESS_EXAMPLE`
+
+A seeded example (6.1) is a folder of data in `examples/<name>/`. From step 1 it
+holds a confirmed brief, `brief/`; its `modules/` come with step 2 (5.13), its
+`scenarios/` with step 3 (6.4) and its `data/` with step 5. This section lets a
+person work on one with the commands of the step they are at.
+
+`Config` gains one field, read like the others:
+
+| Variable | Default | Field | Meaning |
+| --- | --- | --- | --- |
+| `HARNESS_EXAMPLE` | (none) | `example: str \| None` | Play with `examples/<name>/` |
+
+`EXAMPLES_DIR = Path("examples")` and `EXAMPLE_COPIES = Path("my/var/examples")`
+are defined in `config.py`. When `HARNESS_EXAMPLE` is set, it changes the
+defaults of other fields (`modules_dir` is a field from step 2, 5.4):
+
+| Field | Default with `HARNESS_EXAMPLE=<name>` |
+| --- | --- |
+| `db_path` | `my/var/examples/<name>/harness.db` |
+| `brief_dir` | `my/var/examples/<name>/brief` |
+| `modules_dir` (step 2) | `my/var/examples/<name>/modules` |
+
+A variable set explicitly (`HARNESS_DB`, `HARNESS_BRIEF_DIR`, (step 2)
+`HARNESS_MODULES_DIR`) still wins over the example. An empty variable
+counts as unset, as before. `load_config` does not check the name, and
+reads and writes nothing.
+
+`main()` checks it once, before any command: when `example` is set and
+`EXAMPLES_DIR / example` is not a folder, or the name does not match
+`^[a-z][a-z0-9_]*$`, it prints `UNKNOWN_EXAMPLE` to standard error and exits
+1.
+
+```
+UNKNOWN_EXAMPLE = "There is no example called '{name}'. The examples are: {names}."
+EXAMPLE_COPIED  = "Copied the example '{name}' to {folder}. What you change there stays there; delete that folder to start the example again."
+```
+
+`{names}` is the sorted folder names in `EXAMPLES_DIR`, joined by `, `, or
+`(none)`.
+
+**The copy.** The harness never writes into `examples/` (ground rule 8), so
+example mode works on a copy. Right after that check, and before any
+command, `main()` makes it: for each of `brief` and `modules`, when
+`EXAMPLES_DIR / <name> / <part>` is a folder and `EXAMPLE_COPIES / <name> /
+<part>` does not exist, it copies the first to the second
+(`shutil.copytree`, leaving out `__pycache__` folders). When it copied
+either, it prints `EXAMPLE_COPIED` to standard error, with `{folder}` the
+path `EXAMPLE_COPIES / <name>`. It copies whatever the three variables say:
+the copy is never in the way. A copy that exists is never refreshed or
+checked. The example's `data/` and `scenarios/` are not copied: (step 3) `replay` (6.5)
+and (step 5) `data add` (9.3) read them where they are.
+
+So `HARNESS_EXAMPLE=moving python -m harness ui` (or `ground`) opens the
+interview on the example's brief. (step 2) `HARNESS_EXAMPLE=moving python -m
+harness adopt`, then `HARNESS_EXAMPLE=moving python -m harness ask`, plays with
+the example (5.13). The copy and its database are kept between runs, under
+`my/var/examples/`. A build or an interview run with the example set writes
+into the copy.
+
+**Decisions.**
+
+1. `HARNESS_EXAMPLE` changes the defaults of the database, the brief folder
+   and (step 2) the modules folder. A variable set explicitly wins, so a test
+   or a replay can still point anywhere.
+2. In example mode the harness works on a copy of the example's brief and
+   (step 2) modules, made once under `my/var/examples/<name>/`, with the
+   database beside it, and kept. A build or an interview there changes the
+   copy, never `examples/` (ground rule 8). Deleting the folder starts the
+   example again.
+
 ## 5. Step 2: consistency
 
 Every number the person sees comes from fixed, tested code. Code is never
@@ -1069,16 +1143,18 @@ only: no dependency is added.
 | `harness/calc/runner.py` | Given, with one change (5.3). |
 | `harness/calc/registry.py` | New (5.4, 5.5). |
 | `harness/calc/notes.py` | New (5.5). |
-| `harness/calc/added.py` | New (5.5): added steps. |
+| `harness/calc/added.py` | New (5.5): added steps; `add_step` can keep a given id. |
 | `harness/calc/gate.py` | New (5.6). |
 | `harness/calc/builder.py` | New (5.7). |
 | `harness/calc/provenance.py` | New (5.8). |
 | `harness/calc/agent.py` | New (5.9). |
+| `harness/calc/adopt.py` | New (5.13): adopt module folders that are already on disk. |
 | `harness/calc/spec_writer.md`, `example_writer.md`, `example_helper.md`, `module_writer.md`, `analyst.md` | Given. The instructions of the five model roles. Never rewritten by a build. |
 | `harness/migrations/0003_calc.sql` | Given (5.5). |
 | `harness/migrations/0004_notes.sql` | New, exactly as in 5.5. |
 | `harness/migrations/0005_added_steps.sql` | New, exactly as in 5.5. |
-| `harness/config.py`, `harness/__main__.py` | Changed (5.4, 5.10). |
+| `harness/config.py`, `harness/__main__.py` | Changed (5.4, 5.10, 5.13): `modules_dir`, (4.8) its example default, and the commands `build`, `modules`, `ask` and `adopt`. |
+| `examples/<name>/modules/` | Given data (6.1): the module folders of the seeded examples, for `adopt`. |
 | `my/modules/` | Created by `build`: one folder per module. Commit it with the brief. |
 
 Nothing under `harness/` names the example domain. Modules are built from
@@ -1271,7 +1347,7 @@ The migration `0003_calc.sql` creates five tables:
 
 | Table | Columns | One row per |
 | --- | --- | --- |
-| `test_runs` | `id`, `ts`, `module`, `fingerprint`, `reason` (`build`, `gate` or `status`), `passed` (1 or 0), `report` (JSON) | test run, whatever the result |
+| `test_runs` | `id`, `ts`, `module`, `fingerprint`, `reason` (`build`, `gate`, `status` or `adopt`), `passed` (1 or 0), `report` (JSON) | test run, whatever the result |
 | `modules` | `name` (key), `fingerprint`, `spec` (JSON), `test_run_id`, `registered_at`, `session_id` | registered module |
 | `step_modules` | `step_id` (key), `module` | step of the process (5.5) that has a module |
 | `calc_runs` | `id`, `ts`, `session_id`, `module`, `fingerprint`, `test_run_id`, `inputs` (JSON), `assumptions` (JSON list), `expected` (text), `output` (JSON) | calculation the gate ran |
@@ -1389,9 +1465,14 @@ ADDED_PREFIX = "added_"
 NOT_IN_BRIEF = "(not in the brief)"
 ```
 
-- `add_step(conn, *, name: str, formula: str, needs: str, produces: str, reason: str, session_id: str) -> dict`
+- `add_step(conn, *, name: str, formula: str, needs: str, produces: str, reason: str, session_id: str, step_id: str | None = None) -> dict`
   strips each text, inserts one row (`ts` now), commits, records
-  `calc.step_added` and returns the step as a dict.
+  `calc.step_added` and returns the step as a dict. With `step_id` (which
+  must match `^added_[1-9][0-9]*$`, else `ValueError`), the row is inserted
+  with that number as its `id`; if an added step already has it, `ValueError`.
+  Everything else is as before, `calc.step_added` included. Later added steps
+  are numbered after the highest id used. Adoption (5.13) uses this to
+  re-create a step with the id its module was built for.
 - `list_added_steps(conn) -> list[dict]`: every added step, from any
   session, oldest first (by `id`), as dicts.
 - `process_steps(conn, brief) -> list[dict]`: the brief's `process`, in
@@ -2456,7 +2537,7 @@ gate's: `agent.py` imports them.
 
 ### 5.10 Command line
 
-All three commands run `migrate` first and make a new session id.
+All four commands run `migrate` first and make a new session id.
 
 **`python -m harness build [--rebuild NAME]`** runs `load_brief` on the
 brief folder and then `build` with the configured model. In the terminal,
@@ -2523,6 +2604,20 @@ error and exits 1. When the person stops, it exits 0. A build the agent
 asks for (5.9) runs in the same terminal, with the same `ask` and `print`,
 and prints nothing more: no result lines, no `ALL_BUILT` or
 `SOME_MISSING`. A brief with a reserved step id is refused like a draft one.
+
+**`python -m harness adopt`** runs `migrate`, makes a new session id, and
+runs `load_brief` on the brief folder (a missing, draft or reserved-id brief
+prints the message to standard error and exits 1). With no candidate it
+prints `NOTHING_TO_ADOPT` and exits 0. Otherwise it runs `adopt` with the
+terminal `ask` of 5.10 (the end of input counts as `/quit`, which declines)
+and `print`. Then it prints `ALL_ADOPTED` and exits 0 when every result is
+`adopted`, or prints `SOME_NOT_ADOPTED` and exits 1. No model is used.
+
+```
+NOTHING_TO_ADOPT = "Every module folder is already registered."
+ALL_ADOPTED      = "Every module folder is registered now."
+SOME_NOT_ADOPTED = "Some module folders are not registered. Fix them, or rebuild their steps with: python -m harness build"
+```
 
 `check`, `events`, `ground` and `ui` behave as before.
 
@@ -2707,154 +2802,31 @@ Choices made to close gaps in the design, for review:
 37. Tool results for a request are never errors: `declined`, `built`,
     `reused` or `not_built` are outcomes the agent carries on from. Only a
     failed check is an error result.
+38. `adopt` asks once per run, not once per module. The person accepts
+    examples someone else confirmed, as a whole; the tests then decide
+    module by module.
+39. `adopt` checks what it needs to show and refuses early, but
+    `register` re-checks everything (5.5). Its `ValueError` is the reason
+    shown.
+40. A module is registered before its added step is re-created, so a
+    module that fails never leaves a step behind. A re-created step keeps
+    its id (`added_<n>`), so `--rebuild` and `replace` still find it. An
+    added step the database already knows is trusted to be the same step.
+41. A step already served by another working module is not taken over by
+    adoption. Two folders for one step: the first by name wins.
+42. A registered module whose files changed is a candidate too: adopting it
+    registers the files on disk, after the person's yes and a passing run.
+43. `build` and `ask` refuse while unregistered module folders sit in the
+    modules folder, so a fresh clone never rebuilds over committed modules.
+44. No new table: adoption is recorded as events and test runs.
 
-## 6. Seeded examples and replay
+### 5.13 Adopting module folders: `harness/calc/adopt.py`
 
-Testing a change used to need a person typing through a build, about seven
-minutes, and then a conversation. And a fresh clone has module folders but
-an empty database, so nothing is registered. This section fixes both.
-
-- `adopt` registers module folders that are already on disk, after the
-  person accepts worked examples someone else checked, and after their tests
-  pass here.
-- `examples/` holds complete seeded examples: a confirmed brief, built
-  modules and scenarios.
-- A **scenario** is a scripted person and what the harness must see.
-  `replay` runs it against the configured model, in a scratch folder, and
-  checks module runs and numbers, never wording.
-
-Nothing here calls a model except `replay`, which runs `ask` or `build` as
-they are. No table is added. Nothing under `harness/` names an example: the
-examples are data.
-
-**Files.**
-
-| File | Status |
-| --- | --- |
-| `harness/calc/adopt.py` | New (6.3). |
-| `harness/replay.py` | New (6.4, 6.5): scenarios and replay. |
-| `harness/config.py` | Changed (6.2): `HARNESS_EXAMPLE`. |
-| `harness/calc/added.py` | Changed (6.6): `add_step` can keep a given id. |
-| `harness/calc/agent.py` | Changed (6.6): a lenient yes to `REQUEST_QUESTION`. |
-| `harness/__main__.py` | Changed (6.7): `adopt`, `replay`, and a check before `build` and `ask`. |
-| `examples/wedding/`, `examples/moving/` | New data (6.1), written by hand or by a real build. |
-| `tests/step3/` | Acceptance tests for sections 6 and 7. |
-
-### 6.1 Examples on disk
-
-An example is one folder, `examples/<name>/`, where `<name>` matches
-`^[a-z][a-z0-9_]*$`. It holds exactly this; nothing else in it is read:
-
-```
-examples/<name>/
-  brief/domain_brief.json     the confirmed brief, with its meta
-  brief/domain_brief.md       render_brief(brief, meta), exactly
-  modules/<module>/           one folder per module, the four files of 5.4
-  scenarios/<scenario>.json   one scenario per file (6.4)
-  data/<file>                 (step 5) optional: account files, each one delimited text file of transactions
-```
-
-(step 5) **The data**, when there is a `data/` folder: every file directly
-in it whose name does not start with `.` passes `read_table` (9.2), and its
-name gives an account name with `account_name` (9.2). Scenarios name these
-files (6.4), and `python -m harness data add` with no file loads them all
-in example mode (9.3).
-
-**The brief** must load and pass its checks:
-
-- `domain_brief.json` has the nine keys of 4.3 and a `meta` object with
-  `status` (`"confirmed"`), `session_id` (a string), `written_at` (UTC,
-  ISO 8601) and `lookups` (a list of lookup dicts, as in 4.2; it may be
-  empty).
-- `load_brief(<example>/brief)` returns without error: confirmed, and no
-  step id starts with `added_`.
-- `validate_brief(<the brief without meta>, meta["lookups"])` returns `[]`.
-  So a glossary `source` must be a URL that some lookup in `meta.lookups`
-  returned, and a calculation's `method` must be `arithmetic` or a glossary
-  term with a source. The simplest seeded brief cites no sources and uses
-  `arithmetic` for every calculation.
-- `domain_brief.md` is exactly `render_brief(brief, meta)`.
-
-**The modules** must adopt cleanly (6.3) into an empty database with that
-brief: every folder ends `adopted`. Each module's `step_id` is a calculation
-step of the brief, and every calculation step of the brief has exactly one
-module. Each `golden.json` entry is `{"inputs", "expected", "working",
-"decision"}` as the builder writes it (5.7), with `decision` `accepted` or
-`corrected`. Files are written as 5.4 says.
-
-**The scenarios**: each file passes `validate_scenario` (6.4). Each example
-ships at least one `ask` scenario and at least one `build` scenario.
-(step 4) It also ships at least one `ask` scenario whose `expect.decisions`
-has an entry of kind `judgment` whose `step` is a step of kind `judgment`
-in its brief, and at least one `ask` scenario with `expect.asides` (8.8).
-
-Two examples ship:
-
-- `examples/wedding/`: the brief is a byte-for-byte copy of the brief that
-  the first real run of the interview wrote; it need not follow later
-  changes.
-  Modules for its calculation steps (`s1`, `s2`, `s3`, `s5`, `s6`).
-- `examples/moving/`: a second, smaller domain: saving for a move to another
-  city (deposit, van, overlapping rent). Two or three calculation steps.
-
-The tests of `tests/step3` that read `examples/`, and (step 4)
-`tests/step4/test_seeded_examples.py` and (step 5)
-`tests/step5/test_seeded_data.py`, check the shipped examples.
-
-### 6.2 Choosing an example: `HARNESS_EXAMPLE`
-
-`Config` gains one field, read like the others:
-
-| Variable | Default | Field | Meaning |
-| --- | --- | --- | --- |
-| `HARNESS_EXAMPLE` | (none) | `example: str \| None` | Play with `examples/<name>/` |
-
-`EXAMPLES_DIR = Path("examples")` and `EXAMPLE_COPIES = Path("my/var/examples")`
-are defined in `config.py`. When `HARNESS_EXAMPLE` is set, it changes the
-defaults of three other fields:
-
-| Field | Default with `HARNESS_EXAMPLE=<name>` |
-| --- | --- |
-| `db_path` | `my/var/examples/<name>/harness.db` |
-| `brief_dir` | `my/var/examples/<name>/brief` |
-| `modules_dir` | `my/var/examples/<name>/modules` |
-
-A variable set explicitly (`HARNESS_DB`, `HARNESS_BRIEF_DIR`,
-`HARNESS_MODULES_DIR`) still wins over the example. An empty variable
-counts as unset, as before. `load_config` does not check the name, and
-reads and writes nothing.
-
-`main()` checks it once, before any command: when `example` is set and
-`EXAMPLES_DIR / example` is not a folder, or the name does not match
-`^[a-z][a-z0-9_]*$`, it prints `UNKNOWN_EXAMPLE` to standard error and exits
-1.
-
-```
-UNKNOWN_EXAMPLE = "There is no example called '{name}'. The examples are: {names}."
-EXAMPLE_COPIED  = "Copied the example '{name}' to {folder}. What you change there stays there; delete that folder to start the example again."
-```
-
-`{names}` is the sorted folder names in `EXAMPLES_DIR`, joined by `, `, or
-`(none)`.
-
-**The copy.** The harness never writes into `examples/` (ground rule 8), so
-example mode works on a copy. Right after that check, and before any
-command, `main()` makes it: for each of `brief` and `modules`, when
-`EXAMPLES_DIR / <name> / <part>` is a folder and `EXAMPLE_COPIES / <name> /
-<part>` does not exist, it copies the first to the second
-(`shutil.copytree`, leaving out `__pycache__` folders). When it copied
-either, it prints `EXAMPLE_COPIED` to standard error, with `{folder}` the
-path `EXAMPLE_COPIES / <name>`. It copies whatever the three variables say:
-the copy is never in the way. A copy that exists is never refreshed or
-checked. The example's `data/` and `scenarios/` are not copied: `data add`
-(9.3) and `replay` (6.5) read them where they are.
-
-So `HARNESS_EXAMPLE=moving python -m harness adopt`, then
-`HARNESS_EXAMPLE=moving python -m harness ask`, plays with the example. The
-copy and its database are kept between runs, under `my/var/examples/`. A
-build or an interview run with the example set writes into the copy.
-
-### 6.3 Adopting module folders: `harness/calc/adopt.py`
+A fresh clone has module folders but an empty database, so nothing is registered.
+`adopt` registers module folders that are already on disk, after the person
+accepts worked examples someone else checked, and after their tests pass here.
+The seeded examples (6.1) ship such folders in `examples/<name>/modules/`.
+Nothing here calls a model.
 
 ```python
 adopt(*, conn, brief, ask, say=print, session_id, how="asked") -> list[dict]
@@ -2934,7 +2906,7 @@ gives `[]`. Files that are not folders are ignored.
       formula>, needs=<the spec's input names, each with _ replaced by a
       space, joined by ", ">, produces=<spec output description>,
       reason=ADOPTED_STEP.format(module=name), session_id=...,
-      step_id=<the step id>)` (6.6). An added step the database already
+      step_id=<the step id>)` (5.5). An added step the database already
       knows is used as it is.
    4. Record `calc.module_adopted`. The outcome is `adopted`.
 
@@ -2960,6 +2932,137 @@ ADOPTED_STEP       = "Re-created from the module '{module}' when it was adopted.
 
 `{step}` in `ADOPT_STEP_TAKEN` is `step_label(step)`; in `ADOPT_NO_STEP` it
 is the id as written in the spec.
+
+**`build` and `ask` check for module folders that are not registered.**
+After the brief loads, and before anything else, `build` (without
+`--rebuild`) and `ask` look for folders in `candidates(conn)` that are **not
+registered** at all. If there are any, they print `UNADOPTED` to standard
+error and exit 1. A fresh clone is told to adopt instead of rebuilding over
+the committed modules. Registered modules whose files changed are not
+counted: `build` rebuilds those, as before (5.7).
+
+```
+UNADOPTED = "The modules folder has modules that are not registered here: {names}. Adopt them first with: python -m harness adopt"
+```
+
+`{names}` is the folder names, sorted, joined by `, `. It is defined in
+`__main__.py`.
+
+**Events.** `adopt` records:
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `calc.adopt_refused` | `harness` | `{"module", "step", "reason"}`; `step` is `null` when the spec could not be read |
+| `calc.adopt_decision` | `person`, or `harness` for replay | `{"modules", "decision", "text", "how"}`; `modules` the adoptable names, in order; `decision` `accepted` or `declined`; `text` the stripped answer (`""` for replay); `how` `asked` or `replay` |
+| `calc.module_adopted` | `harness` | `{"module", "step", "fingerprint", "test_run_id", "how"}` |
+
+`calc.tests_run` has `reason` `adopt` for the runs of the flow above.
+
+For one `adopt` call, the events come in this order: `calc.adopt_refused`
+for each candidate that fails a check, in name order; then
+`calc.adopt_decision`, when something is adoptable; then, on an accept, for
+each adoptable candidate in name order, `calc.tests_run` and either
+`calc.adopt_refused` or `calc.module_registered`, `calc.step_added` (only
+when the step was re-created) and `calc.module_adopted`.
+
+## 6. Seeded examples and replay
+
+Testing a change used to need a person typing through a build, about seven
+minutes, and then a conversation. This section fixes that. (A fresh clone also
+has module folders but an empty database; `adopt`, 5.13, fixes that, and the
+example selector is 4.8. Both come before this section.)
+
+- `examples/` holds complete seeded examples: a confirmed brief (step 1),
+  built modules (step 2) and scenarios.
+- A **scenario** is a scripted person and what the harness must see.
+  `replay` runs it against the configured model, in a scratch folder, and
+  checks module runs and numbers, never wording.
+
+Nothing here calls a model except `replay`, which runs `ask` or `build` as
+they are. No table is added. Nothing under `harness/` names an example: the
+examples are data.
+
+**Files.**
+
+| File | Status |
+| --- | --- |
+| `harness/replay.py` | New (6.4, 6.5): scenarios and replay. |
+| `harness/calc/agent.py` | Changed (6.6): a lenient yes to `REQUEST_QUESTION`. |
+| `harness/__main__.py` | Changed (6.7): `replay`. |
+| `examples/wedding/scenarios/`, `examples/moving/scenarios/`, `examples/README.md` | New data (6.1), written by hand or by a real build. Their `brief/` (step 1) and `modules/` (step 2) came earlier. |
+| `tests/step3/` | Acceptance tests for sections 6 and 7. |
+
+### 6.1 Examples on disk
+
+An example is one folder, `examples/<name>/`, where `<name>` matches
+`^[a-z][a-z0-9_]*$`. It holds exactly this; nothing else in it is read:
+
+```
+examples/<name>/
+  brief/domain_brief.json     the confirmed brief, with its meta
+  brief/domain_brief.md       render_brief(brief, meta), exactly
+  modules/<module>/           one folder per module, the four files of 5.4
+  scenarios/<scenario>.json   one scenario per file (6.4)
+  data/<file>                 (step 5) optional: account files, each one delimited text file of transactions
+```
+
+The `brief/` folder is given with step 1 (4.8), `modules/` with step 2 (5.13)
+and `scenarios/` with step 3.
+
+(step 5) **The data**, when there is a `data/` folder: every file directly
+in it whose name does not start with `.` passes `read_table` (9.2), and its
+name gives an account name with `account_name` (9.2). Scenarios name these
+files (6.4), and `python -m harness data add` with no file loads them all
+in example mode (9.3).
+
+**The brief** (step 1) must load and pass its checks:
+
+- `domain_brief.json` has the nine keys of 4.3 and a `meta` object with
+  `status` (`"confirmed"`), `session_id` (a string), `written_at` (UTC,
+  ISO 8601) and `lookups` (a list of lookup dicts, as in 4.2; it may be
+  empty).
+- `load_brief(<example>/brief)` returns without error: confirmed, and no
+  step id starts with `added_`.
+- `validate_brief(<the brief without meta>, meta["lookups"])` returns `[]`.
+  So a glossary `source` must be a URL that some lookup in `meta.lookups`
+  returned, and a calculation's `method` must be `arithmetic` or a glossary
+  term with a source. The simplest seeded brief cites no sources and uses
+  `arithmetic` for every calculation.
+- `domain_brief.md` is exactly `render_brief(brief, meta)`.
+
+**The modules** (step 2) must adopt cleanly (5.13) into an empty database with that
+brief: every folder ends `adopted`. Each module's `step_id` is a calculation
+step of the brief, and every calculation step of the brief has exactly one
+module. Each `golden.json` entry is `{"inputs", "expected", "working",
+"decision"}` as the builder writes it (5.7), with `decision` `accepted` or
+`corrected`. Files are written as 5.4 says.
+
+**The scenarios** (step 3): each file passes `validate_scenario` (6.4). Each example
+ships at least one `ask` scenario and at least one `build` scenario.
+(step 4) It also ships at least one `ask` scenario whose `expect.decisions`
+has an entry of kind `judgment` whose `step` is a step of kind `judgment`
+in its brief, and at least one `ask` scenario with `expect.asides` (8.8).
+
+Two examples ship:
+
+- `examples/wedding/`: the brief is a byte-for-byte copy of the brief that
+  the first real run of the interview wrote; it need not follow later
+  changes.
+  Modules for its calculation steps (`s1`, `s2`, `s3`, `s5`, `s6`).
+- `examples/moving/`: a second, smaller domain: saving for a move to another
+  city (deposit, van, overlapping rent). Two or three calculation steps.
+
+The tests of `tests/step3` that read `examples/`, and (step 4)
+`tests/step4/test_seeded_examples.py` and (step 5)
+`tests/step5/test_seeded_data.py`, check the shipped examples.
+
+### 6.2 Choosing an example
+
+Moved to 4.8: the example selector works from step 1.
+
+### 6.3 Adopting module folders
+
+Moved to 5.13: `adopt` works from step 2.
 
 ### 6.4 Scenarios: `harness/replay.py`
 
@@ -3191,50 +3294,12 @@ removed from the end of that word. Words are split on white space. So
 interview, the plan check, the worked examples, a transcribed answer and
 `adopt` keep the strict comparison.
 
-**`add_step` can keep an id.** `add_step(conn, *, name, formula, needs,
-produces, reason, session_id, step_id=None)`. With `step_id` (which must
-match `^added_[1-9][0-9]*$`, else `ValueError`), the row is inserted with
-that number as its `id`; if an added step already has it, `ValueError`.
-Everything else is as before, `calc.step_added` included. Later added steps
-are numbered after the highest id used.
-
-**`test_runs.reason`** may also be `adopt`.
-
-**`build` and `ask` check for module folders that are not registered.**
-After the brief loads, and before anything else, `build` (without
-`--rebuild`) and `ask` look for folders in `candidates(conn)` that are **not
-registered** at all. If there are any, they print `UNADOPTED` to standard
-error and exit 1. A fresh clone is told to adopt instead of rebuilding over
-the committed modules. Registered modules whose files changed are not
-counted: `build` rebuilds those, as before (5.7).
-
-```
-UNADOPTED = "The modules folder has modules that are not registered here: {names}. Adopt them first with: python -m harness adopt"
-```
-
-`{names}` is the folder names, sorted, joined by `, `. It is defined in
-`__main__.py`.
-
 ### 6.7 Command line
-
-**`python -m harness adopt`** runs `migrate`, makes a new session id, and
-runs `load_brief` on the brief folder (a missing, draft or reserved-id brief
-prints the message to standard error and exits 1). With no candidate it
-prints `NOTHING_TO_ADOPT` and exits 0. Otherwise it runs `adopt` with the
-terminal `ask` of 5.10 (the end of input counts as `/quit`, which declines)
-and `print`. Then it prints `ALL_ADOPTED` and exits 0 when every result is
-`adopted`, or prints `SOME_NOT_ADOPTED` and exits 1. No model is used.
-
-```
-NOTHING_TO_ADOPT = "Every module folder is already registered."
-ALL_ADOPTED      = "Every module folder is registered now."
-SOME_NOT_ADOPTED = "Some module folders are not registered. Fix them, or rebuild their steps with: python -m harness build"
-```
 
 **`python -m harness replay EXAMPLE [SCENARIO] [--keep]`** replays the
 scenarios of `examples/EXAMPLE/` with the configured model.
 
-- An unknown example (as in 6.2) prints `UNKNOWN_EXAMPLE` to standard error
+- An unknown example (as in 4.8) prints `UNKNOWN_EXAMPLE` to standard error
   and exits 1. A brief that does not load prints its message the same way.
 - `load_scenarios` problems are printed to standard error, one per line,
   and it exits 1 before any scenario runs.
@@ -3264,20 +3329,10 @@ before, apart from 6.6.
 
 | Kind | Actor | Payload |
 | --- | --- | --- |
-| `calc.adopt_refused` | `harness` | `{"module", "step", "reason"}`; `step` is `null` when the spec could not be read |
-| `calc.adopt_decision` | `person`, or `harness` for replay | `{"modules", "decision", "text", "how"}`; `modules` the adoptable names, in order; `decision` `accepted` or `declined`; `text` the stripped answer (`""` for replay); `how` `asked` or `replay` |
-| `calc.module_adopted` | `harness` | `{"module", "step", "fingerprint", "test_run_id", "how"}` |
 | `replay.scenario` | `harness` | `{"example", "scenario", "kind", "lines", "expect", "without"}`; `without` is `[]` when absent |
 | `replay.checked` | `harness` | `{"scenario", "passed", "error", "checks"}` |
 
-`calc.tests_run` has `reason` `adopt` for the runs of 6.3.
-
-For one `adopt` call, the events come in this order: `calc.adopt_refused`
-for each candidate that fails a check, in name order; then
-`calc.adopt_decision`, when something is adoptable; then, on an accept, for
-each adoptable candidate in name order, `calc.tests_run` and either
-`calc.adopt_refused` or `calc.module_registered`, `calc.step_added` (only
-when the step was re-created) and `calc.module_adopted`.
+The events of `adopt` are in 5.13.
 
 A replay session holds, in order: `replay.scenario`, the events of
 `adopt`, the events of `ask` or `build`, and `replay.checked`. The scripted
@@ -3287,43 +3342,19 @@ scripted.
 
 ### 6.9 Decisions
 
-1. `adopt` asks once per run, not once per module. The person accepts
-   examples someone else confirmed, as a whole; the tests then decide
-   module by module.
-2. `adopt` checks what it needs to show and refuses early, but
-   `register` re-checks everything (5.5). Its `ValueError` is the reason
-   shown.
-3. A module is registered before its added step is re-created, so a
-   module that fails never leaves a step behind. A re-created step keeps
-   its id (`added_<n>`), so `--rebuild` and `replace` still find it. An
-   added step the database already knows is trusted to be the same step.
-4. A step already served by another working module is not taken over by
-   adoption. Two folders for one step: the first by name wins.
-5. A registered module whose files changed is a candidate too: adopting it
-   registers the files on disk, after the person's yes and a passing run.
-6. `build` and `ask` refuse while unregistered module folders sit in the
-   modules folder, so a fresh clone never rebuilds over committed modules.
-7. `HARNESS_EXAMPLE` changes three defaults. A variable set explicitly
-   wins, so a test or a replay can still point anywhere.
-8. In example mode the harness works on a copy of the example's brief and
-   modules, made once under `my/var/examples/<name>/`, with the database
-   beside it, and kept. A build or an interview there changes the copy,
-   never `examples/` (ground rule 8). Deleting the folder starts the
-   example again.
-9. Scenarios check module runs and numbers, never wording. A number is
+1. Scenarios check module runs and numbers, never wording. A number is
    matched with the number check's reading, at the precision the scenario
    writes it.
-10. `runs` compares only the inputs a scenario lists, with `same()` (half a
+2. `runs` compares only the inputs a scenario lists, with `same()` (half a
     cent). Text compares exactly.
-11. `replay` uses a fresh scratch folder per scenario, under `my/var/replay/`,
+3. `replay` uses a fresh scratch folder per scenario, under `my/var/replay/`,
     with a copy of the brief and of the modules, and the three environment
     variables pointing at it. The person's lines run out into `/quit`,
     which ends a build or a conversation the normal way.
-12. `without` leaves out the modules of some steps, so a `build` scenario
+4. `without` leaves out the modules of some steps, so a `build` scenario
     builds them, and an `ask` scenario can make the agent ask for one.
-13. Only `REQUEST_QUESTION` takes a lenient yes. The worked examples stay
+5. Only `REQUEST_QUESTION` takes a lenient yes. The worked examples stay
     strict, because a yes there is a check by hand.
-14. No new table: adoption is recorded as events and test runs.
 
 ## 7. Step 3: evidence
 
@@ -5137,7 +5168,7 @@ sign convention of every file of the command (`sign_from` `flag`);
 without it the person is asked for each file. `--account` names the account
 of the one file given.
 
-- Example mode (6.2): with `HARNESS_EXAMPLE` set and no `FILE`, the files
+- Example mode (4.8): with `HARNESS_EXAMPLE` set and no `FILE`, the files
   are every file directly in `examples/<name>/data/` whose name does not
   start with `.`, sorted by name. With no such file, it prints
   `NO_EXAMPLE_DATA` to standard error and exits 1. The data goes into the

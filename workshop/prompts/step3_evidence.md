@@ -21,22 +21,19 @@ Read these first, in this order:
    so (6.6).
 2. `harness/`, to see what steps 0, 1 and 2 built and how it is written.
    Read the given files as well: `harness/ui/evidence.html` (the page you
-   will serve) and `examples/` (the data you will load, adopt and replay).
+   will serve) and `examples/` (the data you will replay). `adopt` and the example selector are built already (4.8, 5.13).
 3. `tests/step3/`. These tests are the definition of done.
 
 Then build what sections 6 and 7 describe.
 
 Build these files (new):
 
-- `harness/calc/adopt.py` (registering module folders that are already on disk, 6.3)
 - `harness/replay.py` (scenarios, their checks, and running them in a scratch folder, 6.4 and 6.5)
 - `harness/ui/evidence.py` (reading the evidence, 7.3)
 
 Change these files (they exist already):
 
-- `harness/config.py` (the `example` setting and `EXAMPLES_DIR`, 6.2)
-- `harness/__main__.py` (the `adopt`, `replay` and `work` commands, the check for an unknown example, the check for unregistered module folders before `build` and `ask`, and the extra line from `ui` (6.2, 6.6, 6.7, 7.7))
-- `harness/calc/added.py` (`add_step` can keep a given id, 6.6)
+- `harness/__main__.py` (the `replay` and `work` commands, and the extra line from `ui` (6.7, 7.7))
 - `harness/calc/agent.py` (`says_yes` for a build request (6.6) and the `ask.started` event (7.2))
 - `harness/calc/provenance.py` (`trace`, 7.1)
 - `harness/ui/server.py` (the evidence API and `/work`, 7.4 and 7.5)
@@ -48,14 +45,13 @@ Given files (do not edit):
 - `harness/ui/evidence.html` (the page you will serve)
 - `harness/ui/grounding.html`
 - `examples/README.md`
-- `examples/moving/` (the data you will load, adopt and replay)
-- `examples/wedding/` (the data you will load, adopt and replay)
+- `examples/moving/scenarios/` (the scripted people you will replay)
+- `examples/wedding/scenarios/` (the scripted people you will replay)
 
 Rules:
 
 - Do not edit `SPEC.md`, anything under `tests/`, `workshop/`, `reference/` or `examples/`, or the given files
-  above. In the files you change, make only the changes sections 6 and 7 specify (they include the `adopt` reason
-  of a test run, 6.6, wherever the code checks the reason). If you believe a given file is wrong, stop and say so
+  above. In the files you change, make only the changes sections 6 and 7 specify. If you believe a given file is wrong, stop and say so
   instead of changing it.
 - Build only step 3. Do not start on anything in section 8 of `SPEC.md`.
 - Use only the Python standard library.

@@ -1,20 +1,20 @@
-"""SPEC 6.7: `python -m harness adopt`, run as a person would run it."""
+"""SPEC 5.10: `python -m harness adopt`, run as a person would run it."""
 import os
 import sqlite3
 
 import pytest
 
-import step3_helpers as s3
-from step3_helpers import (ADOPT_INTRO, ALL_ADOPTED, REASON_TESTS,
-                           SOME_NOT_ADOPTED, ROOT, h, listing, run_in, typed)
+import step2_adopt_helpers as s3
+import step2_helpers as h
+from step2_adopt_helpers import (ADOPT_INTRO, ALL_ADOPTED, REASON_TESTS, SOME_NOT_ADOPTED, listing, typed)
 
 
 def database():
     return sqlite3.connect(os.environ["HARNESS_DB"])
 
 
-def adopt_cli(answers=(), **env):
-    return run_in(ROOT, ["adopt"], typed(*answers), **env)
+def adopt_cli(answers=()):
+    return h.run_cli(["adopt"], typed(*answers))
 
 
 @pytest.fixture

@@ -192,7 +192,7 @@ def terminal_ask(text: str) -> str:
 
 
 def unadopted(conn) -> bool:
-    """Refuse while module folders sit unregistered in the modules folder (SPEC 6.6). True if it did."""
+    """Refuse while module folders sit unregistered in the modules folder (SPEC 5.13). True if it did."""
     from .calc.adopt import candidates
     from .calc.registry import get_module
 
@@ -306,7 +306,7 @@ def ask_about_plan(words: list[str]) -> int:
 
 
 def adopt_modules() -> int:
-    """Register module folders that are already on disk, after the person's yes (SPEC 6.7)."""
+    """Register module folders that are already on disk, after the person's yes (SPEC 5.10)."""
     from .calc.adopt import adopt, candidates
     from .calc.builder import load_brief
 
@@ -343,7 +343,7 @@ LEGACY_LAYOUT = ("This copy has brief/ or modules/ at the top, but the harness n
 
 
 def copy_example(name: str) -> None:
-    """Example mode works on a copy of the example's brief and modules, made once (SPEC 6.2)."""
+    """Example mode works on a copy of the example's brief and modules, made once (SPEC 4.8)."""
     copied = False
     for part in ("brief", "modules"):
         source, target = EXAMPLES_DIR / name / part, EXAMPLE_COPIES / name / part

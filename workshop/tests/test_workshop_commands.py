@@ -224,10 +224,11 @@ def test_status_reports_a_failing_step_with_the_last_pytest_line(root, capsys):
 
 # ---- leave (8.5) -----------------------------------------------------------------------------------------------------
 
-def test_leave_removes_only_the_workshop_folder_after_yes(root, capsys):
+@pytest.mark.parametrize("answer", ["  YES \n", "y\n", "ok\n", "/accept\n"])
+def test_leave_removes_only_the_workshop_folder_after_an_accept_word(root, capsys, answer):
     run(root, "finish", "2")
     capsys.readouterr()
-    assert run(root, "leave", stdin="  YES \n") == 0
+    assert run(root, "leave", stdin=answer) == 0
     assert lines(capsys) == [cli.LEAVE_STATE.format(label="the end of step 2, the finished harness"), cli.LEAVE_ASK,
                              cli.LEAVE_DONE]
     assert not (root / "workshop").exists()

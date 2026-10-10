@@ -24,27 +24,14 @@ sys.path.insert(0, str(ROOT / "tests" / "step2"))
 
 import step2_helpers as h                                   # noqa: E402  (after the path is set)
 from step2_helpers import Person, TracingModel              # noqa: E402,F401
+from step2_adopt_helpers import (ADOPT_BAD_EXAMPLES, ADOPT_BAD_SPEC, ADOPT_INTRO, ADOPT_MISSING, ADOPT_NO_STEP,  # noqa: E402,F401
+                                 ADOPT_QUESTION, ADOPT_STEP_TAKEN, ADOPTED_STEP, ALL_ADOPTED, NOTHING_TO_ADOPT,
+                                 REASON_DECLINED, REASON_TESTS, SOME_NOT_ADOPTED, UNADOPTED, adopted_line, dump,
+                                 listing, months_folder, put_module, refused_line, renamed_files, result, run_adopt,
+                                 surplus_folder, typed, with_spec, yearly_folder)
 
-# ---- fixed strings (SPEC 6.2, 6.3, 6.4, 6.6, 6.7) ---------------------------------------------------
+# ---- fixed strings (SPEC 4.8, 6.4, 6.7) ---------------------------------------------------
 
-ADOPT_INTRO = "These module folders are not registered here. Their worked examples were checked by hand, but not by you:"
-ADOPT_QUESTION = ("Adopting a module means trusting worked examples you did not check yourself. Its tests and "
-                  "examples run first, and it is registered only if they pass. Type yes to adopt them. Anything "
-                  "else adopts nothing.")
-ADOPT_MISSING = "missing files: {files}"
-ADOPT_BAD_SPEC = "spec.json is not a valid spec for this folder"
-ADOPT_BAD_EXAMPLES = "golden.json does not hold at least 2 worked examples"
-ADOPT_NO_STEP = "the process has no calculation step '{step}'"
-ADOPT_STEP_TAKEN = "step {step} already has the module '{other}'"
-REASON_DECLINED = "you did not accept the worked examples"
-REASON_TESTS = "its tests or worked examples do not pass here"
-ADOPTED_STEP = "Re-created from the module '{module}' when it was adopted."
-UNADOPTED = ("The modules folder has modules that are not registered here: {names}. Adopt them first with: "
-             "python -m harness adopt")
-NOTHING_TO_ADOPT = "Every module folder is already registered."
-ALL_ADOPTED = "Every module folder is registered now."
-SOME_NOT_ADOPTED = ("Some module folders are not registered. Fix them, or rebuild their steps with: "
-                    "python -m harness build")
 UNKNOWN_EXAMPLE = "There is no example called '{name}'. The examples are: {names}."
 NO_SCENARIO = "There is no scenario '{scenario}' in {folder}. The scenarios are: {names}."
 NO_SCENARIOS = "There are no scenarios in {folder}."
@@ -59,14 +46,6 @@ GOOD_META = {"status": "confirmed", "session_id": "s", "lookups": []}
 
 
 # ---- small tools -------------------------------------------------------------------------------------
-
-def typed(*answers):
-    return "".join(answer + "\n" for answer in answers)
-
-
-def dump(value):
-    return json.dumps(value, indent=2, ensure_ascii=False) + "\n"
-
 
 def sql(path, query, params=()):
     """Rows of a read-only look at a database file, as dicts (the harness is not involved)."""
@@ -110,39 +89,6 @@ def record_payload(conn, session, kind, payload, actor="harness"):
 def save_the_brief(brief_dir, brief=None, status="confirmed"):
     from harness.grounding import save_brief
     return save_brief(brief or h.make_brief(), Path(brief_dir), {**GOOD_META, "status": status})
-
-
-def put_module(modules_dir, files):
-    """Write a module folder (named after its spec) into the modules folder. Returns the folder."""
-    name = json.loads(files["spec.json"])["name"]
-    return h.write_files(Path(modules_dir) / name, files)
-
-
-def surplus_folder(modules_dir, step_id="s1", **options):
-    return put_module(modules_dir, h.surplus_files(step_id, **options))
-
-
-def months_folder(modules_dir, step_id="s3", **options):
-    return put_module(modules_dir, h.months_files(step_id, **options))
-
-
-def yearly_folder(modules_dir, step_id="added_1"):
-    return put_module(modules_dir, h.yearly_files(step_id))
-
-
-def renamed_files(files, name, step_id=None):
-    """The same module under another name (and, when given, for another step)."""
-    spec = json.loads(files["spec.json"])
-    spec["name"] = name
-    if step_id is not None:
-        spec["step_id"] = step_id
-    return {**files, "spec.json": dump(spec)}
-
-
-def with_spec(files, **changes):
-    spec = json.loads(files["spec.json"])
-    spec.update(changes)
-    return {**files, "spec.json": dump(spec)}
 
 
 def plan_text(spec):
@@ -355,7 +301,7 @@ def build_world(root):
         builder.build_step(model=ScriptedModel(h.surplus_script()), conn=conn, brief=brief, step=brief["process"][0],
                            ask=person.ask, say=person.say, session_id=BUILD)
 
-        # 2. An adoption of the folder of step s3 (SPEC 6.3).
+        # 2. An adoption of the folder of step s3 (SPEC 5.13).
         months_folder(root / "modules")
         person = Person("yes")
         adopt.adopt(conn=conn, brief=brief, ask=person.ask, say=person.say, session_id=ADOPT)
@@ -427,30 +373,3 @@ def http_connection(server):
     return http.client.HTTPConnection("127.0.0.1", server.server_address[1], timeout=10)
 
 
-# ---- running adopt -----------------------------------------------------------------------------------------
-
-def run_adopt(conn, brief, *answers, how="asked", session_id=h.SESSION, **options):
-    """Call `adopt` with a recording person. Returns (results, person)."""
-    import importlib
-    adopt = importlib.import_module("harness.calc.adopt")
-    person = Person(*answers)
-    results = adopt.adopt(conn=conn, brief=brief, ask=person.ask, say=person.say, session_id=session_id,
-                          how=how, **options)
-    return results, person
-
-
-def adopted_line(name, step_id):
-    return f"{name} -> {h.label(step_id)} (adopted)"
-
-
-def refused_line(name, reason):
-    return f"{name}: not adopted ({reason})"
-
-
-def listing(name, step_id, n=3, decisions=None):
-    decisions = decisions or ["accepted"] * n
-    return f"  {name} for step {h.label(step_id)}: {n} worked examples ({', '.join(decisions)})"
-
-
-def result(name, step, outcome="adopted", reason=""):
-    return {"module": name, "step": step, "outcome": outcome, "reason": reason}

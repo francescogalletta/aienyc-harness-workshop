@@ -20,7 +20,7 @@ def add_step(conn: sqlite3.Connection, *, name: str, formula: str, needs: str, p
              reason: str, session_id: str, step_id: str | None = None) -> dict:
     """Add a step to the process. Returns it as a dict.
 
-    With `step_id` (`added_<n>`) the step keeps that id, as when a module is adopted (SPEC 6.6).
+    With `step_id` (`added_<n>`) the step keeps that id, as when a module is adopted (SPEC 5.5).
     """
     values = [text.strip() for text in (name, formula, needs, produces, reason)]
     number = None

@@ -15,11 +15,12 @@ Passages of `SPEC.md` marked "(step M)" for a step later than this one do not ap
 Read these first, in this order:
 
 1. `SPEC.md`, section 1 (the ground rules) and section 5 (step 2). Section 5
-   is the contract for this step. Follow its names, signatures, messages and
+   (5.13 included) is the contract for this step. Follow its names, signatures, messages and
    behaviour exactly.
 2. `harness/`, to see what steps 0 and 1 built and how it is written. Read
    the given files in `harness/calc/` as well: `values.py`, `safety.py`,
-   `runner.py` and the five `.md` files.
+   `runner.py` and the five `.md` files. Open `examples/wedding/modules/` too:
+   it is the data you will adopt.
 3. `tests/step2/`. These tests are the definition of done.
 
 Then build what section 5 describes.
@@ -29,18 +30,19 @@ Build these files (new):
 - `harness/calc/__init__.py` (a docstring only)
 - `harness/calc/registry.py` (module folders, the spec check, fingerprints, registering)
 - `harness/calc/notes.py` (the notes kept during a build)
-- `harness/calc/added.py` (the steps the agent adds to the plan, 5.5)
+- `harness/calc/added.py` (the steps the agent adds to the plan, 5.5; `add_step` can keep a given id)
 - `harness/migrations/0004_notes.sql` (the notes table, exactly as in 5.5)
 - `harness/migrations/0005_added_steps.sql` (the added steps table, exactly as in 5.5)
 - `harness/calc/gate.py` (running tests, and the one way a calculation runs)
 - `harness/calc/builder.py` (the phases: spec and plan check, worked examples checked by the person, code)
 - `harness/calc/provenance.py` (the number check)
 - `harness/calc/agent.py` (the agent that answers questions with tested modules)
+- `harness/calc/adopt.py` (registering module folders that are already on disk, 5.13)
 
 Change these files (they exist already):
 
-- `harness/config.py` (the `modules_dir` setting, 5.4)
-- `harness/__main__.py` (the `build`, `modules` and `ask` commands)
+- `harness/config.py` (the `modules_dir` setting, 5.4, and its example default, 4.8)
+- `harness/__main__.py` (the `build`, `modules`, `ask` and `adopt` commands, and the check for unregistered module folders before `build` and `ask`, 5.10 and 5.13)
 - `harness/calc/safety.py` (given in a starting form: the one change that section 5.2 asks for)
 - `harness/calc/runner.py` (given in a starting form: the one change that section 5.3 asks for)
 
@@ -55,10 +57,12 @@ Given files (do not edit):
 - `harness/calc/module_writer.md`
 - `harness/calc/analyst.md`
 - `harness/migrations/0003_calc.sql`
+- `examples/moving/modules/` (the module folders you will adopt)
+- `examples/wedding/modules/` (the module folders you will adopt)
 
 Rules:
 
-- Do not edit `SPEC.md`, anything under `tests/`, `workshop/` or `reference/`, or the given files above. In
+- Do not edit `SPEC.md`, anything under `tests/`, `workshop/`, `reference/` or `examples/`, or the given files above. In
   the files you change, make only the changes section 5 specifies. If you believe a given file is wrong, stop and
   say so instead of changing it.
 - Build only step 2. Do not start on anything in section 6 of `SPEC.md`.
