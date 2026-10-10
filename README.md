@@ -7,6 +7,83 @@ top of their money so that their wedding is paid for without surprises.
 The harness itself knows nothing about weddings. The example lives in
 `examples/wedding/`.
 
+## Who this is for
+
+The repository serves four uses. They are listed in order of how well a
+two-hour workshop fits them.
+
+1. **Presenting.** Show the harness being built one principle at a time on the
+   main example, and what each step adds: before, the model's word; after,
+   something you can check.
+2. **Following along.** Run each step on the main example as it is presented,
+   change figures and choices, and see what changes. If you fall behind, you
+   catch up to the current step.
+3. **A variation of the main example.** Keep the same kind of plan (saving
+   towards dated payments) with your own figures, dates and data. This follows
+   along well.
+4. **Your own plan, or your own harness, from scratch.** Possible, and the
+   contract and tests are there for it, but it will likely not fit in the
+   session. The interview and build alone take about twenty minutes of model
+   time. The plan must be a money question that arithmetic on amounts and
+   dates can answer.
+
+Whichever you choose, you leave with a working harness: the code in
+`harness/`, your own plan in `my/`, and nothing from the workshop mixed in.
+Everyone needs model access on their own machine (Claude Code signed in, or
+an Anthropic API key).
+
+## How it fits together
+
+```mermaid
+flowchart TB
+    person([You])
+
+    subgraph s1["1 Shared domain"]
+        interview["Interview<br/>one question at a time"] --> brief[("Brief<br/>goal, terms, steps")]
+    end
+
+    subgraph s2["2 Consistency"]
+        build["Build<br/>plan check, worked examples you confirm,<br/>code written without seeing them"] --> modules[("Tested modules<br/>code + tests + examples")]
+        gate{"Test gate<br/>runs only if tests pass now"}
+    end
+
+    subgraph s4["4 Human in the loop"]
+        gates["Gates on assumptions<br/>and judgment calls"]
+        aside["Side conversation<br/>own assistant, own context"]
+    end
+
+    subgraph s5["5 Verification"]
+        files[("Your account files")] --> verifier["Verifier<br/>your figures vs files, brief, earlier words"]
+        verifier --> finding["Finding<br/>two figures, you choose"]
+    end
+
+    subgraph s3["3 Evidence"]
+        db[("Database<br/>every event, run and decision")] --> page["Show your work<br/>number to run to module to tests"]
+    end
+
+    person -->|"what I want help with"| interview
+    brief --> build
+    person -->|"a question, in my own words"| agent["Agent<br/>asks for inputs, never does arithmetic"]
+    modules --> gate
+    agent -->|"run a module"| gates --> gate
+    gate -->|"result"| check{"Number check<br/>every number must have a source"}
+    check -->|"answer"| person
+    agent -. "missing module" .-> build
+    person -. "/aside" .-> aside
+    person -->|"a figure I state"| verifier
+    finding --> gates
+    agent --> db
+    gate --> db
+    gates --> db
+    finding --> db
+    page --> person
+```
+
+The model talks, asks and explains. Everything that produces or admits a
+number is fixed code: the modules, the test gate, the number check, the
+account-file reader. The numbered boxes are the five principles, in the order
+the workshop adds them.
+
 ## What is here
 
 | Path | What it is |
