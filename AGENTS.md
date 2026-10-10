@@ -26,6 +26,24 @@ Everyone leaves with a working harness: `harness/` plus their `my/`, with no
 workshop scaffolding mixed in. Deleting `workshop/` must leave a harness whose
 tests pass.
 
+## Who does what
+
+When a planning model (Claude Fable) is driving a session, it plans, decides
+and reviews. It does not make the changes itself.
+
+- **Fable**: sets the direction, makes the top-level design decisions, reviews
+  results, and talks with the maintainer. It edits files directly only for a
+  change of a few lines.
+- **Opus 5.5, as a sub-agent**: turns a direction into a precise contract
+  (`SPEC.md`, design documents, the prompts the models read), and takes the
+  harder implementation or debugging work.
+- **Sonnet 5.5, as a sub-agent**: implementation, tests, documents, data and
+  dry runs, working from the contract.
+
+Anything larger than a few lines goes to a sub-agent with a written brief. Use
+separate sub-agents for the implementation and for its tests when the change
+is to behaviour, so each checks the other against the contract.
+
 ## The five principles the harness enforces
 
 1. **Shared domain**: an interview produces a brief (goal, standard terms with
