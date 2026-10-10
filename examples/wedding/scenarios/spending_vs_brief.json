@@ -1,0 +1,30 @@
+{
+  "name": "spending_vs_brief",
+  "kind": "ask",
+  "description": "No account files. The person says they spend about 4,000 a month; the brief says about 5k. The verifier reports a brief finding, the person decides, and the monthly surplus is worked out afterwards.",
+  "today": "2027-01-15",
+  "verify": true,
+  "lines": [
+    "How much is left each month towards the wedding? I take home 10,000 a month and I spend about 4,000 a month.",
+    "2",
+    "yes",
+    "yes",
+    "yes"
+  ],
+  "expect": {
+    "findings": [
+      {
+        "kind": "brief",
+        "status": "decided"
+      }
+    ],
+    "runs": [
+      {
+        "module": "monthly_surplus",
+        "inputs": {
+          "net_monthly_income": "10000"
+        }
+      }
+    ]
+  }
+}

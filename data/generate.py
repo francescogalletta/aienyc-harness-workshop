@@ -278,6 +278,8 @@ def facilitator_key(card_rows, card_totals, checking, savings) -> str:
     return f"""\
 # Facilitator key: what is planted in the example data
 
+This older example data was made before the brief existed and does not match the wedding story; it is kept as the source adapter's test fixture, which the tests read (the wedding example's own account files and key are in `examples/wedding/data/`).
+
 Written by `data/generate.py` (seed {SEED}). Everything is invented.
 Remove this file from any copy you hand to attendees if you want them to
 find these for themselves.

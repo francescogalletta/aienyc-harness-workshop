@@ -5,7 +5,7 @@ at a time. The running example is an agent that helps one person stay on
 top of their money so that their wedding is paid for without surprises.
 
 The harness itself knows nothing about weddings. The example lives in
-`data/example/`.
+`examples/wedding/`.
 
 ## What is here
 
@@ -16,11 +16,11 @@ The harness itself knows nothing about weddings. The example lives in
 | `prompts/` | One build prompt per step, for any coding agent |
 | `harness/` | The harness, as built so far |
 | `tests/` | Acceptance tests per step, plus tests for the example data |
-| `data/` | The example data, its generator, and the facilitator key |
+| `data/` | Older example data, its generator and key, kept as the source adapter's test fixture |
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
 | `brief/` | The domain brief, once you have run the interview |
 | `modules/` | The tested calculation modules, once you have run the build |
-| `examples/` | Two complete seeded examples, `wedding` and `moving`: brief, modules and scenarios |
+| `examples/` | Two complete seeded examples, `wedding` and `moving`: brief, modules, scenarios and, for the wedding, account files |
 
 ## Set up
 
@@ -229,6 +229,22 @@ anything. `/back` returns you to the same question. Only a sentence you type at
 `uv run python -m harness decisions` lists every decision in your own words.
 On the `work` page, gates and decisions sit in the conversation, side
 conversations are nested and labelled, and **Decisions** lists them all.
+
+## Checking what you say against your own data
+
+Step 5 checks the figures you state against things that do not depend on your sentence: your own account files, the brief, and what you saved earlier.
+
+```
+uv run python -m harness data add statement.csv --sign negative   # without --sign it asks, file by file
+uv run python -m harness data list                                # what is loaded, and each account's full months
+uv run python -m harness data clear
+```
+
+`data add` reads a delimited text file with one row per transaction (a date, a description and one amount column) by fixed rules, with no model. It never guesses how a file writes money going out, and it refuses a file it cannot read whole with one plain reason. What it leaves out (a repeated heading row, a repeated row) it reports. Only tested code summarises the rows: money in, money out and balances, by full calendar month, with moves between your own loaded accounts left out.
+
+When you state a figure ("I spend about 5k a month"), a separate verifier compares it with those summaries and the brief. A **finding** is a claim and a reference that differ by more than 5%. You see it in a fixed block the harness builds: what you said, what your files show, and two options, keep your figure or use the one from your files, or answer in your own words. Until you decide, nothing is calculated with the figure and the agent's replies are held back. `/aside` works there. Giving a different value for something already saved opens the same block.
+
+Nothing is checked against outside benchmarks such as what people typically spend. The verifier can also miss a disagreement, and the harness cannot see one it is never shown.
 
 ## Examples and replay
 

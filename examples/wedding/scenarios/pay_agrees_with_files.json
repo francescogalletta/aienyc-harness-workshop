@@ -1,0 +1,44 @@
+{
+  "name": "pay_agrees_with_files",
+  "kind": "ask",
+  "description": "With the account files loaded, the person says they take home 10,000 a month. The files show 10,026.66 coming in a month, within the 5% tolerance, so nothing is raised and the payment schedule is worked out straight away.",
+  "today": "2027-01-15",
+  "verify": true,
+  "data": [
+    {
+      "file": "checking.csv",
+      "sign": "out_negative"
+    },
+    {
+      "file": "savings.csv",
+      "sign": "out_negative"
+    },
+    {
+      "file": "credit_card.csv",
+      "sign": "out_positive"
+    }
+  ],
+  "lines": [
+    "Please work out my wedding payments. I take home 10,000 a month. The wedding is on 12 June 2027 and the total comes to 43,000. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before.",
+    "yes",
+    "yes",
+    "yes",
+    "yes"
+  ],
+  "expect": {
+    "max_findings": 0,
+    "runs": [
+      {
+        "module": "wedding_payment_schedule",
+        "inputs": {
+          "total_cost": "43000",
+          "first_payment_amount": "6000"
+        }
+      }
+    ],
+    "shown": [
+      "18,500"
+    ],
+    "max_withheld": 0
+  }
+}

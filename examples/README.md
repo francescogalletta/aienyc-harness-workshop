@@ -9,11 +9,16 @@ examples/<name>/
   brief/domain_brief.md       the same brief as a page
   modules/<module>/           spec.json, golden.json, module.py, tests.py
   scenarios/<scenario>.json   a scripted person and what the harness must see
+  data/<file>                 (step 5) optional: account files, one delimited text file of transactions each
 ```
+
+The top-level `data/` folder is not an example. It holds older example data that
+was made before the brief existed and does not match the wedding story; it stays
+because the adapter's tests read it.
 
 | Example | Domain | Modules | Worked examples |
 | --- | --- | --- | --- |
-| `wedding` | Paying a wedding on time from income, savings and a family gift. The same brief as `brief/`. | 6: the five calculation steps `s1`, `s2`, `s3`, `s5`, `s6`, and `cost_per_guest_all_in`, a step the agent asked for in a conversation and that is not in the brief | 24 |
+| `wedding` | Paying a wedding on time from income, savings and a family gift. The same brief as `brief/`, and three invented account files in `data/`. | 6: the five calculation steps `s1`, `s2`, `s3`, `s5`, `s6`, and `cost_per_guest_all_in`, a step the agent asked for in a conversation and that is not in the brief | 24 |
 | `moving` | Saving for a move to another city: deposit, van hire, months of overlapping rent. | 3: `m1`, `m2`, `m3` | 13 |
 
 Nothing under `harness/` names an example. They are data.
@@ -46,6 +51,19 @@ descriptions no longer tell the person how to type a date (the project's
 formula now says halves round up. That changes those modules' fingerprints,
 which is fine because nothing is registered yet.
 
+**Wedding account files.** `examples/wedding/data/` holds a current account, a
+savings account and a credit card, written by `data/.generate.py` (seeded, so the
+same bytes every time) and described in `data/.FACILITATOR_KEY.md`. Both start with
+a dot so that `data add` does not read them as accounts. The person in the story
+takes home 10,000 a month, says they spend "about 5,000" and have "10,000 saved".
+The files show 5,640.53 going out a month over the last three full months, 9,230.13
+in savings, and 10,026.66 coming in, which agrees. The files have a repeated heading
+row, repeated rows, mixed merchant spellings, three number and date formats, and card
+payments that also appear in the current account. Every figure in the key was
+recomputed from the raw files by a throwaway script that does not use the harness,
+and compared with what `data add` and the data summaries give. Remove the key from
+a copy you hand to attendees if you want them to find the plants themselves.
+
 **This is not a human check.** No person has yet checked these worked
 examples by hand. `adopt` says "checked by hand, but not by you", which is
 true of the person adopting; a person should still go through every
@@ -62,6 +80,11 @@ HARNESS_EXAMPLE=moving uv run python -m harness modules
 HARNESS_EXAMPLE=moving uv run python -m harness ask       # needs a model
 HARNESS_EXAMPLE=moving uv run python -m harness work      # the evidence page
 ```
+
+The wedding example also has account files. `HARNESS_EXAMPLE=wedding uv run python
+-m harness data add` loads all of them (it asks, file by file, how each one writes
+money going out: `negative` for `checking.csv` and `savings.csv`, `positive` for
+`credit_card.csv`), and a following `ask` checks what you say against them.
 
 `adopt` shows each module's worked examples and asks you to type `yes`. Then
 it runs their tests and registers the ones that pass. The database is kept
@@ -98,6 +121,10 @@ The seeded scenarios:
 | `wedding` | `aside_before_asking` | ask | A side conversation at the opening question (one, of one turn), then the full question: the cost still comes from a module |
 | `moving` | `keep_or_move_date` | ask | After the months figure the agent puts step `m4` (keep the move date or move it) as a judgment call |
 | `moving` | `aside_before_asking` | ask | A side conversation at the opening question (one, of one turn), then the full question: the upfront cost still comes from a module |
+| `wedding` | `check_my_figures` | ask | With the account files loaded, the person says they spend about 5,000 and have 10,000 saved. Two `data` findings (5,640.53 and 9,230.13) are decided, and the forecast then runs with the figures they chose (a shortfall of 7,941 at the second payment) |
+| `wedding` | `pay_agrees_with_files` | ask | The person says they take home 10,000 and the files show 10,026.66, within the 5% tolerance: no finding, and the payment schedule is worked out straight away |
+| `wedding` | `new_dinner_price` | ask | The person asks for a dinner price to be remembered, then gives a different one: an `earlier` finding, decided, with no model involved in finding it |
+| `wedding` | `spending_vs_brief` | ask | The person says they spend about 4,000 and the brief says about 5k: a `brief` finding, decided |
 
 ## Write a scenario
 
@@ -133,6 +160,10 @@ One JSON file, `scenarios/<name>.json`, with `<name>` in snake_case
   `steps` says what a `build` did with a step: `built`, `reused`, `kept` or
   `not_built`. A bare whole number from 0 to 12 cannot be in `shown`, so
   check it through the inputs of a run instead.
+- **Step 5 scenarios** set `"verify": true`, and may load files with `"data": [{"file", "sign"}]`
+  from the example's `data/` folder. `expect.findings` names the kind of finding
+  and a status or choice only when the lines make it certain. `max_findings`
+  bounds how many may be raised. Which line answers a finding depends on the model.
 - **Say a decision by its kind and step, never its choice.** Which line lands
   on a decision depends on the model, and the options are model-written. A
   `yes` that lands on a decision takes the suggestion when there is one.
@@ -161,6 +192,11 @@ One JSON file, `scenarios/<name>.json`, with `<name>` in snake_case
    any spec whose formula was ambiguous for it, then run `adopt` again.
 5. Run `HARNESS_EXAMPLE=<name> uv run python -m harness modules`: every module
    must be `unchanged` and `passed`. Delete a `_build` folder if one is left.
-6. Write at least one `ask` and one `build` scenario, one `ask` scenario whose
+6. (Step 5) To check what the person says against their own files, add account
+   files in `examples/<name>/data/` (each must pass `read_table`) and a scenario
+   with `verify` and `data`. Make the dates of the files and the scenario's `today`
+   agree: a month counts only when a file's rows reach its first and last day, and
+   the verifier asks for the last three full months.
+7. Write at least one `ask` and one `build` scenario, one `ask` scenario whose
    `decisions` names a `judgment` step of the brief, and one with `asides`.
    Replay each until it passes twice in a row.

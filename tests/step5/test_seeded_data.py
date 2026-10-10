@@ -10,7 +10,6 @@ import pytest
 
 from step5_helpers import EXAMPLES, SIGNS, h
 
-SEEDED = pytest.mark.xfail(reason="seeded data is added after step 5 is implemented", strict=False)
 NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
@@ -51,12 +50,10 @@ def test_every_data_file_of_every_example_passes_read_table_and_a_scenario_uses_
 
 # ---- what the data author adds to the wedding example ------------------------------------------------------------------------------------------
 
-@SEEDED
 def test_the_wedding_example_has_account_files():
     assert data_files("wedding")
 
 
-@SEEDED
 def test_each_wedding_file_passes_read_table_and_names_an_account(adapter):
     files = data_files("wedding")
     assert files
@@ -67,12 +64,10 @@ def test_each_wedding_file_passes_read_table_and_names_an_account(adapter):
         assert NAME.match(name) and name != "all"
 
 
-@SEEDED
 def test_the_wedding_example_ships_a_scenario_that_verifies():
     assert verifying("wedding")
 
 
-@SEEDED
 def test_a_verifying_scenario_names_files_of_the_data_folder_with_their_signs():
     names = {p.name for p in data_files("wedding")}
     assert names and verifying("wedding")
@@ -82,7 +77,6 @@ def test_a_verifying_scenario_names_files_of_the_data_folder_with_their_signs():
             assert "account" not in item or NAME.match(item["account"])
 
 
-@SEEDED
 def test_a_verifying_scenario_passes_validation(replay):
     scenarios = verifying("wedding")
     assert scenarios
@@ -90,7 +84,6 @@ def test_a_verifying_scenario_passes_validation(replay):
         assert replay.validate_scenario(scenario, stem=scenario["name"], brief=brief_of("wedding")) == []
 
 
-@SEEDED
 def test_a_verifying_scenario_describes_itself_and_expects_a_finding():
     assert verifying("wedding")
     for scenario in verifying("wedding"):
