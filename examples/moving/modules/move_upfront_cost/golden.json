@@ -18,7 +18,7 @@
     },
     "expected": "1680",
     "working": "1 x 500 = 500; 50 + 30 = 80; 1000 + 100 = 1100; 1100 + 500 = 1600; 1600 + 80 = 1680",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -30,7 +30,7 @@
     },
     "expected": "950",
     "working": "0 x 400 = 0; other costs sum = 0; 800 + 150 = 950; 950 + 0 = 950; 950 + 0 = 950",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -47,7 +47,7 @@
     },
     "expected": "1590",
     "working": "3 x 250 = 750; other costs sum = 40; 600 + 200 = 800; 800 + 750 = 1550; 1550 + 40 = 1590",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -64,6 +64,6 @@
     },
     "expected": "100",
     "working": "2 x 0 = 0; other costs sum = 100; 0 + 0 = 0; 0 + 0 = 0; 0 + 100 = 100",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]

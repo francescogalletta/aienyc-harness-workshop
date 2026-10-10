@@ -6,7 +6,7 @@
     },
     "expected": "100",
     "working": "1000 / 10 = 100",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -15,7 +15,7 @@
     },
     "expected": "750",
     "working": "750 / 1 = 750",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -24,7 +24,7 @@
     },
     "expected": "1.01",
     "working": "10.05 / 10 = 1.005; 1.005 is exactly a half at the third decimal, so it rounds up to 1.01",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -33,6 +33,6 @@
     },
     "expected": "333.33",
     "working": "1000 / 3 = 333.3333...; rounded to 2 decimals = 333.33",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]

@@ -1,5 +1,6 @@
 {
   "name": "build_monthly_surplus",
+  "layer": 2,
   "kind": "build",
   "description": "Leaves out the module for step s3 and checks that a build with the person saying yes to the plan and to each example builds it again, and keeps the other modules.",
   "without": [

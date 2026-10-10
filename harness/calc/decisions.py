@@ -1,7 +1,7 @@
 """Decisions: the record of what the person decided, and the blocks they are shown (SPEC 8.1 to 8.3).
 
-Four kinds: the assumption gate, a judgment put through `ask_decision`, a
-build request, and (step 5) a finding put through `ask_decision` (SPEC 9.7).
+Version 1's record; package A4a replaces it with harness/needs_you/calls.py. Two kinds are left: a
+judgment put through `ask_decision`, and a build request.
 `record_decision` writes the row and the `ask.decision` event together, so
 the evidence reads decisions from the events.
 """
@@ -14,12 +14,9 @@ from .. import db
 from .added import step_label
 from .builder import ACCEPT_WORDS
 
-KINDS = ("assumptions", "judgment", "build", "finding")
+KINDS = ("judgment", "build")
 SOMETHING_ELSE = "something else"
 
-GATE_INTRO = "Before working this out, the assistant would take some things as given that you have not confirmed:"
-GATE_QUESTION = ("Go ahead on these? Type yes to go ahead. If something is not right, say so in your own words: "
-                 "nothing runs, and the assistant hears what you said. Type /aside to talk it through on the side first.")
 DECISION_INTRO = "Only you can decide this:"
 DECISION_INTRO_STEP = "Only you can decide this. It is step {step} of the plan: {name}."
 DECISION_SUGGESTS = "The assistant suggests {n}: {why}"
@@ -64,7 +61,7 @@ def list_decisions(conn: sqlite3.Connection, *, session_id=None) -> list[dict]:
 def choice_words(decision: dict) -> str:
     """The choice in words: yes or no, `something else`, or `2. Move the date` (SPEC 8.1)."""
     choice = decision["choice"]
-    if decision["kind"] in ("judgment", "finding") and choice != SOMETHING_ELSE:
+    if decision["kind"] == "judgment" and choice != SOMETHING_ELSE:
         return f"{choice}. {decision['options'][int(choice) - 1]}"
     return choice
 
@@ -72,27 +69,6 @@ def choice_words(decision: dict) -> str:
 def one_line(text: str) -> str:
     """Trimmed, with every run of white space made one space (SPEC 8.1)."""
     return " ".join(text.split())
-
-
-def assumption_set(assumptions: list[str]) -> frozenset[str]:
-    """The sentences, each one line and case-folded, with the empty one left out (SPEC 8.2)."""
-    return frozenset(one_line(sentence).casefold() for sentence in assumptions) - {""}
-
-
-def gate_block(items: list[tuple[str, list[str], str]]) -> str:
-    """What the person sees at the assumption gate: (description, assumptions, expected) per held run (SPEC 8.2)."""
-    lines = [GATE_INTRO]
-    for k, (description, assumptions, expected) in enumerate(items, start=1):
-        lines.append(f"  {k}. {one_line(description)}")
-        lines.append("     Taking as given:")
-        seen = set()
-        for sentence in assumptions:
-            key = one_line(sentence).casefold()
-            if key and key not in seen:
-                seen.add(key)
-                lines.append(f"       - {one_line(sentence)}")
-        lines.append(f"     Expecting: {one_line(expected)}")
-    return "\n".join(lines)
 
 
 def decision_block(*, question: str, options: list[str], recommendation: int | None, why: str,

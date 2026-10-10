@@ -19,7 +19,7 @@
     },
     "expected": "800",
     "working": "800 + 300 = 1100; 1100 + 100 = 1200; 2000 - 1200 = 800",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -28,7 +28,7 @@
     },
     "expected": "1500",
     "working": "empty list sum = 0; 1500 - 0 = 1500",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -46,7 +46,7 @@
     },
     "expected": "0",
     "working": "700 + 300 = 1000; 1000 - 1000 = 0",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -64,6 +64,6 @@
     },
     "expected": "-150.50",
     "working": "900 + 250.50 = 1150.50; 1000 - 1150.50 = -150.50",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]

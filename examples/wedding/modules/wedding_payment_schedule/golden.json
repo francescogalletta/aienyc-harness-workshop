@@ -19,7 +19,7 @@
       "payment_3_due_date": "2026-02-19"
     },
     "working": "payment 1 = 200; remaining = 1000 - 200 = 800; payment 2 = 800 x 0.5 = 400; payment 3 = 800 - 400 = 400; due 1 = 2026-01-01 + 10 days = 2026-01-11; due 2 = 2026-03-01 - 30 days = 2026-01-30; due 3 = 2026-03-01 - 10 days = 2026-02-19",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -41,7 +41,7 @@
       "payment_3_due_date": "2026-05-31"
     },
     "working": "payment 1 = 500; remaining = 500 - 500 = 0; payment 2 = 0 x 0.5 = 0; payment 3 = 0 - 0 = 0; due 1 = 2026-02-01 + 0 days = 2026-02-01; due 2 = 2026-06-01 - 31 days = 2026-05-01; due 3 = 2026-06-01 - 1 day = 2026-05-31",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -63,7 +63,7 @@
       "payment_3_due_date": "2027-02-15"
     },
     "working": "payment 1 = 100; remaining = 110 - 100 = 10; payment 2 = 10 x 0.3333 = 3.333, rounded to 3.33; payment 3 = 10 - 3.33 = 6.67; due 1 = 2026-12-15 + 20 days = 2027-01-04; due 2 = 2027-03-01 - 60 days = 2026-12-31; due 3 = 2027-03-01 - 14 days = 2027-02-15",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -85,6 +85,6 @@
       "payment_3_due_date": "2028-03-01"
     },
     "working": "payment 1 = 500; remaining = 2000 - 500 = 1500; payment 2 = 1500 x 0.4 = 600; payment 3 = 1500 - 600 = 900; due 1 = 2028-02-01 + 28 days = 2028-02-29; due 2 = 2028-03-01 - 1 day = 2028-02-29; due 3 = 2028-03-01 - 0 days = 2028-03-01",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]

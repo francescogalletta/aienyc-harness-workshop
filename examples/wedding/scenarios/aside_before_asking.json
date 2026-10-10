@@ -1,5 +1,6 @@
 {
   "name": "aside_before_asking",
+  "layer": 4,
   "kind": "ask",
   "description": "The person steps aside at the opening question to ask what a running balance is, carries nothing back, and then asks the full question: one side conversation of one turn, and the cost still comes from a module.",
   "today": "2027-01-15",

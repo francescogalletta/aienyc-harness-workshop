@@ -1,116 +1,124 @@
-"""The local web server behind the pages (SPEC 4.7 and 7.5).
+"""The local web server (SPEC 2.7, ARCHITECTURE.md 4.2 and 5).
 
-It listens on this machine only. Every `/api/` request must carry a token
-that only the served page knows, so another site open in the same browser
-cannot drive the interview or read the evidence. Standard library only.
+It listens on this machine only. `GET /` serves the page with a token put in
+place; `GET /api/state` and `POST /api/act` need that token in the
+`X-Harness-Token` header, so another site open in the same browser cannot
+drive the harness or read the plan. The page polls `GET /api/state` (every
+second while a lane works, every five seconds otherwise) and redraws when
+`version` changed. Standard library only.
 """
 import json
-import re
 import secrets
-import sqlite3
-import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, urlsplit
 
-from .. import db
-from ..calc.gate import NOT_REGISTERED
-from . import evidence
+from ..core import BadAction
+from ..core.session import one_line
 
 TOKEN_HEADER = "X-Harness-Token"
 TOKEN_PLACEHOLDER = "__HARNESS_TOKEN__"
-PAGE = Path(__file__).with_name("grounding.html")
-WORK_PAGE = Path(__file__).with_name("evidence.html")
-WHOLE = re.compile(r"^[0-9]+$")
-MAX_BODY = 1_000_000        # bytes; far more than any answer needs
+PAGE = Path(__file__).with_name("page.html")
+MAX_BODY = 1_000_000        # bytes
 
-# path -> (the field that must not be empty, or None; what to do with the session and that text)
-ACTIONS = {
-    "/api/start": ("opening", lambda session, text: session.start(text)),
-    "/api/answer": ("text", lambda session, text: session.answer(text)),
-    "/api/accept": (None, lambda session, text: session.accept()),
-    "/api/changes": ("text", lambda session, text: session.request_changes(text)),
-    "/api/wrap": (None, lambda session, text: session.wrap()),
-    "/api/stop": (None, lambda session, text: session.stop()),
+# Served while page.html is not in the tree: the state as text, and a box to say something.
+PLACEHOLDER = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Financial Advisor Harness</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;margin:2rem;color:#0f2440;background:#eef2f7}
+pre{background:#fff;padding:1rem;overflow:auto;max-height:60vh}#chat p{margin:.25rem 0}</style></head>
+<body><h1>Financial Advisor Harness</h1>
+<p>The page is not built yet. This placeholder shows the plan state and lets you send a message.</p>
+<div id="chat"></div>
+<form id="say"><input id="text" size="60" autocomplete="off"> <button>Send</button></form>
+<p id="error"></p><pre id="state"></pre>
+<script>
+const TOKEN = "__HARNESS_TOKEN__";
+let version = null, busy = false, timer = null;
+async function api(path, body) {
+  const options = {headers: {"X-Harness-Token": TOKEN}};
+  if (body) { options.method = "POST"; options.body = JSON.stringify(body); }
+  return (await fetch(path, options)).json();
 }
+async function poll() {
+  const state = await api("/api/state");
+  busy = Object.values(state.lanes).some(lane => lane === "working");
+  if (state.version !== version) {
+    version = state.version;
+    const chat = document.getElementById("chat");
+    chat.replaceChildren(...state.chat.map(m => {
+      const p = document.createElement("p"); p.textContent = m.who + ": " + m.text; return p;
+    }));
+    document.getElementById("error").textContent = state.error || "";
+    document.getElementById("state").textContent = JSON.stringify(state, null, 2);
+  }
+  timer = setTimeout(poll, busy ? 1000 : 5000);
+}
+document.getElementById("say").addEventListener("submit", async event => {
+  event.preventDefault();
+  const box = document.getElementById("text");
+  const answer = await api("/api/act", {action: "say", text: box.value});
+  document.getElementById("error").textContent = answer.ok ? "" : answer.error;
+  if (answer.ok) box.value = "";
+  version = null; clearTimeout(timer); poll();
+});
+poll();
+</script></body></html>
+"""
 
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        path, _, query = self.path.partition("?")
+        path = self.path.partition("?")[0]
         if path == "/":
-            if self.server.session is None:
-                return self._redirect("/work")
-            return self._page(self.server.page_path)
-        if path == "/work":
-            return self._page(self.server.work_page_path)
+            return self._page()
         if not self._allowed(path):
             return None
-        if path == "/api/state" and self.server.session is not None:
-            return self._json(200, self.server.session.snapshot())
-        if path in WORK_GETS:
-            return self._work(WORK_GETS[path], {key: values[0] for key, values in parse_qs(query).items()})
-        return self._json(404, {"error": "not found"})
+        if path == "/api/state":
+            try:
+                return self._json(200, self.server.session.state())
+            except Exception as error:
+                return self._json(500, {"ok": False, "error": one_line(error)})
+        return self._json(404, {"ok": False, "error": "not found"})
 
     def do_POST(self):
         path = self.path.partition("?")[0]
         if not self._allowed(path):
             return None
-        if path == "/api/work/test":
-            field, action = "module", None
-        elif path in ACTIONS and self.server.session is not None:
-            field, action = ACTIONS[path]
-        else:
-            return self._json(404, {"error": "not found"})
+        if path != "/api/act":
+            return self._json(404, {"ok": False, "error": "not found"})
         try:
             length = int(self.headers.get("Content-Length") or 0)
             if not 0 <= length <= MAX_BODY:
-                raise ValueError("body too large")
-            body = json.loads(self.rfile.read(length) or b"{}")
-            text = str(body.get(field) or "").strip() if field else ""
-        except (ValueError, AttributeError):
-            return self._json(400, {"error": "the body must be a JSON object"})
-        if field and not text:
-            return self._json(400, {"error": f"{field} must not be empty"})
-        if action is None:
-            return self._work(lambda conn, server, params: _test(conn, server, text), {})
-        applied = action(self.server.session, text)
-        return self._json(200 if applied else 409, self.server.session.snapshot())
-
-    def _work(self, read, params: dict):
-        """Answer an evidence request from a connection of its own, closed before the answer goes out."""
-        conn = db.connect()
-        try:
-            status, body = read(conn, self.server, params)
-        except sqlite3.Error as error:
-            status, body = 500, {"error": " ".join(str(error).split())}
-        finally:
-            conn.close()
-        return self._json(status, body)
+                raise ValueError("the body is too large")
+            body = json.loads(self.rfile.read(length) or b"null")
+            if not isinstance(body, dict) or not isinstance(body.get("action"), str):
+                raise ValueError('the body must be a JSON object with "action"')
+            payload = {key: value for key, value in body.items() if key != "action"}
+            applied, reason = self.server.session.act(body["action"], payload)
+        except (ValueError, BadAction) as error:
+            return self._json(400, {"ok": False, "error": " ".join(str(error).split())})
+        except Exception as error:      # a fault in the harness, not in the request
+            return self._json(500, {"ok": False, "error": one_line(error)})
+        if not applied:
+            return self._json(409, {"ok": False, "error": reason})
+        return self._json(200, {"ok": True, "version": self.server.session.version})
 
     def _allowed(self, path: str) -> bool:
-        """Answer 404 outside /api/, and 403 for an /api/ request without the token."""
+        """404 outside /api/; 403 for an /api/ request without the token."""
         if not path.startswith("/api/"):
-            self._json(404, {"error": "not found"})
+            self._json(404, {"ok": False, "error": "not found"})
             return False
         if not secrets.compare_digest(self.headers.get(TOKEN_HEADER) or "", self.server.token):
-            self._json(403, {"error": f"missing or wrong {TOKEN_HEADER} header"})
+            self._json(403, {"ok": False, "error": f"missing or wrong {TOKEN_HEADER} header"})
             return False
         return True
 
-    def _page(self, page_path: Path):
+    def _page(self):
         try:
-            page = page_path.read_text(encoding="utf-8")
+            page = self.server.page_path.read_text(encoding="utf-8")
         except OSError:
-            return self._json(500, {"error": f"the page is missing: {page_path.name}"})
+            page = PLACEHOLDER
         self._send(200, "text/html; charset=utf-8", page.replace(TOKEN_PLACEHOLDER, self.server.token))
-
-    def _redirect(self, location: str):
-        self.send_response(303)
-        self.send_header("Location", location)
-        self.send_header("Content-Length", "0")
-        self.send_header("Cache-Control", "no-store")
-        self.end_headers()
 
     def _json(self, status: int, body: dict):
         self._send(status, "application/json; charset=utf-8", json.dumps(body))
@@ -128,75 +136,15 @@ class Handler(BaseHTTPRequestHandler):
         """No request log in the terminal."""
 
 
-# --- The evidence API (SPEC 7.4): each reads one request and returns (status, body) ---
+def make_server(session, port: int = 8765, page_path=None) -> ThreadingHTTPServer:
+    """A server for `session` on 127.0.0.1 (port 0 picks a free one). Call `serve_forever()` to run.
 
-def _summary(conn, server, params):
-    return 200, evidence.summary(conn, interview=server.session is not None)
-
-
-def _conversation(conn, server, params):
-    session = params.get("session")
-    if not session:
-        return 400, {"error": "session is required"}
-    found = evidence.conversation(conn, session)
-    return (200, found) if found is not None else (404, {"error": f"there is no conversation '{session}'"})
-
-
-def _run(conn, server, params):
-    if not WHOLE.match(params.get("id", "")):
-        return 400, {"error": "id must be a whole number"}
-    found = evidence.run(conn, int(params["id"]))
-    return (200, found) if found is not None else (404, {"error": f"there is no run {int(params['id'])}"})
-
-
-def _module(conn, server, params):
-    name = params.get("name")
-    if not name:
-        return 400, {"error": "name is required"}
-    found = evidence.module(conn, name)
-    return (200, found) if found is not None else (404, {"error": NOT_REGISTERED.format(name=name)})
-
-
-def _data_summary(conn, server, params):
-    if not WHOLE.match(params.get("id", "")):
-        return 400, {"error": "id must be a whole number"}
-    found = evidence.data_summary(conn, int(params["id"]))
-    return ((200, found) if found is not None
-            else (404, {"error": f"there is no data summary {int(params['id'])}"}))
-
-
-def _events(conn, server, params):
-    before, limit = params.get("before"), params.get("limit", "200")
-    if before is not None and not WHOLE.match(before):
-        return 400, {"error": "before must be a whole number"}
-    if not WHOLE.match(limit) or not 1 <= int(limit) <= 1000:
-        return 400, {"error": "limit must be a whole number from 1 to 1000"}
-    return 200, evidence.events_page(conn, kind=params.get("kind"), session=params.get("session"),
-                                     before=int(before) if before is not None else None, limit=int(limit))
-
-
-def _test(conn, server, name):
-    found = evidence.test_now(conn, name, session_id=server.work_session_id)
-    return (200, found) if found is not None else (404, {"error": NOT_REGISTERED.format(name=name)})
-
-
-WORK_GETS = {"/api/work/summary": _summary, "/api/work/conversation": _conversation,
-             "/api/work/run": _run, "/api/work/module": _module, "/api/work/events": _events,
-             "/api/work/data_summary": _data_summary}
-
-
-def make_server(session, port: int = 8765, page_path=None, work_page_path=None) -> ThreadingHTTPServer:
-    """A server for `session` on 127.0.0.1. Call `serve_forever()` on it to run.
-
-    `session` may be None: then only the evidence page is served (SPEC 7.5). `page_path` is the
-    interview page and `work_page_path` the evidence page; by default the given files next to this
-    one. A new random token is made for every server, and a new evidence session id, which the
-    test runs of `POST /api/work/test` carry.
+    `page_path` is the page; by default `page.html` next to this file, or a placeholder while that
+    file is not there. Every server makes a new random token.
     """
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    server.daemon_threads = True
     server.session = session
     server.token = secrets.token_urlsafe(32)
     server.page_path = Path(page_path) if page_path is not None else PAGE
-    server.work_page_path = Path(work_page_path) if work_page_path is not None else WORK_PAGE
-    server.work_session_id = uuid.uuid4().hex
     return server

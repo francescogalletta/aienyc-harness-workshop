@@ -7,7 +7,7 @@
     },
     "expected": "100",
     "working": "1000 - 400 = 600; 600 / 6 = 100; already whole cents, result 100",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -17,7 +17,7 @@
     },
     "expected": "0",
     "working": "savings 500 are equal to cost 500, so the result is 0",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -27,7 +27,7 @@
     },
     "expected": "333.34",
     "working": "1000 - 0 = 1000; 1000 / 3 = 333.3333...; any part of a cent rounds up, so 333.33 becomes 333.34",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -37,6 +37,6 @@
     },
     "expected": "187.5",
     "working": "1000 - 250 = 750; 750 / 4 = 187.5; exactly 187.5 so no rounding up needed, result 187.5",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]

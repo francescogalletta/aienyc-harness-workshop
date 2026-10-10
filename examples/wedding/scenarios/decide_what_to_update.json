@@ -1,5 +1,6 @@
 {
   "name": "decide_what_to_update",
+  "layer": 4,
   "kind": "ask",
   "description": "After the cash flow forecast is run by modules, the agent puts the review step (what to update first) to the person as a judgment call, and the person's answer is recorded against step s7.",
   "today": "2027-01-15",

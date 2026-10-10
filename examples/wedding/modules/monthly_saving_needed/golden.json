@@ -32,7 +32,7 @@
       }
     ],
     "working": "payment 1 due 2025-04-01: saving dates Feb 1, Mar 1, Apr 1 = 3; 300 / 3 = 100; payment 2 due 2025-07-01: saving dates Feb 1 to Jul 1 = 6; 500 / 6 = 83.333; rounded up to the next cent = 83.34",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -67,7 +67,7 @@
       }
     ],
     "working": "payment 1 due 2025-03-01: no saving date after today and on or before 2025-03-01, so months = 0; shortfall 200 with months 0, so extra = whole shortfall = 200; payment 2 due 2025-06-01: saving dates Apr 1, May 1, Jun 1 = 3; shortfall is 0, so extra = 0",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -102,7 +102,7 @@
       }
     ],
     "working": "saving dates: Feb 28 (short month), Mar 31, Apr 30; payment 1 due 2025-03-30: only Feb 28 counts (Mar 31 is after) = 1; 90 / 1 = 90; payment 2 due 2025-04-30: Feb 28, Mar 31, Apr 30 = 3; 100 / 3 = 33.333; rounded up to the next cent = 33.34",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -125,6 +125,6 @@
       }
     ],
     "working": "payment 1 due 2026-02-15: saving dates Jan 15, Feb 15 = 2 (due date itself counts); 250 / 2 = 125",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]

@@ -1,4 +1,9 @@
-"""The local SQLite database: migrations and the append-only event log (SPEC 3.5)."""
+"""The local SQLite database: one schema file per layer, and the append-only event log (SPEC 2.2).
+
+There is no migration history. Every schema file says `CREATE ... IF NOT
+EXISTS` and is applied on connect for the enabled layers. After a schema
+change, delete the database file.
+"""
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -6,44 +11,43 @@ from pathlib import Path
 
 from .config import load_config
 
-MIGRATIONS = Path(__file__).parent / "migrations"
+BASE_SCHEMA = Path(__file__).with_name("schema.sql")
 ACTORS = ("harness", "agent", "person")
 
 
-def _now() -> str:
+def now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
 def connect(path=None) -> sqlite3.Connection:
-    """Open the database at `path`, or at the configured path, creating its folder."""
+    """Open the database at `path`, or at the configured path, creating its folder.
+
+    WAL mode and a busy timeout of five seconds let one thread read while another writes.
+    The connection may be used only on the thread that opened it.
+    """
     path = Path(path) if path is not None else load_config().db_path
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=5)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA journal_mode = WAL")
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
-def migrate(conn: sqlite3.Connection) -> list[str]:
-    """Apply every migration file not yet applied, in filename order. Return their names."""
-    conn.execute("CREATE TABLE IF NOT EXISTS schema_migrations ("
-                 "name TEXT PRIMARY KEY, applied_at TEXT NOT NULL)")
-    done = set(applied_migrations(conn))
-    applied = []
-    for path in sorted(MIGRATIONS.glob("*.sql")):
-        if path.name in done:
+def apply_schemas(conn: sqlite3.Connection, layers=()) -> None:
+    """Run harness/schema.sql, then the schema of each layer given, in order.
+
+    `layers` holds Layer objects (their `schema`, which may be None) or paths.
+    """
+    done = set()
+    for each in (BASE_SCHEMA, *layers):
+        path = getattr(each, "schema", each)
+        if path is None or Path(path).resolve() in done:
             continue
-        conn.executescript(path.read_text(encoding="utf-8"))
-        conn.execute("INSERT INTO schema_migrations (name, applied_at) VALUES (?, ?)",
-                     (path.name, _now()))
-        conn.commit()
-        applied.append(path.name)
-    return applied
-
-
-def applied_migrations(conn: sqlite3.Connection) -> list[str]:
-    """Every applied migration file name, in filename order."""
-    return [row["name"] for row in conn.execute("SELECT name FROM schema_migrations ORDER BY name")]
+        done.add(Path(path).resolve())
+        conn.executescript(Path(path).read_text(encoding="utf-8"))
+    conn.commit()
 
 
 def record_event(conn: sqlite3.Connection, *, session_id: str, kind: str, actor: str,
@@ -53,7 +57,7 @@ def record_event(conn: sqlite3.Connection, *, session_id: str, kind: str, actor:
         raise ValueError(f"actor must be one of {', '.join(ACTORS)}, not {actor!r}")
     cursor = conn.execute(
         "INSERT INTO events (ts, session_id, kind, actor, payload) VALUES (?, ?, ?, ?, ?)",
-        (_now(), session_id, kind, actor, json.dumps(payload)))
+        (now(), session_id, kind, actor, json.dumps(payload)))
     conn.commit()
     return cursor.lastrowid
 

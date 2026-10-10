@@ -1,5 +1,6 @@
 {
   "name": "no_family_contribution",
+  "layer": 3,
   "kind": "ask",
   "description": "Same plan with no family contribution: checks that the fund forecast is run with a contribution of 0 and that the shortfalls the modules give are shown, 24,500 at the third payment for 200 guests and 13,000 for 150 guests.",
   "today": "2027-01-15",

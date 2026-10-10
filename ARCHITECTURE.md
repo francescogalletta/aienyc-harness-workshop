@@ -521,3 +521,49 @@ Each has the default the work plan takes.
    they are React.
 8. **Commands dropped.** Default: `adopt`, `modules`, `work`, `decisions`,
    `data` go; `check`, `events`, `ground`, `ui`, `build`, `ask`, `replay` stay.
+
+## 11. Decisions made while building
+
+- **A0 · Discovery.** A layer package's `layer.py` holds `LAYER`. A package whose folder or `layer.py`
+  is missing counts as missing; any other `ModuleNotFoundError` is an error. `layers.enabled()` returns
+  `layers.BASE` (number 0, schema `harness/schema.sql`) first; the state's `layers` lists the numbers.
+  All five packages have a skeleton `layer.py` now; packages 1 to 3 carry the version 1 tables their
+  kept code uses (`grounding/schema.sql`: `lookups`; `calc/schema.sql`: the six tables of SPEC 4.1;
+  `answers/schema.sql`: `inputs`).
+- **A0 · Session.** `Session(config, *, model_factory, desk_factory, layers=None)`: `layers` replaces
+  discovery, for tests. `harness.core.Core` is `Session`. What layers use: `conn` (the calling
+  thread's connection; in a job, the job's), `model()` (made once, shared), `memory` (a dict for
+  in-memory layer state), `desk_factory`, `waiting`, `lane(name)`, `queue(lane, run, *, what, step,
+  text, key)` (`key`: at most one queued job with that key per lane, for coalescing), `answer(data)`
+  (NotNow when nothing waits), `post(text, *, who, kind, step, thread, data)`, `update_message`,
+  `new_conversation()`, `hook(name, *args)`, `record(kind, payload, actor)`, `changed()`, `version`,
+  `wait_for_change(version, timeout)`. `Work` has `conn`, `model`, `config`, `lane`, `conversation`,
+  `progress(text, step, what)`, `post`, `wait(kind, **data)`, `queue`, `hook`, `record`, `changed`,
+  `desk()`. Thread helpers (`add_thread`, `set_thread_status`, `list_threads`) are in `core/session.py`.
+- **A0 · Routing.** `route(core, message)` returns `handler(work, message)` or None; the activity
+  `what` is `handler.what` (default `answer`). `message` is `{"id", "text", "step", "notice"}`, and is
+  also what a message answers a wait with; an action answers with what it passes to `core.answer`. A
+  message typed while the main lane works is stored with `queued: true` and routed when the lane
+  reaches it; a job that calls `wait` first takes the oldest such message. A waiting job is not in
+  `activity`.
+- **A0 · Messages.** Ids are integers shown as `m<n>` and `t<n>`. The keys of a message's `data` are
+  merged into the Message as they are; keys starting with `_` are the harness's own (the person's
+  notice reference is `_notice`). Layers put `figures`, `decision`, `notice`, `sources` there.
+- **A0 · Actions and events.** `act` raises `BadAction` (a ValueError: unknown action, bad payload;
+  the server gives 400) and returns `(False, reason)` on NotNow. Every action, applied or not, clears
+  `error`. Events: `core.message` (every message), `core.action` (every applied action),
+  `core.job_failed`, `core.check`; `session_id` is the conversation id.
+- **A0 · Step line.** Text over 18 characters is cut to 17 and `…`; a boolean is `yes`/`no`. The core
+  keeps at most one `needs_you`: an open decision's step, else a step a layer set, else the first
+  `not_built` step with a disagreement or fewer than two examples whose `checked_by` is set.
+- **A0 · Front ends.** The server serves a placeholder page while `ui/page.html` is missing, and a
+  500 JSON body for a fault in the harness. The terminal reads a line when neither the main nor the
+  side lane works. The legacy-layout check of version 1 is gone.
+- **A0 · Until later packages.** `replay` is not a command until A6 rewrites `replay.py` (the old file
+  is deleted); `ground`, `build` and `ask` come back with A1, A2b and A3. `calc/agent.py`,
+  `decisions.py`, `analyst.md`, `example_helper.md`, `builder.py` and `adopt.py` are version 1 code,
+  kept for A2a to A4a to replace, not wired to the core; `agent.py` lost the assumption gate, findings,
+  verifier and asides, and its build requests no longer ask. The old `decisions` table is in no schema.
+- **A0 · Tests.** Unit tests of kept code were parked: `tests/layer1/test_wikipedia.py`,
+  `tests/layer2/test_values.py`, `test_safety.py`, `test_provenance.py`, each folder with a conftest
+  that sets its `HARNESS_LAYERS`.

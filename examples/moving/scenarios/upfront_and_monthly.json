@@ -1,5 +1,6 @@
 {
   "name": "upfront_and_monthly",
+  "layer": 3,
   "kind": "ask",
   "description": "Checks that the upfront cost (4,660) and the monthly saving needed over 7 months (308.58, rounded up to the cent) both come from modules.",
   "lines": [

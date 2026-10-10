@@ -1,19 +1,69 @@
 {
-  "goal": "Save enough, by the planned move date, to pay the deposit, the van hire and the overlapping rent for a move to another city, and keep the plan up to date as the figures change.",
+  "goal": {
+    "text": "Save enough, by the planned move date, to pay the deposit, the van hire and the overlapping rent for a move to another city, and keep the plan up to date as the figures change.",
+    "origin": {
+      "kind": "proposed"
+    }
+  },
   "mode": "ongoing",
   "scope": {
     "in": [
-      "The one-off cost of the move: the deposit on the new home, the van hire and a period of months when rent is paid on both homes",
-      "Any other one-off moving costs the person lists, such as cleaning or packing materials",
-      "How much to put aside each month to have that sum by the move date",
-      "How many months the current monthly saving would take, if the move date is not fixed",
-      "Re-running the plan as prices, savings and the move date change"
+      {
+        "text": "The one-off cost of the move: the deposit on the new home, the van hire and a period of months when rent is paid on both homes",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Any other one-off moving costs the person lists, such as cleaning or packing materials",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "How much to put aside each month to have that sum by the move date",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "How many months the current monthly saving would take, if the move date is not fixed",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Re-running the plan as prices, savings and the move date change",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
     ],
     "out": [
-      "Choosing the new home, the city or the van company",
-      "Where to hold the money",
-      "Tax, benefits or any advice on products",
-      "Running costs of the new home after the move"
+      {
+        "text": "Choosing the new home, the city or the van company",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Where to hold the money",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Tax, benefits or any advice on products",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Running costs of the new home after the move",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
     ]
   },
   "glossary": [
@@ -45,57 +95,104 @@
   "particulars": [
     {
       "what": "For some months the person pays rent on the old home and on the new one at the same time.",
-      "handling": "Count the overlap as a number of months at the old home's monthly rent. It is a cost of the move, not part of the normal monthly spending."
+      "handling": "Count the overlap as a number of months at the old home's monthly rent. It is a cost of the move, not part of the normal monthly spending.",
+      "step": "m1",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "what": "The deposit paid on the old home comes back only after the person has left it.",
-      "handling": "Do not count that refund as money available before the move. If it arrives later it can be entered as savings then."
+      "handling": "Do not count that refund as money available before the move. If it arrives later it can be entered as savings then.",
+      "step": "m2",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "what": "The van price depends on the number of days and the distance, so it may change.",
-      "handling": "Enter the best quote as a single amount and update it when a new quote comes in."
+      "handling": "Enter the best quote as a single amount and update it when a new quote comes in.",
+      "step": "m1",
+      "origin": {
+        "kind": "person",
+        "quote": "the van price depends on the days"
+      }
     },
     {
       "what": "The person keeps an emergency fund and does not want to use it for the move.",
-      "handling": "Leave the emergency fund out of the savings so far. Only money put aside for the move counts."
+      "handling": "Leave the emergency fund out of the savings so far. Only money put aside for the move counts.",
+      "step": "m2",
+      "origin": {
+        "kind": "person",
+        "quote": "the rainy day money I do not want to touch"
+      }
     },
     {
       "what": "The move date may shift by a month or two.",
-      "handling": "Plan with the months left until the date now, and run the plan again, with the new number of months, when the date changes."
+      "handling": "Plan with the months left until the date now, and run the plan again, with the new number of months, when the date changes.",
+      "step": "m2",
+      "origin": {
+        "kind": "proposed"
+      }
     }
   ],
   "inputs": [
     {
       "name": "Deposit",
-      "description": "The deposit asked for the new home, paid before the move."
+      "description": "The deposit asked for the new home, paid before the move.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Van hire",
-      "description": "The quoted price of the van for the move."
+      "description": "The quoted price of the van for the move.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Monthly rent of the old home",
-      "description": "What the old home costs each month, which is paid during the overlap."
+      "description": "What the old home costs each month, which is paid during the overlap.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Months of overlapping rent",
-      "description": "How many months rent is paid on both homes."
+      "description": "How many months rent is paid on both homes.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Other one-off costs",
-      "description": "Any other costs of the move that are paid once, each with a name and an amount. May be none."
+      "description": "Any other costs of the move that are paid once, each with a name and an amount. May be none.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Savings so far",
-      "description": "The money already put aside for the move, not counting the emergency fund."
+      "description": "The money already put aside for the move, not counting the emergency fund.",
+      "origin": {
+        "kind": "person",
+        "quote": "what I have saved so far"
+      }
     },
     {
       "name": "Months until the move",
-      "description": "How many months are left to save before the move."
+      "description": "How many months are left to save before the move.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Monthly amount you can save",
-      "description": "What the person can put aside for the move each month."
+      "description": "What the person can put aside for the move each month.",
+      "origin": {
+        "kind": "proposed"
+      }
     }
   ],
   "process": [
@@ -113,7 +210,10 @@
         "Other one-off costs"
       ],
       "produces": "The total sum needed before the move",
-      "cadence": "when a price or the overlap changes"
+      "cadence": "when a price or the overlap changes",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "m2",
@@ -127,7 +227,11 @@
         "Months until the move"
       ],
       "produces": "The amount to put aside each month to have the upfront cost by the move date",
-      "cadence": "monthly"
+      "cadence": "monthly",
+      "origin": {
+        "kind": "looked_up",
+        "source": "https://en.wikipedia.org/wiki/Sinking_fund"
+      }
     },
     {
       "id": "m3",
@@ -141,7 +245,10 @@
         "Monthly amount you can save"
       ],
       "produces": "The number of months until the savings would cover the upfront cost",
-      "cadence": "monthly"
+      "cadence": "monthly",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "m4",
@@ -152,18 +259,54 @@
         "m3"
       ],
       "produces": "A plain view of whether the move date is realistic at the current saving, and what to change first: the date, the van, the overlap or the saving",
-      "cadence": "monthly"
+      "cadence": "monthly",
+      "origin": {
+        "kind": "proposed"
+      }
     }
   ],
   "definition_of_done": [
-    "The person can see the total sum needed before the move and what each part of it is.",
-    "The person knows how much to put aside each month to have it by the move date, or how many months their current saving would take.",
-    "The plan is run again whenever a price, the savings or the move date changes."
+    {
+      "text": "The person can see the total sum needed before the move and what each part of it is.",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "The person knows how much to put aside each month to have it by the move date, or how many months their current saving would take.",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "The plan is run again whenever a price, the savings or the move date changes.",
+      "origin": {
+        "kind": "proposed"
+      }
+    }
   ],
   "open_questions": [
-    "How many months will rent be paid on both homes?",
-    "Does the new landlord accept the deposit in parts, or all at once?",
-    "Is there a cheaper van date, for example in the middle of the week?"
+    {
+      "text": "How many months will rent be paid on both homes?",
+      "step": "m1",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "Does the new landlord accept the deposit in parts, or all at once?",
+      "step": "m1",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "Is there a cheaper van date, for example in the middle of the week?",
+      "step": "m1",
+      "origin": {
+        "kind": "proposed"
+      }
+    }
   ],
   "meta": {
     "written_at": "2026-10-09T22:04:56+00:00",
@@ -222,6 +365,7 @@
         "origin": "reference"
       }
     ],
-    "status": "confirmed"
+    "status": "confirmed",
+    "revisions": []
   }
 }

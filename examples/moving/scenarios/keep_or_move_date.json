@@ -1,5 +1,6 @@
 {
   "name": "keep_or_move_date",
+  "layer": 4,
   "kind": "ask",
   "description": "After the months-to-save figure is worked out by modules, the agent puts keeping or moving the date to the person as a judgment call, recorded against step m4.",
   "lines": [

@@ -1,20 +1,76 @@
 {
-  "goal": "Build and keep up to date a savings plan (sinking fund) that, using a cash flow forecast, shows whether the person can cover each wedding payment on its due date from their own net income, existing savings and the expected family contribution.",
+  "goal": {
+    "text": "Build and keep up to date a savings plan (sinking fund) that, using a cash flow forecast, shows whether the person can cover each wedding payment on its due date from their own net income, existing savings and the expected family contribution.",
+    "origin": {
+      "kind": "person",
+      "quote": "saving to pay for the wedding"
+    }
+  },
   "mode": "ongoing",
   "scope": {
     "in": [
-      "Saving enough from current monthly net income and the 10k already saved to meet the wedding payments",
-      "Timing of the three payments: fixed 6k due in 21 days, then 50% of the remaining cost 30 days before the wedding, then the other 50% 14 days before",
-      "The 20k contribution from the person's and partner's families, expected about 2 weeks before the wedding",
-      "An uncertain total cost that depends on guest count (about 200 invited; final count known the day before the 30-day payment)",
-      "Re-running the plan as guest numbers, dates and amounts change"
+      {
+        "text": "Saving enough from current monthly net income and the 10k already saved to meet the wedding payments",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Timing of the three payments: fixed 6k due in 21 days, then 50% of the remaining cost 30 days before the wedding, then the other 50% 14 days before",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "The 20k contribution from the person's and partner's families, expected about 2 weeks before the wedding",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "An uncertain total cost that depends on guest count (about 200 invited; final count known the day before the 30-day payment)",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Re-running the plan as guest numbers, dates and amounts change",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
     ],
     "out": [
-      "Deciding whether to hold the wedding money in cash, savings or elsewhere",
-      "Building a full household budget or reorganising spending categories",
-      "How the wedding fits into wider finances (debt, investing, long-term goals, life after the wedding)",
-      "Negotiating or reducing wedding costs",
-      "Tax advice or any recommendation on products"
+      {
+        "text": "Deciding whether to hold the wedding money in cash, savings or elsewhere",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Building a full household budget or reorganising spending categories",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "How the wedding fits into wider finances (debt, investing, long-term goals, life after the wedding)",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Negotiating or reducing wedding costs",
+        "origin": {
+          "kind": "proposed"
+        }
+      },
+      {
+        "text": "Tax advice or any recommendation on products",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
     ]
   },
   "glossary": [
@@ -58,69 +114,130 @@
   "particulars": [
     {
       "what": "The wedding cost is not fixed: it depends on guest count (about 200 invited now; final count known the day before the 30-day payment).",
-      "handling": "Plan with an estimated total (ideally a low/high range) until the final count is confirmed, then recalculate the two instalments on the confirmed figure."
+      "handling": "Plan with an estimated total (ideally a low/high range) until the final count is confirmed, then recalculate the two instalments on the confirmed figure.",
+      "step": "s1",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "what": "Payment schedule is a fixed 6k in 21 days, then two equal instalments of 50% each of the remaining cost, at 30 days and 14 days before the wedding.",
-      "handling": "Treat 'remaining cost' as total cost minus the 6k, and each instalment as half of that. Confirm with the contract that the 6k counts toward the total."
+      "handling": "Treat 'remaining cost' as total cost minus the 6k, and each instalment as half of that. Confirm with the contract that the 6k counts toward the total.",
+      "step": "s2",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "what": "A 20k contribution from the person's and partner's families is expected about 2 weeks before the wedding ('I think'; may change).",
-      "handling": "Enter it as an inflow dated 14 days before the wedding, flagged as uncertain. Do not rely on it to fund the 6k or the 30-day payment, and update the date or amount when confirmed."
+      "handling": "Enter it as an inflow dated 14 days before the wedding, flagged as uncertain. Do not rely on it to fund the 6k or the 30-day payment, and update the date or amount when confirmed.",
+      "step": "s4",
+      "origin": {
+        "kind": "person",
+        "quote": "I think"
+      }
     },
     {
       "what": "The person first called their 10k monthly income 'gross' and then corrected it to net.",
-      "handling": "Use 10k per month net income (take-home pay). Check against payslips or bank deposits."
+      "handling": "Use 10k per month net income (take-home pay). Check against payslips or bank deposits.",
+      "step": "s3",
+      "origin": {
+        "kind": "person",
+        "quote": "gross"
+      }
     },
     {
       "what": "The person says they 'consume' about 5k a month.",
-      "handling": "Read this as monthly spending (outflows) of about 5k, excluding wedding payments. Confirm that it covers all regular costs and whether it varies."
+      "handling": "Read this as monthly spending (outflows) of about 5k, excluding wedding payments. Confirm that it covers all regular costs and whether it varies.",
+      "step": "s3",
+      "origin": {
+        "kind": "person",
+        "quote": "consume"
+      }
     },
     {
       "what": "The person has 10k already saved for the wedding.",
-      "handling": "Use it as the opening balance of the wedding fund in the forecast."
+      "handling": "Use it as the opening balance of the wedding fund in the forecast.",
+      "step": "s5",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "what": "The person asked whether to upload bank statements or connect to the bank, or whether variation in spending matters.",
-      "handling": "Not needed to start: use the 5k average for now. Statements can later be used to check the average and its month-to-month variation. The choice of how to supply data is left open."
+      "handling": "Not needed to start: use the 5k average for now. Statements can later be used to check the average and its month-to-month variation. The choice of how to supply data is left open.",
+      "step": "s3",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "what": "The person expects to adjust projections as things happen.",
-      "handling": "The plan is re-run whenever dates, guest count, contribution or spending change, and at least monthly."
+      "handling": "The plan is re-run whenever dates, guest count, contribution or spending change, and at least monthly.",
+      "step": null,
+      "origin": {
+        "kind": "proposed"
+      }
     }
   ],
   "inputs": [
     {
       "name": "Wedding date",
-      "description": "The date from which all payment dates are counted. Not yet stated."
+      "description": "The date from which all payment dates are counted. Not yet stated.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Payment schedule",
-      "description": "6k due in 21 days; 50% of the remaining cost 30 days before; 50% 14 days before. Described in conversation; the contract is the source."
+      "description": "6k due in 21 days; 50% of the remaining cost 30 days before; 50% 14 days before. Described in conversation; the contract is the source.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Guest count",
-      "description": "About 200 invited; final count known the day before the 30-day payment."
+      "description": "About 200 invited; final count known the day before the 30-day payment.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Cost per guest or estimated total cost",
-      "description": "Needed to estimate the total from the guest count. Not yet provided."
+      "description": "Needed to estimate the total from the guest count. Not yet provided.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Net monthly income",
-      "description": "About 10k per month take-home pay, stable."
+      "description": "About 10k per month take-home pay, stable.",
+      "origin": {
+        "kind": "person",
+        "quote": "net pay"
+      }
     },
     {
       "name": "Monthly spending",
-      "description": "About 5k per month on average, stated from memory. Bank statements or a bank connection could be supplied later."
+      "description": "About 5k per month on average, stated from memory. Bank statements or a bank connection could be supplied later.",
+      "origin": {
+        "kind": "person",
+        "quote": "current budget"
+      }
     },
     {
       "name": "Current wedding savings",
-      "description": "10k already saved. Where it is held is out of scope."
+      "description": "10k already saved. Where it is held is out of scope.",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "name": "Family and partner contribution",
-      "description": "20k in total, expected about 2 weeks before the wedding, not yet firm."
+      "description": "20k in total, expected about 2 weeks before the wedding, not yet firm.",
+      "origin": {
+        "kind": "proposed"
+      }
     }
   ],
   "process": [
@@ -135,7 +252,10 @@
         "Cost per guest or estimated total cost"
       ],
       "produces": "Estimated (later confirmed) total wedding cost, as a low, expected and high case",
-      "cadence": "when guest count or prices change"
+      "cadence": "when guest count or prices change",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "s2",
@@ -148,7 +268,10 @@
         "Payment schedule"
       ],
       "produces": "Amount and due date of each of the three payments",
-      "cadence": "when s1 changes"
+      "cadence": "when s1 changes",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "s3",
@@ -161,7 +284,10 @@
         "Monthly spending"
       ],
       "produces": "Amount available to save each month before the wedding",
-      "cadence": "monthly"
+      "cadence": "monthly",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "s4",
@@ -171,7 +297,10 @@
         "Family and partner contribution"
       ],
       "produces": "Confirmed (or still estimated) date and amount of the 20k, an input to s5",
-      "cadence": "when anything changes"
+      "cadence": "when anything changes",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "s5",
@@ -186,7 +315,11 @@
         "Current wedding savings"
       ],
       "produces": "Balance of the wedding fund at each payment date, showing any shortfall or surplus",
-      "cadence": "monthly and whenever inputs change"
+      "cadence": "monthly and whenever inputs change",
+      "origin": {
+        "kind": "person",
+        "quote": "projections and estimations"
+      }
     },
     {
       "id": "s6",
@@ -198,7 +331,10 @@
         "s5"
       ],
       "produces": "Required monthly saving per payment, set against the monthly surplus from s3",
-      "cadence": "monthly"
+      "cadence": "monthly",
+      "origin": {
+        "kind": "proposed"
+      }
     },
     {
       "id": "s7",
@@ -209,24 +345,95 @@
         "s6"
       ],
       "produces": "Plain explanation of whether the plan is on track, which assumptions (guest count, contribution date, spending) matter most, and what to update next",
-      "cadence": "monthly and after the guest count is confirmed"
+      "cadence": "monthly and after the guest count is confirmed",
+      "origin": {
+        "kind": "proposed"
+      }
     }
   ],
   "definition_of_done": [
-    "The person can see, for each of the three payments, how much is due, when, and whether the wedding fund covers it on that date.",
-    "The plan is refreshed at least monthly, and straight away when the guest count is confirmed or the contribution date or amount changes.",
-    "All calculations run as tested code and give the same answer each time; the person can trace each number back to its inputs.",
-    "The person feels less stressed about the money because they know in advance of any shortfall."
+    {
+      "text": "The person can see, for each of the three payments, how much is due, when, and whether the wedding fund covers it on that date.",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "The plan is refreshed at least monthly, and straight away when the guest count is confirmed or the contribution date or amount changes.",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "All calculations run as tested code and give the same answer each time; the person can trace each number back to its inputs.",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "The person feels less stressed about the money because they know in advance of any shortfall.",
+      "origin": {
+        "kind": "proposed"
+      }
+    }
   ],
   "open_questions": [
-    "What is the wedding date? Without it the payment dates cannot be fixed.",
-    "What is the cost per guest, or the expected total cost? The size of the shortfall depends on it.",
-    "Does the 6k count toward the total cost, so that 'remaining cost' means total minus 6k?",
-    "Is the 5k monthly spending a reliable average, and does it include all regular costs? Bank statements or a bank connection could help; the format is still to be decided.",
-    "How firm is the 20k contribution, and will it really arrive about 2 weeks before the wedding?",
-    "Does the person have other costs apart from the venue payments (for example attire, travel or rings) that should be added to the plan?",
-    "IMPORTANT: every look_up failed because web search was unavailable, so no glossary definition has a source. The definitions are from general knowledge and must be re-checked. Because no source could be found, steps s5 and s6 are written as plain arithmetic (they are a running balance and a simple division) and are only described as 'cash flow forecast style' and 'savings goal style' in their names. Once sources are available, they should be re-labelled with those methods.",
-    "Where to hold the money (cash or savings) and the wider budget are out of scope for now and could be a later piece of work."
+    {
+      "text": "What is the wedding date? Without it the payment dates cannot be fixed.",
+      "step": "s2",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "What is the cost per guest, or the expected total cost? The size of the shortfall depends on it.",
+      "step": "s1",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "Does the 6k count toward the total cost, so that 'remaining cost' means total minus 6k?",
+      "step": "s2",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "Is the 5k monthly spending a reliable average, and does it include all regular costs? Bank statements or a bank connection could help; the format is still to be decided.",
+      "step": "s3",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "How firm is the 20k contribution, and will it really arrive about 2 weeks before the wedding?",
+      "step": "s4",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "Does the person have other costs apart from the venue payments (for example attire, travel or rings) that should be added to the plan?",
+      "step": "s1",
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "IMPORTANT: every look_up failed because web search was unavailable, so no glossary definition has a source. The definitions are from general knowledge and must be re-checked. Because no source could be found, steps s5 and s6 are written as plain arithmetic (they are a running balance and a simple division) and are only described as 'cash flow forecast style' and 'savings goal style' in their names. Once sources are available, they should be re-labelled with those methods.",
+      "step": null,
+      "origin": {
+        "kind": "proposed"
+      }
+    },
+    {
+      "text": "Where to hold the money (cash or savings) and the wider budget are out of scope for now and could be a later piece of work.",
+      "step": null,
+      "origin": {
+        "kind": "proposed"
+      }
+    }
   ],
   "meta": {
     "written_at": "2026-10-09T16:40:51+00:00",
@@ -338,6 +545,7 @@
         "sources": []
       }
     ],
-    "status": "confirmed"
+    "status": "confirmed",
+    "revisions": []
   }
 }

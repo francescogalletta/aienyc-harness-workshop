@@ -1,5 +1,6 @@
 {
   "name": "cover_each_payment",
+  "layer": 3,
   "kind": "ask",
   "description": "Checks that a range of guest counts is run as two cases (43,000 and 54,500 in total), that the payments, the monthly surplus and the fund balance are run by modules, and that the 200-guest shortfall at the second payment (5,250) comes from a module.",
   "today": "2027-01-15",

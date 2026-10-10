@@ -38,7 +38,7 @@
       }
     ],
     "working": "Contribution is 0 so ignored; venue due 2025-03-01: saving dates Feb 1, Mar 1 = 2; 2 x 200 = 400; 1000 + 400 = 1400; 1400 - 1000 = 400; shortfall 0; dress due 2025-05-01: saving dates Feb 1, Mar 1, Apr 1, May 1 = 4; 4 x 200 = 800; 1000 + 800 = 1800; 1800 - 1000 = 800; 800 - 600 = 200; shortfall 0",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -66,7 +66,7 @@
       }
     ],
     "working": "photographer due 2025-02-01: saving dates up to Feb 1 = 1; 1 x 0 = 0; 500 + 0 = 500; 500 - 500 = 0; balance is not below zero so shortfall 0",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -107,7 +107,7 @@
       }
     ],
     "working": "Order by due date: flowers 2025-02-28, band 2025-04-29; saving dates: Feb 28 (short month), Mar 31, Apr 30; flowers: 1 date; 1 x 100 = 100; contribution date 2025-04-29 is after 2025-02-28 so not counted; 100 + 100 = 200; 200 - 150 = 50; shortfall 0; band: Feb 28 and Mar 31 are on or before Apr 29 (Apr 30 is not) = 2 dates; 2 x 100 = 200; 100 + 200 = 300; contribution counted: 300 + 300 = 600; 600 - 150 = 450; 450 - 600 = -150; shortfall 150",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   },
   {
     "inputs": {
@@ -148,6 +148,6 @@
       }
     ],
     "working": "Both due 2025-03-01 so given order: cake, rings; saving dates Feb 1, Mar 1 = 2; 2 x 100 = 200; 0 + 200 = 200; contribution date 2025-03-01 is on the due date so counted: 200 + 50 = 250; cake: 250 - 300 = -50; shortfall 50; rings: balance before is the running balance -50; -50 - 200 = -250; shortfall 250",
-    "decision": "accepted"
+    "checked_by": "second_pass"
   }
 ]
