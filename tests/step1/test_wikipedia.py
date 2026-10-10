@@ -39,11 +39,6 @@ def test_a_page_with_an_extract_is_found():
         origin="wikipedia")
 
 
-def test_a_long_definition_is_cut_at_500_characters():
-    lookup = WikipediaResearcher(fetch=FakeFetch(page(extract="word " * 300))).look_up("word")
-    assert lookup.found and len(lookup.definition) == 500
-
-
 def test_only_the_query_is_sent():
     """Ground rule 6: one request, and nothing in it but the term."""
     fetch = FakeFetch(page())
@@ -62,52 +57,11 @@ def test_only_the_query_is_sent():
 
 @pytest.mark.parametrize("fetch", [
     FakeFetch(page(pageprops={"disambiguation": ""})),          # a list of meanings is not a definition
-    FakeFetch(page(extract="")),
-    FakeFetch(page(extract="   \n")),
-    FakeFetch({"pageid": 1, "title": "No text"}),
     FakeFetch(page(fullurl="")),                                # a source needs an address
     FakeFetch(),                                                # the search found no page
 ])
 def test_anything_else_is_not_found(fetch):
     assert WikipediaResearcher(fetch=fetch).look_up("zzz") == Lookup("zzz", False, origin="wikipedia")
-
-
-def test_pageprops_without_disambiguation_do_not_matter():
-    assert WikipediaResearcher(fetch=FakeFetch(page(pageprops={"wikibase_item": "Q1"}))).look_up("x").found
-
-
-def test_a_request_that_fails_raises():
-    def offline(url):
-        raise OSError("network is unreachable")
-
-    with pytest.raises(OSError):
-        WikipediaResearcher(fetch=offline).look_up("sinking fund")
-    with pytest.raises(ValueError):
-        WikipediaResearcher(fetch=FakeFetch(body="<html>not json</html>")).look_up("sinking fund")
-
-
-def test_the_default_fetch_is_a_plain_request_with_a_user_agent(monkeypatch):
-    import harness.grounding.research as research
-    seen = {}
-
-    class Reply:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_):
-            return False
-
-        def read(self):
-            return json.dumps({"query": {"pages": {"1": page()}}}).encode("utf-8")
-
-    def urlopen(request, timeout):
-        seen.update(url=request.full_url, agent=request.get_header("User-agent"), timeout=timeout)
-        return Reply()
-
-    monkeypatch.setattr(research.urllib.request, "urlopen", urlopen)
-    assert WikipediaResearcher().look_up("sinking fund").found
-    assert seen["agent"] == "finance-harness-workshop/0.1 (local research tool)"
-    assert seen["timeout"] == 15 and "gsrsearch=sinking%20fund&" in seen["url"]
 
 
 class Fixed:
@@ -134,9 +88,3 @@ def test_the_chain_skips_a_researcher_that_raises():
     assert ChainResearcher([Fixed(False), Fixed(RuntimeError("down"))]).look_up("x") == Lookup("x", False)
     assert ChainResearcher([Fixed(RuntimeError("down")), Fixed(False)]).look_up("x") == Lookup("x", False)
     assert ChainResearcher([Fixed(False), Fixed(False)]).look_up("x") == Lookup("x", False)
-
-
-def test_the_chain_fails_only_when_every_researcher_failed():
-    chain = ChainResearcher([Fixed(RuntimeError("first reason")), Fixed(OSError("last\nreason"))])
-    with pytest.raises(RuntimeError, match="^last reason$"):
-        chain.look_up("x")

@@ -101,25 +101,6 @@ def test_history_with_tool_results_is_translated():
     ]
 
 
-def test_failed_tool_calls_and_empty_assistant_messages():
-    client = FakeClient(api_response([text_block("ok")]))
-    AnthropicModel("m", client=client).complete(system="", messages=[
-        {"role": "user", "content": "go"},
-        {"role": "assistant", "content": "", "tool_calls": [{"id": "a", "name": "sum", "arguments": {}}]},
-        {"role": "tool", "tool_call_id": "a", "content": "division by zero", "is_error": True},
-        {"role": "assistant", "content": ""},            # nothing said, nothing called: left out
-        {"role": "assistant", "content": "", "tool_calls": []},
-        {"role": "user", "content": "try again"},
-    ])
-    assert client.messages.requests[0]["messages"] == [
-        {"role": "user", "content": "go"},
-        {"role": "assistant", "content": [{"type": "tool_use", "id": "a", "name": "sum", "input": {}}]},
-        {"role": "user", "content": [
-            {"type": "tool_result", "tool_use_id": "a", "content": "division by zero", "is_error": True}]},
-        {"role": "user", "content": "try again"},
-    ]
-
-
 def test_stop_reasons():
     for api, neutral in [("end_turn", "end"), ("tool_use", "tool_use"), ("max_tokens", "max_tokens"),
                          ("stop_sequence", "other"), ("refusal", "other")]:

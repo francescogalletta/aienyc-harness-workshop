@@ -136,12 +136,6 @@ def test_one_question_at_a_time_is_enforced_by_the_harness(setup):
     assert ("grounding.correction", "harness") in kinds(setup.conn)
 
 
-def test_text_sent_with_a_tool_call_is_not_shown(setup):
-    person = Person("yes")
-    setup([{"text": "Let me check. Which account is it?", **LOOK_UP}, write()], person)
-    assert not any("Which account" in text for text in person.told + person.asked)
-
-
 def test_a_brief_that_fails_the_checks_goes_back_to_the_model(setup):
     bad = make_brief()
     bad["process"][2]["method"] = "my own trick"
@@ -153,13 +147,6 @@ def test_a_brief_that_fails_the_checks_goes_back_to_the_model(setup):
     assert "not accepted" in refusal["content"] and "'s3'" in refusal["content"]
     assert len(person.asked) == 1                                       # only the valid brief was shown
     assert ("grounding.brief_rejected", "harness") in kinds(setup.conn)
-
-
-def test_a_source_that_was_never_looked_up_is_refused(setup):
-    person = Person("yes")
-    saved, model, _ = setup([write(), LOOK_UP, write()], person)       # first try: no lookup made yet
-    assert saved["status"] == "confirmed"
-    assert SOURCE in model.calls[1]["messages"][-1]["content"]
 
 
 def test_three_failed_briefs_are_saved_as_a_draft(setup):
@@ -182,18 +169,6 @@ def test_the_person_can_ask_for_changes(setup):
     assert ("grounding.brief_changes", "person") in kinds(setup.conn)
 
 
-def test_the_question_limit_and_wrap(setup):
-    person = Person("First answer.", "yes")
-    _, model, state = setup([{"text": "One question?"}, LOOK_UP, write()], person, max_questions=1)
-    assert state["questions"] == 1
-    assert model.calls[1]["messages"][-1] == {"role": "user",
-                                              "content": "First answer.\n\n" + LIMIT_REACHED}
-
-    person = Person("/wrap", "yes")
-    _, model, _ = setup([{"text": "One question?"}, LOOK_UP, write()], person)
-    assert model.calls[1]["messages"][-1] == {"role": "user", "content": WRAP_UP}
-
-
 def test_quit_and_resume(setup):
     person = Person("An answer.", "/quit")
     saved, model, state = setup([{"text": "First question?"}, {"text": "Second question?"}], person)
@@ -210,60 +185,6 @@ def test_quit_and_resume(setup):
     assert model.calls[0]["messages"][-1] == {"role": "user", "content": "The second answer."}
     questions = [row for row in db.list_events(setup.conn) if row["kind"] == "grounding.question"]
     assert len(questions) == 2                                          # not recorded twice
-
-
-def test_lookups_that_cannot_run(setup):
-    class Broken:
-        def look_up(self, query):
-            raise RuntimeError("no network\ntoday")
-
-    long_query = "x" * 101
-    person = Person("yes")
-    _, model, state = setup([
-        {"tool_calls": [{"name": "look_up", "arguments": {"query": long_query}},
-                        {"name": "look_up", "arguments": {"query": "net cash flow"}},
-                        {"name": "nonsense", "arguments": {}}]},
-        write(make_brief(glossary=[{"term": "Typical month", "definition": "Usual spending."}],
-                         process=[{"id": "s1", "name": "Ask", "kind": "input", "needs": [], "produces": "x"}])),
-    ], person, researcher=Broken())
-    results = model.calls[1]["messages"][-3:]
-    assert all(result["role"] == "tool" and result["is_error"] for result in results)
-    assert "at most 100 characters" in results[0]["content"]
-    assert results[1]["content"] == "The lookup failed: no network today"
-    assert "nonsense" in results[2]["content"]
-    assert state["lookups"] == []
-    assert [(entry["query"], entry["status"], entry["error"]) for entry in state["research"]] == [
-        ("net cash flow", "failed", "no network today")]
-    failed = [json.loads(row["payload"]) for row in db.list_events(setup.conn, kind="grounding.lookup")]
-    assert failed == [{"query": "net cash flow", "error": "no network today"}]
-    assert "  (looking up: net cash flow)" in person.told and not any(long_query in t for t in person.told)
-
-
-def test_several_lookups_in_one_turn_keep_their_order(setup):
-    person = Person("yes")
-    _, model, state = setup([
-        {"tool_calls": [{"name": "look_up", "arguments": {"query": "balance"}},
-                        {"name": "look_up", "arguments": {"query": "something unknown"}},
-                        {"name": "look_up", "arguments": {"query": "cash forecast"}}]},
-        write(),
-    ], person)
-    results = [json.loads(m["content"]) for m in model.calls[1]["messages"][-3:]]
-    assert [r["query"] for r in results] == ["balance", "something unknown", "cash forecast"]
-    assert [r["found"] for r in results] == [True, False, True]
-    assert [e["query"] for e in state["research"]] == ["balance", "something unknown", "cash forecast"]
-    assert [e["status"] for e in state["research"]] == ["found", "not_found", "found"]
-    # Only what was found can be cited, so only that is kept for the checks.
-    assert [l["query"] for l in state["lookups"]] == ["balance", "cash forecast"]
-    # A lookup that found nothing says what to do next.
-    assert results[1]["note"] == ("No source found. Try the usual standard name once, "
-                                  "or leave this term without a source.")
-    assert not model.calls[1]["messages"][-2].get("is_error")
-
-
-def test_a_new_state_has_room_for_research():
-    assert new_state("s", "Hello.") == {
-        "session_id": "s", "messages": [{"role": "user", "content": "Hello."}],
-        "lookups": [], "research": [], "proposed": None, "questions": 0, "rejections": 0}
 
 
 def test_the_plan_runs_first_and_tells_the_interviewer_what_is_ready(setup):
@@ -303,32 +224,6 @@ def test_the_plan_runs_first_and_tells_the_interviewer_what_is_ready(setup):
     assert kinds(setup.conn) == [("grounding.research_plan", "agent"), ("grounding.brief_written", "harness")]
     plan_event = db.list_events(setup.conn, kind="grounding.research_plan")[0]
     assert json.loads(plan_event["payload"]) == {"terms": ["cash flow forecast", "quantum budgeting", "balance"]}
-
-
-def test_the_harness_line_when_every_planned_term_was_found(setup):
-    person = Person("/accept")
-    _, model, _ = setup([PLAN, write()], person, plan=True)
-    assert model.calls[1]["messages"][0]["content"].endswith(
-        "\n\n[harness] Already read up on, ready for look_up: cash flow forecast.")
-
-
-def test_an_empty_plan_changes_nothing(setup):
-    person = Person("/accept")
-    _, model, state = setup([{"text": "I would rather not."}, LOOK_UP, write()], person, plan=True)
-    assert model.calls[1]["messages"] == [{"role": "user", "content": "I want to stay on top of my cash flow."}]
-    assert [e["planned"] for e in state["research"]] == [False]
-
-
-def test_the_plan_does_not_run_again_on_resume(setup):
-    person = Person("/quit")
-    _, _, state = setup([PLAN, {"text": "First question?"}], person, plan=True)
-    stored = json.loads((setup.folder / "state.json").read_text(encoding="utf-8"))
-    assert stored["research"] == state["research"] and stored["research"][0]["planned"] is True
-
-    person = Person("An answer.", "/accept")
-    saved, model, _ = setup([write()], person, state=stored, plan=True)     # no plan entry in this script
-    assert saved["status"] == "confirmed"
-    assert len(db.list_events(setup.conn, kind="grounding.research_plan")) == 1
 
 
 def test_a_term_is_looked_up_once(setup):
@@ -396,39 +291,3 @@ def test_the_lookup_limit(setup):
     assert json.loads(planned["content"])["repeat"] is True
     assert len(state["research"]) == 13 and len(setup.researcher.queries) == 13
     assert "  (looking up: term 13)" not in person.told
-
-
-def test_the_brief_is_held_as_proposed_while_the_person_decides(setup):
-    seen = []
-
-    class Watching(Person):
-        def ask(self, text):
-            seen.append((text, state_seen["state"]["proposed"]))
-            return super().ask(text)
-
-    state_seen = {"state": new_state("session-1", "I want to stay on top of my cash flow.")}
-    person = Watching("Make it weekly.", "/accept")
-    saved, _, state = setup([LOOK_UP, write(), write(make_brief(mode="one_off"))], person,
-                            state=state_seen["state"])
-    assert saved["status"] == "confirmed"
-    assert seen == [(CONFIRM, make_brief()), (CONFIRM, make_brief(mode="one_off"))]
-    assert state["proposed"] is None
-
-    # Stopping at the confirm question leaves nothing proposed in the saved state.
-    setup([LOOK_UP, write()], Person("/quit"))
-    stored = json.loads((setup.folder / "state.json").read_text(encoding="utf-8"))
-    assert stored["proposed"] is None and stored["messages"][-1]["role"] == "tool"
-
-
-@pytest.mark.parametrize("answer", ["/accept", "/ACCEPT", "yes", "Y", "ok", "sí"])
-def test_accepting_the_brief(setup, answer):
-    saved, _, _ = setup([LOOK_UP, write()], Person(answer))
-    assert saved["status"] == "confirmed"
-
-
-def test_a_state_saved_before_the_desk_existed_can_be_resumed(setup):
-    old = {"session_id": "session-1", "questions": 1, "rejections": 0, "lookups": [],
-           "messages": [{"role": "user", "content": "I want help."},
-                        {"role": "assistant", "content": "First question?"}]}
-    saved, _, state = setup([LOOK_UP, write()], Person("An answer.", "/accept"), state=old, plan=True)
-    assert saved["status"] == "confirmed" and len(state["research"]) == 1

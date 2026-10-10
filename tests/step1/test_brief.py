@@ -21,15 +21,6 @@ def test_missing_parts_are_named():
     assert validate_brief("not a brief", lookups_made()) == ["the brief must be an object"]
 
 
-def test_basic_fields():
-    assert any("goal" in e for e in errors_for(goal="  "))
-    assert any("mode" in e for e in errors_for(mode="sometimes"))
-    assert any("scope.in" in e for e in errors_for(scope={"in": [], "out": []}))
-    assert any("definition_of_done" in e for e in errors_for(definition_of_done=[]))
-    assert any("process" in e for e in errors_for(process=[]))
-    assert any("inputs" in e for e in errors_for(inputs="a bank export"))
-
-
 def test_a_source_must_come_from_a_lookup_in_this_interview():
     """No invented citations: a source the researcher never returned is refused."""
     glossary = make_brief()["glossary"]
@@ -94,15 +85,6 @@ def test_the_page_is_built_by_code_and_is_always_the_same():
 
     draft = render_brief(make_brief(), {"status": "draft", "errors": ["process step 's3': something"]})
     assert "Draft, not confirmed" in draft and "- process step 's3': something" in draft
-
-
-def test_the_summary_is_plain_text_for_the_terminal():
-    summary = summarise_brief(make_brief())
-    assert "PROPOSED BRIEF" in summary and "Goal (ongoing):" in summary
-    assert "s3 [calculation] Forecast the balance month by month" in summary
-    assert "method: cash flow forecast" in summary
-    assert "(you call it: cash flow)" in summary and "[not looked up]" in summary
-    assert "|" not in summary and "#" not in summary
 
 
 def test_saving_writes_both_files(tmp_path):

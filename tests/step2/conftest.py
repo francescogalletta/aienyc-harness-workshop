@@ -1,5 +1,9 @@
 import importlib
 import json
+import os
+import shutil
+import sqlite3
+from pathlib import Path
 
 import pytest
 
@@ -7,6 +11,9 @@ from harness import db
 from harness.grounding import save_brief
 import step2_helpers as h
 from step2_helpers import DAY, QUESTION, SESSION, Person, TracingModel, make_brief
+
+_INSTALLED = pytest.StashKey()
+_MIGRATED = pytest.StashKey()
 
 SETTINGS = ("HARNESS_DB", "HARNESS_MODEL_PROVIDER", "HARNESS_MODEL", "HARNESS_SCRIPT",
             "HARNESS_RESEARCHER", "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR", "HARNESS_EXAMPLE")
@@ -34,10 +41,24 @@ def modules_dir(tmp_path):
 
 
 @pytest.fixture
-def conn():
-    """A migrated connection to the test database."""
+def conn(request, tmp_path_factory):
+    """A migrated connection to the test database.
+
+    The migrations are applied for real in the first test; later tests start from a copy of that database.
+    """
+    template = request.config.stash.get(_MIGRATED, None)
+    if template is not None:
+        path = Path(os.environ["HARNESS_DB"])
+        path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(template, path)
     connection = db.connect()
     db.migrate(connection)
+    if template is None:
+        template = tmp_path_factory.mktemp("migrated") / "harness.db"
+        copy = sqlite3.connect(template)
+        connection.backup(copy)
+        copy.close()
+        request.config.stash[_MIGRATED] = template
     yield connection
     connection.close()
 
@@ -127,10 +148,27 @@ def build_one(builder, conn, brief):
 
 
 @pytest.fixture
-def installed(conn):
-    """The two example modules, registered for steps s1 and s3."""
-    h.install_surplus(conn, "s1")
-    h.install_months(conn, "s3")
+def installed(conn, modules_dir, tmp_path_factory, request):
+    """The two example modules, registered for steps s1 and s3.
+
+    They are built and tested for real once per run of the suite; every later test gets a copy of that result,
+    which keeps the many tests that start from "both modules exist" fast.
+    """
+    cache = request.config.stash.get(_INSTALLED, None)
+    if cache is None:
+        h.install_surplus(conn, "s1")
+        h.install_months(conn, "s3")
+        folder = tmp_path_factory.mktemp("installed")
+        copy = sqlite3.connect(folder / "harness.db")
+        conn.backup(copy)
+        copy.close()
+        shutil.copytree(modules_dir, folder / "modules")
+        request.config.stash[_INSTALLED] = folder
+        return
+    source = sqlite3.connect(cache / "harness.db")
+    source.backup(conn)
+    source.close()
+    shutil.copytree(cache / "modules", modules_dir, dirs_exist_ok=True)
 
 
 @pytest.fixture

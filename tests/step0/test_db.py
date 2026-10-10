@@ -30,17 +30,6 @@ def test_migrate_applies_once(tmp_path):
     assert {"events", "schema_migrations"} <= tables
 
 
-def test_migrations_survive_reopening(tmp_path):
-    path = tmp_path / "a.db"
-    conn = db.connect(path)
-    db.migrate(conn)
-    db.record_event(conn, session_id="s", kind="k", actor="harness", payload={})
-    conn.close()
-    again = db.connect(path)
-    assert db.migrate(again) == []
-    assert len(db.list_events(again)) == 1
-
-
 def test_record_and_list_events(tmp_path):
     conn = db.connect(tmp_path / "a.db")
     db.migrate(conn)

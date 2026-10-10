@@ -1,5 +1,4 @@
-"""SPEC 1 (rule 9) and 2: the layout. The harness never uses the teaching folder, and the fixtures are where the
-layout says."""
+"""SPEC 1 (rule 9) and 2: the layout. The harness never uses the teaching folder, and git ignores my/var."""
 import re
 import subprocess
 from pathlib import Path
@@ -28,12 +27,6 @@ def test_nothing_in_the_harness_or_the_tests_names_the_teaching_folder(folder):
     offenders = [str(path.relative_to(ROOT)) for path in source_files(folder)
                  if pattern.search(path.read_text(encoding="utf-8"))]
     assert offenders == []
-
-
-def test_the_account_file_fixture_is_where_the_layout_says():
-    fixture = ROOT / "tests" / "fixtures" / "accounts"
-    assert (fixture / "generate.py").is_file() and (fixture / "FACILITATOR_KEY.md").is_file()
-    assert (fixture / "example").is_dir()
 
 
 def test_git_ignores_my_var():

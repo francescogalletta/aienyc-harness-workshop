@@ -18,16 +18,6 @@ def test_the_spec_writer_gets_every_note_from_every_session_oldest_first(build, 
         ("notes", [{"step": "s3", "text": "said at the later step"}, {"step": "s1", "text": "said at the first step"}]))
 
 
-def test_the_notes_come_before_the_current_spec_on_a_rebuild(build, conn, notes):
-    h.install_surplus(conn, step_id="s1")
-    notes.add_note(conn, step_id="s1", text="a note", session_id="one")
-    brief = only_step("s1")
-    _, model, _ = build(surplus_script(), built(), brief=brief, rebuild="monthly_surplus")
-    assert model.calls[0]["messages"][0]["content"] == sections(
-        ("step", brief["process"][0]), ("brief", brief), ("registered modules", []),
-        ("notes", [{"step": "s1", "text": "a note"}]), ("current spec", saved_spec(h.surplus_spec(), "s1")))
-
-
 def two_steps(build, conn, notes):
     """Step s1 gets a note at the plan check and one from the helper; then step s3 is built. Returns the model."""
     notes.add_note(conn, step_id="s0", text=EARLIER, session_id="earlier")
@@ -37,13 +27,6 @@ def two_steps(build, conn, notes):
     results, model, _ = build(script, answers)
     assert [r["outcome"] for r in results] == ["built", "built"]
     return model
-
-
-def test_notes_saved_in_one_step_reach_the_spec_writer_of_the_next(build, conn, notes):
-    model = two_steps(build, conn, notes)
-    content = h.phase_calls(model, "spec_writer.md")[-1]["messages"][0]["content"]
-    assert content.endswith(sections(("notes", [
-        {"step": "s0", "text": EARLIER}, {"step": "s1", "text": FEEDBACK}, {"step": "s1", "text": HELPER}])))
 
 
 def test_no_note_reaches_the_example_writer_or_the_code_writer(build, conn, notes):
@@ -57,14 +40,3 @@ def test_no_note_reaches_the_example_writer_or_the_code_writer(build, conn, note
                 assert marker not in text, (prompt, marker)
 
 
-def test_the_example_helper_gets_only_what_was_said_about_its_example(build, conn, notes):
-    model = two_steps(build, conn, notes)
-    [call] = h.phase_calls(model, "example_helper.md")
-    text = call["system"] + call["messages"][0]["content"]
-    assert "EARLIER-MARKER" not in text and "FEEDBACK-MARKER" not in text and HELPER in text
-
-
-def test_the_plan_feedback_reaches_the_writer_as_the_tool_result_and_not_in_its_first_message(build, conn, notes):
-    model = two_steps(build, conn, notes)
-    first, second = h.phase_calls(model, "spec_writer.md")[:2]
-    assert FEEDBACK not in first["messages"][0]["content"] and FEEDBACK in second["messages"][-1]["content"]

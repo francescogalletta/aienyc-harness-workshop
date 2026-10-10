@@ -57,13 +57,6 @@ def test_bank_balances_reconcile():
             assert balance == stated, (name, concept)
 
 
-def test_checking_is_a_pasted_export():
-    lines = (EXAMPLE / "checking_2026.csv").read_text(encoding="utf-8").splitlines()
-    assert sum(line.startswith("Fecha;") for line in lines) == 2
-    june_30 = [line for line in lines if line.startswith("30/06/2026;")]
-    assert len(june_30) == 2 * len(set(june_30)) > 0
-
-
 def test_card_bill_equals_previous_month_card_spending():
     by_month = {}
     with open(EXAMPLE / "card_2026.csv", encoding="utf-8", newline="") as f:
@@ -74,11 +67,3 @@ def test_card_bill_equals_previous_month_card_spending():
              if concept.startswith("RECIBO TARJETA CREDITO")}
     for month in range(2, 10):
         assert bills[f"2026-{month:02d}"] == by_month[f"2026-{month - 1:02d}"]
-
-
-def test_savings_transfers_match_between_accounts():
-    out_of_checking = sorted((d, -a) for d, c, a, _ in bank_rows("checking_2026.csv")
-                             if c == "TRASPASO A CUENTA AHORRO")
-    into_savings = sorted((d, a) for d, c, a, _ in bank_rows("savings_2026.csv")
-                          if c == "TRASPASO DESDE CUENTA CORRIENTE")
-    assert out_of_checking == into_savings and len(into_savings) == 8

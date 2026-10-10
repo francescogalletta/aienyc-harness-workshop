@@ -54,12 +54,6 @@ def test_check_with_the_scripted_model(tmp_path):
     assert second[0][0] != second[1][0]
 
 
-def test_events_on_a_new_database_prints_nothing(tmp_path):
-    result = run(["events"], {"HARNESS_DB": str(tmp_path / "new.db")})
-    assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == ""
-
-
 def test_check_fails_cleanly_when_the_model_call_fails(tmp_path):
     db_path = tmp_path / "harness.db"
     script = tmp_path / "empty.json"

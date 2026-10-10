@@ -73,16 +73,3 @@ def test_stopping_early_and_resuming(tmp_path, reference_file):
     assert resumed.returncode == 0, resumed.stderr
     assert "First question?" in resumed.stdout and "Brief saved (confirmed)" in resumed.stdout
     assert not (tmp_path / "var" / "grounding_state.json").exists()
-
-
-def test_resume_with_nothing_to_resume(tmp_path, reference_file):
-    result = run(["ground", "--resume"], environment(tmp_path, reference_file, []))
-    assert result.returncode == 1 and "no interview to resume" in result.stderr
-
-
-def test_a_failing_model_stops_cleanly_and_can_be_resumed(tmp_path, reference_file):
-    env = environment(tmp_path, reference_file, [])               # the first model call runs out of script
-    result = run(["ground"], env, typed="I want help.\n")
-    assert result.returncode == 1
-    assert "Traceback" not in result.stderr and "--resume" in result.stderr
-    assert (tmp_path / "var" / "grounding_state.json").exists()

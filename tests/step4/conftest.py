@@ -1,5 +1,6 @@
 import importlib
 import json
+import os
 import shutil
 
 import pytest
@@ -12,9 +13,29 @@ SETTINGS = ("HARNESS_DB", "HARNESS_MODEL_PROVIDER", "HARNESS_MODEL", "HARNESS_SC
             "HARNESS_REFERENCE", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR", "HARNESS_EXAMPLE")
 
 
+@pytest.fixture(scope="session")
+def migrated_database(tmp_path_factory):
+    """A database with every migration applied, made once: copying it is much quicker than migrating for each test."""
+    path = tmp_path_factory.mktemp("template") / "harness.db"
+    previous = os.environ.get("HARNESS_DB")
+    os.environ["HARNESS_DB"] = str(path)
+    try:
+        connection = db.connect()
+        db.migrate(connection)
+        connection.close()
+    finally:
+        if previous is None:
+            os.environ.pop("HARNESS_DB", None)
+        else:
+            os.environ["HARNESS_DB"] = previous
+    return path
+
+
 @pytest.fixture(autouse=True)
-def clean_environment(monkeypatch, tmp_path):
+def clean_environment(monkeypatch, tmp_path, migrated_database):
     """Every test starts with its own database, modules folder, brief folder and scripted model."""
+    (tmp_path / "var").mkdir()
+    shutil.copy(migrated_database, tmp_path / "var" / "harness.db")
     for name in SETTINGS:
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("HARNESS_DB", str(tmp_path / "var" / "harness.db"))

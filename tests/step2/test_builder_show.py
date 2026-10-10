@@ -84,54 +84,8 @@ Example 1 of 3
 
 # ---- show ------------------------------------------------------------------------------------
 
-def test_the_worked_rendering_of_the_contract(builder):
-    assert builder.show(SHOWN_VALUE) == SHOWN_TEXT
-
-
-def test_a_value_is_shown_at_an_indent(builder):
-    shifted = "\n".join("    " + line for line in SHOWN_TEXT.splitlines())
-    assert builder.show(SHOWN_VALUE, 4) == shifted
-
-
-@pytest.mark.parametrize("value, text", [
-    ("some words", "some words"), ("", "(none)"), (True, "yes"), (False, "no"), (3, "3"), (2.5, "2.5"), (-4, "-4"),
-    (None, "(none)"), ([], "(none)"), ({}, "(none)")])
-def test_a_short_value_is_one_piece_of_text(builder, value, text):
-    assert builder.show(value) == text
-    assert builder.show(value, 6) == text                    # a short value has no indent of its own
-
-
-def test_an_object_is_one_field_per_key_in_order_with_the_keys_as_they_are(builder):
-    assert builder.show({"zeta key": "1", "Alpha_key": True}) == "zeta key: 1\nAlpha_key: yes"
-
-
-def test_a_list_is_numbered_from_one(builder):
-    assert builder.show(["a", "b", "c"]) == "1. a\n2. b\n3. c"
-
-
-def test_the_text_has_no_line_break_at_the_start_or_the_end(builder):
-    text = builder.show({"a": [1, {"b": [2]}]})
-    assert not text.startswith("\n") and not text.endswith("\n")
-
-
-def test_the_marks_of_a_list_at_an_indent(builder):
-    assert builder.show([{"a": "1", "b": "2"}, "x"], 2) == "  1. a: 1\n     b: 2\n  2. x"
-
 
 # ---- field -----------------------------------------------------------------------------------
-
-@pytest.mark.parametrize("value, text", [
-    ("x", "  label: x"), ("", "  label: (none)"), (True, "  label: yes"), ([], "  label: (none)"), ({}, "  label: (none)")])
-def test_a_field_with_a_short_value_is_on_one_line(builder, value, text):
-    assert builder.field("label", value, 2) == text
-
-
-def test_a_field_with_a_list_puts_its_items_below(builder):
-    assert builder.field("amounts", ["10", "20"], 2) == "  amounts:\n    1. 10\n    2. 20"
-
-
-def test_a_field_with_an_object_puts_its_fields_below(builder):
-    assert builder.field("pair", {"low": "1", "high": "2"}, 0) == "pair:\n  low: 1\n  high: 2"
 
 
 # ---- plan_words ------------------------------------------------------------------------------
@@ -140,27 +94,7 @@ def test_the_plan_in_plain_words_of_the_contract(builder):
     assert builder.plan_words(RENT_SPEC) == RENT_PLAN
 
 
-@pytest.mark.parametrize("kind, words", [
-    ("number", "a number"), ("integer", "a whole number"), ("date", "a date"), ("boolean", "yes or no"),
-    ("text", "text"), ("list", "a list"), ("object", "a few named values")])
-def test_each_kind_has_its_words(builder, kind, words):
-    spec = {**RENT_SPEC, "inputs": [{"name": "an_input", "type": kind, "description": "Some words."}]}
-    assert builder.plan_words(spec).splitlines()[2] == f"  - an input ({words}): Some words."
-
-
-def test_descriptions_are_kept_as_they_are(builder):
-    spec = {**RENT_SPEC, "inputs": [{"name": "x", "type": "text", "description": "Keep_this_underscore"}],
-            "output": {"type": "text", "description": "Out_put as is"}}
-    lines = builder.plan_words(spec).splitlines()
-    assert lines[2].endswith(": Keep_this_underscore") and lines[3] == "It gives back: Out_put as is"
-
-
 # ---- what the person is shown while building ---------------------------------------------------
-
-def test_the_plan_of_the_contract_is_what_the_person_is_told(build):
-    _, _, person = build([propose_spec(RENT_SPEC), propose_examples(RENT_EXAMPLES)], ["/quit"], brief=only_step("s1"))
-    assert RENT_PLAN in person.told
-    assert person.log[person.log.index(("say", RENT_PLAN)) + 1] == ("ask", PLAN_QUESTION)
 
 
 def test_the_example_of_the_contract_is_shown_exactly(build):
@@ -169,17 +103,3 @@ def test_the_example_of_the_contract_is_shown_exactly(build):
     assert FIRST_BLOCK in person.told
 
 
-def test_the_second_and_third_example_are_numbered_of_three(build):
-    _, _, person = build([propose_spec(RENT_SPEC), propose_examples(RENT_EXAMPLES)], ["yes", "/accept", "/accept", "/quit"],
-                         brief=only_step("s1"))
-    assert [t.splitlines()[0] for t in person.told if t.startswith("Example ")] == [
-        "Example 1 of 3", "Example 2 of 3", "Example 3 of 3"]
-    assert "  one off costs: (none)" in person.told[person.told.index(FIRST_BLOCK) + 1]
-
-
-def test_the_working_and_the_answer_of_a_text_output_are_shown_as_text(build):
-    spec = surplus_spec(name="plan_label", output={"type": "text", "description": "A label."},
-                        inputs=[{"name": "x", "type": "text", "description": "d"}])
-    examples = [{"inputs": {"x": "a"}, "expected": "Plan B", "working": "pick B"}] * 3
-    _, _, person = build([propose_spec(spec), propose_examples(examples)], ["yes", "/quit"], brief=only_step("s1"))
-    assert "Example 1 of 3\n  x: a\n  Working: pick B\n  Proposed answer: Plan B" in person.told

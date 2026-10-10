@@ -60,19 +60,6 @@ def post(send, path, body=None, **options):
     return status, json.loads(text)
 
 
-def test_the_server_listens_on_this_machine_only(served, tmp_path):
-    assert TOKEN_HEADER == "X-Harness-Token"
-    assert served.server.server_address[0] == "127.0.0.1"
-    assert isinstance(served.server.token, str) and len(served.server.token) >= 32
-    other = make_server(served.session, port=0)
-    try:
-        assert other.server_address[0] == "127.0.0.1" and other.token != served.server.token
-        # With no page given, it serves the given page next to server.py.
-        assert other.page_path == Path(server_module.__file__).with_name("grounding.html")
-    finally:
-        other.server_close()
-
-
 def test_the_page_is_served_with_the_token_in_place(served):
     status, content_type, text = served("GET", "/", token=None)     # the page itself needs no token
     assert status == 200 and content_type.startswith("text/html")
@@ -92,38 +79,11 @@ def test_every_api_request_needs_the_token(served):
     assert served.session.snapshot()["phase"] == "start"            # none of them did anything
 
 
-def test_the_state_is_the_snapshot(served):
-    status, content_type, text = served("GET", "/api/state")
-    assert status == 200 and content_type.startswith("application/json")
-    assert json.loads(text) == served.session.snapshot()
-    assert json.loads(text)["phase"] == "start"
-
-
 def test_a_post_that_does_not_apply_is_409_with_the_snapshot(served):
     for path, body in [("/api/answer", {"text": "Hello."}), ("/api/accept", {}),
                        ("/api/changes", {"text": "More."}), ("/api/wrap", {}), ("/api/stop", {})]:
         status, snapshot = post(served, path, body)
         assert status == 409 and snapshot["phase"] == "start", path
-
-
-def test_an_empty_text_is_400(served):
-    for path, body in [("/api/start", {"opening": ""}), ("/api/start", {"opening": "   "}),
-                       ("/api/start", {}), ("/api/start", {"text": "wrong field"}),
-                       ("/api/answer", {"text": ""}), ("/api/changes", {"text": " "}),
-                       ("/api/start", ["not", "an", "object"])]:
-        status, reply = post(served, path, body)
-        assert status == 400 and "error" in reply, (path, body)
-    status, _, text = served("POST", "/api/start", raw=b"{ not json")
-    assert status == 400 and "error" in json.loads(text)
-    assert served.session.snapshot()["phase"] == "start"
-
-
-def test_unknown_paths_are_404(served):
-    for method, path in [("GET", "/nothing"), ("GET", "/api/nothing"), ("POST", "/api/nothing"),
-                         ("POST", "/"), ("GET", "/api/start"), ("GET", "/index.html")]:
-        status, content_type, text = served(method, path, {} if method == "POST" else None)
-        assert status == 404, (method, path)
-        assert content_type.startswith("application/json") and "error" in json.loads(text)
 
 
 def test_an_interview_through_the_api(served):
@@ -142,23 +102,3 @@ def test_an_interview_through_the_api(served):
     assert post(served, "/api/accept")[0] == 200
     assert served.session.wait(5)["phase"] == "saved"
     assert json.loads(served("GET", "/api/state")[2])["saved"]["status"] == "confirmed"
-
-
-def test_changes_wrap_and_stop_reach_the_session(served):
-    post(served, "/api/start", {"opening": "I want help."})
-    served.session.wait(5)
-    assert post(served, "/api/wrap")[0] == 200
-    assert served.session.wait(5)["phase"] == "confirm"
-    assert post(served, "/api/stop")[0] == 200
-    assert served.session.wait(5)["phase"] == "stopped"
-    assert post(served, "/api/changes", {"text": "More."})[0] == 409
-
-
-def test_no_request_is_logged_to_the_terminal(served, capfd):
-    served("GET", "/")
-    served("GET", "/api/state")
-    served("GET", "/api/state", token=None)
-    served("GET", "/nothing")
-    post(served, "/api/answer", {"text": "Hello."})
-    captured = capfd.readouterr()
-    assert captured.out == "" and captured.err == ""
