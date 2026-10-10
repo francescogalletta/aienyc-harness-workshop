@@ -180,7 +180,8 @@ def _check_runs(value, context) -> dict:
 
 def _check_shown(wanted: bool):
     def check(value, context) -> dict:
-        replies = [event["text"] for event in _events(context, "ask.reply")]
+        replies = [message["text"] for message in context.state()["chat"]
+                   if message["who"] == "assistant" and message["kind"] in ("text", "decision")]
         found = [item for item in value if any(not unbacked(item, [text]) for text in replies)]
         shown = [item for item in value if item in found]
         passed = len(found) == len(value) if wanted else not found

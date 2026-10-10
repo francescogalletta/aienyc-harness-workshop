@@ -45,18 +45,24 @@ again.
 
 ## Scenarios
 
-A scenario is a scripted person (SPEC 2.6). Each carries a `layer`. The
-scenario files are still written for version 1 and package A6 rewrites them.
+A scenario is a scripted person (SPEC 2.6): lines said to the main chat and actions (confirm, correct, choose, side,
+use, dismiss), played against the configured model in a scratch copy under `my/var/replay/`, at the scenario's layer.
+`uv run python -m harness replay wedding` (or `moving`, or one scenario: `replay wedding review_the_plan`) prints one
+line per expectation and exits 0 only when all pass; `--keep` keeps the scratch copy. Each run uses the real model:
+expect about 30 seconds for a build and one to two minutes for a conversation (a whole example takes 2 to 7 minutes).
+Figures are worked out by hand, not with the modules.
 
-| Example | Scenario | Layer | Kind |
+| Example | Scenario | Layer | What it plays |
 | --- | --- | --- | --- |
-| `wedding` | `cover_each_payment` | 3 | ask |
-| `wedding` | `no_family_contribution` | 3 | ask |
-| `wedding` | `build_monthly_surplus` | 2 | build |
-| `wedding` | `decide_what_to_update` | 4 | ask |
-| `wedding` | `aside_before_asking` | 4 | ask |
-| `moving` | `upfront_and_monthly` | 3 | ask |
-| `moving` | `months_at_current_saving` | 3 | ask |
-| `moving` | `build_months_to_save` | 2 | build |
-| `moving` | `keep_or_move_date` | 4 | ask |
-| `moving` | `aside_before_asking` | 4 | ask |
+| `wedding` | `build_monthly_surplus` | 2 | the module of step `s3` removed; an unattended build makes it again, the others are kept |
+| `wedding` | `cover_each_payment` | 3 | 150 to 200 guests: totals 43,000 and 54,500, the 200-guest shortfall 5,250 at the second payment |
+| `wedding` | `no_family_contribution` | 3 | no gift: shortfalls 24,500 (200 guests) and 13,000 (150) at the third payment |
+| `wedding` | `confirm_and_correct` | 4 | an answer resting on an unsaid split is marked; the person confirms, then changes it (40/60: 14,800 and 22,200) and it is run again |
+| `wedding` | `decide_what_to_update` | 4 | the review step `s7` is the person's call; they answer by option |
+| `wedding` | `review_the_plan` | 5 | review passes (the first on load, a second after an answer that rests on an unsaid split) raise challenges; one is used, the next dismissed (counts and states only) |
+| `moving` | `build_months_to_save` | 2 | the module of step `m3` removed and built again |
+| `moving` | `keep_or_move_date` | 4 | upfront cost 4,430; keeping or moving the date (`m4`) is answered in the person's own words |
+| `moving` | `side_thread_and_new_step` | 4 | a side thread opened mid-answer (4,660 and 308.58), then a figure no step produces is built as a new step |
+
+The reviewer and the analyst vary between runs, so a scenario that fails once deserves a second run before it is
+believed; one that fails every time points at the harness.

@@ -157,16 +157,17 @@ def list_threads(conn, conversation: str) -> list[dict]:
 # --- The session ---
 
 class Session:
-    def __init__(self, config, *, model_factory=get_model, desk_factory=None, layers=None):
+    def __init__(self, config, *, model_factory=get_model, desk_factory=None, layers=None, memory=None):
         """Open the database, apply the enabled layers' schemas, load the current conversation,
         start the lanes and run each layer's `loaded` hook.
 
-        `layers` replaces discovery (tests); by default it is `layers.enabled(config)`.
+        `layers` replaces discovery (tests); by default it is `layers.enabled(config)`. `memory` is what
+        `self.memory` starts with (replay sets `today` there before any `loaded` hook runs).
         """
         self.config = config
         self.layers = list(layers) if layers is not None else enabled(config)
         self.desk_factory = desk_factory
-        self.memory: dict = {}              # in-memory state layers keep for the life of the session
+        self.memory: dict = dict(memory or {})              # in-memory state layers keep for the life of the session
         self._model_factory = model_factory
         self._model = None
         self._local = threading.local()

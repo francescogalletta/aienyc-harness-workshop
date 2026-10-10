@@ -10,6 +10,7 @@ from . import db
 from .config import EXAMPLE_COPIES, EXAMPLES_DIR, UNKNOWN_EXAMPLE, load_config
 from .layers import enabled
 from .model import get_model, resolve_provider
+from .replay import replay_arguments, replay_command
 
 EXAMPLE_COPIED = ("Copied the example '{name}' to {folder}. What you change there stays there; "
                   "delete that folder to start the example again.")
@@ -91,6 +92,8 @@ BASE_COMMANDS = {
     "check": ("prove the setup works end to end", check, None),
     "events": ("print the recorded events", events, None),
     "ui": ("open the harness in a local web page", ui, _ui_arguments),
+    "replay": ("play a scripted scenario of an example against the model and check it", replay_command,
+               replay_arguments),
 }
 
 

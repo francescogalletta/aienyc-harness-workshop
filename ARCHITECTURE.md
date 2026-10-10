@@ -395,6 +395,10 @@ payload keys, never wording.
 - **One setting.** `HARNESS_LAYERS=N` (default 5) turns layers above N off.
   The facilitator presents step N on the finished tree with
   `HARNESS_LAYERS=N uv run python -m harness ui`.
+- **A local default.** When `HARNESS_LAYERS` is unset or empty, `config` reads one whole number from
+  `my/var/layers` (git-ignored, under `my/` like everything the harness reads locally); no file means 5. The
+  variable wins over the file. `python -m workshop at N` writes the file, so a presenter or an attendee needs no
+  shell export; deleting it returns to the finished tree. A bad file is an error that names it.
 - **Files absent.** A tree without the packages of layers above N is the
   harness at step N; discovery stops at the first missing package. This is
   how an attendee's copy is at step N (`workshop start N` removes the files of
@@ -894,3 +898,38 @@ Each has the default the work plan takes.
   each and no lookup was asked for (the reviewer did not ask). Wikipedia is unreachable from this machine (proxy answers
   403), and the research chain then returns `not_found` for a term the reference file lacks, without an error. A second
   message sent while a pass ran was answered in 6 s.
+- **C1 · The local layers default.** `config` reads `my/var/layers` when `HARNESS_LAYERS` is not set (section 7).
+  `workshop at N` writes it; tests that check the default of 5 run in an empty folder.
+- **A6 · Files and interfaces.** `replay.py`: `validate_scenario(value, *, stem, brief, layers=None)`, `load_scenarios(example_dir,
+  only=None) -> (scenarios, skipped)`, `run_scenario(scenario, *, example_dir, keep=False, model_factory=None, write=print,
+  timeout=900) -> {"scenario", "passed", "checks", "error", "seconds", "folder"}`, `expectations(layer)` (the `Expect`s of layers 0
+  to `layer`), and the `replay EXAMPLE [SCENARIO] [--keep]` command (a base command in `__main__.py`). Output: a line per line
+  played, then one `ok`/`FAIL` line per expectation (`what [seen]`), then `PASS`/`FAIL example/scenario (layer N) S s`; exit 0 only
+  when nothing failed (skipped scenarios do not fail it). The example is copied to `my/var/replay/<example>-<scenario>-<random>/`
+  (removed unless `--keep`); `HARNESS_DB`, `_BRIEF_DIR`, `_MODULES_DIR`, `_LAYERS` and `_REVIEW` are set there for the run and put
+  back after. Replay records `replay.scenario` and `replay.checked` in the scratch database.
+- **A6 · The scripted person.** A string is `say`. An object has `act` (and optionally `"settle": false`, to play it without waiting
+  for the harness to finish the previous line: a side thread opened mid-answer). Acts: `say {text, step?}`, `build`, `confirm`
+  (`confirm_assumptions` on the latest open notice), `correct {text}` (`say` with the latest notice attached, open or already
+  confirmed: "Change it"), `choose {option}` (the decision the main lane waits on), `side {text, step?, reply?}` (`reply: true`
+  goes into the latest side thread), `use {index?}` and `dismiss {index?}` (the index-th open review challenge, from 1; `use`
+  counts only challenges, not questions). Each needs its layer (`build` 2, `confirm`/`correct`/`choose`/`side` 4, `use`/`dismiss`
+  5). A kind `build` scenario plays `build` first. Replay settles before each line (and first of all, which adopts the modules and
+  runs the first review pass of a `review` scenario), then at the end; a lane still working after 900 s, a job that failed
+  (`state.error`) or a line the core refuses stops the scenario with that reason, and the checks are still made and listed.
+- **A6 · Validation.** A scenario's expectation keys must be registered by layers up to the scenario's own, each value checked by
+  its validator; `without` names calculation steps of the brief; `steps` and `decisions` name steps of the brief (or `added_N`);
+  `today` only for `ask`. A scenario whose layer is above the layers present is skipped without validating its expectations.
+  `read_brief` reads the example's brief as plain JSON, so replay names no layer.
+- **A6 · Changed outside replay.** `Session(..., memory=)`: what `self.memory` starts with, so `today` is set before the `loaded`
+  hooks (the review pass of a seeded plan starts there). Layer 4 `marks` also takes `confirmed` and `corrected` (at least that many
+  `you.assumptions_*` events), layer 5 `challenges` takes `used` and `dismissed` (at least that many in that state), so a scenario
+  can expect counts and states. Layer 3 `shown` and `not_shown` read the assistant's text and decision messages in the chat
+  (they read `ask.reply` events only, so a figure in a decision's question was "not shown").
+- **A6 · Prompt changed on replay evidence.** `needs_you/analyst.md`: one bullet says a value put into a run that the person did
+  not give (a share they only called "shares", a rate, a date worked out, whether a payment counts toward a total) is an
+  assumption to list in the run's `assumptions`. Before it, four of four live runs of `confirm_and_correct` gave the 50/50 split
+  as a run input and "the 6,000 counts toward the total" in the prose only, with no notice; after it, three of three marked it.
+- **A6 · Seen with the real model** (`claude` CLI, all layers). Whole-example runs take 6 to 7 minutes for wedding, about 2.5 for
+  moving. The new-step build for "what share of the upfront cost is the deposit" worked in a side-thread scenario. The reviewer
+  raised three challenges in the seeded wedding plan; `use` made the analyst answer, `dismiss` closed the next.

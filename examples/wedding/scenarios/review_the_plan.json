@@ -1,0 +1,24 @@
+{
+  "name": "review_the_plan",
+  "layer": 5,
+  "kind": "ask",
+  "review": true,
+  "description": "The reviewer reads the accepted plan; an answer that rests on an unsaid split starts a second pass; the person uses the first challenge and dismisses the next. The reviewer's words vary, so only counts and states are expected.",
+  "today": "2027-01-15",
+  "lines": [
+    "What are my three wedding payments? The wedding is on 12 June 2027. I expect 150 guests at 230 each for dinner, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days. The second and third are shares of what remains, due 30 days and 14 days before the wedding.",
+    {
+      "act": "use"
+    },
+    {
+      "act": "dismiss"
+    }
+  ],
+  "expect": {
+    "challenges": {
+      "min": 2,
+      "used": 1,
+      "dismissed": 1
+    }
+  }
+}

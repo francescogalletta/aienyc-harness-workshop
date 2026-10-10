@@ -129,17 +129,25 @@ def _check_decisions(value, context) -> dict:
 
 
 def _validate_marks(value):
-    good = (isinstance(value, dict) and value and set(value) <= {"min", "max"}
+    good = (isinstance(value, dict) and value and set(value) <= {"min", "max", "confirmed", "corrected"}
             and all(isinstance(each, int) and not isinstance(each, bool) and each >= 0 for each in value.values()))
-    return None if good else "marks must be {min?, max?}: whole numbers, 0 or more"
+    return None if good else ("marks must be {min?, max?, confirmed?, corrected?}: whole numbers, 0 or more "
+                              "(min and max count open notices at the end; confirmed and corrected, at least "
+                              "that many such actions in the conversation)")
 
 
 def _check_marks(value, context) -> dict:
+    from .. import db
     state = context.state()
     open_notices = sum(1 for message in state["chat"] if (message.get("notice") or {}).get("status") == "open")
-    return {"what": f"open notices between {value.get('min', 0)} and {value.get('max', 'any')}",
-            "passed": value.get("min", 0) <= open_notices <= value.get("max", open_notices),
-            "seen": f"{open_notices} open notices"}
+    done = {key: len(db.list_events(context.conn, session_id=context.conversation,
+                                    kind=f"you.assumptions_{key}")) for key in ("confirmed", "corrected")}
+    passed = (value.get("min", 0) <= open_notices <= value.get("max", open_notices)
+              and all(done[key] >= value.get(key, 0) for key in done))
+    wanted = [f"open notices between {value.get('min', 0)} and {value.get('max', 'any')}"]
+    wanted += [f"at least {value[key]} {key}" for key in done if key in value]
+    return {"what": ", ".join(wanted), "passed": passed,
+            "seen": f"{open_notices} open notices, {done['confirmed']} confirmed, {done['corrected']} corrected"}
 
 
 def _validate_added(value):

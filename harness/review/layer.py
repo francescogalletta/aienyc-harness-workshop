@@ -144,25 +144,35 @@ def dismiss_challenge(core, payload: dict) -> None:
 
 # --- Replay expectation (SPEC 7.4) ---
 
+COUNTS = ("min", "max", "used", "dismissed")
+
+
 def _validate_challenges(value):
-    good = (isinstance(value, dict) and value and set(value) <= {"min", "max", "steps"}
+    good = (isinstance(value, dict) and value and set(value) <= {*COUNTS, "steps"}
             and all(isinstance(value[key], int) and not isinstance(value[key], bool) and value[key] >= 0
-                    for key in ("min", "max") if key in value)
+                    for key in COUNTS if key in value)
             and (not value.get("steps") or (isinstance(value["steps"], list)
                                             and all(isinstance(each, str) for each in value["steps"]))))
-    return None if good else "challenges must be {min?, max?, steps?}: counts of 0 or more, steps a list of ids"
+    return None if good else ("challenges must be {min?, max?, used?, dismissed?, steps?}: counts of 0 or more, "
+                              "steps a list of ids (used and dismissed: at least that many in that state)")
 
 
 def _check_challenges(value, context) -> dict:
-    """Challenges raised in the conversation, whatever became of them; `steps` each need at least one."""
+    """Challenges raised in the conversation, whatever became of them; `steps` each need at least one;
+    `used` and `dismissed` need at least that many in that state."""
     rows = reviewer.challenge_rows(context.conn, context.conversation)
     steps = {row["step_id"] for row in rows}
     missing = [each for each in value.get("steps", []) if each not in steps]
     count = len(rows)
-    return {"what": f"challenges between {value.get('min', 0)} and {value.get('max', 'any')}"
-                    + (f" on {', '.join(value['steps'])}" if value.get("steps") else ""),
-            "passed": value.get("min", 0) <= count <= value.get("max", count) and not missing,
-            "seen": f"{count} challenges on {', '.join(sorted(steps)) or 'no step'}"}
+    settled = {state: sum(1 for row in rows if row["status"] == state) for state in ("used", "dismissed")}
+    wanted = [f"challenges between {value.get('min', 0)} and {value.get('max', 'any')}"
+              + (f" on {', '.join(value['steps'])}" if value.get("steps") else "")]
+    wanted += [f"at least {value[state]} {state}" for state in settled if state in value]
+    return {"what": ", ".join(wanted),
+            "passed": (value.get("min", 0) <= count <= value.get("max", count) and not missing
+                       and all(settled[state] >= value.get(state, 0) for state in settled)),
+            "seen": f"{count} challenges on {', '.join(sorted(steps)) or 'no step'}; "
+                    f"{settled['used']} used, {settled['dismissed']} dismissed"}
 
 
 LAYER = Layer(

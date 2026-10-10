@@ -2,16 +2,10 @@
   "name": "no_family_contribution",
   "layer": 3,
   "kind": "ask",
-  "description": "Same plan with no family contribution: checks that the fund forecast is run with a contribution of 0 and that the shortfalls the modules give are shown, 24,500 at the third payment for 200 guests and 13,000 for 150 guests.",
+  "description": "The same plan with no family contribution: the fund forecast is run with a contribution of 0 and the shortfalls it gives are shown, 24,500 at the third payment for 200 guests and 13,000 for 150 guests.",
   "today": "2027-01-15",
   "lines": [
-    "Can I cover each wedding payment if my families give nothing? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 5,000 a month. I have 10,000 saved for the wedding. There is no family contribution at all, so there is no date for one. Please go ahead with those figures.",
-    "yes",
-    "yes",
-    "yes",
-    "yes",
-    "yes",
-    "yes"
+    "Can I cover each wedding payment if my families give nothing? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 5,000 a month. I have 10,000 saved for the wedding. There is no family contribution at all, so there is no date for one."
   ],
   "expect": {
     "runs": [

@@ -2,21 +2,30 @@
   "name": "decide_what_to_update",
   "layer": 4,
   "kind": "ask",
-  "description": "After the cash flow forecast is run by modules, the agent puts the review step (what to update first) to the person as a judgment call, and the person's answer is recorded against step s7.",
+  "description": "After the forecast is run by modules, the review step (what to update first) is put to the person as their call; they answer by picking an option, and it is recorded against step s7.",
   "today": "2027-01-15",
   "lines": [
-    "Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 5,000 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027. Please go ahead with those figures. Once you have the results, help me decide what to update first.",
-    "yes",
-    "yes",
-    "yes",
-    "yes",
-    "yes",
-    "yes"
+    "Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 5,000 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027. Once you have the results, help me decide what to update first.",
+    {
+      "act": "choose",
+      "option": 1
+    }
   ],
   "expect": {
+    "runs": [
+      {
+        "module": "wedding_fund_balance_forecast",
+        "inputs": {
+          "current_savings": "10000",
+          "monthly_saving": "5000"
+        }
+      }
+    ],
+    "shown": [
+      "5,250"
+    ],
     "decisions": [
       {
-        "kind": "judgment",
         "step": "s7"
       }
     ],

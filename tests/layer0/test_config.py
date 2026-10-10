@@ -17,7 +17,8 @@ def test_environment_overrides_and_is_read_on_every_call(monkeypatch, tmp_path):
     assert load_config().model_name == "another-model"
 
 
-def test_defaults_are_under_my_and_an_empty_variable_is_unset(monkeypatch):
+def test_defaults_are_under_my_and_an_empty_variable_is_unset(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)         # no local my/var/layers
     for name in ("HARNESS_DB", "HARNESS_BRIEF_DIR", "HARNESS_MODULES_DIR", "HARNESS_EXAMPLE",
                  "HARNESS_MODEL_PROVIDER", "HARNESS_LAYERS"):
         monkeypatch.setenv(name, "")
@@ -58,4 +59,25 @@ def test_harness_review_is_auto_or_off(monkeypatch):
     assert load_config().review == "off"
     monkeypatch.setenv("HARNESS_REVIEW", "sometimes")
     with pytest.raises(ValueError, match="HARNESS_REVIEW"):
+        load_config()
+
+
+def test_a_local_layers_file_is_the_default_and_the_variable_wins(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("HARNESS_LAYERS", raising=False)
+    (tmp_path / "my" / "var").mkdir(parents=True)
+    (tmp_path / "my" / "var" / "layers").write_text("3\n")
+    assert load_config().layers == 3
+    monkeypatch.setenv("HARNESS_LAYERS", "1")
+    assert load_config().layers == 1
+    monkeypatch.setenv("HARNESS_LAYERS", "")       # an empty variable counts as unset
+    assert load_config().layers == 3
+
+
+def test_a_bad_layers_file_is_an_error_naming_the_file(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("HARNESS_LAYERS", raising=False)
+    (tmp_path / "my" / "var").mkdir(parents=True)
+    (tmp_path / "my" / "var" / "layers").write_text("six")
+    with pytest.raises(ValueError, match="my.var.layers"):
         load_config()

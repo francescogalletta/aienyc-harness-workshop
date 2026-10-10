@@ -1,0 +1,43 @@
+{
+  "name": "side_thread_and_new_step",
+  "layer": 4,
+  "kind": "ask",
+  "description": "The person opens a side thread while the first answer is being worked out (upfront cost 4,660, monthly saving 308.58), then asks for a figure no step produces; it is built as a new step and run.",
+  "lines": [
+    "How much do I need before the move, and how much should I put aside each month? The deposit is 1,800 and the van hire is 450. I will pay two months of overlapping rent at 1,100 a month. Other costs: 150 for cleaning and 60 for boxes. I have saved 2,500 so far, not counting my emergency fund, and the move is in 7 months. I only want these two figures for now.",
+    {
+      "act": "side",
+      "text": "Sorry, what is a sinking fund?",
+      "settle": false
+    },
+    "What share of the upfront cost is the deposit, as a percentage?"
+  ],
+  "expect": {
+    "runs": [
+      {
+        "module": "move_upfront_cost",
+        "inputs": {
+          "deposit": "1800",
+          "van_hire": "450",
+          "monthly_rent_old_home": "1100",
+          "overlap_months": "2"
+        }
+      },
+      {
+        "module": "monthly_saving_needed",
+        "inputs": {
+          "upfront_cost": "4660",
+          "savings_so_far": "2500",
+          "months_until_move": "7"
+        }
+      }
+    ],
+    "shown": [
+      "4,660",
+      "308.58"
+    ],
+    "side_threads": 1,
+    "added": 1,
+    "max_withheld": 0
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "confirm_and_correct",
+  "layer": 4,
+  "kind": "ask",
+  "description": "The person leaves the split of the two later payments unsaid, so the answer rests on a guess and is marked; they confirm it, then change their mind in their own words and the payments are worked out again (second payment 14,800, third 22,200).",
+  "today": "2027-01-15",
+  "lines": [
+    "What are my three wedding payments? The wedding is on 12 June 2027. I expect 150 guests at 230 each for dinner, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days. The second and third are shares of what remains, due 30 days and 14 days before the wedding.",
+    {
+      "act": "confirm"
+    },
+    {
+      "act": "correct",
+      "text": "On second thought, the second payment is 40% of what remains, and the third is the other 60%."
+    }
+  ],
+  "expect": {
+    "runs": [
+      {
+        "module": "wedding_total_cost",
+        "inputs": {
+          "guest_count": "150",
+          "dinner_cost_per_guest": "230"
+        }
+      },
+      {
+        "module": "wedding_payment_schedule",
+        "inputs": {
+          "total_cost": "43000",
+          "first_payment_amount": "6000"
+        }
+      }
+    ],
+    "shown": [
+      "14,800",
+      "22,200"
+    ],
+    "marks": {
+      "confirmed": 1,
+      "corrected": 1
+    },
+    "max_withheld": 0
+  }
+}

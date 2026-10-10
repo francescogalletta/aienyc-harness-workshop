@@ -161,24 +161,29 @@ A scenario is `examples/<name>/scenarios/<stem>.json`:
 ```
 {"name": stem, "layer": 1..5, "kind": "ask" | "build", "description": str,
  "today": "YYYY-MM-DD" (ask only), "without": [calculation step ids], "review": bool (default false),
- "lines": [str | {"act": action, ...payload}],     may be empty for build
+ "lines": [str | {"act": verb, ...payload, "settle": false?}],     may be empty for build
  "expect": {key: value}}
 ```
+
+A string line is said to the main chat. An object is an action of the scripted person: `say {text, step?}`, `build`,
+`confirm` (the latest open notice), `correct {text}` (the latest notice: "Change it"), `choose {option}` (the decision
+the main lane waits on), `side {text, step?, reply?}` (`reply: true`: in the latest side thread), `use {index?}` and
+`dismiss {index?}` (the k-th open challenge, from 1; `use` skips questions). `"settle": false` plays the line without
+waiting for the previous one to finish (a side thread opened mid-answer).
 
 `run_scenario` works in a scratch folder under `my/var/replay/`: it copies the
 brief and the modules (leaving out the `without` steps), sets the database,
 brief and modules variables to it, `HARNESS_LAYERS` to the scenario's layer and
 `HARNESS_REVIEW` to `auto` when `review` is true, else `off`, and opens a
-`Session` (which adopts the modules). For `build` it acts `build`. It then
-plays the lines in order, settling before each: a string is `say`; an object
-is that action, where `challenge` may be given as `"index": k` (the k-th open
-challenge, from 1). It stops when the lines run out, settles, and checks.
-`load_scenarios` skips scenarios whose `layer` is above the enabled layers and
-reports them as skipped.
+`Session` (which adopts the modules) with `today` in its memory. For `build` it plays `build` first. It
+settles before each line and plays them in order, stops when the lines run out, settles, and checks. A line the
+core refuses, a job that failed, or a lane still working after 900 seconds stops it with that reason. `replay
+EXAMPLE [SCENARIO] [--keep]` prints one line per expectation and one for the scenario, and exits 0 only when none
+failed. `load_scenarios` skips scenarios whose `layer` is above the enabled layers and reports them as skipped.
 
 Expectation keys are registered by layers (`Layer.expects`), each with a
-validator and a checker that returns `{"what", "passed", "seen"}`. Unknown keys
-are errors. Checks never read wording.
+validator and a checker that returns `{"what", "passed", "seen"}` and is given the Session. A scenario may use
+the keys of its own layer and below. Unknown keys are errors. Checks never read wording.
 
 ### 2.7 The server: `harness/ui/server.py`
 
@@ -567,7 +572,7 @@ Prompt part `analyst.md`. Tools `ask_decision`, `request_module`. Actions
 `choose`, `confirm_assumptions`, `side`. Route: a message with `notice`.
 `contribute`: `unconfirmed`, `calls`, `needs_you` for a decision, `notice` and
 `decision` on messages, side threads. Expects `decisions` (`[{step, choice,
-count}]`), `marks` (`{"min", "max"}`: open notices), `side_threads` (int), `added`
+count}]`), `marks` (`{"min", "max", "confirmed", "corrected"}`: open notices; actions done), `side_threads` (int), `added`
 (int: added steps). Events: `you.decision_asked`, `you.decision`,
 `you.decision_refused`, `you.assumptions_confirmed`,
 `you.assumptions_corrected`, `you.module_requested`, `you.request_refused`,
@@ -632,7 +637,7 @@ change, impact, rank, sources, status, thread_id)` and `review_passes (id, ts,
 trigger, lookups, kept, dropped)`. Prompt part `analyst.md`. Actions
 `use_challenge`, `dismiss_challenge`. `contribute`: `challenges` on steps,
 `challenge` on review threads, `review`. Expects `challenges` (`{"min",
-"max", "steps"}`). Events: `review.started`, `review.lookup`, `review.kept`,
+"max", "used", "dismissed", "steps"}`). Events: `review.started`, `review.lookup`, `review.kept`,
 `review.dropped`, `review.finished`, `review.used`, `review.dismissed`.
 
 ## 8. Given files

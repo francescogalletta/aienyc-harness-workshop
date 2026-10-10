@@ -2,21 +2,37 @@
   "name": "keep_or_move_date",
   "layer": 4,
   "kind": "ask",
-  "description": "After the months-to-save figure is worked out by modules, the agent puts keeping or moving the date to the person as a judgment call, recorded against step m4.",
+  "description": "With 400 a month the upfront cost (4,430) comes from a module and then feeds the months module; keeping or moving the date is the person's call, and they answer in their own words.",
   "lines": [
-    "If I can only put aside 400 a month, how long until I can pay for the move? The deposit is 1,200 and the van hire is 380. I will pay three months of overlapping rent at 950 a month, and I have no other costs. I have saved 1,000 so far, not counting my emergency fund, and the move is in 7 months. Please go ahead with those figures. Then help me decide whether to keep the move date or move it.",
-    "yes",
-    "yes",
-    "yes",
-    "yes",
-    "yes",
-    "yes"
+    "If I can only put aside 400 a month, how long until I can pay for the move? The deposit is 1,200 and the van hire is 380. I will pay three months of overlapping rent at 950 a month, and I have no other costs. I have saved 1,000 so far, not counting my emergency fund, and the move is in 7 months. Then help me decide whether to keep the move date or move it.",
+    "I would rather keep the date and find a way to save more each month."
   ],
   "expect": {
+    "runs": [
+      {
+        "module": "move_upfront_cost",
+        "inputs": {
+          "deposit": "1200",
+          "van_hire": "380",
+          "overlap_months": "3"
+        }
+      },
+      {
+        "module": "months_to_save_upfront_cost",
+        "inputs": {
+          "upfront_cost": "4430",
+          "savings_so_far": "1000",
+          "monthly_saving": "400"
+        }
+      }
+    ],
+    "shown": [
+      "4,430"
+    ],
     "decisions": [
       {
-        "kind": "judgment",
-        "step": "m4"
+        "step": "m4",
+        "choice": "something else"
       }
     ],
     "max_withheld": 0
