@@ -17,10 +17,10 @@ Status of each section:
 | 3. Step 0: setup | Fixed, covered by `tests/step0` |
 | 4. Step 1: shared domain | Fixed, covered by `tests/step1` |
 | 5. Step 2: consistency | Fixed, covered by `tests/step2` |
-| 6. Seeded examples and replay | Contract for step 3, to be covered by `tests/step3` and `tests/data/test_examples.py` |
-| 7. Step 3: evidence | Contract, to be covered by `tests/step3` |
-| 8. Step 4: human in the loop | Contract, to be covered by `tests/step4`. It changes parts of sections 5 to 7 in place; each change is marked "(step 4)". |
-| 9. Step 5 | Draft. Fixed when the step is built and its tests are written. |
+| 6. Seeded examples and replay | Fixed, covered by `tests/step3` and `tests/data` |
+| 7. Step 3: evidence | Fixed, covered by `tests/step3` |
+| 8. Step 4: human in the loop | Fixed, covered by `tests/step4`. It changes parts of sections 5 to 7 in place; each change is marked "(step 4)". |
+| 9. Step 5: verification | Contract, to be covered by `tests/step5`. It changes parts of sections 1, 2 and 5 to 8 in place; each change is marked "(step 5)". |
 
 ## 1. Ground rules
 
@@ -31,13 +31,18 @@ These hold for every step.
 2. **The harness is not about weddings.** Nothing under `harness/` may name
    the example domain, its files, or its column names. The example lives in
    `data/example/` and, from step 1, in the domain brief. The seeded
-   examples (section 6) live in `examples/`, which is data.
+   examples (section 6) live in `examples/`, which is data. (step 5) The one
+   list of column names under `harness/` is the source adapter's
+   `COLUMN_NAMES` (9.2): common bank-export headings in English and Spanish,
+   for any bank. A heading is never added to it for one file.
 3. **The harness is not tied to a model provider.** Only files under
    `harness/model/` may import a provider SDK. Everything else talks to the
    `Model` interface in section 3.2.
-4. **The harness is not tied to an input format.** Raw files are read through
-   source adapters that map them to a canonical shape (these come in a later
-   step; section 5 has none). No calculation reads a raw file.
+4. **The harness is not tied to an input format.** Raw files are read only
+   by the source adapter (9.2), fixed and tested harness code, which maps
+   each delimited file of transactions to one canonical table. No
+   calculation reads a raw file: modules get figures through the agent, and
+   the data summaries (9.4) read only the canonical table.
 5. **Everything that matters is written to the database.** Nothing the person
    may need to inspect lives only in memory or only in the chat.
 6. **The model that reads web pages never holds the person's financial data.**
@@ -56,13 +61,16 @@ harness/           the harness (built by the prompts)
   migrations/      numbered .sql files, applied in order
   grounding/       step 1: the interview, the lookups and the brief
   calc/            step 2: modules, the gate, the agent; adoption (section 6);
-                   decisions and side conversations (section 8)
+                   decisions and side conversations (section 8); findings
+                   and the verifier (section 9)
+  sources/         step 5: the source adapter and the data summaries
   ui/              the local web pages: the interview and the evidence
   replay.py        scenarios and replay (section 6)
 reference/         saved reference terms for offline lookups (given)
 brief/             the domain brief, written by the interview
 modules/           the modules built from the brief (committed with it)
-examples/<name>/   seeded examples: brief, modules and scenarios (data, section 6)
+examples/<name>/   seeded examples: brief, modules, scenarios and, from
+                   step 5, account files (data, section 6)
 tests/stepN/       acceptance tests for step N (given, never edited)
 tests/data/        tests for the example data and the seeded examples (given)
 data/generate.py   seeded generator for the example data (given)
@@ -987,7 +995,7 @@ The harness, not the prompt, enforces five things in this step:
 5. Every build, test run, calculation and refusal is recorded.
 
 Step 2 adds only this. There are no source adapters (ground rule 4 waits for
-a later step), no gates beyond the person checking worked examples, no
+step 5), no gates beyond the person checking worked examples, no
 evidence page and no outside references. Terminal only. Standard library
 only: no dependency is added.
 
@@ -2088,13 +2096,16 @@ call only the person can make, the person decides (8.2, 8.3); at any
 question the person can step aside (8.5).
 
 ```python
-run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None, desk=None) -> None
+run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None, desk=None,
+          verify=False) -> None
 ```
 
 `brief` is as `load_brief` returns it. `today` is a `datetime.date`,
 default `date.today()`. (step 4) `desk` is the research desk a side
 conversation looks terms up with (8.5); `None` makes one when it is first
-needed. From its start `run_agent` uses `asides.ask` and `asides.say` (8.5)
+needed. (step 5) `verify` turns on everything of 9.7: the verifier, the
+findings and the refusals while one is open. `python -m harness ask` always
+passes `True`; with `False`, `run_agent` behaves exactly as in step 4. From its start `run_agent` uses `asides.ask` and `asides.say` (8.5)
 in place of the `ask` and `say` it was given: every `ask` and `say` in this
 section means those, so `/aside` works at every question, a build's
 included.
@@ -2161,7 +2172,9 @@ number check reads them only there.
 - the `text` of every note, from any session (they are the person's own
   words, or a request they approved), so a note kept during a build in this
   session counts at once;
-- the `inputs` and `output` of every `calc_runs` row of this session.
+- the `inputs` and `output` of every `calc_runs` row of this session;
+- (step 5) the `output` of every `data_summaries` row of this session
+  (9.4): summaries of the person's own files, made by tested harness code.
 
 Answers typed inside a build (the plan check, the examples) are not person
 messages: they are not recorded as `ask.message`, not added to the
@@ -2266,6 +2279,8 @@ writes a decision of kind `build` (8.4).
    Otherwise every person message, the first one too, records `ask.message`
    with its text, and is added as a user message, followed by a blank line
    and `WITHHELD_NOTE` when the previous reply was withheld.
+   (step 5) With `verify`, the verifier then checks the message, and a note
+   for each open finding follows it (9.7), before the agent's first call.
 2. Call the model, after `say("  (thinking)")`, with the four tools. At
    most `MAX_CALLS = 10` calls of the agent's model follow one person
    message. The calls made by a build inside the turn (spec, examples,
@@ -2307,7 +2322,14 @@ writes a decision of kind `build` (8.4).
      the gate gave it on a no or for its numbers (8.2), and is not run. On
      a yes it is handled as above.
    - Any other tool gets the error `There is no tool called <name> here.`
+   - (step 5) With `verify`, while a finding of this session is open,
+     `run_module` and `save_input` are refused before any other check; and
+     `save_input` over a different saved value opens a finding instead of
+     saving (9.7).
 4. **If its text is empty**, add `EMPTY_REPLY` as a user message.
+   (step 5) With `verify`, a text that is not empty, while a finding of
+   this session is open, is held back before the number check reads it
+   (9.7).
 5. **If its text has unbacked numbers** and no reply to this person message
    has been sent back yet, record `ask.correction` (reason `reply`), add the
    text as an assistant message and `NUMBERS_CORRECTION` as a user message.
@@ -2428,7 +2450,8 @@ and exits 0. Otherwise it exits 0 when every module is `unchanged` and
 
 **`python -m harness ask [QUESTION ...]`** joins the words of `QUESTION` with
 spaces and runs `run_agent` with the configured model, the brief from
-`load_brief`, and today's date. It first prints
+`load_brief`, and today's date, and (step 5) `verify=True`, so the
+verifier uses the same model. It first prints
 `Ask about your plan. Type /quit to stop.`, but only after the brief and
 registry checks pass. `ask` works as in `build`. A missing or draft brief
 prints the message to standard error and exits 1, as does a registry with no
@@ -2471,7 +2494,7 @@ Every event carries the session id of the command that made it.
 | `calc.run` | `harness` | `{"module", "run_id", "test_run_id", "inputs", "output"}` |
 | `ask.message` | `person` | `{"text"}`, stripped; every person message, the first too |
 | `ask.reply` | `agent` | `{"text"}` |
-| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module`, `save_input` or `request_module`, and (step 4) `assumptions` or `ask_decision` (8.2, 8.3); `text` is the reply, or the tool arguments as `json.dumps(arguments)` (for `assumptions`, the list of the arguments of the calls held back) |
+| `ask.correction` | `harness` | `{"reason", "numbers", "text"}`; `reason` is `reply`, `run_module`, `save_input` or `request_module`, (step 4) `assumptions` or `ask_decision` (8.2, 8.3), and (step 5) `finding`, a reply held while a finding is open, with `numbers` `[]` (9.7); `text` is the reply, or the tool arguments as `json.dumps(arguments)` (for `assumptions`, the list of the arguments of the calls held back) |
 | `ask.withheld` | `harness` | `{"numbers", "text"}` |
 | `ask.input_saved` | `agent` | `{"name", "value", "note"}` |
 | `ask.stopped` | `harness` | `{"reason": "too many steps"}` |
@@ -2502,7 +2525,8 @@ For a `request_module` call that passes its checks: `ask.module_requested`,
 session id of the conversation.
 
 (step 4) Step 4 adds the events of 8.10. Side conversations inside a build
-add their `aside.*` events among the build's.
+add their `aside.*` events among the build's. (step 5) Step 5 adds the
+events of 9.10.
 
 ### 5.12 Decisions
 
@@ -2668,7 +2692,14 @@ examples/<name>/
   brief/domain_brief.md       render_brief(brief, meta), exactly
   modules/<module>/           one folder per module, the four files of 5.4
   scenarios/<scenario>.json   one scenario per file (6.4)
+  data/<file>                 (step 5) optional: account files, each one delimited text file of transactions
 ```
+
+(step 5) **The data**, when there is a `data/` folder: every file directly
+in it whose name does not start with `.` passes `read_table` (9.2), and its
+name gives an account name with `account_name` (9.2). Scenarios name these
+files (6.4), and `python -m harness data add` with no file loads them all
+in example mode (9.3).
 
 **The brief** must load and pass its checks:
 
@@ -2864,9 +2895,18 @@ A scenario is a JSON object in `examples/<example>/scenarios/<name>.json`:
  "description": "one sentence",                     optional
  "today":       "YYYY-MM-DD",                       optional; ask only; default: the real date
  "without":     ["s2"],                             optional; steps whose modules are left out
+ "verify":      true,                               (step 5) optional; ask only; default false: run_agent's verify
+ "data":        [{"file", "sign", "account"?}],     (step 5) optional; ask only; files loaded before the conversation
  "lines":       ["What I type first", "yes", ...],  what the scripted person types, in order
  "expect":      {...}}
 ```
+
+(step 5) Each `data` entry names a file directly in the example's `data/`
+folder (`file`, a file name, not a path), how it writes money going out
+(`sign`, `out_negative` or `out_positive`, as in 9.2), and optionally its
+account name (`account`; default `account_name(file)`, 9.2). They are
+loaded in order before the conversation (6.5). `data`,
+`expect.findings` and `expect.max_findings` need `"verify": true`.
 
 For example:
 
@@ -2879,8 +2919,9 @@ For example:
             "shown": ["4,650"], "max_withheld": 0}}
 ```
 
-`expect` holds at least one of these keys. The first five, and (step 4)
-`decisions` and `asides`, are for `ask`; `steps` is for `build`:
+`expect` holds at least one of these keys. The first five, (step 4)
+`decisions` and `asides`, and (step 5) `findings` and `max_findings` are
+for `ask`; `steps` is for `build`:
 
 | Key | Holds | Passes when |
 | --- | --- | --- |
@@ -2891,6 +2932,8 @@ For example:
 | `max_corrections` | whole number, 0 or more | the session has at most this many `ask.correction` events, of any reason |
 | `decisions` (step 4) | list of `{"kind", "step"?, "choice"?, "count"?}` | for each entry, the session has at least `count` (default 1) decisions (8.1) of that `kind` and, when given, that `step` and that `choice` |
 | `asides` (step 4) | `{"opened"?, "turns"?}` | the session has exactly `opened` `aside.opened` events, and exactly `turns` `aside.message` events (8.5) |
+| `findings` (step 5) | list of `{"kind", "status"?, "choice"?, "count"?}` | for each entry, the session has at least `count` (default 1) findings (9.5) of that `kind` and, when given, that `status` and that `choice` |
+| `max_findings` (step 5) | whole number, 0 or more | the session has at most this many findings, of any kind |
 | `steps` | `{"<step id>": "built" \| "reused" \| "kept" \| "not_built"}` | `build` returned a result for that step with that outcome |
 
 **A number appears in a reply** when the reply backs it with the number
@@ -2922,7 +2965,7 @@ Stage 2, in this order:
 
 | Problem | Message |
 | --- | --- |
-| a key other than the seven above | `unknown key: <key>`, one per key, in the order given |
+| a key other than the nine above (seven before step 5) | `unknown key: <key>`, one per key, in the order given |
 | `stem` does not match `^[a-z][a-z0-9_]*$`, or `name` is not `stem` | `name must be the file name without .json, in snake_case: '<stem>'` |
 | `kind` is not `ask` or `build` | `kind must be ask or build` |
 | `description` is present and not a string | `description must be a string` |
@@ -2930,6 +2973,10 @@ Stage 2, in this order:
 | `today` is present and not a valid `YYYY-MM-DD` date | `today must be a date written YYYY-MM-DD` |
 | `without` is present and not a list of strings | `without must be a list of step ids` |
 | an item of `without` is not a calculation step of the brief | `without: '<id>' is not a calculation step of the brief` |
+| (step 5) `verify` is present and not `true` or `false` | `verify must be true or false` |
+| (step 5) `verify` or `data` is present and the kind is `build` | `<key> is only for ask scenarios`, one per key, `verify` first |
+| (step 5) `data` is present and not a list | `data must be a list` |
+| (step 5) an entry of `data` is not an object with `file` (a non-empty string with no `/` or `\` that does not start with `.`), `sign` (`out_negative` or `out_positive`), an optional `account` (matching `^[a-z][a-z0-9_]*$` and not `all`), and no other key | `data: entry <k> must be an object with file (a file name in the example's data folder), sign (out_negative or out_positive) and, optionally, account` (`<k>` from 1) |
 | `lines` is not a non-empty list of strings that are not empty once stripped | `lines must be a non-empty list of non-empty strings` |
 | `expect` is not an object | `expect must be an object` (no more checks on it) |
 | `expect` is empty | `expect must hold at least one expectation` |
@@ -2938,12 +2985,15 @@ Stage 2, in this order:
 | `runs` is not a list, or an entry is not an object with a non-empty string `module`, an optional object `inputs`, and no other key | `expect.runs: entry <k> must be an object with module and, optionally, inputs` (`<k>` from 1; `expect.runs must be a list` when it is not a list) |
 | `shown` or `not_shown` is not a list of strings | `expect.<key> must be a list of numbers written as text` |
 | an item of `shown` or `not_shown` is not exactly one number in the reading of 5.8, not a date, and not exempt (a bare whole number from 0 to 12) | `expect.<key>: '<item>' must be one number the number check reads, not a date and not a bare whole number from 0 to 12` |
-| `max_withheld` or `max_corrections` is not an `int` (not `bool`) of 0 or more | `expect.<key> must be a whole number, 0 or more` |
+| `max_withheld`, `max_corrections` or (step 5) `max_findings` is not an `int` (not `bool`) of 0 or more | `expect.<key> must be a whole number, 0 or more` |
 | (step 4) `decisions` is not a list | `expect.decisions must be a list` |
 | (step 4) an entry of `decisions` is not an object with `kind` one of `assumptions`, `judgment` or `build`, an optional non-empty string `step`, an optional string `choice`, an optional `count` that is an `int` (not `bool`) of 1 or more, and no other key | `expect.decisions: entry <k> must be an object with a kind (assumptions, judgment or build) and, optionally, step, choice and count (1 or more)` (`<k>` from 1); nothing more is checked for that entry |
 | (step 4) its `step` is not the id of a step of the brief's process (of any kind) and does not start with `added_` | `expect.decisions: entry <k>: '<step>' is not a step of the brief` |
 | (step 4) its `choice` is not `yes` or `no` for kind `assumptions` or `build`, or not `1`, `2`, `3`, `4` or `something else` for kind `judgment` | `expect.decisions: entry <k>: choice must be yes or no for assumptions and build, and 1, 2, 3, 4 or something else for judgment` |
 | (step 4) `asides` is not an object with at least one of `opened` and `turns`, each an `int` (not `bool`) of 0 or more, and no other key | `expect.asides must be an object with opened, turns or both, each a whole number, 0 or more` |
+| (step 5) `findings` is not a list | `expect.findings must be a list` |
+| (step 5) an entry of `findings` is not an object with `kind` one of `earlier`, `data` or `brief`, an optional `status` (`open` or `decided`), an optional `choice` (`1`, `2` or `something else`), an optional `count` that is an `int` (not `bool`) of 1 or more, and no other key | `expect.findings: entry <k> must be an object with a kind (earlier, data or brief) and, optionally, status (open or decided), choice (1, 2 or something else) and count (1 or more)` (`<k>` from 1) |
+| (step 5) `data`, `findings` or `max_findings` is present and `verify` is not `true` | `<key> needs "verify": true`, one per key, in that order, where `<key>` is `data`, `expect.findings` or `expect.max_findings` |
 | `steps` is not an object | `expect.steps must be an object` |
 | a key of `steps` is not a calculation step of the brief and does not start with `added_` | `expect.steps: '<id>' is not a calculation step of the brief` |
 | a value of `steps` is not one of the four outcomes | `expect.steps: '<id>' must be built, reused, kept or not_built` |
@@ -3002,12 +3052,20 @@ check_scenario(conn, session_id, scenario, results=None) -> list[dict]
    session_id=..., how="replay")`. If any result is `not_adopted`, the
    `error` is `<module> was not adopted: <reason>` for the first one, and
    steps 5 and 6 are skipped.
+   (step 5) **Load the data.** For each `data` entry, in order, the file
+   `<example_dir>/data/<file>` (read where it is, not copied) is loaded
+   with `add_file` (9.2), with `account` the entry's `account` (or `None`,
+   so `account_name` names it), the entry's `sign`, `sign_from`
+   `scenario`, and the scenario's session id. Nobody is asked. The first file refused
+   sets `error` to `<file> was not loaded: <reason>`, and steps 5 and 6 are
+   skipped.
 5. **Run**, with the scripted person: `ask(text)` returns the next line, in
    order; once the lines run out it returns `/quit`, every time. `say`
    collects what is shown and prints nothing.
    - `ask`: `run_agent(model=model, conn=conn, brief=brief, ask=ask,
      say=say, session_id=..., question="", today=<the scenario's today, or
-     date.today()>)`. So the first line answers `OPENING`.
+     date.today()>, verify=<the scenario's verify, default false>)`. So the
+     first line answers `OPENING`.
    - `build`: `results = build(model=model, conn=conn, brief=brief,
      ask=ask, say=say, session_id=...)`.
    An exception raised here sets `error` to
@@ -3020,8 +3078,9 @@ check_scenario(conn, session_id, scenario, results=None) -> list[dict]
 **`check_scenario`** returns one check per expectation, in this order:
 each `runs` entry, each `shown` item, each `not_shown` item,
 `max_withheld`, `max_corrections`, (step 4) each `decisions` entry, then
-`asides.opened` and `asides.turns` when given, then each `steps` entry in
-the object's order. A check is `{"what": str, "passed": bool, "seen": str}`:
+`asides.opened` and `asides.turns` when given, (step 5) then each
+`findings` entry and `max_findings`, then each `steps` entry in the
+object's order. A check is `{"what": str, "passed": bool, "seen": str}`:
 
 | Expectation | `what` | `seen` |
 | --- | --- | --- |
@@ -3033,6 +3092,8 @@ the object's order. A check is `{"what": str, "passed": bool, "seen": str}`:
 | `decisions` entry (step 4) | `at least <count> <kind> decision`, with `s` added unless `<count>` is 1, then ` for step <step_label(step)>` when `step` is given, then ` choosing <choice>` when `choice` is given | `<m> matching of <n> <kind> decisions`, where `<n>` counts the session's decisions of that kind and `<m>` those that also match `step` and `choice` |
 | `asides.opened` (step 4) | `<N> side conversations opened` | `<count> opened` |
 | `asides.turns` (step 4) | `<N> side conversation turns` | `<count> turns` |
+| `findings` entry (step 5) | `at least <count> <kind> finding`, with `s` added unless `<count>` is 1, then ` with status <status>` when `status` is given, then ` choosing <choice>` when `choice` is given | `<m> matching of <n> <kind> findings`, where `<n>` counts the session's findings of that kind (`list_findings`, 9.5) and `<m>` those that also match `status` and `choice` |
+| `max_findings` (step 5) | `at most <N> findings` | `<count> findings` |
 | `steps` entry | `step <step_label(id)> <outcome>` | the outcome of its result, with ` (<reason>)` added for `not_built`; or `not handled` |
 
 `<n>` is the number of `ask.reply` events in the session.
@@ -3219,7 +3280,7 @@ No migration is added.
 In `harness/calc/provenance.py`:
 
 ```python
-SOURCE_LABELS = ("run", "input", "note", "brief", "person", "today")
+SOURCE_LABELS = ("run", "data", "input", "note", "brief", "person", "today")     # (step 5) "data" added
 SMALL_LABEL = "small"
 NONE_LABEL = "none"
 
@@ -3229,7 +3290,8 @@ trace(text: str, sources: list[tuple[str, int | None, object]]) -> list[dict]
 The existing constant `SMALL = 12` stays as it is.
 
 `sources` is a list of `(label, ref, value)`. `label` is one of
-`SOURCE_LABELS`. `ref` is the run id for a `run`, else `None`. `value` is
+`SOURCE_LABELS`. `ref` is the run id for a `run`, (step 5) the data
+summary's id for `data` (9.4), else `None`. `value` is
 read as in `unbacked`: text as it is, anything else through
 `json.dumps(value, ensure_ascii=False)`.
 
@@ -3245,7 +3307,8 @@ occurrence, not once per value):
   `%`). `start` and `end` are its place in `text`, as Python string
   indexes: `text[start:end]` is it. They count Unicode code points.
 - `source` is one of `SOURCE_LABELS`, `small` or `none`. `run_id` is the
-  run's id when `source` is `run`, else `null`.
+  run's id when `source` is `run`, (step 5) the data summary's id when
+  `source` is `data`, else `null`. The key keeps its name.
 
 **A number**:
 
@@ -3256,7 +3319,7 @@ occurrence, not once per value):
    value within half its precision; for a percentage, also its value divided
    by 100) is its `source`. Each source is tried on its own.
 3. Within that label, `run_id` is the `ref` of the **last** source in the
-   list that backs it.
+   list that backs it (for `run` and, step 5, `data`).
 4. No source backs it: `none`.
 
 **A date**: each part above 12 is labelled like a whole number written
@@ -3280,10 +3343,10 @@ afterwards, and the date is a source for the number check.
 
 ### 7.3 Reading the evidence: `harness/ui/evidence.py`
 
-Six functions, each taking an open connection. Five only read. Each
-returns exactly the JSON body of its endpoint (7.4). They read
-`load_config()` at the time of the call, for the brief folder and the
-modules folder.
+Six functions, each taking an open connection, and (step 5) a seventh,
+`data_summary`. All but `test_now` only read. Each returns exactly the
+JSON body of its endpoint (7.4). They read `load_config()` at the time of
+the call, for the brief folder and the modules folder.
 
 ```python
 summary(conn, *, interview: bool) -> dict
@@ -3292,6 +3355,7 @@ run(conn, run_id: int) -> dict | None
 module(conn, name: str) -> dict | None
 events_page(conn, *, kind=None, session=None, before=None, limit=200) -> dict
 test_now(conn, name: str, *, session_id: str) -> dict | None
+data_summary(conn, summary_id: int) -> dict | None          # (step 5) a seventh, read only
 ```
 
 `None` means not found (404).
@@ -3318,6 +3382,7 @@ A **conversation** is a session with at least one `ask.message` event.
 | Label | `ref` | Value | Taken from |
 | --- | --- | --- | --- |
 | `run` | the run id | `{"inputs", "output"}` of the payload | `calc.run` events of `S` before `E`, by id |
+| `data` (step 5) | the payload's `id` | the payload's `output` | `data.summary` events of `S` before `E`, by id |
 | `input` | `None` | the payload's `value` | `ask.input_saved` events of any session before `E` |
 | `note` | `None` | the payload's `text` | `calc.note_saved` events of any session before `E` |
 | `brief` | `None` | the brief | read now |
@@ -3344,6 +3409,7 @@ booleans are JSON `true` or `false`. Times are as stored (UTC, ISO 8601).
 | `GET /api/work/module?name=X` | `module` | 400 `name is required`; 404 the gate's `NOT_REGISTERED` |
 | `GET /api/work/events?kind=K&session=S&before=N&limit=L` | `events_page` | 400 `before must be a whole number`, `limit must be a whole number from 1 to 1000` |
 | `POST /api/work/test` `{"module": X}` | `test_now` | 400 `the body must be a JSON object`, `module must not be empty`; 404 the gate's `NOT_REGISTERED` |
+| (step 5) `GET /api/work/data_summary?id=N` | `data_summary` | 400 `id must be a whole number`; 404 `there is no data summary N` |
 
 Query parameters are read with `urllib.parse.parse_qs`; an empty value
 counts as absent. A GET to the POST path, or a POST to a GET path, is 404.
@@ -3363,7 +3429,10 @@ counts as absent. A GET to the POST path, or a POST to a GET path, is 404.
                     "replay": null | {"example", "scenario"}}],
  "runs": [{"id", "ts", "session_id", "module", "output"}],
  "sessions": [{"session_id", "started", "ended", "events", "first_kind"}],
- "kinds": ["ask.message", ...]}
+ "kinds": ["ask.message", ...],
+ "imports": [import, plus "loaded_now": true | false],          (step 5)
+ "summaries": [{"id", "ts", "session_id", "measure", "account", "value"}],   (step 5)
+ "findings": [finding]}                                          (step 5)
 ```
 
 - `process`: the process in order. `module` is the step's module in
@@ -3383,6 +3452,13 @@ counts as absent. A GET to the POST path, or a POST to a GET path, is 404.
   first event). `events` is its number of events; `first_kind` the kind of
   its first event.
 - `kinds`: every distinct event kind, sorted.
+- (step 5) `imports`: the payload of every `data.imported` event (the
+  import dict of 9.2), newest first (by event id), each with `loaded_now`
+  added last: true when the `imports` table still has a row with its `id`.
+  So a file removed by `data clear` is still listed, with what was dropped.
+- (step 5) `summaries`: every `data_summaries` row, newest first (by id);
+  `measure` and `account` from its `inputs`, `value` from its `output`.
+- (step 5) `findings`: `list_findings(conn)` (9.5), newest first (by id).
 
 **`GET /api/work/conversation?session=S`**: one conversation, as it
 happened.
@@ -3416,6 +3492,20 @@ conversation's own sources (8.5), which the record does not rebuild.
 (step 4) The API is otherwise unchanged. The decisions are read through the
 events endpoint: `GET /api/work/events?kind=ask.decision` gives every
 decision, newest first, each event's payload being the decision (8.1).
+
+(step 5) A finding block is the `block` of an `ask.decision_asked` event,
+so it is traced like any other decision block, in the order of 7.1. Every
+figure in it has a source: the person's message, the brief, a saved input
+or a data summary (whose figures show as `data`, a link to the summary).
+
+**`GET /api/work/data_summary?id=N`** (step 5): one data summary.
+
+```
+{"id", "ts", "session_id", "inputs", "output", "imports": [import id, ...], "findings": [finding id, ...]}
+```
+
+All from the `data_summaries` row, `inputs`, `output` and `imports` as
+JSON. `findings` is the ids of the findings whose `summary` is `N`, by id.
 
 **`GET /api/work/run?id=N`**: one calculation run.
 
@@ -3526,9 +3616,10 @@ What it must do, as a checklist a reviewer can tick:
 1. Sends the token in the `X-Harness-Token` header on every `/api/`
    request. Calls only the paths of 7.4. The only POST is
    `/api/work/test`.
-2. On load, gets `/api/work/summary` and offers five views: Conversations,
-   Runs, Decisions (step 4), Modules (with the process) and Everything. A
-   link to the interview (`/`) is shown only when `interview` is true.
+2. On load, gets `/api/work/summary` and offers six views: Conversations,
+   Runs, Decisions (step 4), Data (step 5), Modules (with the process) and
+   Everything. A link to the interview (`/`) is shown only when `interview`
+   is true.
 3. Shows `database` and the brief's goal and status, or that there is no
    brief.
 4. **Conversations**: lists `conversations` in the order given, each with
@@ -3542,18 +3633,21 @@ What it must do, as a checklist a reviewer can tick:
    and `numbers`; `ask.module_requested` (the `request` block, as shown),
    `ask.module_decision`, `ask.module_outcome` and `ask.request_refused`;
    `ask.input_saved`; `calc.run` (module and output, opening the run);
-   `calc.refused` and `calc.run_failed` (the reason); `ask.stopped`; and
-   (step 4) the kinds of items 15 and 16. Every
+   `calc.refused` and `calc.run_failed` (the reason); `ask.stopped`;
+   (step 4) the kinds of items 15 and 16; and (step 5) those of item 18.
+   Every
    other kind (a build inside the conversation, for example) is shown
    compactly with its kind, and its payload on demand.
 6. **Every traced number** is marked in place in its text, using `start`
    and `end` as code-point indexes (in JavaScript, index
    `Array.from(text)`, not the string itself). Each mark shows its `source`
-   label; a legend explains the eight labels in plain words (`run`: a
-   tested module's run; `input`: a saved input; `note`: a note from a
-   build; `brief`: the brief; `person`: the person's own words; `today`:
-   today's date; `small`: a small whole number, never checked; `none`: no
-   source). `none` stands out. A `run` mark is a link that opens that run.
+   label; a legend explains the nine labels in plain words (`run`: a
+   tested module's run; (step 5) `data`: a summary of the person's own
+   loaded files; `input`: a saved input; `note`: a note from a build;
+   `brief`: the brief; `person`: the person's own words; `today`: today's
+   date; `small`: a small whole number, never checked; `none`: no source).
+   `none` stands out. A `run` mark is a link that opens that run; (step 5)
+   a `data` mark is a link that opens that data summary (item 19).
 7. **Runs**: lists `runs`; opening one gets `/api/work/run` and shows the
    module, `ts`, `inputs`, `assumptions`, `expected` (labelled as what was
    expected before the run), `output`, `fingerprint`, the test run it relied
@@ -3590,10 +3684,10 @@ What it must do, as a checklist a reviewer can tick:
     preformatted text, with its traced `numbers` marked as in item 6, and
     under it the calls held back (each `module`); `ask.decision_asked`
     shows its `block` the same way; `ask.decision` shows, as the person's,
-    its `kind`, the choice (for a judgment, the chosen option's number and
-    text from `options`, or "something else") and `words`, each of its
-    `runs` opening that run; `ask.decision_refused` shows its `error`, like
-    `ask.request_refused`.
+    its `kind`, the choice (for a judgment, and (step 5) a finding, the
+    chosen option's number and text from `options`, or "something else")
+    and `words`, each of its `runs` opening that run;
+    `ask.decision_refused` shows its `error`, like `ask.request_refused`.
 16. (step 4) **Side conversations in a conversation**: the events from an
     `aside.opened` to the `aside.closed` with the same `payload.aside`
     (every `aside.*` event carries it) are drawn as one nested
@@ -3616,7 +3710,44 @@ What it must do, as a checklist a reviewer can tick:
     the id as it is; nothing when `step` is `null`), `question` as
     preformatted text, `options` numbered from 1 with the chosen one
     marked, the choice as in item 15, `words`, its `runs` (each opening its
-    run) and its `session_id` (opening the conversation).
+    run) and its `session_id` (opening the conversation). (step 5) A
+    decision of kind `finding` also shows the finding it closed (the entry
+    of the summary's `findings` whose `decision` is its `id`), as in
+    item 19.
+18. (step 5) **Checks in a conversation**, in place: `verify.report` as a
+    short line from the harness saying how many findings the verifier sent,
+    or that it found nothing that differs (`findings` empty);
+    `verify.dropped` compactly (its `reason`, and the `claim` sent), with
+    the finding as sent on demand; `verify.failed` plainly, with its
+    `reason`, as a check that did not finish; `data.summary` compactly (the
+    measure, the account and `output.value`), opening that data summary;
+    `data.summary_refused` compactly (its `error`); `finding.opened` as a
+    block set apart, labelled "Finding <id>", showing `kind`, `claim`,
+    `reference`, `difference` and `block` as preformatted text;
+    `finding.closed` (the choice, `chosen`, and whether `saved`);
+    `finding.refused` (the tool and the finding it waited for); and
+    `ask.correction` with reason `finding` as **not shown**, held because a
+    finding was open.
+19. (step 5) **Data**: three lists from the summary.
+    - `imports`, newest first: `name`, `account`, `ts`, `transactions`,
+      `first` to `last`, how it was read (`delimiter` named in words:
+      commas, semicolons, tabs or bars; `header_row`; `date_format`;
+      `number_format`; money out written negative or positive, from `sign`,
+      and `sign_from`), each column role and the heading it was read from,
+      the rows left out grouped by `reason` with their row numbers, the
+      rows kept that look the same (`same_kept`), and a mark when
+      `loaded_now` is false ("removed with data clear").
+    - `summaries`, newest first; opening one gets
+      `/api/work/data_summary` and shows `inputs`, `output` (for a monthly
+      measure, `by_month` as a table of month and value, then `value` and
+      `left_out`; for a balance, `as_of` and `value`), the imports it read
+      (by name, from the summary's `imports`) and the findings that rest on
+      it (each as in the next list).
+    - `findings`, newest first: `id`, `ts`, `kind`, `claim`, `reference`,
+      `difference`, `status` ("open" stands out), and when decided the
+      choice (`options` numbered from 1 with the chosen one marked, or
+      "something else") and `chosen`; its `summary` opening that data
+      summary; its `session_id` opening the conversation.
 
 **`harness/ui/grounding.html`** gets one change: a link to `/work`, labelled
 `Show your work`. Nothing else in it changes.
@@ -3651,7 +3782,7 @@ id.
 1. One server, two pages: `/` for the interview and `/work` for the
    evidence. `ui` serves both; `work` serves only the evidence, with no
    interview session, so it can never call a model.
-2. Five read endpoints and one POST. One summary feeds every list; one
+2. Five read endpoints and one POST ((step 5) six read endpoints). One summary feeds every list; one
    endpoint per thing opened (a conversation, a run, a module); one
    endpoint for the raw log. Ids go in the query string.
 3. The transcript is the session's events, as recorded, with the numbers of
@@ -3732,7 +3863,7 @@ example domain.
 | `harness/ui/evidence.html` | **Given**, updated by a designer from 7.4 and 7.6 (items 15 to 17). |
 | `examples/*/scenarios/` | Changed data (8.8). |
 | `tests/step4/` | Acceptance tests for this section. |
-| `README.md`, `BUILD_PLAN.md`, `prompts/step4_human.md` | Written by the implementer after the step is built. |
+| `README.md`, `BUILD_PLAN.md`, `prompts/step4_human_in_the_loop.md` | Written by the implementer after the step is built. |
 
 ### 8.1 Decisions: `0006_decisions.sql` and `harness/calc/decisions.py`
 
@@ -3766,7 +3897,7 @@ A **decision**, as a dict, has exactly these keys, in this order:
 In `harness/calc/decisions.py`:
 
 ```python
-KINDS = ("assumptions", "judgment", "build")
+KINDS = ("assumptions", "judgment", "build", "finding")     # (step 5) "finding" added
 SOMETHING_ELSE = "something else"
 
 record_decision(conn, *, session_id, kind, step_id, question, options, choice, words, runs) -> dict
@@ -3787,8 +3918,8 @@ read_choice(answer: str, options: list[str], recommendation: int | None) -> str
 - `list_decisions` returns the decisions of one session, or of every
   session when `session_id` is `None`, oldest first (by `id`).
 - `choice_words` gives `yes` or `no` for kinds `assumptions` and `build`;
-  for a judgment, `something else`, or `<n>. <option n>` for a numbered
-  choice (`2. Move the date`).
+  for a judgment and (step 5) a finding, `something else`, or
+  `<n>. <option n>` for a numbered choice (`2. Move the date`).
 - `one_line(text)` is `" ".join(text.split())`: trimmed, every run of white
   space made one space. Every text the agent writes into a block passes
   through it, so a block is always laid out as below.
@@ -3801,6 +3932,9 @@ The three kinds:
 | `assumptions` | the assumption gate (8.2) | `None` | the gate block | `[]` | `yes` or `no` | `[]` |
 | `judgment` | `ask_decision` (8.3) | the `step` sent, or `None` | the decision block | the options as shown | `1` to `4`, or `something else` | `runs` as sent |
 | `build` | `request_module` (8.4) | the step it builds | the request block | `[]` | `yes` or `no` | `[]` |
+| `finding` (step 5) | `ask_decision` with `finding` (9.7) | `None` | the finding's `block` | the finding's two `options` | `1`, `2` or `something else` | `[]` |
+
+The `decisions` table needs no change for the fourth kind: `kind` is text.
 
 ### 8.2 The assumption gate
 
@@ -3829,7 +3963,8 @@ when all of these hold then:
 3. `assumptions` is a list of strings and `expected` is a string that is
    not empty once stripped;
 4. `input_problems(<its spec>, inputs)` is empty (5.6);
-5. its `assumption_set` is not empty, and is not one of the accepted sets.
+5. its `assumption_set` is not empty, and is not one of the accepted sets;
+6. (step 5) with `verify`, no finding of this session is open (9.7).
 
 So a call the gate would refuse before testing (5.6) is never shown to the
 person: it is handled as in 5.9 and refused there.
@@ -3913,9 +4048,16 @@ ASK_DECISION_SCHEMA = {"type": "object", "properties": {
     "options": {"type": "array", "items": {"type": "string"}},
     "recommendation": {"type": "integer"},
     "why": {"type": "string"},
-    "runs": {"type": "array", "items": {"type": "integer"}}},
-    "required": ["question", "options", "runs"]}
+    "runs": {"type": "array", "items": {"type": "integer"}},
+    "finding": {"type": "integer"}},          # (step 5)
+    "required": ["runs"]}                     # (step 5) was ["question", "options", "runs"]
 ```
+
+(step 5) `finding` is the id of an open finding to put to the person
+(9.5). When it is present and not `null`, the call is handled as in 9.7
+and every other argument is ignored. `required` is only `runs`, so that a
+finding needs nothing else; the checks below still refuse a judgment with
+no question or options.
 
 `step` is the id of the step it belongs to (optional). `recommendation` is
 the number of the option the agent would choose, from 1 (optional); `why`
@@ -3927,7 +4069,8 @@ words and saves it (5.9). If the agent goes on without it, that is an
 assumption, and the gate (8.2) shows it.
 
 **The checks**, in this order. The first that fails gives an error result,
-records its event, and shows the person nothing:
+records its event, and shows the person nothing. (step 5) A call with
+`finding` has the checks of 9.7 instead:
 
 | Check | Error | Event |
 | --- | --- | --- |
@@ -4006,6 +4149,7 @@ conversation starts, and that each `ask_decision` result says which have
 one now.
 
 `MAX_DECISIONS` counts like `MAX_REQUESTS`: from 0 at each person message.
+(step 5) A finding put to the person does not count towards it.
 
 In `decisions.py`:
 
@@ -4269,6 +4413,9 @@ The changes to `run_agent`, all described above, in one place:
   answers to `REQUEST_QUESTION`, and the carried texts (5.9);
 - `request_module` writes a decision (8.4).
 
+(step 5) Section 9.7 adds the verifier, findings and their refusals, all
+behind `verify`.
+
 **The order of model calls**, which a scripted model follows. One model
 object answers the agent, any build and any side conversation, in the
 order they happen. A gate and a decision call no model.
@@ -4300,6 +4447,11 @@ the sentence, `yes`, and sees the reply. The model calls are: agent
 the tool result and then the `ASIDE_CARRIED` message). Three calls. With
 one lookup in the side conversation, four: agent, side (`look_up`), side
 (the reply), agent.
+
+(step 5) With `verify`, the verifier's calls come first after a person
+message, before the agent's first call (9.7). A finding is a decision like
+a judgment: an agent call whose reply holds `ask_decision` with `finding`,
+the block and the answer, then the next agent call.
 
 For example, a side conversation at the opening question: the person types
 `/aside <q>`, `/back`, `no`, then their question. `OPENING` is asked again
@@ -4347,7 +4499,7 @@ The new expectations, `decisions` and `asides`, are in 6.4 and 6.5. Their
 counts come from `list_decisions(conn, session_id=...)` and from the
 session's `aside.opened` and `aside.message` events.
 
-**What the data author changes**, and nothing more:
+**What the data author changes**, and nothing more (one addition was needed in practice: the moving example's opening line also says when the move is, because without it the scripted "yes" lines could not answer the agent's question):
 
 1. The four `ask` scenarios (`wedding/cover_each_payment`,
    `wedding/no_family_contribution`, `moving/months_at_current_saving`,
@@ -4532,13 +4684,1191 @@ Choices made to close gaps in the design, for review:
 22. The texts of a side conversation are recorded but not traced on the
     page: their sources are not those of the conversation.
 
-## 9. Step 5 (draft)
+## 9. Step 5: verification
 
-This step adds modules and tables without changing what earlier steps
-built. New tables arrive as new migration files. The detail below is the
-intended shape; it becomes fixed when the step is built.
+Check what is claimed against reference points that do not depend on the
+sentence, and push back when they disagree, without being antagonistic. The
+person stays the one who decides.
 
-**Step 5, verification.** `harness/verify.py`: at the decision points named
-in the brief, checks new information against the person's own data, the
-brief, or a reference source. A mismatch opens a side conversation (8.5).
-New table: `verifications`.
+A **claim** is a figure or a date the person states in the conversation. A
+**reference** is something independent of that sentence: what was saved
+before, the person's own account files, or the brief. A **finding** is a
+claim and a reference that disagree, with the evidence quoted. The harness,
+not the agent's goodwill, makes sure a finding is put to the person and
+decided by them before the disputed figure is calculated with.
+
+There are three references:
+
+| Kind | Reference | Who finds the disagreement |
+| --- | --- | --- |
+| `earlier` | a saved input with a different value | `save_input`, deterministic, no model (9.7) |
+| `data` | a data summary of the person's loaded files | the verifier, checked by the harness (9.6) |
+| `brief` | a figure written in the brief's particulars or inputs | the verifier, checked by the harness (9.6) |
+
+The harness, not the prompt, enforces five things in this step:
+
+1. Account files are read only by the source adapter, fixed and tested
+   code, into one canonical table. Only tested code summarises them
+   (ground rule 4; 9.2, 9.4).
+2. After a person message with a figure in it, and before the agent sees
+   it, the verifier checks it. Every finding it reports is checked part by
+   part, and a finding that fails a check is dropped and recorded (9.6).
+3. A finding is put to the person in a fixed block the harness builds. The
+   agent adds no words to it (9.5, 9.7).
+4. While a finding is open, `run_module` and `save_input` are refused and
+   the agent's replies are held back. The person's choice closes it, is a
+   decision record, and is what gets saved or used (9.7).
+5. Everything above is recorded as events (9.10).
+
+The prompt, not the harness, asks the verifier to report only figures that
+are about the same thing. The harness cannot see a disagreement the
+verifier never reports. That is said out loud in the workshop.
+
+This step does **not** check the person's figures against outside
+benchmarks: there is no trustworthy source for "what people like you
+spend". Standard definitions and methods stay where step 1 put them, in the
+research desk, and are available in side conversations. It does not sort
+spending into categories, and it does not read the hand-kept budget file.
+
+Everything here runs only when `run_agent` is given `verify=True` (5.9),
+which `python -m harness ask` always does. The `data` commands are
+terminal only. Standard library only. Nothing under `harness/` names the
+example domain.
+
+**Files.**
+
+| File | Status |
+| --- | --- |
+| `harness/migrations/0007_data.sql` | New, exactly as in 9.1. |
+| `harness/sources/__init__.py` | New. A docstring only; code imports from the files below. |
+| `harness/sources/adapter.py` | New (9.2): reading account files into the canonical table. |
+| `harness/sources/summaries.py` | New (9.4): the data summaries. |
+| `harness/calc/findings.py` | New (9.5): the findings table, the comparison and the finding block. |
+| `harness/calc/verifier.py` | New (9.6): the verifier. |
+| `harness/calc/verifier.md` | **Given** (9.6): the instructions of the verifier. Never rewritten by a build. |
+| `harness/calc/analyst.md` | **Given**, revised for this step. |
+| `harness/calc/agent.py` | Changed (5.9, 8.2, 8.3, 9.7). |
+| `harness/calc/decisions.py` | Changed (8.1): a fourth kind, `finding`. |
+| `harness/calc/provenance.py` | Changed (7.1): the `data` label. |
+| `harness/replay.py` | Changed (6.4, 6.5): `verify`, `data`, and two more expectations. |
+| `harness/ui/evidence.py`, `harness/ui/server.py` | Changed (7.3, 7.4): the `data` label, three summary keys, one path. |
+| `harness/ui/evidence.html` | **Given**, updated by a designer from 7.4 and 7.6 (items 2, 5, 6, 15 and 17 to 19). |
+| `harness/__main__.py` | Changed (9.3, and 5.10: `ask` passes `verify=True`). |
+| `harness/config.py` | Unchanged. No setting is added. |
+| `examples/wedding/data/`, `examples/wedding/scenarios/` | New data (6.1, 9.8). |
+| `tests/step5/` | Acceptance tests for this section. |
+| `README.md`, `BUILD_PLAN.md`, `prompts/step5_verification.md` | Written by the implementer after the step is built. |
+
+### 9.1 Tables: `0007_data.sql`
+
+The migration `0007_data.sql` is exactly:
+
+```sql
+-- Step 5: the person's account files, summaries of them, and findings (SPEC 9.1).
+
+CREATE TABLE imports (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,        -- UTC, ISO 8601
+    session_id  TEXT NOT NULL,        -- the command that loaded it
+    file        TEXT NOT NULL,        -- the path as given
+    sha256      TEXT NOT NULL,        -- of the file's bytes
+    account     TEXT NOT NULL,
+    sign        TEXT NOT NULL,        -- 'out_negative' | 'out_positive': how the file writes money going out
+    report      TEXT NOT NULL         -- JSON: the import dict (SPEC 9.2)
+);
+
+CREATE TABLE transactions (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    import_id   INTEGER NOT NULL REFERENCES imports(id),
+    account     TEXT NOT NULL,
+    date        TEXT NOT NULL,        -- YYYY-MM-DD
+    amount      TEXT NOT NULL,        -- exact decimal as text; money out is negative
+    description TEXT NOT NULL,
+    balance     TEXT,                 -- exact decimal as text; NULL with no balance column or an empty cell
+    row         INTEGER NOT NULL      -- the record's number in the file, from 1; the heading row counts
+);
+
+CREATE TABLE data_summaries (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts          TEXT NOT NULL,
+    session_id  TEXT NOT NULL,        -- the conversation
+    inputs      TEXT NOT NULL,        -- JSON: what was asked for, as used (SPEC 9.4)
+    output      TEXT NOT NULL,        -- JSON (SPEC 9.4)
+    imports     TEXT NOT NULL         -- JSON list of the import ids it read
+);
+
+CREATE TABLE findings (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    ts               TEXT NOT NULL,
+    session_id       TEXT NOT NULL,   -- the conversation
+    kind             TEXT NOT NULL,   -- 'earlier' | 'data' | 'brief'
+    claim            TEXT NOT NULL,
+    claim_figure     TEXT NOT NULL,
+    reference        TEXT NOT NULL,
+    reference_figure TEXT NOT NULL,
+    summary_id       INTEGER REFERENCES data_summaries(id),   -- data only
+    input_name       TEXT,            -- earlier only
+    earlier          TEXT,            -- earlier only: JSON {"value", "note", "ts", "session_id"} of the saved row
+    pending_note     TEXT,            -- earlier only: the note of the save_input call that was not saved
+    difference       TEXT NOT NULL,   -- the verifier's sentence; '' for earlier
+    block            TEXT NOT NULL,   -- what the person is shown, exactly
+    options          TEXT NOT NULL,   -- JSON list of the two options
+    status           TEXT NOT NULL,   -- 'open' | 'decided'
+    decision_id      INTEGER REFERENCES decisions(id),
+    choice           TEXT,            -- '1', '2' or 'something else', once decided
+    chosen           TEXT             -- the figure to use, once decided; NULL for 'something else'
+);
+```
+
+All times are UTC, ISO 8601, as in `record_event`. `imports` and
+`transactions` are emptied by `data clear` (9.3); `data_summaries` and
+`findings` are never emptied, so a summary or a finding keeps its evidence
+after the files are gone. A finding's row changes once, when it is decided;
+`finding.opened` and `finding.closed` (9.10) are the record that cannot
+change.
+
+### 9.2 Source adapter: `harness/sources/adapter.py`
+
+The adapter reads one delimited text file of account transactions (one row
+per transaction) and maps it to the canonical table. It is plain, tested
+code: no model reads a file. Everything it does is decided by the rules
+below, in this order, so the same bytes always give the same result.
+
+```python
+class NotLoaded(Exception)          # the message is the reason, one line, from the constants below
+SIGNS = ("out_negative", "out_positive")
+
+account_name(path) -> str
+read_table(data: bytes) -> dict
+load(conn, *, path, reading, account, sign, sign_from, session_id) -> dict
+add_file(conn, path, *, account=None, sign=None, sign_from, ask=None, say=print, session_id) -> dict
+list_imports(conn) -> list[dict]
+clear_data(conn, *, session_id) -> dict
+```
+
+**Account names.** `account_name(path)` takes the file name without its
+extension (`Path(path).stem`), lower-cases it, turns every run of
+characters other than `a` to `z` and `0` to `9` into one `_`, and strips
+`_` from both ends. So `Checking 2026.csv` gives `checking_2026`. A name is
+**valid** when it matches `^[a-z][a-z0-9_]*$` and is not `all`. If the
+result is not valid, `account_name` raises `NotLoaded(BAD_ACCOUNT)`, with
+`{name}` the result. An account name given by the person (`--account`) is
+checked by the same rule and used as given.
+
+**Reading** (`read_table`). It reads bytes, touches no database, and
+returns a **reading**, or raises `NotLoaded` at the first rule that fails.
+
+1. **Text.** No bytes, or nothing but white space once decoded: `EMPTY`.
+   Decode as UTF-8, dropping a byte order mark (`utf-8-sig`); if that
+   fails, as Windows-1252 (`cp1252`); if that fails too, or the text holds
+   a NUL character: `NOT_TEXT`.
+2. **Delimiter and heading row.** Try each delimiter of
+   `DELIMITERS = (",", ";", "\t", "|")` in that order. Read the text with
+   `csv.reader(io.StringIO(text, newline=""), delimiter=<it>)` (default
+   quoting: `"`). Among its first `HEADER_SEARCH = 20` records, blank ones
+   included, the **heading row** is the first in which the roles `date`,
+   `description` and `amount` are all found (below). The first delimiter
+   that has a heading row is the file's. A delimiter whose reading raises
+   `csv.Error` has none. No delimiter has one: `NO_HEADER`.
+3. **Column roles.** A cell's **name** is the cell with `NFKD`
+   normalisation, combining marks removed, `casefold`, every run of
+   characters that are not letters or digits (`str.isalnum`) made one
+   space, and stripped. So `Fecha Operación` is `fecha operacion` and
+   `Running Bal.` is `running bal`. A role is found when some cell's name
+   is in its list in `COLUMN_NAMES`. The role's column is the cell whose
+   name comes first in that list; between cells with the same name, the
+   leftmost. `balance` is optional; the other three are needed.
+
+   ```python
+   COLUMN_NAMES = {
+       "date": ("date", "transaction date", "trans date", "booking date", "posting date", "posted date",
+                "post date", "value date", "fecha", "fecha operacion", "fecha de operacion", "fecha valor",
+                "fecha contable"),
+       "description": ("description", "descripcion", "concepto", "payee", "merchant", "narrative", "memo",
+                       "details", "detalle", "movimiento"),
+       "amount": ("amount", "transaction amount", "importe", "cantidad", "monto"),
+       "balance": ("balance", "running balance", "running bal", "saldo", "saldo disponible"),
+   }
+   ```
+
+   Every other column is ignored: a currency, a second amount in another
+   currency, a category. A file with separate money-in and money-out
+   columns has no `amount` column, and gets `NO_HEADER`.
+4. **Rows.** Every record after the heading row, numbered as `csv.reader`
+   yields them from 1 (the heading row counts, blank records count):
+   - **blank** (no cell, or every cell empty once stripped): skipped, and
+     not reported;
+   - **a repeated heading row** (as many cells as the heading row, each
+     equal to its cell once both are stripped): left out, reason
+     `repeated header`;
+   - **too short** (no cell at the place of one of the found columns):
+     `SHORT_ROW` for the first such record;
+   - otherwise a **data row**: its date, amount, description and balance
+     cells, each stripped; the description with `one_line` (8.1); a
+     balance cell that is empty is no balance.
+
+   No data row: `NO_ROWS`.
+5. **Dates.** A format **reads** a date cell when
+   `datetime.strptime(cell, format)` succeeds. A format **fits** when it
+   reads every data row's date cell. The formats, in order:
+
+   ```python
+   DATE_FORMATS = (("%Y-%m-%d", "YYYY-MM-DD"), ("%d/%m/%Y", "DD/MM/YYYY"), ("%m/%d/%Y", "MM/DD/YYYY"),
+                   ("%d.%m.%Y", "DD.MM.YYYY"), ("%d-%m-%Y", "DD-MM-YYYY"), ("%Y/%m/%d", "YYYY/MM/DD"))
+   ```
+
+   No format fits: `BAD_DATES`, with the first cell, in row order, that
+   the format with the fewest unread cells does not read (the earlier
+   format on a tie). Several fit: when every fitting format gives the same
+   date for every cell, the first fitting format is used; otherwise
+   `AMBIGUOUS_DATES`, with `{first}` the first fitting format and
+   `{second}` the first later one that gives a different date for some
+   cell (their display names). So `03/04/2026` alone is refused, and a file
+   with any day above 12 is not.
+6. **Amounts.** The amount cells and the balance cells that are not empty
+   are read together. A cell is first made **plain**: every white-space
+   character (`str.isspace`) and every `$`, `€` and `£` removed. A format
+   reads a plain cell when it matches in full:
+
+   | Format | Display | Pattern | Value |
+   | --- | --- | --- | --- |
+   | point | `1,234.56` | `[+-]?(?:[0-9]{1,3}(?:,[0-9]{3})+\|[0-9]+)(?:\.[0-9]+)?` | remove `,` |
+   | comma | `1.234,56` | `[+-]?(?:[0-9]{1,3}(?:\.[0-9]{3})+\|[0-9]+)(?:,[0-9]+)?` | remove `.`, then `,` becomes `.` |
+
+   The value is a `Decimal`, with its sign and its decimals as written.
+   Fitting works as for dates, point first: no format fits, `BAD_NUMBERS`
+   (the first unread cell of the format with fewer unread cells, amount
+   before balance in a row); both fit and give the same value for every
+   cell, point is used; both fit and some value differs (`1,150` is 1150
+   or 1.15), `AMBIGUOUS_NUMBERS`. An empty amount cell is unread.
+7. **Repeated rows.** With a balance column: a data row with a balance
+   whose date, amount, description and balance are all equal (dates and
+   values compared as read) to those of an earlier data row is left out,
+   reason `repeated row`. Without a balance column nothing is left out: a
+   data row whose date, amount and description equal an earlier one's is
+   kept, and its row number is listed in `same_kept`, because two equal
+   payments on one day are real more often than not, and there is no
+   balance to tell them apart.
+8. **Order.** `newest_first` is true when the first kept data row's date
+   is later than the last kept data row's date.
+
+The reading:
+
+```
+{"sha256": "<hex of the bytes>", "delimiter": ";", "header_row": 1,
+ "columns": {"date": "Fecha", "description": "Concepto", "amount": "Importe", "balance": "Saldo" | null},
+ "date_format": "DD/MM/YYYY", "number_format": "1.234,56", "newest_first": true,
+ "rows": [{"row": 2, "date": "2026-09-29", "amount": "-400.00", "description": "...", "balance": "6318.60" | null}],
+ "dropped": [{"row": 38, "reason": "repeated header"}, {"row": 39, "reason": "repeated row"}],
+ "same_kept": []}
+```
+
+`columns` holds each heading cell as written, stripped. `rows` are the kept
+data rows in file order, `amount` and `balance` as read (`str` of the
+`Decimal`), before any sign convention. `dropped` is in row order.
+
+**The sign convention** cannot be read from the file reliably, so it is
+given: `out_negative` (money going out is written negative, as on most bank
+statements) or `out_positive` (money going out is written positive, as on
+most card statements). In the canonical table money out is always
+negative: with `out_positive` every amount is negated. A zero amount is
+stored as `0` with its decimals and no minus. Balances are stored as read.
+
+**`load(conn, *, path, reading, account, sign, sign_from, session_id)`**
+writes one reading. `sign` must be one of `SIGNS` and `sign_from` one of
+`flag`, `asked` or `scenario`, else `ValueError`. If an `imports` row has
+the reading's `sha256`, it raises `NotLoaded(ALREADY_LOADED)`, with
+`{account}` that row's account. Otherwise, in one transaction, it inserts
+the `imports` row and one `transactions` row per kept data row, commits,
+records `data.imported` with the **import dict**, and returns it:
+
+```
+{"id", "ts", "session_id", "file": "<path as given>", "name": "<file name>", "sha256", "account",
+ "sign", "sign_from", "delimiter", "header_row", "columns", "date_format", "number_format",
+ "newest_first", "transactions": <rows written>, "first": "YYYY-MM-DD", "last": "YYYY-MM-DD",
+ "dropped", "same_kept"}
+```
+
+`first` and `last` are the earliest and latest dates written. The `report`
+column holds this dict as JSON.
+
+**`add_file(conn, path, *, account=None, sign=None, sign_from, ask=None, say=print, session_id)`**
+is what the command (9.3) and replay (6.5) use. In this order, and at the
+first failure it records `data.refused` and raises `NotLoaded`:
+
+1. `path` is not a file: `NOT_FOUND`, `{path}` as given.
+2. The account is `account`, checked as above, or `account_name(path)`:
+   `BAD_ACCOUNT`.
+3. The file's bytes are read. An `imports` row with their SHA-256:
+   `ALREADY_LOADED`.
+4. `read_table(<the bytes>)`: its reason.
+5. The sign is `sign` when given. Otherwise the person is asked:
+   `say(SIGN_ROWS)`, then one `say` per kept data row, for the first three,
+   `  <date>  <amount cell as written, stripped>  <description>`, then
+   `ask(SIGN_QUESTION)`. The answer, stripped and lower-cased: `negative`,
+   `neg` or `-` is `out_negative`; `positive`, `pos` or `+` is
+   `out_positive`; `/quit` is `NO_SIGN`; anything else, empty included,
+   asks again with the same text. `sign_from` is then `asked`.
+6. `load(...)`.
+
+It returns the import dict.
+
+**`list_imports(conn)`** returns the import dict of every `imports` row, by
+id. **`clear_data(conn, *, session_id)`** deletes every `transactions` row,
+then every `imports` row, commits, records `data.cleared` with
+`{"imports": <rows deleted>, "transactions": <rows deleted>}`, and returns
+that dict.
+
+```
+BAD_ACCOUNT       = "'{name}' cannot be an account name: use letters, digits and _, start with a letter, and do not use all. Name it with --account"
+NOT_FOUND         = "there is no file {path}"
+ALREADY_LOADED    = "this file is already loaded, into account '{account}'"
+EMPTY             = "the file is empty"
+NOT_TEXT          = "the file is not text"
+NO_HEADER         = "no heading row was found in the first 20 rows. It needs a date, a description and an amount column, with headings such as Date, Description and Amount"
+SHORT_ROW         = "row {row} has fewer columns than the heading row"
+NO_ROWS           = "there are no rows under the heading row"
+BAD_DATES         = "the dates cannot all be read in one format: row {row} has '{cell}'"
+AMBIGUOUS_DATES   = "the dates could be {first} or {second}, and they give different dates"
+BAD_NUMBERS       = "the amounts cannot all be read in one format: row {row} has '{cell}'"
+AMBIGUOUS_NUMBERS = "the amounts could be written like 1,234.56 or like 1.234,56, and they give different values"
+NO_SIGN           = "no answer was given on how it writes money going out"
+SIGN_ROWS         = "{name}: the first rows, as read:"
+SIGN_QUESTION     = "In this file, is money going out written as a negative number (as on most bank statements) or as a positive number (as on most card statements)? Type negative or positive."
+```
+
+`{row}` is a row number as above and `{cell}` the cell as written,
+stripped. The 20 in `NO_HEADER` is `HEADER_SEARCH`.
+
+So the three account files of `data/example/` load as they are: the two
+bank files with semicolons, headings on row 1, `DD/MM/YYYY`, `1.234,56`, a
+balance column, and money out negative; the card file with commas,
+`YYYY-MM-DD`, `1,234.56`, no balance column and money out positive. In the
+current-account file, row 38 is left out as a repeated heading row and rows
+39 and 40 as repeated rows, which leaves 112 transactions.
+
+### 9.3 Command line: `data add`, `data list`, `data clear`
+
+Each runs `migrate` and makes a new session id. None uses a model or needs
+a brief. The terminal `ask` is that of 5.10.
+
+**`python -m harness data add [FILE ...] [--sign negative|positive] [--account NAME]`**
+loads each file with `add_file`, in the order given. `--sign` gives the
+sign convention of every file of the command (`sign_from` `flag`);
+without it the person is asked for each file. `--account` names the account
+of the one file given.
+
+- Example mode (6.2): with `HARNESS_EXAMPLE` set and no `FILE`, the files
+  are every file directly in `examples/<name>/data/` whose name does not
+  start with `.`, sorted by name. With no such file, it prints
+  `NO_EXAMPLE_DATA` to standard error and exits 1. The data goes into the
+  example's database, as everything else in example mode.
+- No `FILE` otherwise: `NO_FILES` to standard error, exit 1.
+- `--account` with other than exactly one file (example mode included):
+  `ONE_ACCOUNT` to standard error, exit 1.
+
+These three load nothing and record nothing. Otherwise, for each file:
+
+- loaded: these lines, the last three only when their list is not empty:
+
+  ```
+  DATA_LOADED
+  DATA_READ
+  DATA_HEADERS_LEFT      rows of `dropped` with reason `repeated header`
+  DATA_REPEATS_LEFT      rows of `dropped` with reason `repeated row`
+  DATA_SAME_KEPT         `same_kept`
+  ```
+
+- not loaded: `DATA_REFUSED`, on standard output.
+
+Then the last line, `DATA_ADDED`. It exits 0 when every file was loaded,
+and 1 otherwise.
+
+**`python -m harness data list`** prints `NO_DATA` when nothing is loaded.
+Otherwise one `DATA_LIST_LINE` per import (`list_imports`), then a blank
+line, then one line per account (sorted by name) and a last line for
+`all accounts`: `DATA_MONTHS` with the first and last of its full months
+(9.4), or `DATA_NO_MONTHS`. It exits 0.
+
+**`python -m harness data clear`** prints `NO_DATA` when nothing is loaded
+and records nothing. Otherwise it runs `clear_data` and prints
+`DATA_CLEARED`. It exits 0. It asks nothing: the record of every import
+stays in the events, and the page still shows it (7.6, item 19).
+
+```
+DATA_LOADED       = "{name}: loaded {count} transactions into account '{account}', {first} to {last}."
+DATA_READ         = "  read: {delimiter} between columns, headings on row {row}, dates written {dates}, amounts written like {numbers}, money out written {sign}."
+DATA_HEADERS_LEFT = "  left out, a repeated heading row: rows {rows}."
+DATA_REPEATS_LEFT = "  left out, the same date, amount, description and balance as an earlier row: rows {rows}."
+DATA_SAME_KEPT    = "  kept, the same date, amount and description as an earlier row; with no balance column they cannot be told apart from real repeats: rows {rows}."
+DATA_REFUSED      = "{name}: not loaded: {reason}"
+DATA_ADDED        = "{loaded} of {total} files loaded."
+DATA_LIST_LINE    = "{id}  {account}  {name}  {count} transactions  {first} to {last}  money out written {sign}  balance column: {balance}"
+DATA_MONTHS       = "{scope}: full months {first} to {last}"
+DATA_NO_MONTHS    = "{scope}: no full month"
+DATA_CLEARED      = "Removed {imports} files and {transactions} transactions. What was loaded stays in the event log."
+NO_DATA           = "No account files are loaded. Add them with: python -m harness data add FILE ..."
+NO_FILES          = "Name the account files to add, for example: python -m harness data add statement.csv"
+ONE_ACCOUNT       = "--account names the account of one file. Add the files one at a time to name each account."
+NO_EXAMPLE_DATA   = "The example '{name}' has no account files in {folder}."
+```
+
+`{name}` is the file name (the example name in `NO_EXAMPLE_DATA`);
+`{delimiter}` is `commas`, `semicolons`, `tabs` or `bars`; `{dates}` and
+`{numbers}` are the display names of 9.2; `{sign}` is `negative` or
+`positive`; `{rows}` the row numbers joined by `, `; `{balance}` is `yes`
+or `no`; `{scope}` is `account '<name>'` or `all accounts`; `{folder}` is
+`examples/<name>/data`. These strings live in `__main__.py`, except that
+`DATA_REFUSED` takes the `NotLoaded` message as `{reason}`.
+
+For example, with the example data of `data/example/`:
+
+```
+checking_2026.csv: loaded 112 transactions into account 'checking_2026', 2026-01-01 to 2026-09-29.
+  read: semicolons between columns, headings on row 1, dates written DD/MM/YYYY, amounts written like 1.234,56, money out written negative.
+  left out, a repeated heading row: rows 38.
+  left out, the same date, amount, description and balance as an earlier row: rows 39, 40.
+```
+
+### 9.4 Data summaries: `harness/sources/summaries.py`
+
+A small fixed set of measures, hand-written and unit-tested like a module,
+but shipped with the harness and about no domain. They read only the
+`transactions` table.
+
+```python
+ALL_ACCOUNTS = "all"
+MAX_MONTHS = 12
+MEASURES = {
+    "money_in":  "Money that came in, in each full calendar month. value is the average a month over the months asked for.",
+    "money_out": "Money that went out, as a positive figure, in each full calendar month. value is the average a month over the months asked for.",
+    "net":       "Money in less money out, in each full calendar month. value is the average a month over the months asked for.",
+    "balance":   "The balance on the latest row of one account whose files have a balance column. value is that balance, as_of its date.",
+}
+class SummaryRefused(Exception)     # the message is the reason
+
+accounts(conn) -> list[dict]
+full_months(conn, account: str) -> list[str]
+own_transfers(conn) -> set[int]
+summarise(conn, arguments: dict) -> tuple[dict, dict, list[int]]
+run_summary(conn, arguments: dict, *, session_id) -> dict
+describe(output: dict) -> str
+```
+
+**A full calendar month.** For one account, `first` and `last` are the
+earliest and latest dates of its transactions. A month `YYYY-MM` is
+**full** for it when `first` is on or before the month's first day and
+`last` is on or after the month's last day. For `all`, a month is full when
+it is full for every account. `full_months` returns them as `YYYY-MM`,
+oldest first; `[]` with no transactions. The harness cannot know what
+period a file was meant to cover, so a month counts only when the rows
+reach both its ends: a first or last month can be left out though it was
+complete, and a month half in a file is never counted.
+
+**Own transfers.** Money moved between two of the person's loaded
+accounts is neither money in nor money out. `own_transfers(conn)` returns
+the ids of the transactions in such pairs. Over every transaction loaded,
+take each one with a negative amount, ordered by date and then id. Pair it
+with the transaction of lowest id that is not yet paired, is in another
+account, has the same date, and whose amount is exactly the opposite. Each
+transaction is in at most one pair. The pairs are left out of every money
+in, money out and net figure, for any account or `all`.
+
+What this rule deliberately does not catch, to be said out loud: a transfer
+booked on different days on the two sides; a transfer to or from an account
+that is not loaded; a card bill paid from a loaded account when the card's
+file does not list the payment (then, with both files loaded, the card's
+spending counts twice: once as charges, once as the bill); a payment split
+into parts, or with a fee; and two unrelated equal payments on one day in
+two accounts, which it pairs wrongly.
+
+**`accounts(conn)`**, one dict per account, sorted by name:
+`{"account", "files": [<file names of its imports, by import id>],
+"transactions", "first", "last", "full_months", "balance": <some
+transaction of it has a balance>}`.
+
+**`summarise(conn, arguments)`** checks `arguments` in this order and
+raises `SummaryRefused` at the first failure:
+
+| Check | Reason |
+| --- | --- |
+| some transaction is loaded | `SUMMARY_NO_DATA` |
+| `measure` is a key of `MEASURES` | `SUMMARY_MEASURE` |
+| `account` is a string that is a loaded account or `all` | `SUMMARY_ACCOUNT`, `{account}` the value as sent, `{accounts}` the account names, sorted, joined by `, ` |
+| `balance`: `account` is not `all` | `SUMMARY_BALANCE_ALL` |
+| `balance`: some transaction of the account has a balance | `SUMMARY_NO_BALANCE` |
+| otherwise: exactly one of `months` and `month` is given and not `null`; `months` an `int` (not `bool`) from 1 to `MAX_MONTHS`, or `month` a string matching `^\d{4}-\d{2}$` | `SUMMARY_PERIOD` |
+| `months`: the scope has at least that many full months | `SUMMARY_FEW_MONTHS` |
+| `month`: it is a full month of the scope | `SUMMARY_NOT_FULL` |
+
+For `balance`, `months` and `month` are ignored. The **scope** is the
+account, or every account for `all`.
+
+It returns `(inputs, output, imports)`. `inputs` is what was used:
+`{"measure", "account", "months"}` or `{"measure", "account", "month"}`,
+or for a balance `{"measure", "account"}`. `imports` is the ids of the
+imports of the scope, by id.
+
+For `money_in`, `money_out` and `net`, the months are the `months` latest
+full months of the scope, oldest first, or the one `month`. For each month,
+over the scope's transactions dated in it that are not own transfers:
+money in is the sum of the positive amounts; money out is the sum of the
+negative amounts, as a positive figure; net is money in less money out.
+`value` is the sum of the months' figures divided by their number. Every
+figure is rounded to cents half up (`ROUND_HALF_UP`) only when written, and
+written with two decimals, no thousands separator, and a leading `-` below
+zero (never `-0.00`). `left_out` counts the scope's transactions in those
+months that are own transfers.
+
+```
+{"measure": "money_out", "account": "all", "months": ["2026-06", "2026-07", "2026-08"],
+ "by_month": [{"month": "2026-06", "value": "3613.17"}, {"month": "2026-07", "value": "4658.17"},
+              {"month": "2026-08", "value": "4125.59"}],
+ "value": "4132.31", "left_out": 4}
+```
+
+For `balance`, the latest row of the account that has a balance. Rows are
+put in time order by date, then by import id, then by row number, reversed
+within an import whose `newest_first` is true. `as_of` is its date:
+
+```
+{"measure": "balance", "account": "savings_2026", "as_of": "2026-09-30", "value": "13353.39"}
+```
+
+**`run_summary(conn, arguments, *, session_id)`** runs `summarise`. On
+`SummaryRefused` it records `data.summary_refused` with
+`{"arguments", "error"}` and raises it again. Otherwise it inserts a
+`data_summaries` row, commits, records `data.summary` with
+`{"id", "inputs", "output", "imports"}`, and returns `{"summary": <id>}`
+followed by the keys of `output`.
+
+**`describe(output)`** says what a summary measured, in plain words:
+
+| Output | Words |
+| --- | --- |
+| a monthly measure over more than one month | `DESCRIBE_AVERAGE` |
+| a monthly measure over one month | `DESCRIBE_MONTH` |
+| `balance` | `DESCRIBE_BALANCE` |
+
+```
+SUMMARY_NO_DATA     = "No account files are loaded."
+SUMMARY_MEASURE     = "measure must be money_in, money_out, net or balance."
+SUMMARY_ACCOUNT     = "There is no account '{account}'. The accounts are: {accounts}; or all."
+SUMMARY_BALANCE_ALL = "A balance is for one account. Name the account."
+SUMMARY_NO_BALANCE  = "The files of account '{account}' have no balance column."
+SUMMARY_PERIOD      = "Give either months, a whole number from 1 to 12, or month, written YYYY-MM."
+SUMMARY_FEW_MONTHS  = "Only {count} full months are loaded for {scope}: {months}."
+SUMMARY_NOT_FULL    = "{month} is not a full month loaded for {scope}. The full months are: {months}."
+MEASURE_WORDS       = {"money_in": "money in", "money_out": "money out", "net": "money in less money out"}
+DESCRIBE_AVERAGE    = "{words} a month, on average over the {count} full months {first} to {last}, {scope}"
+DESCRIBE_MONTH      = "{words} in {month}, {scope}"
+DESCRIBE_BALANCE    = "the balance of {scope} on {as_of}"
+SCOPE_ALL           = "all accounts"
+SCOPE_ACCOUNT       = "account '{account}'"
+```
+
+`{scope}` is `SCOPE_ALL` or `SCOPE_ACCOUNT`; `{months}` the full months
+joined by `, `, or `none`; `{words}` from `MEASURE_WORDS`. So the summary
+above is described as `money out a month, on average over the 3 full months
+2026-06 to 2026-08, all accounts`.
+
+### 9.5 Findings: `harness/calc/findings.py`
+
+```python
+FINDING_KINDS = ("earlier", "data", "brief")
+TOLERANCE = Decimal("0.05")
+MAX_FINDINGS = 2
+JUDGMENT_WORDS = ("actually", "but", "however", "wrong", "incorrect", "mistake", "mistaken", "error",
+                  "should", "must", "clearly", "obviously", "really", "unfortunately")
+
+figure(text: str) -> dict | None
+disagree(claim: dict, reference: dict) -> bool | None
+plain(item: dict) -> str
+same_value(a: str, b: str) -> bool
+brief_texts(brief: dict) -> list[str]
+open_finding(conn, *, session_id, kind, claim, claim_figure, reference, reference_figure, summary_id=None,
+             input_name=None, earlier=None, pending_note=None, difference="") -> dict
+close_finding(conn, finding_id, *, decision_id, choice, saved, session_id) -> dict
+list_findings(conn, *, session_id=None) -> list[dict]
+open_findings(conn, *, session_id) -> list[dict]
+```
+
+**A figure.** `figure(text)` reads `text` with the number check's reading
+(5.8) and keeps the items that are a date, or a number that is not exempt
+(a bare whole number from 0 to 12 is left out). When exactly one is kept it
+returns it as `{"written", "date": true | false, "value", "percent"}`
+(`value` the `Decimal` read, `k` applied, or for a date its text);
+otherwise `None`. So `I spend about 5k a month` has the figure `5k`, value
+5000, and `between 150 and 200` has none.
+
+**Disagreeing.** `disagree(claim, reference)` compares two figures:
+
+- one is a date and the other is not: `None` (not comparable);
+- two dates: true when they are not the same date;
+- two numbers: when exactly one is a percentage, its value is divided by
+  100 first. With `c` and `r` the claim's and the reference's values, true
+  when `|c - r| > TOLERANCE * |r|`. With `r` zero, any difference.
+
+The number reading ignores signs, so the comparison does too. So `about
+5k` against 5080 does not disagree (the difference is within 5% of 5080),
+and against 4132.31 it does.
+
+**`plain(item)`**: a date's text; a number's value as `str(Decimal)`, with
+`%` added for a percentage. `5k` gives `5000`.
+
+**`same_value(a, b)`**: true when `one_line(a) == one_line(b)`, or when
+each, stripped, is read by the reading of 5.8 as exactly one number and no
+date, whose written form is the whole stripped text (exempt numbers
+included), and the two numbers have equal values and are both percentages
+or both not. So `10000` and `10,000` are the same
+value, and `deposit 500` and `deposit 500.00` are not.
+
+**`brief_texts(brief)`**: for each particular, its `what` and `handling`;
+for each input, its `name` and `description`; in that order, the strings
+only.
+
+**A finding**, as a dict, has exactly these keys, in this order:
+
+```
+{"id", "ts", "session_id", "kind", "claim", "claim_figure", "reference", "reference_figure",
+ "summary", "input", "earlier", "pending_note", "difference", "block", "options", "status",
+ "decision", "choice", "chosen"}
+```
+
+`summary`, `input` and `decision` are the `summary_id`, `input_name` and
+`decision_id` columns; `earlier` and `options` are parsed from JSON. What
+each kind holds:
+
+| Kind | `claim` | `claim_figure` | `reference` | `reference_figure` |
+| --- | --- | --- | --- | --- |
+| `data` | the words quoted from the person's message | the claim's figure, as written | `describe(<the summary's output>)` | the summary's `value` |
+| `brief` | the words quoted from the person's message | the claim's figure, as written | the words quoted from the brief | the quote's figure, as written |
+| `earlier` | the value `save_input` was given | the same | the saved value | the same |
+
+**`open_finding`** builds the block and the options, inserts the row with
+status `open`, commits, records `finding.opened` with the finding, and
+returns it. `kind` must be one of `FINDING_KINDS`, else `ValueError`.
+
+**The block** is these lines, joined by `\n`, with the indents of a
+decision block (8.3): 2 spaces, and 4 before each option.
+
+```
+FINDING_INTRO
+  FINDING_SAID, FINDING_DATA, one_line(difference), for kind data
+  FINDING_SAID, FINDING_BRIEF, one_line(difference), for kind brief
+  FINDING_NOW, FINDING_EARLIER, for kind earlier
+    1. <option 1>
+    2. <option 2>
+```
+
+The options:
+
+| Kind | Option 1 | Option 2 |
+| --- | --- | --- |
+| `data` | `FINDING_KEEP` | `FINDING_USE_DATA` |
+| `brief` | `FINDING_KEEP` | `FINDING_USE_BRIEF` |
+| `earlier` | `FINDING_USE_NEW` | `FINDING_KEEP_EARLIER` |
+
+Every text placed in the block passes through `one_line`. Nothing in it
+comes from the agent. Its figures come from the person's message, the
+brief, a saved input, a data summary and, for the difference, the
+verifier's sentence checked by the number check (9.6). So the block needs
+no number check of its own.
+
+```
+FINDING_INTRO        = "Two figures for the same thing differ. Only you can decide which one to use:"
+FINDING_SAID         = "You said: \"{claim}\""
+FINDING_DATA         = "Your loaded files show {figure}: {what}."
+FINDING_BRIEF        = "The brief says: \"{quote}\""
+FINDING_NOW          = "To save now as {name}: {value}"
+FINDING_EARLIER      = "Saved earlier ({when}) as {name}: {value}"
+EARLIER_HERE         = "in this conversation"
+EARLIER_BEFORE       = "in an earlier conversation"
+FINDING_KEEP         = "Keep what I said: {figure}"
+FINDING_USE_DATA     = "Use the figure from my files: {figure}"
+FINDING_USE_BRIEF    = "Use the figure in the brief: {figure}"
+FINDING_USE_NEW      = "Use the new value: {value}"
+FINDING_KEEP_EARLIER = "Keep the earlier value: {value}"
+```
+
+In `FINDING_DATA`, `{figure}` is `reference_figure` and `{what}` is
+`reference`. In `FINDING_KEEP`, `{figure}` is `claim_figure`; in
+`FINDING_USE_DATA` and `FINDING_USE_BRIEF`, `reference_figure`. In
+`FINDING_NOW` and `FINDING_USE_NEW`, `{value}` is `claim`; in
+`FINDING_EARLIER` and `FINDING_KEEP_EARLIER`, `reference`. `{when}` is
+`EARLIER_HERE` when the saved row's session is this one, else
+`EARLIER_BEFORE`. For example:
+
+```
+Two figures for the same thing differ. Only you can decide which one to use:
+  You said: "I spend about 5k a month"
+  Your loaded files show 4132.31: money out a month, on average over the 3 full months 2026-06 to 2026-08, all accounts.
+  The loaded files show 4,132.31 going out a month on average over the last three full months.
+    1. Keep what I said: 5k
+    2. Use the figure from my files: 4132.31
+```
+
+**`close_finding(conn, finding_id, *, decision_id, choice, saved, session_id)`**
+sets status `decided`, the decision, the choice and `chosen`, commits,
+records `finding.closed` with `{"finding", "decision", "choice", "chosen",
+"saved"}`, and returns the finding. `chosen` is:
+
+| Choice | `data` and `brief` | `earlier` |
+| --- | --- | --- |
+| `1` | `plain(figure(claim_figure))` | `claim` |
+| `2` | `plain(figure(reference_figure))` | `reference` |
+| `something else` | `null` | `null` |
+
+**`list_findings`** returns the findings of one session, or of every
+session, oldest first (by id). **`open_findings`** returns those of the
+session with status `open`, oldest first.
+
+A finding left open when a conversation ends stays `open`: the page shows
+that it was never decided. It does not reach another conversation.
+
+### 9.6 The verifier: `harness/calc/verifier.py`
+
+A sub-agent with its own prompt and its own context, run by the harness. It
+never sees the conversation and has no way to run a module, save an input
+or talk to the person.
+
+```python
+needs_check(conn, brief, message: str) -> bool
+verifier_context(conn, brief, *, today: str) -> str
+verify(*, model, conn, brief, message: str, session_id, today: str, say) -> list[dict]
+```
+
+**When it runs.** `needs_check` is true when both hold:
+
+1. `message` has a figure to check: some item of the reading of 5.8 that
+   is a date or a number that is not exempt;
+2. there is something to check it against: a row in `transactions`, an
+   item of that kind in one of `brief_texts(brief)`, or a row in `inputs`.
+
+**The context** is `verifier_context`: these sections, in this order, with
+`format_sections` (5.7). It is made afresh at each check.
+
+| Section | Holds |
+| --- | --- |
+| `today` | `today` |
+| `particulars` | the brief's `particulars` |
+| `inputs` | the brief's `inputs` |
+| `saved inputs` | every row of `inputs`: `{name: {"value": ..., "note": ...}}`, `{}` when none |
+| `accounts` | `accounts(conn)` (9.4), `[]` when none |
+| `all accounts` | `{"full_months": full_months(conn, "all")}` |
+| `measures` | `MEASURES` (9.4) |
+
+The system prompt is the text of `verifier.md` with `{context}` replaced
+by it. The messages start with one user message: `message`, exactly as
+recorded in `ask.message`.
+
+**Tools**, in this order:
+
+```python
+DATA_SUMMARY_SCHEMA = {"type": "object", "properties": {
+    "measure": {"type": "string", "enum": ["money_in", "money_out", "net", "balance"]},
+    "account": {"type": "string"},
+    "months": {"type": "integer"}, "month": {"type": "string"}},
+    "required": ["measure", "account"]}
+REPORT_SCHEMA = {"type": "object", "properties": {
+    "findings": {"type": "array", "items": {"type": "object", "properties": {
+        "claim": {"type": "string"}, "kind": {"type": "string", "enum": ["data", "brief"]},
+        "quote": {"type": "string"}, "summary": {"type": "integer"}, "difference": {"type": "string"}},
+        "required": ["claim", "kind", "difference"]}}},
+    "required": ["findings"]}
+```
+
+named `data_summary` and `report`. Each property may also carry a
+`description` for the model; tool descriptions are free text.
+
+**The loop.** At most `MAX_VERIFY_CALLS` model calls, each after
+`say(VERIFY_PROGRESS)`.
+
+- A reply with tool calls: its calls are handled in order. The assistant
+  message and every result are added together, and the model is called
+  again.
+  - `data_summary`: once `MAX_VERIFY_SUMMARIES` `data_summary` calls of
+    this check have been handled, whatever their result, the error result
+    `SUMMARY_LIMIT`, and nothing is recorded. Otherwise `run_summary(conn,
+    arguments, session_id=...)` (9.4): its result as `json.dumps`, or its
+    `SummaryRefused` message as an error result.
+  - `report`: when `findings` is not a list, the error result
+    `REPORT_SHAPE`. Otherwise the report is handled (below) and the check
+    ends there: later calls of the same reply are not handled, and no
+    model is called again.
+  - any other tool: the error `There is no tool called <name> here.`
+- A reply with no tool call: add its text, when not empty, as an assistant
+  message, and `VERIFY_NO_REPORT` as a user message.
+
+When the calls run out with no report, the check **fails**, with the reason
+`NO_REPORT_REASON`. Any exception raised during the check also fails it,
+with the reason `<Type>: <message on one line>`. A failed check records
+`verify.failed` with `{"reason"}`, calls `say(VERIFY_FAILED)`, and returns
+`[]`. The conversation carries on: `verify` never raises. The findings the
+check opened before it failed stay open.
+
+**Handling a report.** Record `verify.report` with `{"findings": <as
+sent>}`. Then take each entry in order, numbered from 1. The first rule it
+fails drops it: record `verify.dropped` with `{"index", "reason",
+"finding": <the entry as sent>}`. An entry that passes them all is opened:
+`open_finding(kind=<kind>, claim=one_line(claim), claim_figure=<the claim
+figure's written>, ...)` as in the table of 9.5, with `difference =
+one_line(difference)`.
+
+| # | Rule | Reason |
+| --- | --- | --- |
+| 1 | the entry is an object; `claim` and `difference` are strings not empty once stripped; `kind` is `data` or `brief`; for `brief`, `quote` is such a string; for `data`, `summary` is an `int` (not `bool`) | `DROP_SHAPE` |
+| 2 | `one_line(claim)` is part of `one_line(message)` | `DROP_NOT_QUOTED` |
+| 3 | `figure(claim)` is not `None` | `DROP_CLAIM_FIGURE` |
+| 4 | `brief`: `one_line(quote)` is part of `one_line` of one of `brief_texts(brief)`. `data`: `summary` is the id of a `data_summaries` row of this session | `DROP_NOT_IN_BRIEF`, or `DROP_NO_SUMMARY` with `{summary}` |
+| 5 | `brief`: `figure(quote)` is not `None`. `data`: the reference figure is `figure(<output value>)`, which always is | `DROP_REFERENCE_FIGURE` |
+| 6 | `disagree(<claim figure>, <reference figure>)` is not `None` | `DROP_NOT_COMPARABLE` |
+| 7 | it is true | `DROP_WITHIN_TOLERANCE` |
+| 8 | `unbacked(difference, [message, brief] + [<the summary's output>, for data])` is empty | `DROP_DIFFERENCE_NUMBERS`, with `{numbers}` joined by `, ` |
+| 9 | no word of `JUDGMENT_WORDS` is in `difference`, as a whole word, ignoring case | `DROP_TONE`, `{word}` the first such word in the text, lower-cased |
+| 10 | no finding of this session, opened earlier or from this report, has the same kind, a claim figure with an equal value and a reference figure with an equal value (`figure` of each; numbers compared as `Decimal`, dates as text) | `DROP_ALREADY`, `{id}` that finding |
+| 11 | fewer than `MAX_FINDINGS` findings were opened from this report | `DROP_LIMIT` |
+
+"Part of" is a plain substring test, case and all. `verify` returns the
+findings it opened, in order.
+
+```
+MAX_VERIFY_CALLS        = 4
+MAX_VERIFY_SUMMARIES    = 6
+VERIFY_PROGRESS         = "  (checking your figures)"
+VERIFY_FAILED           = "  (the check of your figures did not finish: {reason})"
+VERIFY_NO_REPORT        = "[harness] Call report now, with an empty list of findings when nothing differs."
+NO_REPORT_REASON        = "the verifier gave no report"
+SUMMARY_LIMIT           = "No more summaries in this check. Call report."
+REPORT_SHAPE            = "report needs findings: a list, empty when nothing differs."
+DROP_SHAPE              = "it needs a claim, a kind (data or brief), a difference, and a quote (brief) or a summary (data)"
+DROP_NOT_QUOTED         = "the claim is not quoted from the person's message"
+DROP_CLAIM_FIGURE       = "the claim does not hold exactly one figure"
+DROP_NOT_IN_BRIEF       = "the quote is not in the brief's particulars or inputs"
+DROP_NO_SUMMARY         = "there is no data summary {summary} in this conversation"
+DROP_REFERENCE_FIGURE   = "the quote does not hold exactly one figure"
+DROP_NOT_COMPARABLE     = "one figure is a date and the other is not"
+DROP_WITHIN_TOLERANCE   = "the two figures are within 5% of each other"
+DROP_DIFFERENCE_NUMBERS = "the difference has numbers that are not in the message, the brief or the summary: {numbers}"
+DROP_TONE               = "the difference uses the word '{word}'"
+DROP_ALREADY            = "finding {id} already raised this"
+DROP_LIMIT              = "only 2 findings are raised per message"
+```
+
+`VERIFY_PROGRESS` and `VERIFY_FAILED` start with `"  ("`, so a side
+conversation does not count them as shown (8.5). The verifier's calls do
+not count towards `MAX_CALLS`.
+
+### 9.7 The agent, put together
+
+The changes to `run_agent` (5.9), all only with `verify=True`. With
+`verify=False` nothing here happens.
+
+**After each person message.** Once `ask.message` is recorded and the
+message is added (5.9, step 1):
+
+1. When `needs_check(conn, brief, <the message>)`, run
+   `verify(model=model, conn=conn, brief=brief, message=<the message>,
+   session_id=..., today=<YYYY-MM-DD>, say=say)` with the agent's own
+   model. The person's answers at a gate, a decision, a build or a side
+   conversation are not person messages and are never checked.
+2. For every open finding of this session, oldest first, add one user
+   message: `FINDING_NOTE` with its `id` and `block`. A finding left open
+   from an earlier message is noted again.
+
+Then the agent is called, as before.
+
+**While a finding is open.** "A finding is open" means `open_findings`
+of this session is not empty; `{id}` below is the oldest one's.
+
+- `run_module` and `save_input`: before any other check, the error result
+  `FINDING_OPEN`, and `finding.refused` with `{"finding", "tool",
+  "arguments"}`. Nothing else happens.
+- The assumption gate holds no run (8.2, condition 6).
+- A reply with text, once it is known not to be empty (5.9, step 4): it is
+  not shown and the number check does not read it. Record `ask.correction`
+  with `{"reason": "finding", "numbers": [], "text"}`, add the text as an
+  assistant message and `FINDING_FIRST` as a user message, and call the
+  model again. This counts towards `MAX_CALLS`, and does not use up the
+  one correction for numbers.
+
+**`save_input` over a saved value** (reference `earlier`). After the checks
+of 5.9 (`BAD_NAME`, `EMPTY_VALUE`, the number check), with the stored value
+read back as text (JSON-decoded; a value that is not a string is written
+with `json.dumps`), the first that applies:
+
+1. there is no row for `name`, or `same_value(<stored>, value)`: save as in
+   5.9;
+2. `same_value(value, chosen)` for the `chosen` of some decided finding of
+   this session, of any kind: save as in 5.9. The person chose this figure;
+3. a decided finding of this session of kind `earlier` has this `input` and
+   a `claim` that is `same_value` as `value`: the error result
+   `FINDING_DECIDED`. Nothing is saved or recorded;
+4. otherwise nothing is saved: `open_finding(kind="earlier", claim=value,
+   claim_figure=value, reference=<stored>, reference_figure=<stored>,
+   input_name=name, earlier={"value": <stored>, "note", "ts",
+   "session_id"} of the row, pending_note=note)`, and the error result
+   `FINDING_RAISED`.
+
+**`ask_decision` with `finding`** (present and not `null`). The checks, in
+this order; the first that fails gives an error result, records
+`ask.decision_refused` with `{"error", "arguments"}`, and shows nothing:
+
+| Check | Error |
+| --- | --- |
+| no earlier `ask_decision` call of the same reply reached a check (8.3) | `ONE_DECISION` |
+| `finding` is an `int` (not `bool`) that is the id of an open finding of this session | `FINDING_NOT_OPEN`, `{finding}` = `json.dumps(<the value>)` |
+
+Every other argument is ignored. `MAX_DECISIONS` does not apply, and the
+decision does not count towards it. Then:
+
+1. Record `ask.decision_asked` with `{"arguments", "block": <the
+   finding's block>}`. `say(<the block>)`, then `ask(DECISION_QUESTION)`
+   (8.3); an empty answer asks again and records nothing. `/aside` works
+   here as at any question.
+2. `choice = read_choice(<the answer>, <the finding's options>, None)`.
+3. `record_decision(kind="finding", step_id=None, question=<the block>,
+   options=<the finding's options>, choice=choice, words=<the answer>,
+   runs=[])`.
+4. For a finding of kind `earlier` and choice `1`: save `claim` under
+   `input` with `pending_note` as its note, exactly as `save_input` saves
+   (5.9), `ask.input_saved` included. `saved` is true; otherwise false.
+5. `close_finding(...)` (9.5).
+
+The result, which is not an error, is `json.dumps` of
+
+```
+{"outcome": "decided", "decision": <decision id>, "finding": <finding id>, "choice": "1" | "2" | "something else",
+ "option": "<the chosen option>" | null, "use": <chosen> | null, "said": "<the answer>", "saved": true | false}
+```
+
+`ask_decision` without `finding`, or with `finding` `null`, is as in 8.3.
+
+**Sources.** The number check of the agent also reads the summaries of
+this session (5.9). The person's choice at a finding is a decision's
+`words`, already a source. A chosen figure is always backed: it is the
+person's, the brief's, a saved input's or a summary's.
+
+```
+FINDING_NOTE     = "[harness] The harness checked the person's figures and opened finding {id}. Raise it now: call ask_decision with finding {id} and runs [], and nothing else. The person will see this block, word for word:\n{block}\nUntil they decide, run_module and save_input are refused and your replies are held back."
+FINDING_OPEN     = "Refused while finding {id} is open. Call ask_decision with finding {id} and runs [] first: the person decides which figure to use."
+FINDING_FIRST    = "[harness] Your reply was not shown, because finding {id} is open. Call ask_decision with finding {id} and runs [] now."
+FINDING_RAISED   = "Not saved: '{name}' already holds a different value. The harness opened finding {id}. Call ask_decision with finding {id} and runs [] next: the person decides which value to keep."
+FINDING_DECIDED  = "Not saved: the person already decided about this value of '{name}' (finding {id}). Carry on with what they chose."
+FINDING_NOT_OPEN = "There is no open finding {finding} in this conversation."
+```
+
+`\n` in `FINDING_NOTE` is a line break. These live in `agent.py`.
+
+**The order of model calls**, which a scripted model follows. One model
+object answers the verifier, the agent, any build and any side
+conversation, in the order they happen.
+
+1. After a person message that `needs_check`: the verifier's calls, each
+   after `say(VERIFY_PROGRESS)`, until its report or its limit. Then the
+   agent's first call, after `say("  (thinking)")`.
+2. A finding is put to the person like a judgment (8.6): an agent call
+   whose reply holds `ask_decision` with `finding`; then `say(<the
+   block>)` and the answer; then the next agent call.
+
+For example, with account files loaded: the person types `I spend about 5k
+a month. How long until I reach my target?` and, at the finding, `2`. The
+model calls are: verifier (`data_summary`), verifier (`report`, one
+finding), agent (`ask_decision` with `finding` 1), agent (`run_module`, with
+the chosen figure), agent (the reply). Five calls. The events are:
+`ask.message`, `data.summary`, `verify.report`, `finding.opened`,
+`ask.decision_asked`, `ask.decision`, `finding.closed`, the run's events,
+`ask.reply`.
+
+For example, a `save_input` over a different saved value: agent
+(`save_input`, which gets `FINDING_RAISED`), agent (`ask_decision` with
+`finding`), the person's answer, agent (the reply). The verifier is not
+called when the message has no figure.
+
+### 9.8 Scenarios and the seeded examples
+
+A finding block is an ordinary question to the scripted person: it takes
+the next line. Where a line lands depends on the model, so a scenario's
+`expect.findings` names the kind, and the status or choice only when the
+lines make it certain. When the lines run out, `/quit` answers a finding as
+the person's own words (`something else`), as at a judgment.
+
+The scenarios already shipped do not change: without `verify` they run as
+in step 4. The `replay.scenario` event keeps its payload; the data loaded
+shows as the session's `data.imported` events.
+
+**What the data author adds**, and nothing more:
+
+1. `examples/wedding/data/`: account files that fit the example's story,
+   each passing `read_table` (9.2).
+2. At least one `ask` scenario in `examples/wedding/scenarios/` with
+   `"verify": true`, a `data` list naming those files with their sign
+   conventions, and `expect.findings`.
+
+`tests/data` checks, for every example with a `data/` folder, that each of
+its files passes `read_table`, and that it ships at least one such
+scenario.
+
+### 9.9 Evidence
+
+What the page gains, all from the record (7.3, 7.4, 7.6):
+
+- the `data` label, after `run`, for figures that a data summary of the
+  conversation backs, each a link to its summary;
+- three summary keys: `imports` (from the events, so what `data clear`
+  removed is still shown), `summaries` and `findings`;
+- one path, `GET /api/work/data_summary?id=N`;
+- a sixth view, Data (item 19), and the verifier's work in place in a
+  conversation (item 18). Finding blocks are `ask.decision_asked` events,
+  traced like any decision block; finding decisions show in Decisions.
+
+No model writes any of it.
+
+### 9.10 Events
+
+Every event of a conversation carries its session id; the events of a
+`data` command carry that command's.
+
+| Kind | Actor | Payload |
+| --- | --- | --- |
+| `data.imported` | `harness` | the import dict (9.2) |
+| `data.refused` | `harness` | `{"file", "reason"}`; `file` as given |
+| `data.cleared` | `person` | `{"imports", "transactions"}`, the rows removed |
+| `data.summary` | `harness` | `{"id", "inputs", "output", "imports"}` (9.4) |
+| `data.summary_refused` | `harness` | `{"arguments", "error"}`; `arguments` as sent |
+| `verify.report` | `agent` | `{"findings"}`, as sent |
+| `verify.dropped` | `harness` | `{"index", "reason", "finding"}`; `finding` as sent; `index` from 1 |
+| `verify.failed` | `harness` | `{"reason"}` |
+| `finding.opened` | `harness` | the finding (9.5), as opened |
+| `finding.refused` | `harness` | `{"finding", "tool", "arguments"}`; a `run_module` or `save_input` refused while it was open |
+| `finding.closed` | `harness` | `{"finding", "decision", "choice", "chosen", "saved"}` |
+
+`ask.correction` gains the reason `finding` (5.11), and `ask.decision` the
+kind `finding` (8.1).
+
+The order:
+
+- **A check:** `data.summary` or `data.summary_refused` for each summary
+  asked for, in order; then `verify.report`, then for each entry in order
+  `verify.dropped` or `finding.opened`. Or, when it fails, `verify.failed`
+  after whatever came before. All of it between the `ask.message` and the
+  agent's first events.
+- **A finding decided:** `ask.decision_asked`, the events of any side
+  conversation, `ask.decision`, `ask.input_saved` (for `earlier`, choice
+  `1`), `finding.closed`.
+- **A `data add`:** per file, `data.imported` or `data.refused`.
+
+### 9.11 Decisions
+
+Choices made to close gaps in the design, for review:
+
+1. Three references, one mechanism. A finding is a claim, a reference and
+   the evidence, whatever found it; each is put to the person the same way
+   and closes the same way.
+2. `earlier` needs no model: `save_input` compares the value with the saved
+   one. `data` and `brief` need judgment about what a figure is about, so a
+   verifier finds them and the harness checks every part.
+3. One verifier call path, before the agent: the person's message is
+   checked once, before the agent can calculate with it. The verifier sees
+   only that message and the references, never the conversation, so it
+   cannot be argued into agreeing.
+4. The verifier runs only when the message has a figure that the number
+   check would read, and there is something to check against. Answers to
+   gates, decisions, builds and side conversations are not checked.
+5. The same model object serves the verifier and the agent, so a scripted
+   model follows one order (9.7). A failed check is recorded and shown as a
+   progress line; the conversation never stops for it.
+6. `verify` is a switch on `run_agent`, off by default, so the tests of
+   steps 2 to 4 hold; every command that holds a conversation turns it on.
+   A scenario turns it on with `"verify": true`.
+7. Pairing is mechanical: a claim and a reference each hold exactly one
+   figure, read as the number check reads. A data summary gives one
+   `value`. So "which number against which" is never a judgment.
+8. The tolerance is relative: more than 5% (`TOLERANCE`) of the reference.
+   "About 5k" against 5,080 is not raised. Dates must be equal. Signs are
+   ignored, as in the number check.
+9. The finding block is built by the harness from the finding alone. The
+   one sentence the verifier writes, the difference, must pass the number
+   check (message, brief and summary as sources) and use no word of
+   `JUDGMENT_WORDS`. The agent writes nothing in it.
+10. Two options, and the person's own words. "Keep what I said" and "use
+    the reference" are numbered; anything else is `something else`, as at
+    a judgment. No suggestion is offered: the harness does not take a side.
+11. A finding is a decision of a fourth kind, `finding`, through
+    `ask_decision` with `finding`, so `/aside`, the records and the page
+    all work as for a judgment. It does not count towards `MAX_DECISIONS`:
+    the harness raised it, not the agent.
+12. While a finding is open, `run_module` and `save_input` are refused, the
+    assumption gate holds nothing, and text replies are held back. The
+    agent cannot calculate with the disputed figure, and cannot talk past
+    the finding.
+13. The choice is used, not just recorded. For `earlier` the chosen value
+    is saved by the harness (choice 1) or the saved one stays (choice 2).
+    For `data` and `brief` the result gives `use`; the agent carries on
+    with it, and a later `save_input` of a chosen figure opens no new
+    finding. The other figure stays in the finding.
+14. A difference is raised once per conversation: a finding with the same
+    kind and the same two figures is dropped as already raised. A value
+    the person decided against in this conversation is not saved again.
+15. At most two findings per message (`MAX_FINDINGS`). The verifier has
+    four model calls and six summaries per check.
+16. A finding left open when the conversation ends stays open, and is not
+    carried into the next conversation. The page shows it as never decided.
+17. The adapter is one fixed reader with rules, not a model: delimiter and
+    heading row found together, by the column names it knows; column roles
+    by a list of common headings in English and Spanish; date and number
+    formats chosen only when every cell fits, and refused when two
+    formats fit and disagree.
+18. A file that cannot be read whole is refused with one plain reason. No
+    row of money is skipped silently: only blank rows, repeated heading
+    rows and, with a balance column, repeated rows are left out, and every
+    one left out is reported.
+19. Repeated rows are dropped only when a balance column tells them apart
+    from real repeats. Without one, equal rows are kept and listed. This
+    narrows the direction's rule on purpose.
+20. The sign convention is never guessed. It comes from `--sign` or from
+    the person, file by file, after seeing the first rows as read; a
+    scenario states it.
+21. A file already loaded (same bytes) is refused. Overlapping exports of
+    one account in two different files are not merged: `data clear` and
+    load one.
+22. An account is named from the file name, or with `--account`. `all`
+    is kept for every account together.
+23. Example data lives in `examples/<name>/data/`. In example mode `data
+    add` with no file loads all of it. Config gains no setting.
+24. A full calendar month is one the rows reach at both ends. Partial months
+    are never averaged; a complete month at an edge may be missed.
+25. Own transfers are matched opposite amounts on the same day in two
+    loaded accounts. What this does not catch is listed in 9.4.
+26. A summary's figures are `data`, a source label of their own, after
+    `run`: tested code made them, from the person's own files. The trace
+    item keeps its key, `run_id`, which holds the summary id for `data`.
+27. Summaries are recorded like runs (inputs, output, imports, time) and
+    are never deleted, so a finding keeps its evidence after `data clear`.
+28. The main agent gets no `data_summary` tool. It sees a summary's figures
+    only through a finding. Answering questions from the person's data is
+    a later step.
+29. Imports on the page come from events, which cannot change, not from
+    the table, which `data clear` empties.
+
+**What this step deliberately does not do**, to be said in the workshop:
+
+- check figures against outside benchmarks, such as typical spending:
+  there is no trustworthy source for it, and a wrong benchmark would push
+  the person around. Standard definitions stay in the research desk and in
+  side conversations;
+- sort spending into categories (rent, food, the wedding), or tell
+  one-off payments from regular ones;
+- read the hand-kept budget file, or any file that is not one row per
+  transaction;
+- read separate money-in and money-out columns, amounts in brackets for
+  negatives, or a currency per row (other currency columns are ignored);
+- check a claim against the person's own earlier words that were never
+  saved, or against figures in the agent's replies;
+- check what the person says inside a gate, a decision, a build or a side
+  conversation;
+- find a disagreement the verifier does not report.
+
+No extension point is built for outside references. One would be a new
+kind in `FINDING_KINDS`, a new reference in `report`, and its own rules
+in 9.6; nothing else would change.

@@ -1,0 +1,23 @@
+{
+  "name": "keep_or_move_date",
+  "kind": "ask",
+  "description": "After the months-to-save figure is worked out by modules, the agent puts keeping or moving the date to the person as a judgment call, recorded against step m4.",
+  "lines": [
+    "If I can only put aside 400 a month, how long until I can pay for the move? The deposit is 1,200 and the van hire is 380. I will pay three months of overlapping rent at 950 a month, and I have no other costs. I have saved 1,000 so far, not counting my emergency fund, and the move is in 7 months. Please go ahead with those figures. Then help me decide whether to keep the move date or move it.",
+    "yes",
+    "yes",
+    "yes",
+    "yes",
+    "yes",
+    "yes"
+  ],
+  "expect": {
+    "decisions": [
+      {
+        "kind": "judgment",
+        "step": "m4"
+      }
+    ],
+    "max_withheld": 0
+  }
+}

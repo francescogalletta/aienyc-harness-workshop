@@ -19,8 +19,8 @@ Every step has the same four parts:
 | 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
 | 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
 | 3 | Evidence | The show-your-work page (`work`) that follows each number to its run, module and tests; `adopt`, seeded examples and `replay` (built) | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |
-| 4 | Human in the loop | Gates, the side-conversation sub-agent, decision records | An ambiguous input opens a side conversation; the main session receives only the decision | `pytest tests/step4` | `step-4` |
-| 5 | Verification | Reference checks at decision points | The budget says one figure and the bank says another; the harness notices and asks | `pytest tests/step5` | `step-5` |
+| 4 | Human in the loop | Built: a gate on unconfirmed assumptions, `ask_decision` for judgment calls, side conversations (`/aside`, `/back`) with their own assistant, decision records | At a gate the person steps aside to ask what a term means; the main conversation receives only the sentence they choose to pass back | `pytest tests/step4` | `step-4` |
+| 5 | Verification | Reference checks at decision points, opening a side conversation (SPEC 9) | The budget says one figure and the bank says another; the harness notices and asks | `pytest tests/step5` | `step-5` |
 
 ## Status
 
@@ -30,14 +30,15 @@ Every step has the same four parts:
 | 1 | Fixed (SPEC 4) | Written | Written | Yes |
 | 2 | Fixed (SPEC 5) | Written | Written | Yes |
 | 3 | Fixed (SPEC 6 and 7) | Written | Written | Yes |
-| 4 | Draft (SPEC 8) | Not yet | Not yet | No |
-| 5 | Draft (SPEC 8) | Not yet | Not yet | No |
+| 4 | Fixed (SPEC 8) | Written | Written | Yes: gates, `ask_decision`, side conversations, decision records, new seeded scenarios |
+| 5 | Draft (SPEC 9) | Not yet | Not yet | No |
 
 Examples and replay (SPEC 6) are part of step 3: two seeded examples in
 `examples/` (a confirmed brief, built modules and scenarios), `adopt` to
 register their modules on a fresh clone, and `replay` to run their scenarios
-against a real model. Built; see `examples/README.md`. The worked examples
-in `examples/` were recomputed by an AI agent, not yet by a person.
+against a real model. Built; see `examples/README.md`, which also lists the
+step 4 scenarios. The worked examples in `examples/` were recomputed by an AI
+agent, not yet by a person.
 
 ## How a step is prepared
 

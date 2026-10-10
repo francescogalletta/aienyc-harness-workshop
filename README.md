@@ -213,6 +213,23 @@ On a module, **Run the tests now** runs its tests and worked examples again
 (up to 30 seconds), records the run, and shows which passed. "Tests passing"
 always comes from running the code, never from a stored flag.
 
+## Gates, decisions and side conversations
+
+`ask` stops only for what matters. Before a calculation runs on something you
+have not confirmed (a figure it assumed, a date it guessed) it shows what it
+takes as given and what it expects. Type `yes` to go ahead, or say what is
+wrong and nothing runs. When a call is yours to make, such as which date to
+keep, it lists two to four options, often with a suggestion. It never asks you
+to approve a computed number, and saving a figure you gave never stops.
+
+At any such question, type `/aside` (with a question after it, or not) to talk
+it through with a separate assistant that explains but cannot run or decide
+anything. `/back` returns you to the same question. Only a sentence you type at
+"Before you go back" reaches the main conversation.
+`uv run python -m harness decisions` lists every decision in your own words.
+On the `work` page, gates and decisions sit in the conversation, side
+conversations are nested and labelled, and **Decisions** lists them all.
+
 ## Examples and replay
 
 `examples/` holds two seeded examples, `wedding` and `moving`: a confirmed

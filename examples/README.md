@@ -94,6 +94,10 @@ The seeded scenarios:
 | `moving` | `upfront_and_monthly` | ask | Upfront cost 4,660 and the monthly saving 308.58 over 7 months |
 | `moving` | `months_at_current_saving` | ask | Upfront cost 4,430 feeds the months module |
 | `moving` | `build_months_to_save` | build | A missing module for `m3` is built again; the others are kept |
+| `wedding` | `decide_what_to_update` | ask | After the forecast the agent puts step `s7` (what to update first) to the person as a judgment call, and the decision is recorded |
+| `wedding` | `aside_before_asking` | ask | A side conversation at the opening question (one, of one turn), then the full question: the cost still comes from a module |
+| `moving` | `keep_or_move_date` | ask | After the months figure the agent puts step `m4` (keep the move date or move it) as a judgment call |
+| `moving` | `aside_before_asking` | ask | A side conversation at the opening question (one, of one turn), then the full question: the upfront cost still comes from a module |
 
 ## Write a scenario
 
@@ -114,15 +118,29 @@ One JSON file, `scenarios/<name>.json`, with `<name>` in snake_case
   expected dates and months never change. `without` lists steps whose modules
   are left out, so a `build` has something to build.
 - `lines` is what the person types, in order. Give every figure in the first
-  line, so a sensible agent needs nothing more, then add a few plain `yes`
-  lines for its say-back questions. Every extra line costs a model call: when
-  the lines run out the person types `/quit`.
+  line, so a sensible agent needs nothing more, then add plain `yes` lines
+  for its say-back questions, its assumption gates and its decisions. A line
+  that starts with `/aside` opens a side conversation wherever it lands. When
+  the lines run out the person types `/quit`: that is a no at a gate, "something
+  else" at a decision, and the end of a conversation anywhere else.
 - `expect` is about module runs and numbers. `runs` lists modules and the
   inputs they must have been run with. `shown` lists numbers a reply must
   show, at the precision you write them (`"4,583"` is seen in `4,583.33`).
+  `decisions` (step 4) lists what the person must have decided, each as a
+  `kind` (`assumptions`, `judgment` or `build`) with, optionally, a `step`, a
+  `choice` and a `count`. `asides` (step 4) gives how many side conversations
+  were `opened` and how many `turns` were taken in them.
   `steps` says what a `build` did with a step: `built`, `reused`, `kept` or
   `not_built`. A bare whole number from 0 to 12 cannot be in `shown`, so
   check it through the inputs of a run instead.
+- **Say a decision by its kind and step, never its choice.** Which line lands
+  on a decision depends on the model, and the options are model-written. A
+  `yes` that lands on a decision takes the suggestion when there is one.
+  Open a side conversation at the first question, before the agent has said
+  anything: it is the one place a line is sure to land.
+  Give the first line everything the judgment rests on (the move is in 7
+  months, for instance). An agent that has to ask for a missing figure asks
+  in plain words, and a `yes` does not answer it.
 - **Work out every expected number yourself**, with a script that does not
   import the modules. A scenario that copies the module's answer proves
   nothing.
@@ -143,5 +161,6 @@ One JSON file, `scenarios/<name>.json`, with `<name>` in snake_case
    any spec whose formula was ambiguous for it, then run `adopt` again.
 5. Run `HARNESS_EXAMPLE=<name> uv run python -m harness modules`: every module
    must be `unchanged` and `passed`. Delete a `_build` folder if one is left.
-6. Write at least one `ask` and one `build` scenario, and replay each
-   until it passes twice in a row.
+6. Write at least one `ask` and one `build` scenario, one `ask` scenario whose
+   `decisions` names a `judgment` step of the brief, and one with `asides`.
+   Replay each until it passes twice in a row.

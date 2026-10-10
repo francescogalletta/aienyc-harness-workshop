@@ -1,7 +1,6 @@
 """SPEC 6.1 (step 4) and 8.8: what the data author changes in the seeded examples.
 
-The scenarios of `examples/` are updated after step 4 is implemented, so the checks of the new data are marked
-expected failures. The first test checks what is true already: every scenario still passes `validate_scenario`.
+The scenarios of `examples/` were updated after step 4 was implemented; these checks keep them that way.
 """
 import json
 from pathlib import Path
@@ -11,7 +10,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 EXAMPLES = ROOT / "examples"
 NAMES = sorted(p.name for p in EXAMPLES.iterdir() if p.is_dir()) if EXAMPLES.is_dir() else []
-SEEDED = pytest.mark.xfail(reason="seeded scenarios are updated after step 4 is implemented")
 
 DECIDE = "Once you have the results, help me decide what to update first."
 KEEP_OR_MOVE = "Then help me decide whether to keep the move date or move it."
@@ -56,7 +54,6 @@ def test_the_build_scenarios_have_no_side_conversation_and_no_gate_lines(example
 
 # ---- 6.1: what each example ships ------------------------------------------------------------------------------------------------------------
 
-@SEEDED
 @pytest.mark.parametrize("example", NAMES)
 def test_an_example_ships_a_judgment_scenario(example):
     steps = {step["id"]: step["kind"] for step in brief_of(example)["process"]}
@@ -66,7 +63,6 @@ def test_an_example_ships_a_judgment_scenario(example):
     assert found
 
 
-@SEEDED
 @pytest.mark.parametrize("example", NAMES)
 def test_an_example_ships_an_aside_scenario(example):
     assert [s["name"] for s in scenarios_of(example) if s["kind"] == "ask" and "asides" in s["expect"]]
@@ -74,7 +70,6 @@ def test_an_example_ships_an_aside_scenario(example):
 
 # ---- 8.8 rule 1: six yes lines after the first --------------------------------------------------------------------------------------------------------
 
-@SEEDED
 @pytest.mark.parametrize("example, name", FOUR_ASK)
 def test_the_four_ask_scenarios_have_six_yes_lines_after_the_first(example, name):
     wanted = scenario(example, name)
@@ -103,7 +98,6 @@ ASIDE_OPENING = {"wedding": "/aside What does a running balance mean in my plan?
 ASIDE_FIRST_LINE = {"wedding": "cover_each_payment", "moving": "upfront_and_monthly"}
 
 
-@SEEDED
 @pytest.mark.parametrize("example, name, today, first, expect", NEW)
 def test_a_new_scenario_is_as_the_spec_says(example, name, today, first, expect):
     wanted = scenario(example, name)
@@ -119,13 +113,11 @@ def test_a_new_scenario_is_as_the_spec_says(example, name, today, first, expect)
     assert wanted["expect"] == expect
 
 
-@SEEDED
 @pytest.mark.parametrize("example, name, today, first, expect", NEW)
 def test_a_new_scenario_validates(replay, example, name, today, first, expect):
     assert replay.validate_scenario(scenario(example, name), stem=name, brief=brief_of(example)) == []
 
 
-@SEEDED
 def test_the_scenarios_of_each_example_are_the_old_ones_and_the_new_ones():
     assert sorted(p.stem for p in (EXAMPLES / "wedding" / "scenarios").glob("*.json")) == sorted(
         ["build_monthly_surplus", "cover_each_payment", "no_family_contribution", "decide_what_to_update",
