@@ -1,0 +1,30 @@
+{
+  "name": "aside_before_asking",
+  "kind": "ask",
+  "description": "The person steps aside at the opening question to ask what a running balance is, carries nothing back, and then asks the full question: one side conversation of one turn, and the cost still comes from a module.",
+  "today": "2027-01-15",
+  "lines": [
+    "/aside What does a running balance mean in my plan?",
+    "/back",
+    "no",
+    "Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 5,000 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027. Please go ahead with those figures.",
+    "yes",
+    "yes",
+    "yes",
+    "yes",
+    "yes",
+    "yes"
+  ],
+  "expect": {
+    "asides": {
+      "opened": 1,
+      "turns": 1
+    },
+    "runs": [
+      {
+        "module": "wedding_total_cost"
+      }
+    ],
+    "max_withheld": 0
+  }
+}

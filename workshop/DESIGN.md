@@ -124,9 +124,9 @@ JSON, UTF-8, written with `json.dumps(value, indent=2, ensure_ascii=False) + "\n
    the manifest explains every change, and lists nothing stale.
 4. Every `built` path of step N appears in the text of that step's
    prompt, as written, or through its folder written with a final `/`
-   (step 0's prompt names `harness/model/`). Today this fails for step 2:
-   its prompt does not name `harness/calc/added.py` or
-   `harness/migrations/0005_added_steps.sql`, so the prompt is fixed.
+   (step 0's prompt names `harness/model/`). Step 2's prompt did not name
+   `harness/calc/added.py` or `harness/migrations/0005_added_steps.sql`; it
+   now does.
 
 ### 4.3 Initial content
 
@@ -148,7 +148,16 @@ in two states, so they appear in no list. `SPEC.md` is in every step's
 Notes on the table:
 
 - Every step's `prompt` is `workshop/prompts/<the file above>`, and `tests`
-  is `tests/step<N>/`. `red_at_start` is `{}` for every step at first.
+  is `tests/step<N>/`. `red_at_start` is `{}` for every step except 5.
+- Additions that `check` found necessary (the table above had no row for
+  them): `tests/step1/test_legacy_layout.py` is in the `given` of steps 2
+  and 3 (the commands it runs arrive then); `tests/step3/test_writes_only_under_my.py`
+  is in the `given` of step 5 (the verifier's first reply arrives then).
+  `red_at_start` of step 5 holds `tests/step2/test_agent.py`,
+  `tests/step3/test_evidence_functions.py` and
+  `tests/step3/test_evidence_summary.py`, which use `ASK_DECISION_SCHEMA` of
+  `step2_helpers.py` and the summary keys of `step3_evidence_helpers.py`,
+  both of which step 5 revised.
 - Step 0's `given` holds the account-file fixture and its tests, which pass
   with no harness code.
 - Step 2's `safety.py` and `runner.py` are the only `start` files: SPEC 5.2
@@ -184,10 +193,9 @@ workshop/states/
   `absent.json` names only paths of `finished/` (both checked, 9.1).
 - `N-build` is not stored: it is derived (section 6). `<N>-build/files/`
   holds exactly the `start` paths of step N, nothing else.
-- Expected size: about 6 overlay files in `0-done`, 9 in `1-done`, 21 in
-  `2-done`, 28 in `3-done`, 24 in `4-done`, and 2 in `2-build`: about 90
-  files, five of them copies of `SPEC.md`. `finished/` holds about 255
-  files (2.6 MB).
+- Built size: 6 overlay files in `0-done`, 10 in `1-done`, 22 in `2-done`,
+  29 in `3-done`, 25 in `4-done`, and 2 in `2-build`, `SPEC.md` included.
+  `finished/` holds 257 files (3.2 MB).
 
 ## 6. The content of a state
 
@@ -220,7 +228,8 @@ and the paths `next` installs (8.4) for `next`. For each path `p` in
    versions of `p`, **set it aside** (7.3) first.
 4. Write `want` (creating parent folders), or, when `want` is `None`,
    remove the file and then every parent folder that is now empty, up to
-   but not including its managed root.
+   but not including its managed root. A folder that holds only ignored
+   names (`__pycache__`) is not removed.
 
 If `ROOT/p` is a folder where a file should be, or the other way round, the
 command stops before writing anything and prints `IN_THE_WAY` (8.8), exit 1.
@@ -361,7 +370,8 @@ temporary folder and prints its path.
   - `N-done` (N from 0 to 4): rewrites `N-done/files/` and `absent.json`
     against `finished/`, so that `content("N-done", p)` equals the tree of
     `DIR` for every path. Overlay files equal to `finished/` are not kept.
-  - `N-build`: every path whose content in `DIR` differs from the derived
+  - `N-build`: `DIR` is a full tree (`export N-build DIR`, then replace the
+    start files). Every path whose content in `DIR` differs from the derived
     `N-build` (section 6, without the overlay) must be in `start(N)`;
     otherwise `STORE_NOT_START` lists them and nothing is stored, exit 1.
     Stores those files.
@@ -453,13 +463,16 @@ A failing static check prints up to five offending paths in its detail.
 Each state is materialised into its own temporary folder (7.2) and pytest
 runs there, as in 8.2 (`sys.executable -m pytest -q -p no:cacheprovider`,
 current folder the temporary one, `PYTHONDONTWRITEBYTECODE=1`, every
-`HARNESS_*` variable removed from the environment).
+`HARNESS_*` variable removed from the environment). The static checks of 9.1
+always run and do not gate the state runs; a check that raises is reported
+as `FAIL`. Marks are `ok` and `FAIL`. An unknown state name is a usage
+error, exit 2. `IN_THE_WAY` and the `NEXT_*` refusals go to stdout.
 
 - **`N-done`**: run every test folder of the state. Passes on exit 0.
 - **`N-build`**:
   - *earlier*: the `always` folders and `tests/step0/` to `tests/step<N-1>/`,
     with `--ignore=<p>` for every `test_*.py` path of `given(N)` under those
-    folders and every key of `red_at_start` of step N. Must exit 0. For
+    step folders (not the `always` folders) and every key of `red_at_start` of step N. Must exit 0. For
     N = 0 only the `always` folders.
   - *this step*: `tests/step<N>/`. Must exit 1 (tests failed) or 2
     (collection errors, as when a module is missing). Exit 0 is a
@@ -523,7 +536,8 @@ In every state:
    | Change | From state |
    | --- | --- |
    | `HARNESS_DB` default `my/var/harness.db` (`config.py`, `tests/step0/test_config.py`) | 0 |
-   | the domain scan of `tests/step0/test_model.py` (`data/example` becomes `tests/fixtures`) | 0 |
+   | the domain scan of `tests/step0/test_model.py`: R did not change it (`data/example` stays; it is a substring check, not a path), so nothing to port | - |
+   | `tests/step0/test_config.py` is one file in `0-done`, `1-done` and `2-done` (it tests only `db_path`); `tests/step1/test_legacy_layout.py` gets `AVAILABLE` and `PROBE` constants per state (1, 2); `tests/step3/test_writes_only_under_my.py` uses `script(s3.ask_script())` in `3-done` and `4-done` | 0-4 |
    | `HARNESS_BRIEF_DIR` default `my/brief`; `LEGACY_COMMANDS`, `LEGACY_LAYOUT` and their check in `main()` (SPEC 4.5), and its tests | 1 |
    | `HARNESS_MODULES_DIR` default `my/modules` (`tests/step2/test_registry.py`) | 2 |
    | example mode under `my/var/examples/`, `EXAMPLE_COPIES`, `EXAMPLE_COPIED` and the copy (SPEC 6.2); `REPLAY_DIR`; `my/var/...` in `tests/step3/` (`conftest.py`, `test_example_selector.py`, `test_replay_run.py`, `test_replay_cli.py`, `test_work_cli.py`) | 3 |
@@ -552,6 +566,12 @@ a fix: port it. When unsure, leave it out and add a line to section 11's
 log.
 
 ### 10.4 `SPEC.md` for each state
+
+As built: each state's SPEC is the step-end SPEC plus the F1/F2 hunks, plus
+R's restructuring hunks (`git diff c1eeef0 R -- SPEC.md`) for the sections
+the state has, plus hand edits (introduction, status table, rules 1.2, 1.8,
+1.9, section 2), with the draft section cut. The pruning recipe below
+describes the same result from the other side:
 
 Start from `SPEC.md` of `R` (it has every fix and the restructuring), then:
 
@@ -601,8 +621,8 @@ hand.
   step changes, run `check`.
 - **A new file.** Add it to the manifest row of the step that introduces it.
   `check` rule 3 fails until it is there.
-- Keep a short log at the end of this file of fixes deliberately not
-  ported, with the reason.
+- Keep a short log of fixes deliberately not ported, with the reason, in
+  `states/NOTES.md` (the `analyst.md` bullet is not in `2-done` or `3-done`).
 - `check` runs before every release of the workshop and after every change
   to `harness/`, `tests/`, `examples/`, `reference/` or `SPEC.md`.
 

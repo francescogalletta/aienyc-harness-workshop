@@ -1,0 +1,130 @@
+[
+  {
+    "inputs": {
+      "today": "2025-01-01",
+      "payments": [
+        {
+          "name": "payment 1",
+          "due_date": "2025-04-01",
+          "shortfall": "300"
+        },
+        {
+          "name": "payment 2",
+          "due_date": "2025-07-01",
+          "shortfall": "500"
+        }
+      ]
+    },
+    "expected": [
+      {
+        "name": "payment 1",
+        "due_date": "2025-04-01",
+        "shortfall": "300",
+        "months_until_due": "3",
+        "extra_monthly_saving_needed": "100"
+      },
+      {
+        "name": "payment 2",
+        "due_date": "2025-07-01",
+        "shortfall": "500",
+        "months_until_due": "6",
+        "extra_monthly_saving_needed": "83.34"
+      }
+    ],
+    "working": "payment 1 due 2025-04-01: saving dates Feb 1, Mar 1, Apr 1 = 3; 300 / 3 = 100; payment 2 due 2025-07-01: saving dates Feb 1 to Jul 1 = 6; 500 / 6 = 83.333; rounded up to the next cent = 83.34",
+    "decision": "accepted"
+  },
+  {
+    "inputs": {
+      "today": "2025-03-01",
+      "payments": [
+        {
+          "name": "payment 1",
+          "due_date": "2025-03-01",
+          "shortfall": "200"
+        },
+        {
+          "name": "payment 2",
+          "due_date": "2025-06-01",
+          "shortfall": "0"
+        }
+      ]
+    },
+    "expected": [
+      {
+        "name": "payment 1",
+        "due_date": "2025-03-01",
+        "shortfall": "200",
+        "months_until_due": "0",
+        "extra_monthly_saving_needed": "200"
+      },
+      {
+        "name": "payment 2",
+        "due_date": "2025-06-01",
+        "shortfall": "0",
+        "months_until_due": "3",
+        "extra_monthly_saving_needed": "0"
+      }
+    ],
+    "working": "payment 1 due 2025-03-01: no saving date after today and on or before 2025-03-01, so months = 0; shortfall 200 with months 0, so extra = whole shortfall = 200; payment 2 due 2025-06-01: saving dates Apr 1, May 1, Jun 1 = 3; shortfall is 0, so extra = 0",
+    "decision": "accepted"
+  },
+  {
+    "inputs": {
+      "today": "2025-01-31",
+      "payments": [
+        {
+          "name": "payment 1",
+          "due_date": "2025-03-30",
+          "shortfall": "90"
+        },
+        {
+          "name": "payment 2",
+          "due_date": "2025-04-30",
+          "shortfall": "100"
+        }
+      ]
+    },
+    "expected": [
+      {
+        "name": "payment 1",
+        "due_date": "2025-03-30",
+        "shortfall": "90",
+        "months_until_due": "1",
+        "extra_monthly_saving_needed": "90"
+      },
+      {
+        "name": "payment 2",
+        "due_date": "2025-04-30",
+        "shortfall": "100",
+        "months_until_due": "3",
+        "extra_monthly_saving_needed": "33.34"
+      }
+    ],
+    "working": "saving dates: Feb 28 (short month), Mar 31, Apr 30; payment 1 due 2025-03-30: only Feb 28 counts (Mar 31 is after) = 1; 90 / 1 = 90; payment 2 due 2025-04-30: Feb 28, Mar 31, Apr 30 = 3; 100 / 3 = 33.333; rounded up to the next cent = 33.34",
+    "decision": "accepted"
+  },
+  {
+    "inputs": {
+      "today": "2025-12-15",
+      "payments": [
+        {
+          "name": "payment 1",
+          "due_date": "2026-02-15",
+          "shortfall": "250"
+        }
+      ]
+    },
+    "expected": [
+      {
+        "name": "payment 1",
+        "due_date": "2026-02-15",
+        "shortfall": "250",
+        "months_until_due": "2",
+        "extra_monthly_saving_needed": "125"
+      }
+    ],
+    "working": "payment 1 due 2026-02-15: saving dates Jan 15, Feb 15 = 2 (due date itself counts); 250 / 2 = 125",
+    "decision": "accepted"
+  }
+]

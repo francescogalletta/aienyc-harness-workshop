@@ -1,0 +1,243 @@
+{
+  "format": 1,
+  "roots": [
+    "SPEC.md",
+    "harness/",
+    "tests/",
+    "examples/",
+    "reference/"
+  ],
+  "always": [
+    "tests/data/"
+  ],
+  "steps": [
+    {
+      "step": 0,
+      "name": "setup",
+      "prompt": "workshop/prompts/step0_setup.md",
+      "tests": "tests/step0/",
+      "built": [
+        "harness/__init__.py",
+        "harness/config.py",
+        "harness/db.py",
+        "harness/migrations/0001_init.sql",
+        "harness/model/__init__.py",
+        "harness/model/interface.py",
+        "harness/model/scripted.py",
+        "harness/model/anthropic_provider.py",
+        "harness/model/providers.py",
+        "harness/model/claude_code_provider.py",
+        "harness/__main__.py"
+      ],
+      "start": [],
+      "changed": [],
+      "given": [
+        "SPEC.md",
+        "tests/step0/",
+        "tests/data/",
+        "tests/fixtures/accounts/"
+      ],
+      "red_at_start": {}
+    },
+    {
+      "step": 1,
+      "name": "shared domain",
+      "prompt": "workshop/prompts/step1_shared_domain.md",
+      "tests": "tests/step1/",
+      "built": [
+        "harness/grounding/__init__.py",
+        "harness/grounding/brief.py",
+        "harness/grounding/claude_code_research.py",
+        "harness/grounding/interview.py",
+        "harness/grounding/research.py",
+        "harness/migrations/0002_lookups.sql",
+        "harness/ui/__init__.py",
+        "harness/ui/server.py",
+        "harness/ui/session.py"
+      ],
+      "start": [],
+      "changed": [
+        "harness/config.py",
+        "harness/__main__.py",
+        "harness/model/claude_code_provider.py"
+      ],
+      "given": [
+        "SPEC.md",
+        "tests/step1/",
+        "harness/grounding/interviewer.md",
+        "harness/grounding/researcher.md",
+        "harness/grounding/planner.md",
+        "harness/ui/grounding.html",
+        "reference/"
+      ],
+      "red_at_start": {}
+    },
+    {
+      "step": 2,
+      "name": "consistency",
+      "prompt": "workshop/prompts/step2_consistency.md",
+      "tests": "tests/step2/",
+      "built": [
+        "harness/calc/__init__.py",
+        "harness/calc/registry.py",
+        "harness/calc/notes.py",
+        "harness/calc/added.py",
+        "harness/calc/gate.py",
+        "harness/calc/builder.py",
+        "harness/calc/provenance.py",
+        "harness/calc/agent.py",
+        "harness/migrations/0004_notes.sql",
+        "harness/migrations/0005_added_steps.sql"
+      ],
+      "start": [
+        "harness/calc/safety.py",
+        "harness/calc/runner.py"
+      ],
+      "changed": [
+        "harness/config.py",
+        "harness/__main__.py"
+      ],
+      "given": [
+        "SPEC.md",
+        "tests/step2/",
+        "harness/calc/values.py",
+        "harness/calc/spec_writer.md",
+        "harness/calc/example_writer.md",
+        "harness/calc/example_helper.md",
+        "harness/calc/module_writer.md",
+        "harness/calc/analyst.md",
+        "harness/migrations/0003_calc.sql",
+        "tests/step1/test_legacy_layout.py"
+      ],
+      "red_at_start": {}
+    },
+    {
+      "step": 3,
+      "name": "evidence",
+      "prompt": "workshop/prompts/step3_evidence.md",
+      "tests": "tests/step3/",
+      "built": [
+        "harness/calc/adopt.py",
+        "harness/replay.py",
+        "harness/ui/evidence.py"
+      ],
+      "start": [],
+      "changed": [
+        "harness/config.py",
+        "harness/__main__.py",
+        "harness/calc/added.py",
+        "harness/calc/agent.py",
+        "harness/calc/provenance.py",
+        "harness/ui/server.py"
+      ],
+      "given": [
+        "SPEC.md",
+        "tests/step3/",
+        "harness/ui/evidence.html",
+        "harness/ui/grounding.html",
+        "examples/README.md",
+        "examples/moving/",
+        "examples/wedding/",
+        "tests/step0/conftest.py",
+        "tests/step0/test_config.py",
+        "tests/step1/conftest.py",
+        "tests/step1/test_ui_cli.py",
+        "tests/step2/conftest.py",
+        "tests/step2/test_gate.py",
+        "tests/step2/test_request_decision.py",
+        "tests/step1/test_legacy_layout.py"
+      ],
+      "red_at_start": {}
+    },
+    {
+      "step": 4,
+      "name": "human in the loop",
+      "prompt": "workshop/prompts/step4_human_in_the_loop.md",
+      "tests": "tests/step4/",
+      "built": [
+        "harness/migrations/0006_decisions.sql",
+        "harness/calc/decisions.py",
+        "harness/calc/aside.py"
+      ],
+      "start": [],
+      "changed": [
+        "harness/calc/agent.py",
+        "harness/__main__.py",
+        "harness/replay.py",
+        "harness/ui/evidence.py"
+      ],
+      "given": [
+        "SPEC.md",
+        "tests/step4/",
+        "harness/calc/aside.md",
+        "harness/calc/analyst.md",
+        "harness/ui/evidence.html",
+        "examples/README.md",
+        "examples/moving/scenarios/",
+        "examples/wedding/scenarios/",
+        "tests/step2/step2_helpers.py",
+        "tests/step2/test_agent.py",
+        "tests/step2/test_request_module.py",
+        "tests/step3/test_evidence_conversation.py",
+        "tests/step3/test_evidence_events.py",
+        "tests/step3/test_evidence_page.py",
+        "tests/step3/test_evidence_summary.py",
+        "tests/step3/test_scenario_validation.py"
+      ],
+      "red_at_start": {}
+    },
+    {
+      "step": 5,
+      "name": "verification",
+      "prompt": "workshop/prompts/step5_verification.md",
+      "tests": "tests/step5/",
+      "built": [
+        "harness/migrations/0007_data.sql",
+        "harness/sources/__init__.py",
+        "harness/sources/adapter.py",
+        "harness/sources/summaries.py",
+        "harness/calc/findings.py",
+        "harness/calc/verifier.py"
+      ],
+      "start": [],
+      "changed": [
+        "harness/calc/agent.py",
+        "harness/calc/decisions.py",
+        "harness/calc/provenance.py",
+        "harness/replay.py",
+        "harness/ui/evidence.py",
+        "harness/ui/server.py",
+        "harness/__main__.py"
+      ],
+      "given": [
+        "SPEC.md",
+        "tests/step5/",
+        "harness/calc/verifier.md",
+        "harness/calc/analyst.md",
+        "harness/ui/evidence.html",
+        "examples/README.md",
+        "examples/wedding/data/",
+        "examples/wedding/scenarios/",
+        "tests/step2/step2_helpers.py",
+        "tests/step2/test_added_cli.py",
+        "tests/step2/test_calc_cli.py",
+        "tests/step3/step3_evidence_helpers.py",
+        "tests/step3/test_evidence_page.py",
+        "tests/step3/test_example_selector.py",
+        "tests/step3/test_trace_function.py",
+        "tests/step3/test_unadopted_check.py",
+        "tests/step4/step4_helpers.py",
+        "tests/step4/test_aside_terminal.py",
+        "tests/step4/test_decisions_records.py",
+        "tests/step4/test_evidence_decisions.py",
+        "tests/step4/test_seeded_examples.py",
+        "tests/step3/test_writes_only_under_my.py"
+      ],
+      "red_at_start": {
+        "tests/step2/test_agent.py": "compares the ask_decision schema with ASK_DECISION_SCHEMA in step2_helpers.py, which step 5 changed (a finding needs only runs)",
+        "tests/step3/test_evidence_functions.py": "expects the summary keys that step3_evidence_helpers.py gives, which step 5 changed (three more keys)",
+        "tests/step3/test_evidence_summary.py": "expects the summary keys that step3_evidence_helpers.py gives, which step 5 changed (three more keys)"
+      }
+    }
+  ]
+}

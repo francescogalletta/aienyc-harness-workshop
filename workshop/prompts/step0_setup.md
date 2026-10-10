@@ -6,7 +6,8 @@ this repository.
 ---
 
 You are building step 0 of a small agent harness. The repository already
-holds the contract, the tests and the example data. Your job is to write the
+holds the contract, the tests and the account-file fixture
+(`tests/fixtures/accounts/`). Your job is to write the
 code that makes the step 0 tests pass.
 
 Read these first, in this order:
