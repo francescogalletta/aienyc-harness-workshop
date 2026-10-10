@@ -52,7 +52,7 @@ DECISION_NO_WHY = "Say in one sentence why you recommend it."
 DECISION_RUNS = "runs must be a list of run ids. It may be empty."
 DECISION_UNKNOWN_RUNS = "These runs are not in this conversation: {runs}."
 SOMETHING_ELSE = "something else"
-KINDS = ("assumptions", "judgment", "build")
+KINDS = ("assumptions", "judgment", "build", "finding")          # (step 5) a fourth kind
 
 # ---- fixed strings: 8.5, 8.7 -------------------------------------------------------------------------------------
 

@@ -1,8 +1,9 @@
 """Decisions: the record of what the person decided, and the blocks they are shown (SPEC 8.1 to 8.3).
 
-Three kinds: the assumption gate, a judgment put through `ask_decision`, and
-a build request. `record_decision` writes the row and the `ask.decision`
-event together, so the evidence reads decisions from the events.
+Four kinds: the assumption gate, a judgment put through `ask_decision`, a
+build request, and (step 5) a finding put through `ask_decision` (SPEC 9.7).
+`record_decision` writes the row and the `ask.decision` event together, so
+the evidence reads decisions from the events.
 """
 import json
 import re
@@ -13,7 +14,7 @@ from .. import db
 from .added import step_label
 from .builder import ACCEPT_WORDS
 
-KINDS = ("assumptions", "judgment", "build")
+KINDS = ("assumptions", "judgment", "build", "finding")
 SOMETHING_ELSE = "something else"
 
 GATE_INTRO = "Before working this out, the assistant would take some things as given that you have not confirmed:"
@@ -63,7 +64,7 @@ def list_decisions(conn: sqlite3.Connection, *, session_id=None) -> list[dict]:
 def choice_words(decision: dict) -> str:
     """The choice in words: yes or no, `something else`, or `2. Move the date` (SPEC 8.1)."""
     choice = decision["choice"]
-    if decision["kind"] == "judgment" and choice != SOMETHING_ELSE:
+    if decision["kind"] in ("judgment", "finding") and choice != SOMETHING_ELSE:
         return f"{choice}. {decision['options'][int(choice) - 1]}"
     return choice
 

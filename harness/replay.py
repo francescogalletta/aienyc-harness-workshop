@@ -1,4 +1,4 @@
-"""Scenarios and replay (SPEC 6.4, 6.5 and 8.8).
+"""Scenarios and replay (SPEC 6.4, 6.5, 8.8 and 9.8).
 
 A scenario is a scripted person and what the harness must see. `run_scenario`
 runs one against a model, in a scratch folder, and checks module runs and
@@ -18,18 +18,22 @@ from .calc.adopt import adopt
 from .calc.added import step_label
 from .calc.agent import run_agent
 from .calc.builder import build, load_brief
-from .calc.decisions import KINDS, SOMETHING_ELSE, list_decisions
+from .calc.decisions import SOMETHING_ELSE, list_decisions
+from .calc.findings import FINDING_KINDS, list_findings
 from .calc.provenance import _read, unbacked
 from .calc.values import same
+from .sources.adapter import SIGNS, NotLoaded, add_file
 
 NO_SCENARIO = "There is no scenario '{scenario}' in {folder}. The scenarios are: {names}."
 NO_SCENARIOS = "There are no scenarios in {folder}."
 
-KEYS = ("name", "kind", "description", "today", "without", "lines", "expect")
+KEYS = ("name", "kind", "description", "today", "without", "verify", "data", "lines", "expect")
 REQUIRED = ("name", "kind", "lines", "expect")
-ASK_EXPECTS = ("runs", "shown", "not_shown", "max_withheld", "max_corrections", "decisions", "asides")
+ASK_EXPECTS = ("runs", "shown", "not_shown", "max_withheld", "max_corrections", "decisions", "asides",
+               "findings", "max_findings")
 BUILD_EXPECTS = ("steps",)
 OUTCOMES = ("built", "reused", "kept", "not_built")
+DECISION_KINDS = ("assumptions", "judgment", "build")       # what `expect.decisions` may name; a finding is checked by `findings`
 SNAKE = re.compile(r"^[a-z][a-z0-9_]*$")
 DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 REPLAY_DIR = "var/replay"
@@ -82,15 +86,39 @@ def validate_scenario(value, *, stem: str, brief: dict) -> list[str]:
             calculations = {step.get("id") for step in brief.get("process", []) if step.get("kind") == "calculation"}
             errors += [f"without: '{item}' is not a calculation step of the brief"
                        for item in without if item not in calculations]
+    if "verify" in value and not isinstance(value["verify"], bool):
+        errors.append("verify must be true or false")
+    if kind == "build":
+        errors += [f"{key} is only for ask scenarios" for key in ("verify", "data") if key in value]
+    if "data" in value:
+        errors += _data_problems(value["data"])
     lines = value["lines"]
     if (not isinstance(lines, list) or not lines
             or not all(isinstance(line, str) and line.strip() for line in lines)):
         errors.append("lines must be a non-empty list of non-empty strings")
-    errors += _expect_problems(value["expect"], kind, brief)
+    errors += _expect_problems(value["expect"], kind, brief, value)
     return errors
 
 
-def _expect_problems(expect, kind, brief) -> list[str]:
+def _data_problems(data) -> list[str]:
+    """What is wrong with `data` (SPEC 6.4, step 5)."""
+    if not isinstance(data, list):
+        return ["data must be a list"]
+    errors = []
+    for k, entry in enumerate(data, start=1):
+        good = (isinstance(entry, dict) and set(entry) <= {"file", "sign", "account"}
+                and isinstance(entry.get("file"), str) and bool(entry["file"]) and "/" not in entry["file"]
+                and "\\" not in entry["file"] and not entry["file"].startswith(".")
+                and entry.get("sign") in SIGNS
+                and ("account" not in entry or (isinstance(entry["account"], str)
+                                                and bool(SNAKE.match(entry["account"])) and entry["account"] != "all")))
+        if not good:
+            errors.append(f"data: entry {k} must be an object with file (a file name in the example's data "
+                          "folder), sign (out_negative or out_positive) and, optionally, account")
+    return errors
+
+
+def _expect_problems(expect, kind, brief, scenario=None) -> list[str]:
     if not isinstance(expect, dict):
         return ["expect must be an object"]
     if not expect:
@@ -120,7 +148,7 @@ def _expect_problems(expect, kind, brief) -> list[str]:
         if isinstance(expect[key], list) and all(isinstance(item, str) for item in expect[key]):
             errors += [f"expect.{key}: '{item}' must be one number the number check reads, not a date and "
                        "not a bare whole number from 0 to 12" for item in expect[key] if not _one_number(item)]
-    for key in ("max_withheld", "max_corrections"):
+    for key in ("max_withheld", "max_corrections", "max_findings"):
         if key in expect and (not isinstance(expect[key], int) or isinstance(expect[key], bool)
                               or expect[key] < 0):
             errors.append(f"expect.{key} must be a whole number, 0 or more")
@@ -133,6 +161,12 @@ def _expect_problems(expect, kind, brief) -> list[str]:
                                  for each in asides.values()):
             errors.append("expect.asides must be an object with opened, turns or both, each a whole number, "
                           "0 or more")
+    if "findings" in expect:
+        errors += _finding_problems(expect["findings"])
+    if scenario is not None and scenario.get("verify") is not True:
+        errors += [f'{key} needs "verify": true' for key, present in (
+            ("data", "data" in scenario), ("expect.findings", "findings" in expect),
+            ("expect.max_findings", "max_findings" in expect)) if present]
     if "steps" in expect:
         steps = expect["steps"]
         if not isinstance(steps, dict):
@@ -146,6 +180,25 @@ def _expect_problems(expect, kind, brief) -> list[str]:
     return errors
 
 
+def _finding_problems(findings) -> list[str]:
+    """What is wrong with `expect.findings` (SPEC 6.4, step 5)."""
+    if not isinstance(findings, list):
+        return ["expect.findings must be a list"]
+    errors = []
+    for k, entry in enumerate(findings, start=1):
+        good = (isinstance(entry, dict) and set(entry) <= {"kind", "status", "choice", "count"}
+                and entry.get("kind") in FINDING_KINDS
+                and entry.get("status", "open") in ("open", "decided")
+                and entry.get("choice", "1") in ("1", "2", SOMETHING_ELSE)
+                and ("count" not in entry or (isinstance(entry["count"], int)
+                                              and not isinstance(entry["count"], bool) and entry["count"] >= 1)))
+        if not good:
+            errors.append(f"expect.findings: entry {k} must be an object with a kind (earlier, data or brief) "
+                          "and, optionally, status (open or decided), choice (1, 2 or something else) and "
+                          "count (1 or more)")
+    return errors
+
+
 def _decision_problems(decisions, brief: dict) -> list[str]:
     """What is wrong with `expect.decisions` (SPEC 6.4, step 4)."""
     if not isinstance(decisions, list):
@@ -154,7 +207,7 @@ def _decision_problems(decisions, brief: dict) -> list[str]:
     ids = {step.get("id") for step in brief.get("process", [])}
     for k, entry in enumerate(decisions, start=1):
         good = (isinstance(entry, dict) and set(entry) <= {"kind", "step", "choice", "count"}
-                and entry.get("kind") in KINDS
+                and entry.get("kind") in DECISION_KINDS
                 and ("step" not in entry or (isinstance(entry["step"], str) and entry["step"]))
                 and ("choice" not in entry or isinstance(entry["choice"], str))
                 and ("count" not in entry or (isinstance(entry["count"], int)
@@ -259,6 +312,20 @@ def check_scenario(conn, session_id, scenario, results=None) -> list[dict]:
             count = len(_events(conn, session_id, kind))
             check(f"{expect['asides'][key]} {what}", count == expect["asides"][key],
                   f"{count} {key}")
+    for entry in expect.get("findings", []):
+        count = entry.get("count", 1)
+        of_kind = [each for each in list_findings(conn, session_id=session_id) if each["kind"] == entry["kind"]]
+        matching = [each for each in of_kind if ("status" not in entry or each["status"] == entry["status"])
+                    and ("choice" not in entry or each["choice"] == entry["choice"])]
+        what = f"at least {count} {entry['kind']} finding" + ("" if count == 1 else "s")
+        if "status" in entry:
+            what += f" with status {entry['status']}"
+        if "choice" in entry:
+            what += f" choosing {entry['choice']}"
+        check(what, len(matching) >= count, f"{len(matching)} matching of {len(of_kind)} {entry['kind']} findings")
+    if "max_findings" in expect:
+        count = len(list_findings(conn, session_id=session_id))
+        check(f"at most {expect['max_findings']} findings", count <= expect["max_findings"], f"{count} findings")
     for step, outcome in expect.get("steps", {}).items():
         result = next((each for each in results or [] if each["step"] == step), None)
         seen = "not handled"
@@ -316,7 +383,7 @@ def run_scenario(scenario, *, example_dir, model, keep=False) -> dict:
                         payload={"example": example_dir.name, "scenario": scenario["name"],
                                  "kind": scenario["kind"], "lines": scenario["lines"],
                                  "expect": scenario["expect"], "without": scenario.get("without", [])})
-        error, checks = _play(scenario, conn, session_id, folder, model)
+        error, checks = _play(scenario, conn, session_id, folder, model, example_dir)
         passed = error is None and all(check["passed"] for check in checks)
         db.record_event(conn, session_id=session_id, kind="replay.checked", actor="harness",
                         payload={"scenario": scenario["name"], "passed": passed, "error": error,
@@ -337,8 +404,8 @@ def run_scenario(scenario, *, example_dir, model, keep=False) -> dict:
             "folder": str(folder) if keep else None}
 
 
-def _play(scenario, conn, session_id, folder, model):
-    """Steps 4 to 6 of SPEC 6.5. Returns (error, checks)."""
+def _play(scenario, conn, session_id, folder, model, example_dir):
+    """Steps 4 to 6 of SPEC 6.5, with the data of step 5. Returns (error, checks)."""
     lines = iter(scenario["lines"])
 
     def ask(text):
@@ -351,11 +418,17 @@ def _play(scenario, conn, session_id, folder, model):
                             how="replay"):
             if result["outcome"] == "not_adopted":
                 return f"{result['module']} was not adopted: {result['reason']}", []
+        for entry in scenario.get("data", []):
+            try:
+                add_file(conn, Path(example_dir) / "data" / entry["file"], account=entry.get("account"),
+                         sign=entry["sign"], sign_from="scenario", say=shown.append, session_id=session_id)
+            except NotLoaded as refused:
+                return f"{entry['file']} was not loaded: {refused}", []
         results = None
         if scenario["kind"] == "ask":
             today = date.fromisoformat(scenario["today"]) if "today" in scenario else date.today()
             run_agent(model=model, conn=conn, brief=brief, ask=ask, say=shown.append, session_id=session_id,
-                      question="", today=today)
+                      question="", today=today, verify=scenario.get("verify", False))
         else:
             results = build(model=model, conn=conn, brief=brief, ask=ask, say=shown.append,
                             session_id=session_id)

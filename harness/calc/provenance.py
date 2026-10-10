@@ -9,7 +9,7 @@ import re
 from decimal import Decimal
 
 SMALL = 12      # a bare whole number from 0 to this is never checked
-SOURCE_LABELS = ("run", "input", "note", "brief", "person", "today")     # where a number may come from (SPEC 7.1)
+SOURCE_LABELS = ("run", "data", "input", "note", "brief", "person", "today")     # where a number may come from (SPEC 7.1)
 SMALL_LABEL = "small"
 NONE_LABEL = "none"
 
@@ -82,7 +82,8 @@ def unbacked(text: str, sources: list) -> list[str]:
 def trace(text: str, sources: list[tuple[str, int | None, object]]) -> list[dict]:
     """Where each date and number in `text` came from (SPEC 7.1), with the reading of `unbacked`.
 
-    `sources` holds `(label, ref, value)`, the label one of `SOURCE_LABELS`, `ref` a run id or None.
+    `sources` holds `(label, ref, value)`, the label one of `SOURCE_LABELS`, `ref` a run id (a data
+    summary id for `data`) or None.
     """
     known = [(label, ref, _known(value)) for label, ref, value in sources]
 
@@ -111,5 +112,5 @@ def trace(text: str, sources: list[tuple[str, int | None, object]]) -> list[dict
             label, run_id = label_of(item["value"], item["precision"], item["percent"])
         written = item["written"]
         items.append({"text": written, "start": item["position"], "end": item["position"] + len(written),
-                      "source": label, "run_id": run_id if label == "run" else None})
+                      "source": label, "run_id": run_id if label in ("run", "data") else None})
     return items

@@ -119,9 +119,9 @@ def test_a_new_scenario_validates(replay, example, name, today, first, expect):
 
 
 def test_the_scenarios_of_each_example_are_the_old_ones_and_the_new_ones():
-    assert sorted(p.stem for p in (EXAMPLES / "wedding" / "scenarios").glob("*.json")) == sorted(
-        ["build_monthly_surplus", "cover_each_payment", "no_family_contribution", "decide_what_to_update",
-         "aside_before_asking"])
-    assert sorted(p.stem for p in (EXAMPLES / "moving" / "scenarios").glob("*.json")) == sorted(
-        ["build_months_to_save", "months_at_current_saving", "upfront_and_monthly", "keep_or_move_date",
-         "aside_before_asking"])
+    """(step 5) The data author may add ask scenarios that verify (9.8): the ones of step 4 must all still be there."""
+    stems = lambda example: {p.stem for p in (EXAMPLES / example / "scenarios").glob("*.json")}
+    assert stems("wedding") >= {"build_monthly_surplus", "cover_each_payment", "no_family_contribution",
+                                "decide_what_to_update", "aside_before_asking"}
+    assert stems("moving") >= {"build_months_to_save", "months_at_current_saving", "upfront_and_monthly",
+                               "keep_or_move_date", "aside_before_asking"}

@@ -230,7 +230,7 @@ def test_adopt_then_ask_play_with_the_example_and_keep_the_database(tmp_path, wr
     assert listed.returncode == 0, listed.stdout
     assert [line.split("  ")[0] for line in listed.stdout.splitlines()] == ["monthly_surplus", "months_to_goal"]
 
-    write_script(s3.ask_script())
+    write_script([h.no_findings(), *s3.ask_script()])                  # (step 5) the verifier checks the question first
     asked = selected(cwd, ["ask", *s3.ASK_QUESTION.split()], name="savings", typed_text=typed("/quit"))
     assert asked.returncode == 0, asked.stderr
     assert "You have 2,000 left each month." in asked.stdout

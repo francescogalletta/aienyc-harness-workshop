@@ -1,6 +1,6 @@
-"""Reading the evidence (SPEC 7.3, 7.4 and 8.9).
+"""Reading the evidence (SPEC 7.3, 7.4, 8.9 and 9.9).
 
-Six functions, each taking an open connection. Five only read; `test_now` makes
+Seven functions, each taking an open connection. Six only read; `test_now` makes
 one fresh, recorded test run. Each returns exactly the JSON body of its
 endpoint, or None for not found. No model writes any of it.
 """
@@ -8,6 +8,7 @@ import json
 
 from ..calc.added import list_added_steps, step_label
 from ..calc.builder import plan_words
+from ..calc.findings import list_findings
 from ..calc.gate import run_tests
 from ..calc.provenance import trace
 from ..calc.registry import FILES, file_status, get_module, list_modules, module_dir, step_map
@@ -122,10 +123,21 @@ def summary(conn, *, interview: bool) -> dict:
              "output": json.loads(row["output"])}
             for row in conn.execute("SELECT * FROM calc_runs ORDER BY id DESC")]
     kinds = [row["kind"] for row in conn.execute("SELECT DISTINCT kind FROM events ORDER BY kind")]
+    loaded = {row["id"] for row in conn.execute("SELECT id FROM imports")}
+    imports = [{**payload, "loaded_now": payload.get("id") in loaded}
+               for payload in (json.loads(row["payload"]) for row in conn.execute(
+                   "SELECT payload FROM events WHERE kind = 'data.imported' ORDER BY id DESC"))]
+    summaries = []
+    for row in conn.execute("SELECT * FROM data_summaries ORDER BY id DESC"):
+        inputs = json.loads(row["inputs"])
+        summaries.append({"id": row["id"], "ts": row["ts"], "session_id": row["session_id"],
+                          "measure": inputs.get("measure"), "account": inputs.get("account"),
+                          "value": json.loads(row["output"]).get("value")})
     return {"interview": interview, "database": str(load_config().db_path),
             "brief": {"goal": brief.get("goal"), "status": _meta_status()} if brief else None,
             "process": process, "modules": modules, "conversations": conversations, "runs": runs,
-            "sessions": sessions, "kinds": kinds}
+            "sessions": sessions, "kinds": kinds, "imports": imports, "summaries": summaries,
+            "findings": list(reversed(list_findings(conn)))}
 
 
 # --- conversation ----------------------------------------------------------------
@@ -167,6 +179,8 @@ def conversation(conn, session_id: str) -> dict | None:
             sources = [("run", each["payload"].get("run_id"),
                         {"inputs": each["payload"].get("inputs"), "output": each["payload"].get("output")})
                        for each in events if each["kind"] == "calc.run" and each["id"] < before]
+            sources += [("data", each["payload"].get("id"), each["payload"].get("output")) for each in events
+                        if each["kind"] == "data.summary" and each["id"] < before]
             sources += [("input", None, each["payload"].get("value")) for each in elsewhere
                         if each["kind"] == "ask.input_saved" and each["id"] < before]
             sources += [("note", None, each["payload"].get("text")) for each in elsewhere
@@ -270,6 +284,18 @@ def module(conn, name: str) -> dict | None:
             "file_status": file_status(conn, name), "files": files, "examples": _examples(files["golden.json"]),
             "adopted": adopted, "registered_test": _test_run(registered_test),
             "last_test": _test_run(last_test, report=True), "runs": runs, "history": history}
+
+
+# --- data summary ----------------------------------------------------------------
+
+def data_summary(conn, summary_id: int) -> dict | None:
+    """One data summary, and the findings that rest on it (SPEC 7.4, step 5)."""
+    row = conn.execute("SELECT * FROM data_summaries WHERE id = ?", (summary_id,)).fetchone()
+    if row is None:
+        return None
+    return {"id": row["id"], "ts": row["ts"], "session_id": row["session_id"], "inputs": json.loads(row["inputs"]),
+            "output": json.loads(row["output"]), "imports": json.loads(row["imports"]),
+            "findings": [each["id"] for each in list_findings(conn) if each["summary"] == summary_id]}
 
 
 # --- events ----------------------------------------------------------------------

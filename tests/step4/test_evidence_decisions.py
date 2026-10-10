@@ -249,8 +249,10 @@ def test_no_path_was_added(story, api, path):
 
 
 def test_the_summary_has_the_keys_it_had(story, api):
+    """(step 5) and three more at the end: imports, summaries and findings (SPEC 7.4)."""
     _, summary = api.get("/api/work/summary")
-    assert list(summary) == ["interview", "database", "brief", "process", "modules", "conversations", "runs", "sessions", "kinds"]
+    assert list(summary) == ["interview", "database", "brief", "process", "modules", "conversations", "runs", "sessions", "kinds",
+                             "imports", "summaries", "findings"]
 
 
 def test_asking_records_nothing(story, api, conn):

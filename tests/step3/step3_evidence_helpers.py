@@ -13,7 +13,8 @@ CONVERSATION_ROW_KEYS = ["session_id", "started", "ended", "first_message", "mes
                          "corrections", "runs", "replay"]
 SESSION_ROW_KEYS = ["session_id", "started", "ended", "events", "first_kind"]
 RUN_ROW_KEYS = ["id", "ts", "session_id", "module", "output"]
-SUMMARY_KEYS = ["interview", "database", "brief", "process", "modules", "conversations", "runs", "sessions", "kinds"]
+SUMMARY_KEYS = ["interview", "database", "brief", "process", "modules", "conversations", "runs", "sessions", "kinds",
+                "imports", "summaries", "findings"]                 # (step 5) SPEC 7.4: the last three
 CONVERSATION_KEYS = ["session_id", "today", "replay", "events"]
 CONVERSATION_EVENT_KEYS = ["id", "ts", "kind", "actor", "payload", "numbers"]
 RUN_KEYS = ["id", "ts", "session_id", "module", "fingerprint", "inputs", "assumptions", "expected", "output",

@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-LABELS = ("run", "input", "note", "brief", "person", "today")
+LABELS = ("run", "data", "input", "note", "brief", "person", "today")      # (step 5) "data" after "run"
 
 
 def trace(text, sources):

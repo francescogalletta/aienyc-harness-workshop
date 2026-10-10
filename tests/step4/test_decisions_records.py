@@ -56,7 +56,7 @@ def test_the_migrations_are_applied_in_order(conn):
 
 
 def test_the_constants(decisions):
-    assert decisions.KINDS == ("assumptions", "judgment", "build")
+    assert decisions.KINDS == ("assumptions", "judgment", "build", "finding")      # (step 5)
     assert decisions.SOMETHING_ELSE == "something else"
     for name in ("GATE_INTRO", "GATE_QUESTION", "DECISION_INTRO", "DECISION_INTRO_STEP", "DECISION_SUGGESTS",
                  "DECISION_QUESTION", "DECISION_QUESTION_SUGGESTED"):

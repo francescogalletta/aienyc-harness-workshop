@@ -1,4 +1,4 @@
-"""The agent that answers questions about the plan (SPEC 5.9, 8.2 to 8.6).
+"""The agent that answers questions about the plan (SPEC 5.9, 8.2 to 8.6, 9.7).
 
 It runs modules through the gate and saves what the person tells it. It
 is given the notes kept during a build, and when no module can do what is
@@ -6,7 +6,9 @@ needed it asks for one to be built, and the person decides. It never works a
 number out itself: the harness checks every number it sends out, and every
 number it passes to a module or saves (SPEC 5.8). The person decides what a
 run takes as given, and the calls only they can make; at any question they
-can step aside (SPEC 8).
+can step aside (SPEC 8). With `verify`, the person's figures are checked
+first, and a figure that disagrees with a reference is put to the person
+before it is calculated with (SPEC 9).
 """
 import json
 import re
@@ -21,10 +23,13 @@ from .builder import ACCEPT_WORDS, NO_STEP, build_step, format_sections
 from .decisions import (GATE_QUESTION, SOMETHING_ELSE, DECISION_QUESTION, DECISION_QUESTION_SUGGESTED,
                         assumption_set, decision_block, gate_block, list_decisions, one_line, read_choice,
                         record_decision)
+from .findings import close_finding, list_findings, open_finding, open_findings, same_value
 from .gate import NOT_REGISTERED
 from .notes import add_note, list_notes
 from .provenance import unbacked
 from .registry import file_status, get_module, input_problems, list_modules, step_map
+from .verifier import needs_check
+from .verifier import verify as check_message
 
 RUN_MODULE_SCHEMA = {"type": "object", "properties": {
     "module": {"type": "string"}, "inputs": {"type": "object"},
@@ -56,8 +61,9 @@ ASK_DECISION_SCHEMA = {"type": "object", "properties": {
     "options": {"type": "array", "items": {"type": "string"}},
     "recommendation": {"type": "integer"},
     "why": {"type": "string"},
-    "runs": {"type": "array", "items": {"type": "integer"}}},
-    "required": ["question", "options", "runs"]}
+    "runs": {"type": "array", "items": {"type": "integer"}},
+    "finding": {"type": "integer"}},
+    "required": ["runs"]}
 
 REQUEST_MODULE = ToolSpec(
     name="request_module",
@@ -73,7 +79,9 @@ ASK_DECISION = ToolSpec(
                  "ways forward that depends on what they want. Give the step it belongs to (when there is one), "
                  "the question, two to four options in plain words, the option you would choose "
                  "(recommendation, a number from 1, optional) with one sentence why, and the run_ids of the "
-                 "results it rests on. The person answers, and you get their choice or their own words."),
+                 "results it rests on. The person answers, and you get their choice or their own words. To put "
+                 "an open finding to the person, give only finding (its number) and runs as []: the harness "
+                 "shows its own block."),
     input_schema=ASK_DECISION_SCHEMA)
 TOOLS = (RUN_MODULE, SAVE_INPUT, REQUEST_MODULE, ASK_DECISION)
 
@@ -123,6 +131,19 @@ DECISION_BAD_RECOMMENDATION = "recommendation must be the number of one of the o
 DECISION_NO_WHY = "Say in one sentence why you recommend it."
 DECISION_RUNS = "runs must be a list of run ids. It may be empty."
 DECISION_UNKNOWN_RUNS = "These runs are not in this conversation: {runs}."
+FINDING_NOTE = ("[harness] The harness checked the person's figures and opened finding {id}. Raise it now: call "
+                "ask_decision with finding {id} and runs [], and nothing else. The person will see this block, "
+                "word for word:\n{block}\nUntil they decide, run_module and save_input are refused and your "
+                "replies are held back.")
+FINDING_OPEN = ("Refused while finding {id} is open. Call ask_decision with finding {id} and runs [] first: the "
+                "person decides which figure to use.")
+FINDING_FIRST = ("[harness] Your reply was not shown, because finding {id} is open. Call ask_decision with "
+                 "finding {id} and runs [] now.")
+FINDING_RAISED = ("Not saved: '{name}' already holds a different value. The harness opened finding {id}. Call "
+                  "ask_decision with finding {id} and runs [] next: the person decides which value to keep.")
+FINDING_DECIDED = ("Not saved: the person already decided about this value of '{name}' (finding {id}). Carry on "
+                   "with what they chose.")
+FINDING_NOT_OPEN = "There is no open finding {finding} in this conversation."
 
 NAME = re.compile(r"^[a-z][a-z0-9_]*$")
 
@@ -135,12 +156,14 @@ def says_yes(answer: str) -> bool:
     return bool(words) and words[0].lower().rstrip(".,!;:") in ACCEPT_WORDS
 
 
-def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None, desk=None) -> None:
+def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", today=None, desk=None,
+              verify=False) -> None:
     """Answer the person's questions until they type /quit.
 
     `ask(text)` shows text to the person and returns what they typed.
     `say(text)` shows text that needs no answer.
     `desk` is the research desk a side conversation looks terms up with (SPEC 8.5).
+    `verify` turns on the verifier, the findings and their refusals (SPEC 9.7).
     """
     from .aside import ASIDE_CARRIED, Asides       # aside.py imports this module's texts, so it is imported here
 
@@ -169,13 +192,27 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
         found += [note["text"] for note in list_notes(conn)]       # the person's words, or a request they approved
         for row in conn.execute("SELECT inputs, output FROM calc_runs WHERE session_id = ?", (session_id,)):
             found += [json.loads(row["inputs"]), json.loads(row["output"])]
+        for row in conn.execute("SELECT output FROM data_summaries WHERE session_id = ?", (session_id,)):
+            found.append(json.loads(row["output"]))         # summaries of the person's own files (SPEC 9.4)
         return found
+
+    def oldest_open():
+        """The oldest finding of this session that is still open, or None. Only with `verify` (SPEC 9.7)."""
+        found = open_findings(conn, session_id=session_id) if verify else []
+        return found[0] if found else None
+
+    def refused_while_open(call, found) -> dict:
+        record("finding.refused", "harness", {"finding": found["id"], "tool": call.name,
+                                              "arguments": call.arguments})
+        return _result(call, FINDING_OPEN.format(id=found["id"]), True)
 
     def needs_yes(call) -> bool:
         """Does this run take things as given that the person has not accepted, and could it otherwise run? (SPEC 8.2)"""
         arguments = call.arguments
         inputs, name = arguments.get("inputs"), arguments.get("module")
         assumptions, expected = arguments.get("assumptions"), arguments.get("expected")
+        if oldest_open() is not None:
+            return False
         if unbacked(json.dumps(inputs), sources()):
             return False
         module = get_module(conn, name) if isinstance(name, str) else None
@@ -222,6 +259,9 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
 
     def run_module(call, held=False) -> dict:
         arguments = call.arguments
+        found = oldest_open()
+        if found is not None:
+            return refused_while_open(call, found)
         numbers = unbacked(json.dumps(arguments.get("inputs")), sources())
         if numbers:
             record("ask.correction", "harness", {"reason": "run_module", "numbers": numbers,
@@ -239,8 +279,44 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
         return _result(call, json.dumps({"module": result["module"], "run_id": result["run_id"],
                                          "output": result["output"]}), False)
 
+    def store_input(name, value, note) -> None:
+        """Insert or replace a saved input, and record it (SPEC 5.9)."""
+        conn.execute(
+            "INSERT INTO inputs (name, value, note, ts, session_id) VALUES (?, ?, ?, ?, ?)"
+            " ON CONFLICT(name) DO UPDATE SET value = excluded.value, note = excluded.note,"
+            " ts = excluded.ts, session_id = excluded.session_id",
+            (name, json.dumps(value), note, datetime.now(timezone.utc).isoformat(), session_id))
+        conn.commit()
+        record("ask.input_saved", "agent", {"name": name, "value": value, "note": note})
+
+    def over_saved_value(call, name, value, note) -> dict | None:
+        """Refuse to save over a different saved value, and open a finding instead (SPEC 9.7). None: save it."""
+        row = conn.execute("SELECT * FROM inputs WHERE name = ?", (name,)).fetchone()
+        if row is None:
+            return None
+        stored = json.loads(row["value"])
+        stored = stored if isinstance(stored, str) else json.dumps(stored)
+        new = value if isinstance(value, str) else json.dumps(value)
+        if same_value(stored, new):
+            return None
+        decided = [each for each in list_findings(conn, session_id=session_id) if each["status"] == "decided"]
+        if any(each["chosen"] is not None and same_value(new, each["chosen"]) for each in decided):
+            return None             # the person chose this figure
+        before = next((each for each in decided if each["kind"] == "earlier" and each["input"] == name
+                       and same_value(each["claim"], new)), None)
+        if before is not None:
+            return _result(call, FINDING_DECIDED.format(name=name, id=before["id"]), True)
+        raised = open_finding(conn, session_id=session_id, kind="earlier", claim=new, claim_figure=new,
+                              reference=stored, reference_figure=stored, input_name=name,
+                              earlier={"value": stored, "note": row["note"], "ts": row["ts"],
+                                       "session_id": row["session_id"]}, pending_note=note)
+        return _result(call, FINDING_RAISED.format(name=name, id=raised["id"]), True)
+
     def save_input(call) -> dict:
         arguments = call.arguments
+        found = oldest_open()
+        if found is not None:
+            return refused_while_open(call, found)
         name, value, note = arguments.get("name"), arguments.get("value"), arguments.get("note", "")
         if not isinstance(name, str) or not NAME.match(name):
             return _result(call, BAD_NAME, True)
@@ -251,13 +327,11 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
             record("ask.correction", "harness", {"reason": "save_input", "numbers": numbers,
                                                  "text": json.dumps(arguments)})
             return _result(call, INPUTS_UNBACKED.format(numbers=", ".join(numbers)), True)
-        conn.execute(
-            "INSERT INTO inputs (name, value, note, ts, session_id) VALUES (?, ?, ?, ?, ?)"
-            " ON CONFLICT(name) DO UPDATE SET value = excluded.value, note = excluded.note,"
-            " ts = excluded.ts, session_id = excluded.session_id",
-            (name, json.dumps(value), note, datetime.now(timezone.utc).isoformat(), session_id))
-        conn.commit()
-        record("ask.input_saved", "agent", {"name": name, "value": value, "note": note})
+        if verify:
+            refusal = over_saved_value(call, name, value, note)
+            if refusal is not None:
+                return refusal
+        store_input(name, value, note)
         return _result(call, SAVED, False)
 
     def request_module(call) -> dict:
@@ -341,6 +415,41 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
                         choice="yes" if decision == "accepted" else "no", words=answer, runs=[])
         return _result(call, json.dumps(result), False)
 
+    def put_finding(call, first) -> dict:
+        """Put an open finding to the person, and close it with what they choose (SPEC 9.7)."""
+        arguments = call.arguments
+
+        def refuse(error: str) -> dict:
+            record("ask.decision_refused", "harness", {"error": error, "arguments": arguments})
+            return _result(call, error, True)
+
+        if not first:
+            return refuse(ONE_DECISION)
+        wanted = arguments["finding"]
+        found = next((each for each in open_findings(conn, session_id=session_id)
+                      if isinstance(wanted, int) and not isinstance(wanted, bool) and each["id"] == wanted), None)
+        if found is None:
+            return refuse(FINDING_NOT_OPEN.format(finding=json.dumps(wanted)))
+        record("ask.decision_asked", "agent", {"arguments": arguments, "block": found["block"]})
+        say(found["block"])
+        while True:
+            answer = ask(DECISION_QUESTION).strip()
+            if answer:
+                break
+        choice = read_choice(answer, found["options"], None)
+        decision = record_decision(conn, session_id=session_id, kind="finding", step_id=None,
+                                   question=found["block"], options=found["options"], choice=choice, words=answer,
+                                   runs=[])
+        saved = found["kind"] == "earlier" and choice == "1"
+        if saved:
+            store_input(found["input"], found["claim"], found["pending_note"] or "")
+        closed = close_finding(conn, found["id"], decision_id=decision["id"], choice=choice, saved=saved,
+                               session_id=session_id)
+        return _result(call, json.dumps({
+            "outcome": "decided", "decision": decision["id"], "finding": found["id"], "choice": choice,
+            "option": None if choice == SOMETHING_ELSE else decision["options"][int(choice) - 1],
+            "use": closed["chosen"], "said": answer, "saved": saved}), False)
+
     def ask_decision(call, reply) -> dict:
         """Put a call only the person can make to them, and record what they say (SPEC 8.3)."""
         arguments = call.arguments
@@ -351,6 +460,8 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
 
         first = not reply["decision"]
         reply["decision"] = True
+        if verify and arguments.get("finding") is not None:
+            return put_finding(call, first)
         if not first:
             return refuse(ONE_DECISION)
         if decisions["shown"] >= MAX_DECISIONS:
@@ -455,6 +566,12 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
             if not text:
                 messages.append({"role": "user", "content": EMPTY_REPLY})
                 continue
+            found = oldest_open()
+            if found is not None:           # held back, and the number check does not read it (SPEC 9.7)
+                record("ask.correction", "harness", {"reason": "finding", "numbers": [], "text": text})
+                messages.append({"role": "assistant", "content": text})
+                messages.append({"role": "user", "content": FINDING_FIRST.format(id=found["id"])})
+                continue
             numbers = unbacked(text, sources())
             if numbers and not corrected:
                 corrected = True
@@ -487,6 +604,13 @@ def run_agent(*, model, conn, brief, ask, say=print, session_id, question="", to
         typed.append(text)
         record("ask.message", "person", {"text": text})
         messages.append({"role": "user", "content": text + note})
+        if verify:
+            if needs_check(conn, brief, text):
+                check_message(model=model, conn=conn, brief=brief, message=text, session_id=session_id,
+                              today=today_text, say=say)
+            for found in open_findings(conn, session_id=session_id):
+                messages.append({"role": "user", "content": FINDING_NOTE.format(id=found["id"],
+                                                                                 block=found["block"])})
         shown, note = turn()
         text = hear(shown)
         if text is None:

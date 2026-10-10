@@ -157,6 +157,14 @@ def _module(conn, server, params):
     return (200, found) if found is not None else (404, {"error": NOT_REGISTERED.format(name=name)})
 
 
+def _data_summary(conn, server, params):
+    if not WHOLE.match(params.get("id", "")):
+        return 400, {"error": "id must be a whole number"}
+    found = evidence.data_summary(conn, int(params["id"]))
+    return ((200, found) if found is not None
+            else (404, {"error": f"there is no data summary {int(params['id'])}"}))
+
+
 def _events(conn, server, params):
     before, limit = params.get("before"), params.get("limit", "200")
     if before is not None and not WHOLE.match(before):
@@ -173,7 +181,8 @@ def _test(conn, server, name):
 
 
 WORK_GETS = {"/api/work/summary": _summary, "/api/work/conversation": _conversation,
-             "/api/work/run": _run, "/api/work/module": _module, "/api/work/events": _events}
+             "/api/work/run": _run, "/api/work/module": _module, "/api/work/events": _events,
+             "/api/work/data_summary": _data_summary}
 
 
 def make_server(session, port: int = 8765, page_path=None, work_page_path=None) -> ThreadingHTTPServer:

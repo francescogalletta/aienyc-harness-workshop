@@ -152,8 +152,8 @@ def test_ask_refuses_a_brief_with_a_reserved_step_id_like_a_draft_one(save_confi
 
 
 def test_a_build_asked_for_in_a_conversation_runs_in_the_terminal_and_prints_no_result_lines(ready, write_script):
-    script = [h.request_module("new"), *yearly_script(), h.run_module("yearly_cost", {"monthly": "250"}),
-              say_text("It comes to 3,000 a year.")]
+    script = [h.no_findings(), h.request_module("new"), *yearly_script(), h.run_module("yearly_cost", {"monthly": "250"}),
+              say_text("It comes to 3,000 a year.")]             # (step 5) the verifier checks the figures in the question first
     write_script(script)
     words = h.YEARLY_QUESTION.split()
     result = run_cli(["ask", *words], typed("yes", "yes", "/accept", "/accept", "/accept", "/quit"))

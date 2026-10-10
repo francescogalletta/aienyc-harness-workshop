@@ -151,7 +151,7 @@ def test_after_adopting_build_and_ask_go_ahead(brief_saved, modules_dir, write_s
     assert built.returncode == 0, built.stderr
     assert built.stdout.splitlines()[-3:] == ["s1 -> monthly_surplus (already built)",
                                               "s3 -> months_to_goal (already built)", h.ALL_BUILT]
-    write_script([h.run_module(), h.say_text("monthly_surplus gives 2,000.")])
+    write_script([h.no_findings(), h.run_module(), h.say_text("monthly_surplus gives 2,000.")])         # (step 5) the verifier first
     asked = h.run_cli(["ask", "I", "earn", "5000", "and", "spend", "3000."], typed("/quit"))
     assert asked.returncode == 0, asked.stderr
     assert "monthly_surplus gives 2,000." in asked.stdout

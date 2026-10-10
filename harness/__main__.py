@@ -1,11 +1,12 @@
-"""Command line (SPEC 3.6, 4.5, 4.7, 5.10, 6.7, 7.7 and 8.7): `python -m harness check`, `events`, `ground`, `ui`,
-`build`, `modules`, `ask`, `adopt`, `replay`, `work` and `decisions`."""
+"""Command line (SPEC 3.6, 4.5, 4.7, 5.10, 6.7, 7.7, 8.7 and 9.3): `python -m harness check`, `events`, `ground`,
+`ui`, `build`, `modules`, `ask`, `adopt`, `replay`, `work`, `decisions` and `data`."""
 import argparse
 import json
 import re
 import sys
 import uuid
 from datetime import date
+from pathlib import Path
 
 from . import db
 from .config import EXAMPLES_DIR, UNKNOWN_EXAMPLE, load_config
@@ -152,6 +153,26 @@ SOME_NOT_ADOPTED = ("Some module folders are not registered. Fix them, or rebuil
                     "python -m harness build")
 REPLAY_DONE = "{passed} of {total} scenarios passed."
 NO_DECISIONS = "No decisions are recorded yet."
+DATA_LOADED = "{name}: loaded {count} transactions into account '{account}', {first} to {last}."
+DATA_READ = ("  read: {delimiter} between columns, headings on row {row}, dates written {dates}, amounts written "
+             "like {numbers}, money out written {sign}.")
+DATA_HEADERS_LEFT = "  left out, a repeated heading row: rows {rows}."
+DATA_REPEATS_LEFT = "  left out, the same date, amount, description and balance as an earlier row: rows {rows}."
+DATA_SAME_KEPT = ("  kept, the same date, amount and description as an earlier row; with no balance column they "
+                  "cannot be told apart from real repeats: rows {rows}.")
+DATA_REFUSED = "{name}: not loaded: {reason}"
+DATA_ADDED = "{loaded} of {total} files loaded."
+DATA_LIST_LINE = ("{id}  {account}  {name}  {count} transactions  {first} to {last}  money out written {sign}  "
+                  "balance column: {balance}")
+DATA_MONTHS = "{scope}: full months {first} to {last}"
+DATA_NO_MONTHS = "{scope}: no full month"
+DATA_CLEARED = "Removed {imports} files and {transactions} transactions. What was loaded stays in the event log."
+NO_DATA = "No account files are loaded. Add them with: python -m harness data add FILE ..."
+NO_FILES = "Name the account files to add, for example: python -m harness data add statement.csv"
+ONE_ACCOUNT = "--account names the account of one file. Add the files one at a time to name each account."
+NO_EXAMPLE_DATA = "The example '{name}' has no account files in {folder}."
+DELIMITER_WORDS = {",": "commas", ";": "semicolons", "\t": "tabs", "|": "bars"}
+SIGN_WORDS = {"out_negative": "negative", "out_positive": "positive"}
 
 
 def terminal_ask(text: str) -> str:
@@ -274,7 +295,7 @@ def ask_about_plan(words: list[str]) -> int:
     print("Ask about your plan. Type /quit to stop.")
     try:
         run_agent(model=get_model(), conn=conn, brief=brief, ask=terminal_ask,
-                  session_id=uuid.uuid4().hex, question=" ".join(words), today=date.today())
+                  session_id=uuid.uuid4().hex, question=" ".join(words), today=date.today(), verify=True)
     except Exception as error:
         reason = " ".join(str(error).split())
         print(f"ask stopped: {type(error).__name__}: {reason}", file=sys.stderr)
@@ -373,6 +394,103 @@ def show_decisions() -> int:
     return 0
 
 
+def data_files(files: list[str], account: str | None) -> list[str] | None:
+    """The files `data add` loads (SPEC 9.3), or None after printing why there are none to load."""
+    config = load_config()
+    if not files and config.example is not None:
+        folder = EXAMPLES_DIR / config.example / "data"
+        files = sorted(str(path) for path in folder.iterdir()
+                       if path.is_file() and not path.name.startswith(".")) if folder.is_dir() else []
+        if not files:
+            print(NO_EXAMPLE_DATA.format(name=config.example, folder=f"{EXAMPLES_DIR}/{config.example}/data"),
+                  file=sys.stderr)
+            return None
+    if not files:
+        print(NO_FILES, file=sys.stderr)
+        return None
+    if account is not None and len(files) != 1:
+        print(ONE_ACCOUNT, file=sys.stderr)
+        return None
+    return files
+
+
+def data_add(files: list[str], sign: str | None, account: str | None) -> int:
+    """Load account files into the canonical table (SPEC 9.3)."""
+    from .sources.adapter import NotLoaded, add_file
+
+    conn = db.connect()
+    db.migrate(conn)
+    session_id = uuid.uuid4().hex
+    files = data_files(files, account)
+    if files is None:
+        return 1
+    loaded = 0
+    for path in files:
+        try:
+            found = add_file(conn, path, account=account, sign={"negative": "out_negative",
+                                                                 "positive": "out_positive"}.get(sign),
+                             sign_from="flag", ask=terminal_ask, say=print, session_id=session_id)
+        except NotLoaded as refused:
+            print(DATA_REFUSED.format(name=Path(path).name, reason=refused))
+            continue
+        loaded += 1
+        print(DATA_LOADED.format(name=found["name"], count=found["transactions"], account=found["account"],
+                                 first=found["first"], last=found["last"]))
+        print(DATA_READ.format(delimiter=DELIMITER_WORDS[found["delimiter"]], row=found["header_row"],
+                               dates=found["date_format"], numbers=found["number_format"],
+                               sign=SIGN_WORDS[found["sign"]]))
+        for template, rows in ((DATA_HEADERS_LEFT, [each["row"] for each in found["dropped"]
+                                                    if each["reason"] == "repeated header"]),
+                               (DATA_REPEATS_LEFT, [each["row"] for each in found["dropped"]
+                                                    if each["reason"] == "repeated row"]),
+                               (DATA_SAME_KEPT, found["same_kept"])):
+            if rows:
+                print(template.format(rows=", ".join(str(row) for row in rows)))
+    print(DATA_ADDED.format(loaded=loaded, total=len(files)))
+    return 0 if loaded == len(files) else 1
+
+
+def data_list() -> int:
+    """List what is loaded, and the full months of each account (SPEC 9.3)."""
+    from .sources.adapter import list_imports
+    from .sources.summaries import accounts, full_months
+
+    conn = db.connect()
+    db.migrate(conn)
+    imports = list_imports(conn)
+    if not imports:
+        print(NO_DATA)
+        return 0
+    for each in imports:
+        print(DATA_LIST_LINE.format(id=each["id"], account=each["account"], name=each["name"],
+                                    count=each["transactions"], first=each["first"], last=each["last"],
+                                    sign=SIGN_WORDS[each["sign"]],
+                                    balance="yes" if each["columns"]["balance"] is not None else "no"))
+    print()
+    scopes = [(f"account '{each['account']}'", each["full_months"]) for each in accounts(conn)]
+    for scope, months in [*scopes, ("all accounts", full_months(conn, "all"))]:
+        if months:
+            print(DATA_MONTHS.format(scope=scope, first=months[0], last=months[-1]))
+        else:
+            print(DATA_NO_MONTHS.format(scope=scope))
+    return 0
+
+
+def data_clear() -> int:
+    """Remove every loaded file and transaction; the events keep the record (SPEC 9.3)."""
+    from .sources.adapter import clear_data, list_imports
+
+    conn = db.connect()
+    db.migrate(conn)
+    session_id = uuid.uuid4().hex
+    if not list_imports(conn):
+        print(NO_DATA)
+        return 0
+    removed = clear_data(conn, session_id=session_id)
+    print(DATA_CLEARED.format(**removed))
+    return 0
+
+
 def work(port: int, browser: bool) -> int:
     """Serve the evidence page, with no model and no interview, until interrupted (SPEC 7.7)."""
     import webbrowser
@@ -432,6 +550,15 @@ def main() -> int:
     evidence.add_argument("--port", type=int, default=8765)
     evidence.add_argument("--no-browser", action="store_true", help="do not open the page in the browser")
     commands.add_parser("decisions", help="print what you decided in your conversations")
+    loading = commands.add_parser("data", help="load, list and clear your account files")
+    data_commands = loading.add_subparsers(dest="data_command", required=True)
+    adding = data_commands.add_parser("add", help="load account files")
+    adding.add_argument("files", nargs="*", metavar="FILE")
+    adding.add_argument("--sign", choices=("negative", "positive"),
+                        help="how the files write money going out")
+    adding.add_argument("--account", help="the account name of the one file")
+    data_commands.add_parser("list", help="list the loaded files and the full months of each account")
+    data_commands.add_parser("clear", help="remove the loaded files and their transactions")
     args = parser.parse_args()
     if args.command == "check":
         return check()
@@ -453,6 +580,10 @@ def main() -> int:
         return work(args.port, not args.no_browser)
     if args.command == "decisions":
         return show_decisions()
+    if args.command == "data":
+        if args.data_command == "add":
+            return data_add(args.files, args.sign, args.account)
+        return data_list() if args.data_command == "list" else data_clear()
     return ground(args.resume, args.max_questions)
 
 

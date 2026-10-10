@@ -159,15 +159,16 @@ REQUEST_MODULE_SCHEMA = {"type": "object", "properties": {
     "works_out": {"type": "string"}, "from_what": {"type": "string"}, "gives": {"type": "string"},
     "formula": {"type": "string"}, "why": {"type": "string"}},
     "required": ["case", "works_out", "from_what", "gives", "formula", "why"]}
-# (step 4) SPEC 8.3
+# (step 4) SPEC 8.3, (step 5) with `finding`, and `required` only `runs`
 ASK_DECISION_SCHEMA = {"type": "object", "properties": {
     "step": {"type": "string"},
     "question": {"type": "string"},
     "options": {"type": "array", "items": {"type": "string"}},
     "recommendation": {"type": "integer"},
     "why": {"type": "string"},
-    "runs": {"type": "array", "items": {"type": "integer"}}},
-    "required": ["question", "options", "runs"]}
+    "runs": {"type": "array", "items": {"type": "integer"}},
+    "finding": {"type": "integer"}},
+    "required": ["runs"]}
 
 
 def without_descriptions(schema):
@@ -616,6 +617,18 @@ def ranged_script():
 
 def say_text(text):
     return {"text": text}
+
+
+def report(*findings):
+    """(step 5) The verifier's one tool call, `report` (SPEC 9.6)."""
+    return tool("report", {"findings": list(findings)})
+
+
+def no_findings():
+    """(step 5) The verifier's reply when nothing differs. `python -m harness ask` checks every message that has a
+    figure when there is something to check it against (SPEC 9.6), and the brief of these tests has one in its
+    particulars, so a command line test of such a message starts its script with this."""
+    return report()
 
 
 def run_module(module="monthly_surplus", inputs=None, assumptions=(), expected="about the usual amount"):

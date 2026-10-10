@@ -29,7 +29,7 @@ def ready(conn, save_confirmed_brief):
 
 
 def ask_command(write_script, script, *lines, question=h.QUESTION):
-    write_script(script)
+    write_script([h.no_findings(), *script])               # (step 5) the verifier checks the figures of the question first
     return run_cli(["ask", *question.split()], typed(*lines))
 
 
@@ -99,7 +99,7 @@ def test_the_command_alone_asks_what_to_talk_through(ready, write_script):
 
 
 def test_a_side_conversation_at_the_opening_question(ready, write_script):
-    write_script([side("It is a thing."), h.say_text("Hello.")])
+    write_script([side("It is a thing."), h.no_findings(), h.say_text("Hello.")])      # (step 5) the verifier after the question
     result = run_cli(["ask"], typed("/aside What is a sinking fund?", "/back", "no", h.QUESTION, "/quit"))
     assert result.returncode == 0, result.stderr
     assert result.stdout.count(prompted(h.OPENING)) == 2

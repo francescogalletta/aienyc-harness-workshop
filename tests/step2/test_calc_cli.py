@@ -222,7 +222,7 @@ def test_ask_prints_what_it_is_and_shows_the_reply(ready, write_script):
 
 
 def test_ask_joins_the_words_of_the_question(ready, write_script):
-    write_script([h.run_module(), say_text("monthly_surplus gives 2,000.")])
+    write_script([h.no_findings(), h.run_module(), say_text("monthly_surplus gives 2,000.")])       # (step 5) the verifier first
     result = run_cli(["ask", "I", "earn", "5000", "and", "spend", "3000."], typed("/quit"))
     assert result.returncode == 0, result.stderr
     assert "monthly_surplus gives 2,000." in result.stdout

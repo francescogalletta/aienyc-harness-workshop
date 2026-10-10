@@ -12,7 +12,7 @@ import harness.ui.server as server_module
 
 UI = Path(server_module.__file__).parent
 ALLOWED_API = {"/api/work/summary", "/api/work/conversation", "/api/work/run", "/api/work/module", "/api/work/events",
-               "/api/work/test"}
+               "/api/work/test", "/api/work/data_summary"}                 # (step 5) one more path (SPEC 7.4)
 
 
 @pytest.fixture(scope="module")
@@ -71,9 +71,9 @@ def test_it_calls_only_the_paths_of_the_api(evidence_text):
     assert "/api/state" not in called and "/api/start" not in called
 
 
-def test_it_names_the_five_views_and_the_one_action(evidence_text):
-    # (step 4) a fifth view, Decisions (SPEC 7.6 item 2)
-    for name in ("Conversations", "Runs", "Decisions", "Modules", "Everything"):
+def test_it_names_the_six_views_and_the_one_action(evidence_text):
+    # (step 4) a fifth view, Decisions; (step 5) a sixth, Data (SPEC 7.6 item 2)
+    for name in ("Conversations", "Runs", "Decisions", "Data", "Modules", "Everything"):
         assert name in evidence_text
     assert "Run the tests now" in evidence_text
 
@@ -94,8 +94,9 @@ def test_it_links_to_the_interview(evidence_text):
     assert re.search(r"""["']/["']""", evidence_text)
 
 
-def test_it_names_the_eight_labels(evidence_text):
-    for label in ("run", "input", "note", "brief", "person", "today", "small", "none"):
+def test_it_names_the_nine_labels(evidence_text):
+    # (step 5) SPEC 7.6 item 6: `data` is the ninth
+    for label in ("run", "data", "input", "note", "brief", "person", "today", "small", "none"):
         assert re.search(rf"""['">\s]{label}['"<\s:]""", evidence_text), label
 
 
