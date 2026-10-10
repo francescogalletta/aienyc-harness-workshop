@@ -193,7 +193,7 @@ def test_activity_shows_what_runs_and_its_progress_then_empties(open_session):
     go_on, reported = threading.Event(), threading.Event()
 
     def slow(work, message):
-        work.progress("writing the code, attempt 2", step="s4")
+        work.progress("writing the code, attempt 2", step="s4", thread="t2")
         reported.set()
         go_on.wait(SETTLE)
 
@@ -206,7 +206,7 @@ def test_activity_shows_what_runs_and_its_progress_then_empties(open_session):
     [entry] = state["activity"]
     assert (entry["lane"], entry["what"], entry["step"], entry["text"]) == (
         "main", "build", "s4", "writing the code, attempt 2")
-    assert entry["since"]
+    assert entry["since"] and entry["thread"] == "t2"
     go_on.set()
     state = session.settle(SETTLE)
     assert state["activity"] == [] and state["lanes"]["main"] == "idle"
@@ -421,12 +421,16 @@ def test_message_data_shows_in_the_chat_and_can_be_updated(open_session):
 
 def test_thread_messages_stay_out_of_the_main_chat(open_session):
     session = open_session()
-    thread = add_thread(session.conn, session.conversation, kind="side", title="About step 1", step="s1")
+    first = session.post("a main question", who="you")
+    session.post("a main answer")
+    thread = add_thread(session.conn, session.conversation, kind="side", title="About step 1", step="s1",
+                        after=first)
     session.post("a side question", who="you", thread=thread)
     session.post("a side answer", thread=thread, data={"sources": []})
-    assert session.state()["chat"] == []
+    assert len(session.state()["chat"]) == 2
     [found] = list_threads(session.conn, session.conversation)
     assert (found["id"], found["kind"], found["step"], found["status"]) == (thread, "side", "s1", "open")
+    assert found["after"] == first
     assert [(m["who"], m["text"]) for m in found["messages"]] == [("you", "a side question"),
                                                                  ("assistant", "a side answer")]
     assert found["messages"][1]["sources"] == []
@@ -438,3 +442,30 @@ def test_a_session_on_the_base_alone_uses_the_base_layer_object():
         assert session.layers == [BASE]
     finally:
         session.close()
+
+
+def test_a_thread_follows_the_last_main_message_by_default(open_session):
+    session = open_session()
+    none = add_thread(session.conn, session.conversation, kind="side", title="before anything")
+    session.post("one", who="you")
+    last = session.post("two")
+    thread = add_thread(session.conn, session.conversation, kind="side", title="later")
+    session.post("in the thread", who="you", thread=thread)
+    found = {t["id"]: t["after"] for t in list_threads(session.conn, session.conversation)}
+    assert found == {none: None, thread: last}
+
+
+def test_a_queued_job_names_the_thread_it_answers(open_session):
+    go_on, running = threading.Event(), threading.Event()
+
+    def job(work):
+        running.set()
+        go_on.wait(SETTLE)
+
+    session = open_session()
+    session.queue("side", job, what="side", text="answering", thread="t1")
+    assert running.wait(SETTLE)
+    [entry] = session.state()["activity"]
+    assert (entry["lane"], entry["thread"]) == ("side", "t1")
+    go_on.set()
+    assert session.settle(SETTLE)["activity"] == []

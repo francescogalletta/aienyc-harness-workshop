@@ -81,6 +81,7 @@ page hides what they feed. IDs are strings so the page never mixes kinds.
 Lane     = "idle" | "working" | "waiting"
 Activity = {"lane": "main" | "side" | "review", "what": "interview" | "build" | "answer"
             | "helper" | "tests" | "side" | "review", "step": "<step id>" | null,
+            "thread": "<thread id>" | null,         the thread a side job is answering
             "text": "writing the code, attempt 2", "since": "<ISO time>"}
 Waiting  = {"kind": "message"}                     the person may type; nothing else waits
          | {"kind": "plan"}                        a proposed plan awaits Accept plan or a correction
@@ -111,7 +112,8 @@ Context = {
 }
 Input = {"id": "in:guest_count", "name": "Guest count", "description": str, "origin": Origin,
          "steps": ["s1"],             steps whose needs name it; the page draws one pill above each
-         "used": bool}                (layer 3) it took part in the last answer
+         "used": bool,                (layer 3) it took part in the last answer
+         "value": null | str}         (layer 3) its saved value as written; null: none saved yet
 ```
 
 Assumption items carry an extra key `"handling"`. An input id is `in:` plus
@@ -184,8 +186,8 @@ Message = {
   "step": "s2" | null,            the chip: the step the message is about
   "queued": bool,                 (you) typed while the main lane was busy
   "kind": "text" | "plan" | "decision" | "notice" | "withheld",
-  "figures": [Figure],            (layer 3) assistant messages
-  "decision": null | Decision,    kind "decision" (layer 4)
+  "figures": [Figure],            (layer 3, 4) assistant messages; a decision's question too
+  "decision": null | Decision,    kind "decision" (layer 4); `text` is its `question`
   "notice": null | Notice         (layer 4) set on the assistant reply it belongs to
 }
 Figure   = {"start": 13, "end": 19, "text": "43,000",
@@ -194,6 +196,8 @@ Decision = {"id": "d4", "step": "s7", "question": str, "options": [str], "sugges
             "why": str, "status": "open" | "answered", "choice": null | "2" | "something else"}
 Notice   = {"assumptions": [Assumption], "steps": ["s5"], "status": "open" | "confirmed" | "changed"}
 Thread   = {"id": "t3", "kind": "side" | "review", "step": "s5" | null, "title": str (≤45 chars),
+            "after": "m12" | null,    the main-chat message it follows: drawn right after it; the core
+                                      sets it to the last main message when the thread starts
             "status": "open" | "used" | "dismissed",
             "messages": [{"who": "you" | "assistant" | "reviewer", "text": str,
                           "sources": [{"title", "url"}]}],
@@ -215,7 +219,8 @@ saved input gets the input id when the input's name matches a brief input id,
 else none. Every other figure (the person's words, the brief, today, a small
 number) gets neither and is shown as plain text. `start` and `end` are
 character offsets in `text`. Only figures with a `step` are drawn as
-`fah-num` and select their step when clicked.
+`fah-num` and select their step when clicked. A decision message is the same:
+its `text` is the decision's `question`, and its `figures` index that text.
 
 ### 3.5 A small example
 
@@ -228,7 +233,7 @@ character offsets in `text`. Only figures with a `step` are drawn as
  "context": {"scope_in": [], "scope_out": [], "assumptions": [], "done": [], "open_questions": [],
              "glossary": [], "revisions": []},
  "inputs": {"in:guest_count": {"id": "in:guest_count", "name": "Guest count", "description": "...",
-            "origin": {"kind": "proposed"}, "steps": ["s1"], "used": true}},
+            "origin": {"kind": "proposed"}, "steps": ["s1"], "used": true, "value": "150"}},
  "steps": [{"id": "s1", "number": 1, "name": "Total cost", "kind": "calculation", "in_plan": true,
             "method": "arithmetic", "formula": "guests x price + fixed costs", "produces": "total",
             "cadence": "", "needs": ["in:guest_count"], "inputs": ["in:guest_count"],
@@ -359,7 +364,7 @@ every action.
 | `confirm_example` | `step`, `n` | 2 | that example exists and is not yours already | Records "confirmed by you" |
 | `confirm_plan_check` | `step` | 2 | the step has departures not yet confirmed | Clears the plan-check mark |
 | `run_tests` | `step` | 2 | the step has a registered module | Queues a test run |
-| `choose` | `decision`, `option` | 4 | that decision is the one waiting | Answers it with an option number |
+| `choose` | `decision`, `option` | 4 | that decision is the one waiting | Posts the option's text as the person's message (`who` "you", the decision's step), then answers the decision with the option number |
 | `confirm_assumptions` | `message` | 4 | that message's notice is open | Confirms its assumptions |
 | `side` | `text`, `step`?, `thread`? | 4 | always | Starts a side thread, or replies in one (side or review) |
 | `use_challenge` | `challenge` | 5 | the challenge is open | Marks it used; posts the person's "use this" message and routes it |
@@ -567,3 +572,59 @@ Each has the default the work plan takes.
 - **A0 · Tests.** Unit tests of kept code were parked: `tests/layer1/test_wikipedia.py`,
   `tests/layer2/test_values.py`, `test_safety.py`, `test_provenance.py`, each folder with a conftest
   that sets its `HARNESS_LAYERS`.
+- **B2 · Gaps between the page and the state document.** Closed in section 3: a thread has `after`, an
+  activity entry has `thread`, an input has `value`, a decision message carries `figures`; and `choose`
+  posts the person's message (section 5). The core owns `after` (`add_thread` takes it, default the last
+  main message; the `threads` table has the column; delete `my/var/harness.db` after pulling this) and
+  `thread` (`queue(..., thread=)`, `work.progress(..., thread=)`). The page draws a thread right after
+  its `after` message (a thread with none goes after the last message), the side thread's "Answering"
+  from the activity entry, an input's value in the step pop-up, a decision's figures, and no longer
+  makes up the person's message for an answered decision. Page source: `design/page/` (`python
+  design/page/build_page.py` rebuilds `harness/ui/page.html`). Samples: `tests/layer0/states/`.
+- **B2 · For layer 1.** Each input in `inputs` is made without `used` and `value`; layer 3 adds them.
+- **B2 · For layer 3.** Set `inputs[id]["value"]` to the saved input's value as written (null while
+  none), beside `used`.
+- **B2 · For layer 4.** `choose` posts the option's text as the person's message before it answers;
+  a decision message's `text` is the question and its `figures` come from the number check, as for an
+  assistant reply; side jobs queue with `thread=` (or call `work.progress(thread=)` once the thread
+  exists) so `activity` names it.
+- **B2 · For layer 5.** Review threads start with `add_thread` as they are, so they follow the last main
+  message when the pass finished; pass `after=` to place one elsewhere.
+- **A1 · Files.** Beside `layer.py`, `interview.py`, `revise.py`, `research.py`: `brief.py` holds the schema,
+  `validate_brief`, `draw` (the layer 1 keys of the state document from a brief), `load_brief(folder)` (the
+  confirmed brief with its `meta`, else None), `step_fingerprint`, `input_ids` and `person_quotes`. There is no
+  example selector in layer 1: `HARNESS_EXAMPLE` is layer 0's. `research.default_desk(config, conn)` is the desk
+  used when the session was given no `desk_factory`.
+- **A1 · Interview state.** While there is an interview, its state dict is `core.memory["plan"]` and
+  `grounding_state.json` (beside the database); the state document draws from the memory. When the plan is
+  accepted the file and the memory entry go and the confirmed brief in `brief_dir` is the plan (re-read when
+  its file changes). `loaded` resumes an unfinished interview from the file, without asking its last question
+  again. If a job died (a failed model call), the next message the person sends reaches `route`, which resumes
+  the interview with that message.
+- **A1 · Phase.** `proposed` lasts from the first valid brief until acceptance, including while a correction is
+  being worked on (the diagram stays drawn); `waiting` is `{"kind": "plan"}` only while the plan awaits
+  acceptance or a correction. A draft saved after three rejections is not a plan: the phase stays `interview`,
+  the harness posts where the draft is, and the interviewer is told to ask the person one question.
+- **A1 · Starting.** `start` and the routed first message both begin the interview; a new conversation is made
+  only when the current one holds something besides the opening message. The opening statement is the first
+  message of the interviewer's conversation, with a `[harness]` line listing the terms already read up on.
+- **A1 · Words and origins.** `validate_brief(brief, lookups, words)`: `words` is every message the person
+  wrote in this interview (opening, answers, corrections). A revision may also quote what the accepted plan
+  already quotes. A brief's `looked_up` origin is the address; the state shows `{title, url}`, the title from
+  the lookups, else the address. An input's id is `input_ids(brief)[name]` (the ARCHITECTURE 3.2 rule, with
+  `_2`, `_3` for names that would give the same id); layer 3 should use it. Inputs are drawn without `used`
+  and `value`. A step's id in the state is the brief's process id.
+- **A1 · Fingerprint.** `brief.step_fingerprint(brief, step_id)` is the one SPEC 4.4 defines (layer 2 stores
+  and compares it; do not rewrite it): SHA-256 of the sorted-key compact JSON of `kind`, `method`, `formula`,
+  `needs` (in brief order, names as written), `produces` and the `what`/`handling` pairs of the step's
+  particulars, sorted. A step's name, cadence and origin are not in it.
+- **A1 · Revising.** `revise_plan(work, *, words, step=None, by="person")` runs on the calling job's lane
+  (layer 3's `change_plan` calls it). Layer 1 itself routes nothing after acceptance. `plan_changed(work,
+  changed)` is called after every saved revision, with `changed` possibly empty. Three rejections by the
+  checks, a reply without `write_brief`, or eight calls end it with an `error`.
+- **A1 · Lookups.** `look_up_general` returns a research entry with status `failed` and an `error` for a refused
+  query; it never raises. The interview limits are v1's (twelve terms, one lookup per term).
+- **A1 · Terminal.** `ground` prints the proposed plan as text before it reads (the terminal driver only
+  prints chat messages), stops when the phase is `accepted` and the main lane is idle, and exits 0 then, else 1.
+  A message typed in the terminal has no step, so a correction with a step is a page action.
+- **A1 · Not core.** Nothing in `harness/core/` was changed.

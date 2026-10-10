@@ -21,6 +21,7 @@ class Job:
     what: str
     run: Callable | None = None
     step: str | None = None
+    thread: str | None = None           # the thread a side job answers, once it has one
     text: str = ""
     since: str = ""
     key: str | None = None              # at most one job with this key waits in the queue

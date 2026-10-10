@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Financial Advisor Harness</title>
+<script>
+/* Theme before first paint: follow the system setting. */
+(function () {
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  function set() { document.documentElement.setAttribute('data-theme', mq.matches ? 'dark' : 'light'); }
+  set();
+  if (mq.addEventListener) { mq.addEventListener('change', set); }
+})();
+</script>
+<style>
+/*@@TOKENS@@*/
+</style>
+<style>
+/*@@BUNDLE_CSS@@*/
+</style>
+<style>
+/* ---- The page: layout only. Every colour, size and timing comes from the design system's tokens. ---- */
+.fah [hidden] { display: none !important; }
+.fah a { color: inherit; }
+button.fah-chip { margin: 0; border: 0; background: none; color: inherit; font-family: inherit; cursor: pointer; }
+html, body { margin: 0; background: var(--ground); color: var(--ink); }
+body { min-height: 100vh; }
+.fa-app { --chat-w: clamp(320px, 23.5vw, 400px); display: grid; grid-template-columns: minmax(0, 1fr) var(--chat-w); height: 100vh; }
+.fa-plan { position: relative; min-width: 0; overflow: auto; padding: 20px 20px 48px; }
+.fa-side { display: flex; flex-direction: column; min-height: 0; background: var(--surface); box-shadow: inset 1px 0 0 var(--line); }
+
+.fa-top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+.fa-head { min-width: 0; flex: 1 1 360px; }
+.fa-product { margin: 0 0 6px; color: var(--muted); letter-spacing: 0; }
+.fa-goal { margin: 0; max-width: 62ch; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.fa-goalmeta { margin: 4px 0 0; color: var(--muted); }
+.fa-tools { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: flex-end; }
+.fa-tools .fah-working { width: 32px; }
+.fah-btn[aria-disabled="true"] { cursor: default; }
+.fah-btn[aria-disabled="true"]:hover { background: transparent; }
+.fah-btn[aria-disabled="true"]:active { transform: none; }
+.fa-building { display: inline-flex; align-items: center; gap: 10px; }
+
+.fa-scroll { overflow-x: auto; overflow-y: visible; margin: 0 -20px; padding: 4px 20px 12px; }
+.fa-canvas { position: relative; }
+.fa-canvas .fah-step { position: absolute; height: 84px; min-height: 0; }
+.fa-canvas .fah-step--from-you { padding-left: 20px; padding-right: 20px; }
+.fa-canvas .fah-step--from-you.fah-step--selected, .fa-canvas .fah-step--from-you.fah-step--needs-you { padding-left: 20px; padding-right: 20px; }
+.fa-canvas .fah-step__name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.fa-canvas .fah-step__line { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fa-canvas .fah-pills { position: absolute; max-width: 184px; flex-wrap: nowrap; overflow: hidden; }
+.fa-canvas .fah-pills .fah-pill { flex: none; }
+.fa-canvas .fah-pills .fah-pill:only-child { display: block; max-width: 184px; overflow: hidden; text-overflow: ellipsis; }
+.fa-canvas .fah-flow { position: absolute; }
+.fa-tag { position: absolute; top: calc(100% + 3px); right: 2px; font-size: 11px; line-height: 14px; font-weight: 400; color: var(--muted); white-space: nowrap; pointer-events: none; }
+.fa-tag > span + span { margin-left: 8px; }
+.fa-canvas .fah-pop { position: absolute; z-index: 5; max-height: min(70vh, 520px); overflow: auto; }
+
+.fa-empty { max-width: 46ch; margin: 48px 0; color: var(--ink-2); }
+.fa-empty p { margin: 0 0 8px; }
+
+/* Pop-up contents */
+.fa-sec-h { margin: 8px 0 0; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ink-2); }
+.fa-p { margin: 0; }
+.fa-quiet { color: var(--muted); }
+.fa-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.fa-list li { display: block; }
+.fa-sub { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
+.fa-orig { margin-left: 6px; font-size: 12px; color: var(--muted); }
+.fa-orig a, .fa-src a { color: inherit; }
+.fa-receipt { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: var(--ground); border-radius: var(--radius-sm); }
+.fa-receipt .fah-pop__row > :last-child { color: var(--ink); }
+.fa-receipt__out { padding-top: 4px; box-shadow: inset 0 1px 0 var(--line); font-weight: 600; }
+.fa-code { margin: 0; max-height: 240px; overflow: auto; padding: 8px 10px; font-size: 12px; line-height: 16px; background: var(--ground); border-radius: var(--radius-sm); white-space: pre; }
+.fa-acts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.fa-ex { display: flex; flex-direction: column; gap: 2px; }
+.fa-ex .fa-sub .fah-link { margin-left: 8px; font-size: 12px; color: var(--ink); }
+.fah-pop .fah-row .fah-btn { min-height: 36px; padding: 0 12px; }
+
+/* Whole plan and the Review list */
+.fa-section { max-width: 760px; margin-top: 28px; padding-top: 16px; box-shadow: inset 0 1px 0 var(--line); }
+.fa-section__head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin: 0 0 4px; }
+.fa-section h3 { margin: 16px 0 6px; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink-2); }
+.fa-section ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+.fa-rv { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 0; box-shadow: inset 0 -1px 0 var(--line); }
+.fa-rv__text { flex: 1 1 260px; min-width: 0; }
+.fa-rv .fah-btn { min-height: 36px; padding: 0 12px; }
+
+/* Chat */
+.fa-log { flex: 1; min-height: 0; overflow: auto; padding: 20px 16px 12px; }
+.fa-log > .fah-chat + .fah-chat { margin-top: 14px; }
+.fa-log .fah-msg--you { max-width: 88%; }
+.fa-noanim, .fa-noanim > .fah-thread__body { animation: none !important; }
+.fa-muted { color: var(--ink-2); }
+.fa-meta { display: block; margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--muted); }
+.fa-working { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--ink-2); }
+.fa-tmsg { margin: 0; }
+.fa-tmsg--you { padding-left: 12px; box-shadow: inset 2px 0 0 var(--flow); }
+.fa-tmsg__who { font-weight: 600; }
+.fah-thread .fah-row .fah-btn { min-height: 36px; padding: 0 12px; }
+.fa-compose { padding: 8px 16px 16px; background: var(--surface); }
+.fa-compose .fah-composer { flex-wrap: wrap; row-gap: 4px; }
+.fa-compose .fah-composer input { flex: 1 1 170px; min-height: 32px; }
+.fa-chiprow { flex: 1 0 100%; min-width: 0; padding-top: 4px; }
+.fa-chiprow .fah-chip { max-width: 100%; }
+.fa-hint { margin: 0 0 6px; font-size: 13px; line-height: 18px; color: var(--ink-2); }
+.fa-hint:empty { display: none; }
+.fah-composer .fah-chip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fa-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+@media (max-width: 820px) {
+  .fa-app { display: flex; flex-direction: column; height: auto; min-height: 100vh; }
+  .fa-side { flex: 1 0 auto; }
+  .fa-plan { overflow: visible; padding: 16px 16px 24px; }
+  .fa-scroll { margin: 0 -16px; padding: 4px 16px 12px; }
+  .fa-side { box-shadow: inset 0 1px 0 var(--line); padding-bottom: 96px; }
+  .fa-log { overflow: visible; padding: 16px; }
+  .fa-compose { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 8px 16px calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -1px 0 var(--line); }
+  .fa-tools { justify-content: flex-start; }
+  .fa-canvas .fah-pop { max-width: calc(100vw - 32px); }
+}
+</style>
+</head>
+<body>
+<div class="fah fa-app" id="app">
+  <main class="fa-plan" id="plan" aria-label="The plan">
+    <div class="fa-top">
+      <div class="fa-head">
+        <p class="fah-label fa-product">Financial Advisor Harness</p>
+        <h1 class="fah-title fa-goal" id="goal" hidden></h1>
+        <p class="fah-small fa-goalmeta" id="goalmeta" hidden></p>
+      </div>
+      <div class="fa-tools" id="tools"></div>
+    </div>
+    <div class="fa-empty" id="empty" hidden></div>
+    <div class="fa-scroll" id="scroll"><div class="fa-canvas" id="canvas"></div></div>
+    <section class="fa-section" id="reviewlist" hidden aria-label="Review"></section>
+    <section class="fa-section" id="whole" hidden aria-label="Whole plan"></section>
+  </main>
+  <section class="fa-side" aria-label="Chat">
+    <div class="fa-log" id="log">
+      <div class="fah-chat" id="msgs" role="log" aria-live="polite"></div>
+      <div class="fah-chat" id="threads"></div>
+      <div class="fah-chat" id="tail"></div>
+    </div>
+    <div class="fa-compose">
+      <p class="fa-hint" id="hint" role="status"></p>
+      <div class="fah-composer" id="composer">
+        <input type="text" id="say" autocomplete="off" aria-label="Message">
+        <button class="fah-side" type="button" id="sidebtn" aria-pressed="false" hidden>On the side</button>
+      </div>
+    </div>
+  </section>
+</div>
+<script>
+/*@@BUNDLE_JS@@*/
+</script>
+<script>
+/*@@APP_JS@@*/
+</script>
+</body>
+</html>

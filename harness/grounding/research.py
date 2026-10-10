@@ -23,6 +23,7 @@ from ..config import load_config
 from ..model import ToolSpec
 
 MAX_QUERY_LENGTH = 100
+MAX_GENERAL_WORDS = 12          # the most words in a general question
 MAX_PLANNED = 6                 # the most terms the up-front plan may read up on
 
 
@@ -208,6 +209,21 @@ class ResearchDesk:
                     entries[query] = {**by_key[term_key(query)], "query": query}
         return [dict(entries[query]) for query in queries]
 
+    def look_up_general(self, query: str) -> dict:
+        """A lookup for layers 4 and 5 (SPEC 3.4): only a general question goes out, never a figure.
+
+        A query with a digit in it, longer than MAX_QUERY_LENGTH characters or of more than
+        MAX_GENERAL_WORDS words is refused before any request: the entry has status `failed` and an
+        `error`. Otherwise this is `look_up`.
+        """
+        query = str(query).strip()
+        if not query or len(query) > MAX_QUERY_LENGTH or len(query.split()) > MAX_GENERAL_WORDS \
+                or any(character.isdigit() for character in query):
+            return {**_entry(Lookup(query, False)), "status": "failed",
+                    "error": "refused: a general question has no digits, at most "
+                             f"{MAX_GENERAL_WORDS} words and {MAX_QUERY_LENGTH} characters"}
+        return self.look_up(query)
+
     def looking(self) -> list[str]:
         """The queries being looked up at this moment. Safe to call from any thread."""
         with self._lock:
@@ -297,3 +313,10 @@ def plan_research(model, desk: ResearchDesk, opening: str, say=print) -> list[di
         return []
     say(f"  (reading up on: {', '.join(terms)})")
     return [{**entry, "planned": True} for entry in desk.look_up_many(terms)]
+
+
+def default_desk(config, conn) -> ResearchDesk:
+    """The research desk the configured researcher stands behind, on `conn` (used when the session was given none)."""
+    if config.researcher not in RESEARCHERS:
+        raise ValueError(f"unknown researcher: {config.researcher!r} (known: {', '.join(sorted(RESEARCHERS))})")
+    return ResearchDesk(RESEARCHERS[config.researcher](config), conn)

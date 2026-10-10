@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS threads (
     conversation  TEXT NOT NULL,
     kind          TEXT NOT NULL,                        -- "side" | "review"
     step          TEXT,
+    after         INTEGER,                              -- the main-chat message it follows; NULL: none yet
     title         TEXT NOT NULL,
     status        TEXT NOT NULL                         -- "open" | "used" | "dismissed"
 );

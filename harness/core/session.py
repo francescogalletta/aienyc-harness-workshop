@@ -120,10 +120,17 @@ def _message(row) -> dict:
     return message
 
 
-def add_thread(conn, conversation: str, *, kind: str, title: str, step: str | None = None) -> str:
+def add_thread(conn, conversation: str, *, kind: str, title: str, step: str | None = None,
+               after: str | None = None) -> str:
+    """Store a thread. It follows the main-chat message `after`; by default the last one there is now."""
+    if after is None:
+        last = conn.execute("SELECT MAX(id) FROM messages WHERE conversation = ? AND thread IS NULL",
+                            (conversation,)).fetchone()[0]
+    else:
+        last = number_of(after, "m")
     cursor = conn.execute(
-        "INSERT INTO threads (ts, conversation, kind, step, title, status) VALUES (?, ?, ?, ?, ?, 'open')",
-        (db.now(), conversation, kind, step, title))
+        "INSERT INTO threads (ts, conversation, kind, step, after, title, status)"
+        " VALUES (?, ?, ?, ?, ?, ?, 'open')", (db.now(), conversation, kind, step, last, title))
     conn.commit()
     return f"t{cursor.lastrowid}"
 
@@ -141,8 +148,9 @@ def list_threads(conn, conversation: str) -> list[dict]:
         messages = [{key: value for key, value in message.items() if key not in ("id", "ts", "queued", "kind",
                                                                                   "step")}
                     for message in list_messages(conn, conversation, thread_id)]
-        threads.append({"id": thread_id, "kind": row["kind"], "step": row["step"], "title": row["title"],
-                        "status": row["status"], "messages": messages})
+        threads.append({"id": thread_id, "kind": row["kind"], "step": row["step"],
+                        "after": f"m{row['after']}" if row["after"] is not None else None,
+                        "title": row["title"], "status": row["status"], "messages": messages})
     return threads
 
 
@@ -297,14 +305,14 @@ class Session:
             return self._model
 
     def queue(self, lane: str, run, *, what: str, step: str | None = None, text: str = "",
-              key: str | None = None) -> bool:
+              key: str | None = None, thread: str | None = None) -> bool:
         """Queue `run(work)` on a lane. With `key`, nothing is queued while a job with the same key
         waits in that lane's queue (not yet running). Returns whether it was queued."""
         with self._cond:
             found = self.lanes[lane]
             if key is not None and any(job.key == key for job in found.queue):
                 return False
-            found.queue.append(Job(what=what, run=run, step=step, text=text, key=key))
+            found.queue.append(Job(what=what, run=run, step=step, text=text, key=key, thread=thread))
             self._changed_locked()
         return True
 
@@ -419,7 +427,8 @@ class Session:
     def _activity(self) -> list[dict]:
         running = [(name, lane.running) for name, lane in self.lanes.items()
                    if lane.running is not None and lane.waiting is None]
-        return [{"lane": name, "what": job.what, "step": job.step, "text": job.text, "since": job.since}
+        return [{"lane": name, "what": job.what, "step": job.step, "thread": job.thread, "text": job.text,
+                 "since": job.since}
                 for name, job in sorted(running, key=lambda pair: pair[1].since)]
 
     def _started(self, job: Job) -> None:
@@ -484,14 +493,17 @@ class Work:
     def conversation(self) -> str:
         return self.session.conversation
 
-    def progress(self, text: str, step: str | None = None, what: str | None = None) -> None:
-        """Set this job's activity entry."""
+    def progress(self, text: str, step: str | None = None, what: str | None = None,
+                 thread: str | None = None) -> None:
+        """Set this job's activity entry (`thread`: the thread being answered)."""
         with self.session._cond:
             self._job.text = text
             if step is not None:
                 self._job.step = step
             if what is not None:
                 self._job.what = what
+            if thread is not None:
+                self._job.thread = thread
             self.session._changed_locked()
 
     def post(self, text: str, **options) -> str:
