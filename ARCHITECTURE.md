@@ -628,3 +628,69 @@ Each has the default the work plan takes.
   prints chat messages), stops when the phase is `accepted` and the main lane is idle, and exits 0 then, else 1.
   A message typed in the terminal has no step, so a correction with a step is a page action.
 - **A1 · Not core.** Nothing in `harness/core/` was changed.
+- **A2a · Files.** `builder.py` is the unattended engine; `checker.py` the second pass; `adopt.py` adoption without
+  asking; `registry.py` also holds the build records (`get_build`, `save_build`, `update_build`), `step_status`,
+  `build_view`, `plan_fingerprint`, `calculation_steps`, `find_step`, `module_for_step`, `examples_from_golden`,
+  `latest_test_run`; `gate.step_refusal`. Deleted: `agent.py` (nothing used it), `example_helper.md`, and version 1's
+  terminal loops (plan question, the person's check of every example, the example helper). `decisions.py` and
+  `calc/analyst.md` stay for A3 and A4a to replace (`ACCEPT_WORDS` is inlined in `decisions.py`).
+- **A2a · What A2b calls.** In `builder.py`: `start_build(core)` (raises `NotNow`; the `build` action is already
+  wired to it), `run_build(work)`, `build_step(work, step_or_id, *, rebuild=None, code_only=False) -> {"step",
+  "outcome", "module", "reason"}`, `building_step(memory)`, `build_running(memory)`, `plan_of(config)` (the
+  confirmed brief or None), `record_confirmation(conn, step_id, n, *, answer=None, session_id) -> {"rebuild":
+  bool}` (answer None confirms as it stands; raises ValueError for an unknown example or an answer that does not
+  fit the output type; the number check of the answer is the helper's; when `rebuild` is true, queue
+  `build_step(work, step, code_only=True)`), `confirm_departures(conn, step_id, *, session_id)`,
+  `run_step_tests(conn, step_id, *, session_id)` (the `run_tests` action; ValueError when the step has no module),
+  `format_sections`. In `registry.py`: `build_view(conn, brief, step_id, building=False)` is the whole `Build` of
+  ARCHITECTURE 3.3; `get_build(conn, step_id)` is the record the helper shows (spec, departures, examples,
+  disagreement, reason). `layer.py` already has `contribute` (the `build` key on every step, null but on
+  calculation steps; added steps drawn after the plan's, `in_plan` false), the `build` action, and the hooks
+  `loaded` and `plan_accepted`; A2b adds `route`, the other three actions, the `build` command and `expects`.
+- **A2a · What A3 and A4a call.** `gate.call` keeps its signature. `build_step(work, "added_<n>")` builds a step
+  made with `added.add_step` (layer 4's `new` case); `rebuild=NAME` is the `replace` case. `calculation_steps`,
+  `module_for_step` and `registry.list_modules` describe what is built.
+- **A2a · Status.** `step_status(conn, brief, step_id) -> (status, reason)`: `none` (no record, no module),
+  `not_built` (the record's reason), `stale` (reason `the step changed in the plan` when the plan's fingerprint
+  differs from the record's, `its files changed` when the module's files changed or are gone), else `built`.
+  `building` comes from `building_step(memory)`. `build_steps` has one more column than SPEC 4.2,
+  `step_fingerprint`, because a reused module carries a step other than its own; `modules.step_fingerprint` is of
+  the module's own step. `test_runs.reason` may also be `adopt`.
+- **A2a · The gate.** Besides `STALE` (the module's own step has a different fingerprint in the confirmed plan, or
+  left it), the gate refuses a module whose own step's last build ended `not_built` (`gate.NOT_BUILT`): after a
+  failed rebuild the old module stays registered, but it disagrees with an example the person or the passes
+  agreed on, so it must not answer. With no confirmed plan, or a module registered without a fingerprint, the
+  gate checks neither.
+- **A2a · Build rules.** A rebuild of a step whose own module exists keeps the module's name (the spec writer gets
+  `[current spec]` and no `reuse_module`). Examples the person confirmed are carried into a full rebuild first,
+  if they still fit the spec; the writer's are numbered after them. A confirmation is applied to the record at
+  once; `example_confirmations` is the log, its `n` the number at that time. `code_only` first tries the code
+  already there (the module's, else the last failed attempt's) against the examples as they now stand, and calls
+  the code writer only if that fails: confirming a left-out example costs no model call. The writer must give at
+  least three examples; no maximum is enforced. A failed model call counts as an attempt of its phase (its error
+  goes in `build.not_built`'s `error`); a failed checker call leaves every example out. `departures_confirmed`
+  survives a rebuild only when the departures are the same. `step_built` is called by `build_step`, so layer 4's
+  builds call it too. `BUILD_NEEDS_YOU` lists the step names, comma separated; `BUILD_DONE` counts steps built
+  after the build, whatever built them.
+- **A2a · The Build view.** `tests`/`passing` are the unit tests of the module's latest test run, `examples`/
+  `examples_passing` the worked examples of that run (before any run, the checked examples); `tested_at` is that
+  run's time. `code` comes from the module folder, else from `_build/<name>` (the last failed attempt).
+  `disagreement` is shown only while `not_built`. `spec` holds `formula`, `inputs`, `output`.
+- **A2a · Adoption.** `loaded` queues adoption as a main-lane job (`what` `tests`) only when there is a confirmed
+  plan and a candidate folder; `plan_accepted` adopts in its own job. A folder with no readable spec, or naming no
+  calculation step, or a step another unchanged module carries out, is left alone without an event. A registered
+  module whose files changed is stale in the session that sees it and is adopted again on the next load if its
+  tests pass (SPEC 4.6). Example mode needs nothing more: `main()` copies the example, the session adopts it.
+- **A2a · Events.** Renamed to the `build.` prefix: `build.tests_run` (every test run, gate's included),
+  `build.registered`, `build.note`, `build.step_added`. Payloads: `build.started {step, code_only, rebuild}` (per
+  step), `build.second_pass {step, module, agreed: [n], left_out: [{n, answer, why, given}]}` (`given`: what the checker sent, kept as evidence when it did not count), `build.not_built {step, reason,
+  error}`, `build.adopted {module, step, outcome: adopted | not_built, reason, test_run_id}`, `build.finished
+  {steps}`; the others carry `step`. The gate's `calc.run`, `calc.refused`, `calc.run_failed` keep their names.
+- **A2a · Numbers copied from the inputs.** SPEC 4.5 says a checker's answer counts only when its own working
+  shows every number in it; the example writer's check was the same. In the live build both rejected correct
+  answers that only repeated a date of the example's inputs (the writer lost an attempt, the checker an
+  example). Decision: the example's inputs are a source too, for the writer's expected answer and the checker's
+  answer. A number that is in neither is still refused.
+- **A2a · Not done here.** `registry.module_dir` and the staging folder still read `load_config()` rather than the
+  session's config (as in version 1; a Session made with another config than the environment's would build
+  elsewhere). The example writer is asked once more only for the step's whole set, not per left-out example.

@@ -1,6 +1,7 @@
-"""The gate: the only way a calculation runs (SPEC 5.6).
+"""The gate: the only way a calculation runs (SPEC 4.4; version 1 5.6).
 
 It refuses a module that is not registered, whose files have changed, whose
+step changed in the plan (stale) or ended not built at its last build, whose
 tests fail right now, or whose inputs do not fit its spec. Every test run,
 calculation and refusal is recorded.
 """
@@ -12,14 +13,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .. import db
-from .registry import file_status, fingerprint, get_module, input_problems, module_dir
+from ..config import load_config
+from ..grounding.brief import load_brief
+from .registry import file_status, fingerprint, get_build, get_module, input_problems, module_dir, plan_fingerprint
 
 TIMEOUT = 30        # seconds, for every runner process
 RUNNER = Path(__file__).with_name("runner.py")
 
 NOT_REGISTERED = "There is no registered module called '{name}'."
-FILES_CHANGED = ("The files of '{name}' are not the ones that passed their tests. "
-                 "Rebuild it with: python -m harness build --rebuild {name}")
+FILES_CHANGED = "The files of '{name}' are not the ones that passed their tests, so '{name}' must be built again."
+STALE = "The step of '{name}' changed in the plan, so '{name}' must be built again."
+NOT_BUILT = "The step of '{name}' is not built: its code and a worked example disagree, or it was left unfinished."
 NO_EXPECTATION = ("Before running '{name}', give the assumptions (a list of sentences, which may be empty) "
                   "and say what you expect the result to be.")
 BAD_INPUTS = "The inputs do not fit '{name}': {problems}"
@@ -58,7 +62,7 @@ def _run(folder, request: dict, what: str) -> dict:
 
 
 def run_tests(conn, name: str, *, reason: str, session_id: str, folder=None) -> dict:
-    """Run the unit tests and worked examples of a module and record the run (SPEC 5.6)."""
+    """Run the unit tests and worked examples of a module and record the run (SPEC 4.1)."""
     folder = Path(folder) if folder is not None else module_dir(name)
     found = fingerprint(folder)
     if found is None:
@@ -76,10 +80,28 @@ def run_tests(conn, name: str, *, reason: str, session_id: str, folder=None) -> 
         (_now(), name, fingerprint_text, reason, int(passed), json.dumps(report)))
     conn.commit()
     test_run_id = cursor.lastrowid
-    db.record_event(conn, session_id=session_id, kind="calc.tests_run", actor="harness",
+    db.record_event(conn, session_id=session_id, kind="build.tests_run", actor="harness",
                     payload={"module": name, "test_run_id": test_run_id, "reason": reason,
                              "passed": passed, "fingerprint": fingerprint_text})
     return {"test_run_id": test_run_id, "passed": passed, "fingerprint": fingerprint_text, "report": report}
+
+
+def step_refusal(conn, module: dict) -> str | None:
+    """Why the plan stops a registered module from running, or None (SPEC 4.4).
+
+    Stale: the plan's step it was built for has a fingerprint other than the stored one, or is gone.
+    Not built: the step's last build ended not built. With no confirmed plan, or no stored fingerprint,
+    nothing is refused here."""
+    step_id = module["spec"].get("step_id", "")
+    record = get_build(conn, step_id)
+    if record is not None and record["status"] == "not_built":
+        return NOT_BUILT.format(name=module["name"])
+    brief = load_brief(load_config().brief_dir)
+    if brief is None or not module.get("step_fingerprint"):
+        return None
+    if plan_fingerprint(conn, brief, step_id) != module["step_fingerprint"]:
+        return STALE.format(name=module["name"])
+    return None
 
 
 def _refuse(conn, session_id, name, inputs, message):
@@ -89,12 +111,15 @@ def _refuse(conn, session_id, name, inputs, message):
 
 
 def call(conn, name: str, inputs, *, assumptions, expected, session_id: str) -> dict:
-    """Run a registered module, if every check passes (SPEC 5.6). Raises `Refused` otherwise."""
+    """Run a registered module, if every check passes (SPEC 4.4). Raises `Refused` otherwise."""
     module = get_module(conn, name)
     if module is None:
         _refuse(conn, session_id, name, inputs, NOT_REGISTERED.format(name=name))
     if file_status(conn, name) != "unchanged":
         _refuse(conn, session_id, name, inputs, FILES_CHANGED.format(name=name))
+    refusal = step_refusal(conn, module)
+    if refusal:
+        _refuse(conn, session_id, name, inputs, refusal)
     if (not isinstance(assumptions, list) or not all(isinstance(item, str) for item in assumptions)
             or not isinstance(expected, str) or not expected.strip()):
         _refuse(conn, session_id, name, inputs, NO_EXPECTATION.format(name=name))

@@ -19,7 +19,10 @@ def errors(brief, words=WORDS, lookups=LOOKUPS):
 @pytest.mark.parametrize("name", ["wedding", "moving"])
 def test_the_example_briefs_are_valid_version_2_briefs(name):
     brief = json.loads((EXAMPLES / name / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
-    assert validate_brief(brief, brief["meta"]["lookups"], person_quotes(brief)) == []
+    found = validate_brief(brief, brief["meta"]["lookups"], person_quotes(brief))
+    # The seeded wedding brief predates the rule that every input feeds a step: its "Wedding date" feeds none.
+    assert [each for each in found if "is used by no step" not in each] == []
+    assert len(found) == (1 if name == "wedding" else 0)
 
 
 def test_a_small_valid_brief_passes_and_a_missing_key_does_not():
@@ -133,3 +136,25 @@ def test_the_desk_refuses_a_general_query_with_a_digit_or_too_long_before_any_re
         assert desk.look_up_general(query)["status"] == "failed"
     assert researcher.asked == []
     assert desk.look_up_general("sinking fund")["status"] == "found"
+
+
+def test_an_input_that_no_step_uses_is_refused_and_the_error_says_how_to_attach_it():
+    brief = small_brief()
+    brief["process"][0]["needs"] = []                               # "Van hire" now feeds nothing
+    found = errors(brief)
+    assert len(found) == 1 and "'Van hire' is used by no step" in found[0] and "needs" in found[0]
+
+
+def test_needs_that_name_neither_an_input_nor_an_earlier_step_are_refused_with_the_valid_names():
+    brief = small_brief()
+    brief["process"][0]["needs"] = ["Van hire", "a2"]               # a2 comes later
+    assert any("comes later" in each for each in errors(brief))
+    brief["process"][0]["needs"] = ["Van hire", "van-hire-step"]
+    found = errors(brief)
+    assert len(found) == 1 and "step ids: a1, a2" in found[0] and "input names: Van hire" in found[0]
+
+
+def test_a_quote_of_other_words_is_refused_even_on_a_calculation_step():
+    brief = small_brief()
+    brief["process"][0]["origin"] = {"kind": "person", "quote": "the total of the move"}
+    assert any("is not in anything the person wrote" in each for each in errors(brief))

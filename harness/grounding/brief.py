@@ -225,9 +225,15 @@ def validate_brief(brief, lookups: list[dict], words=()) -> list[str]:
         else:
             for need in needs:
                 if need not in ids and need not in input_names:
-                    errors.append(f"{label}: needs '{need}', which is neither a step id nor an input name")
+                    errors.append(f"{label}: needs '{need}', which is neither a process step id nor the exact "
+                                  f"name of an entry in inputs (step ids: {', '.join(map(str, ids)) or 'none'}; "
+                                  f"input names: {', '.join(input_names) or 'none'}); "
+                                  "a step can only need an earlier step's id or an input's name")
                 elif need == step.get("id"):
                     errors.append(f"{label}: cannot need itself")
+                elif need in ids and need not in input_names and ids.index(need) > brief["process"].index(step):
+                    errors.append(f"{label}: needs '{need}', which comes later in process; "
+                                  "a step can only need an earlier step")
         if step.get("kind") == "calculation":
             method = step.get("method") or ""
             if not _is_text(step.get("formula")):
@@ -240,6 +246,14 @@ def validate_brief(brief, lookups: list[dict], words=()) -> list[str]:
             elif _plain(method) not in sourced_terms:
                 errors.append(f"{label}: its method '{method}' has no source; look it up and give the "
                               "glossary entry a source that look_up returned")
+
+    # Every input is a small box above the step that uses it; one that no step names in needs is drawn nowhere.
+    used = {need for step in brief["process"] if _is_text_list(step.get("needs")) for need in step["needs"]}
+    for name in input_names:
+        if name not in used:
+            errors.append(f"input '{name}' is used by no step: write its exact name '{name}' in the needs of "
+                          "each step that uses it (needs holds step ids and input names, and an input is not "
+                          "also a step), or remove the input if nothing uses it")
     return errors
 
 

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 
 from .. import db
 from .added import step_label
-from .builder import ACCEPT_WORDS
+ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}     # version 1; A4a replaces this file
 
 KINDS = ("judgment", "build")
 SOMETHING_ELSE = "something else"

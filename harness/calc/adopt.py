@@ -1,153 +1,97 @@
-"""Adopting module folders that are already on disk (SPEC 5.13).
+"""Adoption on load (SPEC 4.6): module folders already on disk become usable without asking.
 
-The person accepts worked examples someone else checked, as a whole. Then each
-module's tests and examples run here, and `register` re-checks everything.
-Nothing here calls a model.
+Each folder in `modules_dir` that is not registered with unchanged files, and
+whose spec names a calculation step of the plan (or an `added_<n>` step, which
+is re-created), has its tests and worked examples run here. On a pass it is
+registered with the step's fingerprint and gets a build record from its
+files; on a failure the step is `not_built`, "its tests do not pass here".
+Nothing here calls a model or asks the person.
 """
 import json
 import re
 
 from .. import db
 from ..config import load_config
-from .added import ADDED_PREFIX, add_step, list_added_steps, process_steps, step_label
-from .builder import ACCEPT_WORDS
+from .added import ADDED_PREFIX, add_step, list_added_steps
 from .gate import run_tests
-from .registry import FILES, MIN_CONFIRMED, file_status, get_module, register, step_map, validate_spec
-
-ADOPT_INTRO = ("These module folders are not registered here. Their worked examples were checked by hand, "
-               "but not by you:")
-ADOPT_QUESTION = ("Adopting a module means trusting worked examples you did not check yourself. Its tests and "
-                  "examples run first, and it is registered only if they pass. Type yes to adopt them. "
-                  "Anything else adopts nothing.")
-ADOPT_MISSING = "missing files: {files}"
-ADOPT_BAD_SPEC = "spec.json is not a valid spec for this folder"
-ADOPT_BAD_EXAMPLES = "golden.json does not hold at least 2 worked examples"
-ADOPT_NO_STEP = "the process has no calculation step '{step}'"
-ADOPT_STEP_TAKEN = "step {step} already has the module '{other}'"
-REASON_DECLINED = "you did not accept the worked examples"
-REASON_TESTS = "its tests or worked examples do not pass here"
-ADOPTED_STEP = "Re-created from the module '{module}' when it was adopted."
+from .registry import (calculation_steps, examples_from_golden, file_status, get_module, plan_fingerprint,
+                       register, save_build, step_map, validate_spec)
 
 ADDED_STEP = re.compile(r"^added_[1-9][0-9]*$")
-_UNREADABLE = object()
+ADOPTED_STEP = "Re-created from the module '{module}' when it was adopted."
+REASON_TESTS = "its tests do not pass here"
 
 
-def candidates(conn) -> list[str]:
-    """Module folders that are not registered, or whose registered files changed or are gone (SPEC 5.13)."""
+def _spec(path):
+    try:
+        spec = json.loads((path / "spec.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    return spec if isinstance(spec, dict) and isinstance(spec.get("step_id"), str) else None
+
+
+def candidates(conn, brief) -> list[tuple[str, str]]:
+    """(folder name, step id) of each folder adoption would try, in name order: not registered with
+    unchanged files, its spec readable and naming a calculation step of the plan or an added step that
+    no other unchanged module carries out. At most one folder per step: the first by name."""
     folder = load_config().modules_dir
     if not folder.is_dir():
         return []
-    names = [path.name for path in folder.iterdir()
-             if path.is_dir() and not path.name.startswith(("_", "."))
-             and not (get_module(conn, path.name) and file_status(conn, path.name) == "unchanged")]
-    return sorted(names)
-
-
-def _read_json(path):
-    try:
-        return json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return _UNREADABLE
-
-
-def adopt(*, conn, brief, ask, say=print, session_id, how="asked") -> list[dict]:
-    """Register the candidate module folders that pass, after the person's yes. Returns one result each."""
-    folder = load_config().modules_dir
-    results = {}            # module name -> result
-    adoptable = []          # (name, step id, golden), in name order
-    claimed = {}            # step id -> the earlier adoptable candidate that has it
-    steps = {step["id"]: step for step in process_steps(conn, brief)}
+    steps = {step["id"] for step in calculation_steps(conn, brief)}
     mapped = step_map(conn)
-
-    def refuse(name, step, reason):
-        db.record_event(conn, session_id=session_id, kind="calc.adopt_refused", actor="harness",
-                        payload={"module": name, "step": step, "reason": reason})
-        say(f"{name}: not adopted ({reason})")
-        results[name] = {"module": name, "step": step, "outcome": "not_adopted", "reason": reason}
-
-    # 1. Check each candidate, in name order.
-    for name in candidates(conn):
-        path = folder / name
-        spec = _read_json(path / "spec.json")
-        step = spec.get("step_id") if isinstance(spec, dict) else None
-        step = step if isinstance(step, str) and step else None
-
-        absent = [file for file in FILES if not (path / file).is_file()]
-        if absent:
-            refuse(name, step, ADOPT_MISSING.format(files=", ".join(absent)))
+    found, claimed = [], set()
+    for path in sorted(folder.iterdir()):
+        name = path.name
+        if not path.is_dir() or name.startswith(("_", ".")):
             continue
-        if spec is _UNREADABLE or validate_spec(spec) or spec["name"] != name:
-            refuse(name, step, ADOPT_BAD_SPEC)
+        if get_module(conn, name) and file_status(conn, name) == "unchanged":
             continue
-        golden = _read_json(path / "golden.json")
-        if (not isinstance(golden, list) or len(golden) < MIN_CONFIRMED
-                or not all(isinstance(entry, dict) for entry in golden)):
-            refuse(name, step, ADOPT_BAD_EXAMPLES)
-            continue
-        if not ((step in steps and steps[step].get("kind") == "calculation") or ADDED_STEP.match(step)):
-            refuse(name, step, ADOPT_NO_STEP.format(step=step))
+        spec = _spec(path)
+        step = spec["step_id"] if spec else None
+        if step is None or step in claimed or not (step in steps or ADDED_STEP.match(step)):
             continue
         other = mapped.get(step)
         if other is not None and other != name and file_status(conn, other) == "unchanged":
-            refuse(name, step, ADOPT_STEP_TAKEN.format(step=step_label(step), other=other))
             continue
-        if step in claimed:
-            refuse(name, step, ADOPT_STEP_TAKEN.format(step=step_label(step), other=claimed[step]))
-            continue
-        claimed[step] = name
-        adoptable.append((name, step, golden))
+        claimed.add(step)
+        found.append((name, step))
+    return found
 
-    # 2. Ask once.
-    if adoptable:
-        names = [name for name, _, _ in adoptable]
-        if how == "asked":
-            say(ADOPT_INTRO)
-            for name, step, golden in adoptable:
-                decisions = ", ".join(entry["decision"] if isinstance(entry.get("decision"), str) else "?"
-                                      for entry in golden)
-                say(f"  {name} for step {step_label(step)}: {len(golden)} worked examples ({decisions})")
-            while True:
-                answer = ask(ADOPT_QUESTION).strip()
-                if answer:
-                    break
-            accepted = answer.lower() in ACCEPT_WORDS       # strict: no leniency here (SPEC 5.13)
-            db.record_event(conn, session_id=session_id, kind="calc.adopt_decision", actor="person",
-                            payload={"modules": names, "decision": "accepted" if accepted else "declined",
-                                     "text": answer, "how": "asked"})
+
+def adopt_folders(conn, brief, *, session_id: str) -> list[dict]:
+    """Adopt every candidate folder. Returns one {"module", "step", "outcome": adopted | not_built,
+    "reason"} each, and records `build.adopted` for each."""
+    results = []
+    folder = load_config().modules_dir
+    for name, step in candidates(conn, brief):
+        path = folder / name
+        spec = _spec(path)
+        examples = examples_from_golden(path / "golden.json")
+        run = run_tests(conn, name, reason="adopt", session_id=session_id)
+        problem = "" if run["passed"] and not validate_spec(spec) and spec.get("name") == name else REASON_TESTS
+        added = step.startswith(ADDED_PREFIX)
+        if not problem and added and step not in {each["id"] for each in list_added_steps(conn)}:
+            add_step(conn, name=spec["description"], formula=spec["formula"],     # keep the process whole
+                     needs=", ".join(item["name"].replace("_", " ") for item in spec["inputs"]),
+                     produces=spec["output"]["description"], reason=ADOPTED_STEP.format(module=name),
+                     session_id=session_id, step_id=step)
+        fingerprint = plan_fingerprint(conn, brief, step) or ""
+        if not problem:
+            try:
+                register(conn, name, step_id=step, test_run_id=run["test_run_id"], session_id=session_id,
+                         step_fingerprint=fingerprint)
+            except ValueError as error:
+                problem = str(error)
+        if problem:
+            if not added or step in {each["id"] for each in list_added_steps(conn)}:
+                save_build(conn, step, status="not_built", spec=spec if not validate_spec(spec) else None,
+                           examples=examples, reason=REASON_TESTS, step_fingerprint=fingerprint)
         else:
-            accepted = True
-            db.record_event(conn, session_id=session_id, kind="calc.adopt_decision", actor="harness",
-                            payload={"modules": names, "decision": "accepted", "text": "", "how": "replay"})
-
-        if not accepted:
-            for name, step, _ in adoptable:
-                say(f"{name}: not adopted ({REASON_DECLINED})")
-                results[name] = {"module": name, "step": step, "outcome": "not_adopted",
-                                 "reason": REASON_DECLINED}
-        else:
-            # 3. Adopt each, in name order.
-            for name, step, _ in adoptable:
-                _adopt_one(conn, name, step, session_id, how, results, refuse, say)
-
-    return [results[name] for name in sorted(results)]
-
-
-def _adopt_one(conn, name, step, session_id, how, results, refuse, say) -> None:
-    run = run_tests(conn, name, reason="adopt", session_id=session_id)
-    if not run["passed"]:
-        return refuse(name, step, REASON_TESTS)
-    try:
-        fingerprint = register(conn, name, step_id=step, test_run_id=run["test_run_id"], session_id=session_id)
-    except ValueError as error:
-        return refuse(name, step, str(error))
-    if step.startswith(ADDED_PREFIX) and step not in {each["id"] for each in list_added_steps(conn)}:
-        spec = get_module(conn, name)["spec"]       # re-create the step, so the process stays whole
-        add_step(conn, name=spec["description"], formula=spec["formula"],
-                 needs=", ".join(item["name"].replace("_", " ") for item in spec["inputs"]),
-                 produces=spec["output"]["description"], reason=ADOPTED_STEP.format(module=name),
-                 session_id=session_id, step_id=step)
-    db.record_event(conn, session_id=session_id, kind="calc.module_adopted", actor="harness",
-                    payload={"module": name, "step": step, "fingerprint": fingerprint,
-                             "test_run_id": run["test_run_id"], "how": how})
-    say(f"{name} -> {step_label(step)} (adopted)")
-    results[name] = {"module": name, "step": step, "outcome": "adopted", "reason": ""}
+            save_build(conn, step, status="built", module=name, spec=spec, examples=examples,
+                       step_fingerprint=fingerprint)
+        outcome = "not_built" if problem else "adopted"
+        db.record_event(conn, session_id=session_id, kind="build.adopted", actor="harness",
+                        payload={"module": name, "step": step, "outcome": outcome, "reason": problem,
+                                 "test_run_id": run["test_run_id"]})
+        results.append({"module": name, "step": step, "outcome": outcome, "reason": problem})
+    return results

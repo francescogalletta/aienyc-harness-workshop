@@ -37,7 +37,7 @@ def add_step(conn: sqlite3.Connection, *, name: str, formula: str, needs: str, p
         (number, datetime.now(timezone.utc).isoformat(), session_id, *values))
     conn.commit()
     step = _step(conn.execute("SELECT * FROM added_steps WHERE id = ?", (cursor.lastrowid,)).fetchone())
-    db.record_event(conn, session_id=session_id, kind="calc.step_added", actor="harness",
+    db.record_event(conn, session_id=session_id, kind="build.step_added", actor="harness",
                     payload={"step": step})
     return step
 

@@ -230,7 +230,9 @@ every origin has a known kind; a `person` quote is at least three characters
 and appears in `words` (the person's messages of this interview or revision),
 compared case-folded with runs of white space as one space; a `looked_up`
 source came from a lookup; every `step` of a particular or open question is a
-process id. Errors go back to the interviewer, as before.
+process id; every entry of a step's `needs` is the exact name of an input or the id of an earlier step;
+every input is named in the `needs` of at least one step (an input no step uses is drawn nowhere).
+Errors go back to the interviewer, as before.
 
 ### 3.2 The interview
 

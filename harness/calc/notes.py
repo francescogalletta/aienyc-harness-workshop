@@ -14,7 +14,7 @@ def add_note(conn: sqlite3.Connection, *, step_id: str, text: str, session_id: s
                           (datetime.now(timezone.utc).isoformat(), session_id, step_id, text))
     conn.commit()
     note_id = cursor.lastrowid
-    db.record_event(conn, session_id=session_id, kind="calc.note_saved", actor="person",
+    db.record_event(conn, session_id=session_id, kind="build.note", actor="person",
                     payload={"id": note_id, "step": step_id, "text": text})
     return note_id
 
