@@ -9,22 +9,24 @@ Every step has the same four parts:
 - **Prompt**: the file in `workshop/prompts/` that a coding agent runs.
 - **Builds**: what the prompt adds to `harness/`.
 - **Proof**: a before and after on the example that an audience can see.
-- **Done when**: a test command that passes. Each step has two branches:
-  `step-N-start` before it is built and `step-N` after, so anyone can jump to
-  either side of any step.
+- **Done when**: a test command that passes.
 
-| Step | Principle | Builds | Proof on the example | Done when | Branch |
+To move a copy there, run `python -m workshop start N` (the start of step N)
+or `finish N` (its end). `next` installs the following step's tests and leaves
+your code alone. The reference for each step is stored in `workshop/states/`.
+
+| Step | Principle | Builds | Proof on the example | Done when | Move there |
 | --- | --- | --- | --- | --- | --- |
-| 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `step-0` |
-| 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `step-1` |
-| 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `step-2` |
-| 3 | Evidence | The show-your-work page (`work`) that follows each number to its run, module and tests; `adopt`, seeded examples and `replay` (built) | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `step-3` |
-| 4 | Human in the loop | Built: a gate on unconfirmed assumptions, `ask_decision` for judgment calls, side conversations (`/aside`, `/back`) with their own assistant, decision records | At a gate the person steps aside to ask what a term means; the main conversation receives only the sentence they choose to pass back | `pytest tests/step4` | `step-4` |
-| 5 | Verification | Built: a fixed adapter that reads account files into one table (`data add`, `data list`, `data clear`), data summaries, a verifier sub-agent whose findings the harness checks, findings the person decides in a fixed block before the figure is used | The person says they spend about 5,000 a month and have 10,000 saved; their loaded files show about 5,640 and 9,230. The harness notices, asks, and calculates only with what they decide | `pytest tests/step5` | `step-5` |
+| 0 | (setup) | Model connection with swappable providers (Claude API, Claude Code, scripted), local database | `python -m harness check` talks to a model and leaves one record in the database | `pytest tests/step0` | `start 0`, `finish 0` |
+| 1 | Shared domain | Grounding interview in a local web page, a research desk that reads up front and never repeats a lookup, the brief's checks, the domain brief | Before: a vague goal. After: a confirmed brief with a glossary, the person's particulars, a plan and a definition of done | `pytest tests/step1` | `start 1`, `finish 1` |
+| 2 | Consistency | Module builder from the brief, worked examples checked by the person, registry with fingerprints, test gate before every run, run agent with a number check | Before: the model adds up the numbers in its reply. After: it can only call a tested module, and a module with a failing test will not run | `pytest tests/step2` | `start 2`, `finish 2` |
+| 3 | Evidence | The show-your-work page (`work`) that follows each number to its run, module and tests; `adopt`, seeded examples and `replay` (built) | One number on screen is followed back to its inputs, assumptions and passing tests, with the model switched off | `pytest tests/step3` | `start 3`, `finish 3` |
+| 4 | Human in the loop | Built: a gate on unconfirmed assumptions, `ask_decision` for judgment calls, side conversations (`/aside`, `/back`) with their own assistant, decision records | At a gate the person steps aside to ask what a term means; the main conversation receives only the sentence they choose to pass back | `pytest tests/step4` | `start 4`, `finish 4` |
+| 5 | Verification | Built: a fixed adapter that reads account files into one table (`data add`, `data list`, `data clear`), data summaries, a verifier sub-agent whose findings the harness checks, findings the person decides in a fixed block before the figure is used | The person says they spend about 5,000 a month and have 10,000 saved; their loaded files show about 5,640 and 9,230. The harness notices, asks, and calculates only with what they decide | `pytest tests/step5` | `start 5`, `finish 5` |
 
 ## Status
 
-| Step | Contract | Tests | Prompt | Built and saved |
+| Step | Contract | Tests | Prompt | Built and stored |
 | --- | --- | --- | --- | --- |
 | 0 | Fixed (SPEC 3) | Written | Written | Yes |
 | 1 | Fixed (SPEC 4) | Written | Written | Yes |
@@ -50,7 +52,7 @@ Each step is prepared in this order, and the order matters:
 4. Hand the prompt to a coding agent that has seen nothing else, and check
    that it reaches green tests on its own. If it cannot, the prompt or the
    contract is at fault, not the agent.
-5. Save the result as the branch `step-N`.
+5. Store the result as the reference for step N (`python -m workshop store`, see `DESIGN.md`) and run `python -m workshop check`.
 
 Step 1 leaves one task for a person: running the grounding interview for
 real on the example. Its output, the domain brief, decides which

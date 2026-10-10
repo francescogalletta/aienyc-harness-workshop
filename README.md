@@ -89,12 +89,29 @@ the workshop adds them.
 | Path | What it is |
 | --- | --- |
 | `SPEC.md` | The contract every build step follows |
-| `workshop/` | The workshop: `BUILD_PLAN.md` (the steps and the proof for each) and `prompts/` (one build prompt per step, for any coding agent). Optional: the harness never uses it |
-| `harness/` | The harness, as built so far |
+| `harness/` | The harness |
 | `tests/` | Acceptance tests per step, plus tests for the account-file fixture in `tests/fixtures/accounts/` (older example data, its generator and key, which the source adapter's tests read) |
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
-| `my/` | Yours: `my/brief/` (the domain brief, once you have run the interview), `my/modules/` (the tested calculation modules, once you have run the build) and `my/var/` (the database and other working files, never committed) |
 | `examples/` | Two complete seeded examples, `wedding` and `moving`: brief, modules, scenarios and, for the wedding, account files |
+| `my/` | Yours: `my/brief/` (the domain brief, once you have run the interview), `my/modules/` (the tested calculation modules, once you have run the build) and `my/var/` (the database and other working files, never committed) |
+| `workshop/` | The workshop: `README.md` (the guide for attendees), `FACILITATOR.md`, `BUILD_PLAN.md`, `prompts/` (one build prompt per step, for any coding agent), and the `workshop` command. Optional: the harness never uses it |
+
+## Moving through the steps
+
+The workshop builds the harness in six steps, 0 to 5.
+This command moves your copy between them. It never touches `my/brief`,
+`my/modules` or your database, and it copies any file of yours it would
+replace to `my/var/set-aside/` first.
+
+```
+uv run python -m workshop status      # where this copy stands
+uv run python -m workshop start N     # the start of step N: its contract, tests and prompt
+uv run python -m workshop next        # install the next step's tests; your own code stays
+uv run python -m workshop finish N    # the end of step N, to catch up or skip ahead
+uv run python -m workshop leave       # remove workshop/ and keep the harness
+```
+
+`workshop/README.md` is the guide for attendees.
 
 ## Set up
 
@@ -340,15 +357,3 @@ the example again.
 `examples/README.md` says how they were made and checked, how to write a
 scenario and how to add an example. Their worked examples were recomputed by
 an AI agent, not yet by a person.
-
-## Build it yourself
-
-Every step has two branches. `step-N-start` holds the contract, tests and
-prompt for step N, before it is built. `step-N` is the repository at the end
-of step N. To rebuild a step with your own coding agent, check out its start
-branch and paste in the matching prompt from `workshop/prompts/`:
-
-```
-git checkout step-1-start     # then run workshop/prompts/step1_shared_domain.md
-git checkout step-1           # the finished step 1, to compare or catch up
-```
