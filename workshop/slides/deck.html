@@ -1,0 +1,1195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Harness You Can Trust</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap">
+<style>
+[hidden] { display: none !important; }
+img { max-width: 100%; }
+
+/* ---------- Tokens: Financial Advisor Harness, Blueprint (+ principle colours) ---------- */
+:root {
+  --ground: #eef2f7;
+  --surface: #ffffff;
+  --ink: #0f2440;
+  --ink-2: #33465f;
+  --muted: #4f6078;
+  --line: #bccadb;
+  --flow: #6f84a0;
+  --needs-you: #ffd9b0;
+  --tested: #0b6b6a;
+  --on-ink: #ffffff;
+  --p1: #2563c9;
+  --p2: #6d4fc4;
+  --p3: #a8387f;
+  --p4: #b96a0c;
+  --p5: #3d8a3a;
+  --on-p: #ffffff;
+  --trust: var(--tested);
+  --idle: var(--line);
+  color-scheme: light;
+
+  /* Motion tokens. Motion is OFF: see the data-motion switch on #stage. */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 360ms;
+  --dur-draw: 500ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+
+  /* type scale on the 1920x1080 stage */
+  --fs-mega: 240px;     --lh-mega: 0.95;
+  --fs-display: 140px;  --lh-display: 1.02;
+  --fs-headline: 92px;  --lh-headline: 1.1;
+  --fs-sub: 58px;       --lh-sub: 1.25;
+  --fs-label: 32px;
+  --fs-chip: 32px;
+  --fs-mono: 40px;
+  --fs-ph: 36px;
+
+  /* stage geometry */
+  --margin: 140px;
+  --rail-clear: 240px;  /* right padding on slides that show the framework rail */
+  --stroke: 3px;
+  --hair: 2px;
+  --r-step: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0c1524;
+    --surface: #14213a;
+    --ink: #e8eef7;
+    --ink-2: #c3cfdf;
+    --muted: #9db0c8;
+    --line: #2e4466;
+    --flow: #5f7898;
+    --needs-you: #7a4a10;
+    --tested: #5fd0c8;
+    --on-ink: #0c1524;
+    --p1: #7fb0ff;
+    --p2: #b3a1f5;
+    --p3: #ee8fcb;
+    --p4: #f2b25c;
+    --p5: #86d67f;
+    --on-p: #0c1524;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0c1524;
+  --surface: #14213a;
+  --ink: #e8eef7;
+  --ink-2: #c3cfdf;
+  --muted: #9db0c8;
+  --line: #2e4466;
+  --flow: #5f7898;
+  --needs-you: #7a4a10;
+  --tested: #5fd0c8;
+  --on-ink: #0c1524;
+  --p1: #7fb0ff;
+  --p2: #b3a1f5;
+  --p3: #ee8fcb;
+  --p4: #f2b25c;
+  --p5: #86d67f;
+  --on-p: #0c1524;
+  color-scheme: dark;
+}
+
+/* ---------- Page and stage ---------- */
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+*, *::before, *::after { box-sizing: border-box; }
+h1, h2, h3, p, ul, ol { margin: 0; padding: 0; font-weight: inherit; font-size: inherit; }
+ul, ol { list-style: none; }
+a { color: var(--ink); }
+a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; border-radius: 4px; }
+
+.viewport { position: fixed; inset: 0; overflow: hidden; touch-action: pan-y; }
+.stage {
+  position: absolute; left: 50%; top: 50%;
+  width: 1920px; height: 1080px;
+  margin: -540px 0 0 -960px;
+  transform-origin: 50% 50%;
+}
+
+/* Every slide: left margin 140px, content block vertically centred, nudged up ~3% (optical centre). */
+.slide {
+  position: absolute; inset: 0;
+  padding: 108px var(--margin) 172px;
+  display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+  visibility: hidden;
+}
+.slide.active { visibility: visible; }
+.slide[data-principle] { padding-right: var(--rail-clear); }
+.slide[data-rail="off"] { padding-right: var(--margin); }
+.slide.centred { align-items: center; text-align: center; }
+
+/* ---------- Type ---------- */
+.mega, .display, .headline, .sub { text-wrap: balance; }
+.mega     { font-size: var(--fs-mega); line-height: var(--lh-mega); font-weight: 600; letter-spacing: -0.02em; }
+.display  { font-size: var(--fs-display); line-height: var(--lh-display); font-weight: 600; letter-spacing: -0.02em; max-width: 1600px; }
+.headline { font-size: var(--fs-headline); line-height: var(--lh-headline); font-weight: 600; letter-spacing: -0.01em; max-width: 1600px; }
+.sub      { font-size: var(--fs-sub); line-height: var(--lh-sub); font-weight: 400; color: var(--ink-2); max-width: 1500px; }
+.label    { font-size: var(--fs-label); line-height: 1.2; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
+.mono     { font-family: var(--mono); font-size: var(--fs-mono); font-weight: 400; line-height: 1.3; }
+.small    { font-size: 32px; line-height: 1.3; color: var(--muted); }
+.quiet    { color: var(--ink-2); }
+.soft     { font-weight: 400; color: var(--ink-2); }
+.soft .lead { font-weight: 600; color: var(--ink); }
+.trust    { color: var(--trust); }
+
+/* vertical rhythm */
+.gap-xs { margin-top: 16px; }
+.gap-s  { margin-top: 28px; }
+.gap-m  { margin-top: 56px; }
+.gap-l  { margin-top: 88px; }
+.gap-xl { margin-top: 120px; }
+.stack-tight > * + * { margin-top: 20px; }
+
+/* ---------- Build steps (fragments): they snap ---------- */
+[data-step]:not(.shown) { visibility: hidden; }
+[data-step-out].gone { visibility: hidden; }
+
+/* ---------- Shape vocabulary ---------- */
+.step {
+  background: var(--surface); color: var(--ink);
+  border-radius: var(--r-step);
+  box-shadow: inset 0 0 0 var(--stroke) var(--ink);
+}
+.step.from-you { border-radius: 999px; }
+.step.your-call, .your-call { box-shadow: none; border: var(--stroke) dashed var(--ink); }
+.pill {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  height: 72px; padding: 0 30px;
+  font-size: var(--fs-chip); line-height: 1;
+  color: var(--ink-2); background: var(--surface);
+  border-radius: 999px; box-shadow: inset 0 0 0 var(--hair) var(--line);
+}
+.chip {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  height: 56px; padding: 0 22px;
+  font-size: var(--fs-chip); line-height: 1; font-weight: 400;
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+  color: var(--muted);
+  border-radius: 999px; box-shadow: inset 0 0 0 var(--hair) var(--line);
+}
+/* placeholders: dashed "your call" outline, muted text */
+.ph { border: 3px dashed var(--ink); box-shadow: none; color: var(--muted); background: transparent; }
+.pill.ph, .chip.ph { font-size: var(--fs-ph); height: 76px; padding: 0 32px; }
+.panel {
+  width: 100%; min-height: 520px;
+  border-radius: var(--r-step);
+  padding: 48px 56px;
+}
+.panel.from-you { border-radius: 60px; padding: 52px 64px; }
+.row { display: flex; align-items: center; gap: 28px; }
+
+/* flow arrow */
+.arrow { flex: none; overflow: visible; fill: none; stroke: var(--flow); stroke-width: 3; stroke-linecap: round; }
+.arrow .h { fill: var(--flow); stroke: none; }
+.arrow .l { stroke-dasharray: 100; stroke-dashoffset: 0; }
+
+/* ---------- 02/03 person ---------- */
+.person { padding: 0; }
+.photo {
+  position: absolute; left: 50%; top: 70px;
+  width: 340px; height: 340px; margin-left: -170px;
+  border-radius: 50%; overflow: hidden;
+  display: grid; place-items: center;
+}
+.photo > span { font-size: 30px; letter-spacing: 0.04em; }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.person-name { position: absolute; left: 0; right: 0; top: 440px; text-align: center; }
+.emoji-reel { position: absolute; inset: 0; pointer-events: none; }
+.emoji-reel li {
+  position: absolute; left: 50%; top: 850px;
+  width: 1.18em; height: 1.18em;
+  display: grid; place-items: center;
+  font-family: var(--emoji); font-size: 170px; line-height: 1;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+}
+.emoji-reel li.spot { visibility: inherit; }
+.emoji-reel li.out {
+  visibility: inherit;
+  left: var(--x); top: var(--y);
+  font-size: 94px;
+  transform: translate(-50%, -50%) rotate(var(--r));
+}
+.emoji-reel .q {
+  width: 1.06em; height: 1.06em; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--sans); font-size: 1em; font-weight: 400;
+}
+.emoji-reel .q > span { font-size: 0.47em; line-height: 1; }
+
+/* ---------- Footnote: a casual aside, bottom-left of the content area ---------- */
+.footnote {
+  position: absolute; left: var(--margin); bottom: 110px; max-width: 1640px;
+  font-family: var(--mono); font-size: 32px; line-height: 1.35; font-weight: 400; color: var(--muted);
+}
+.keep-space { visibility: hidden; }
+
+/* ---------- 01/02 · Title (same block on both slides) ---------- */
+.title-block .t-line { display: block; }
+.title-block .t-line + .t-line { margin-top: 24px; }
+.title-block .headline { max-width: 1640px; }
+.struck {
+  color: var(--muted);
+  text-decoration-line: line-through; text-decoration-thickness: 5px; text-decoration-color: var(--ink);
+  text-decoration-skip-ink: none;
+}
+.muted { color: var(--muted); }
+
+/* ---------- 10 ---------- */
+#s-not .soft { font-size: var(--fs-headline); line-height: var(--lh-headline); }
+
+/* ---------- 07 · How we got here: a hand-drawn whiteboard sketch (inline SVG) ---------- */
+.sketch { display: block; width: 100%; height: auto; overflow: visible; }
+.sketch .ln { fill: none; stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+.sketch .ln.tick { stroke: var(--muted); stroke-width: 3; }
+.sketch .ln.dash { stroke-dasharray: 16 14; }
+.sketch .nm { font-family: var(--sans); font-weight: 600; font-size: 46px; fill: var(--ink); }
+.sketch .nm.muted { fill: var(--muted); }
+.sketch .note { font-family: var(--hand); font-weight: 500; font-size: 50px; fill: var(--muted); }
+.sketch .note.big { font-weight: 700; font-size: 64px; fill: var(--ink); }
+
+/* ---------- 13 · Show of hands ---------- */
+.hands { display: flex; justify-content: space-between; width: 100%; }
+.hands .num { font-size: 200px; line-height: 0.95; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.hands .num.muted { color: var(--muted); }
+
+/* ---------- 08 ---------- */
+.swap { display: grid; place-items: center; }
+.swap > * { grid-area: 1 / 1; }
+.swap-left { place-items: start; text-align: left; }
+.swap-left > * { text-wrap: balance; }
+.ask {
+  position: relative;
+  background: var(--needs-you); color: var(--ink);
+  box-shadow: none;
+  padding: 72px 160px 80px;
+  max-width: 1200px;
+}
+
+.dots { letter-spacing: 0.12em; }
+.ask-us { font-size: 1.5em; line-height: 0.8; text-decoration: underline; text-decoration-thickness: 10px; text-underline-offset: 14px; }
+
+/* ---------- 09 ---------- */
+.mega-row { display: flex; align-items: center; gap: 48px; }
+.ring-emoji { font-family: var(--emoji); font-size: 160px; line-height: 1; }
+
+/* ---------- 11 ---------- */
+.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; width: 100%; }
+.track { padding: 48px 64px 60px; display: flex; flex-direction: column; }
+.track-num { font-size: 190px; line-height: 0.9; font-weight: 600; letter-spacing: -0.02em; }
+.track-name { margin-top: 32px; }
+.track-line { margin-top: 20px; }
+.hand-note { font-family: var(--hand); font-weight: 700; font-size: 60px; line-height: 1.05; color: var(--ink); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
+#s-title-struck .footnote { bottom: 48px; }
+canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 5; }
+.footnote.hand { bottom: 64px; font-family: var(--hand); font-weight: 500; font-size: 44px; transform: rotate(-2deg); transform-origin: left center; }
+.footnote.hand .emo { font-family: var(--emoji); font-size: 0.8em; }
+.ask-who { display: block; font-size: 0.72em; line-height: 1; margin: 36px 0 0; }
+/* Handwritten asides pop in even while deck motion is off (author's request). */
+@keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
+@media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop 320ms var(--ease-out) both; } }
+.big-emoji { font-family: var(--emoji); font-size: 300px; line-height: 1; }
+.hand-aside { display: inline-block; font-family: var(--hand); font-weight: 700; font-size: 1.4em; line-height: 0.8; color: var(--ink); transform: rotate(-4deg); margin-left: 10px; }
+
+/* ---------- 12 ---------- */
+.setup { display: grid; grid-template-columns: 560px 1fr; gap: 100px; align-items: start; width: 100%; }
+.qr { display: block; width: 500px; height: 500px; shape-rendering: crispEdges; }
+.url { display: inline-block; margin-top: 28px; text-decoration: none; color: var(--ink); max-width: 560px; }
+.url:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
+.pills { display: flex; flex-wrap: wrap; gap: 18px; }
+.command { display: inline-block; padding: 30px 40px; }
+
+/* ---------- Flow (13) ---------- */
+.flow { display: flex; align-items: flex-start; width: 100%; }
+.flow-item { display: flex; flex-direction: column; align-items: center; gap: 28px; }
+.flow-item { flex: none; }
+.flow-item.grow { flex: 1 1 0; min-width: min-content; }
+.flow-slot { height: 200px; display: flex; align-items: center; width: 100%; justify-content: center; }
+.flow-node { display: flex; flex-direction: column; font-weight: 600; }
+.flow-node.step {
+  width: 100%; height: 200px; padding: 24px 18px; gap: 10px;
+  justify-content: flex-start;
+}
+.flow-node.pill { font-weight: 400; padding: 0 20px; flex-direction: row; align-items: center; }
+.node-num { font-size: 64px; line-height: 1; }
+.node-name { font-size: 34px; line-height: 1.15; }
+.flow .arrow { width: 30px; height: 16px; margin: 92px 4px 0; }
+
+.flow-node.step.tint { background: var(--c); color: var(--on-p); box-shadow: none; height: 260px; position: relative; }
+.flow:has(.tint) .flow-slot { height: 260px; }
+.flow:has(.tint) .arrow { margin-top: 122px; }
+.node-emoji { font-family: var(--emoji); font-size: 64px; line-height: 1; position: absolute; top: 22px; right: 18px; }
+.bar-emoji { font-family: var(--emoji); font-size: 48px; line-height: 1; visibility: hidden; }
+.bar.filled .bar-emoji { visibility: inherit; }
+.p-emoji { font-family: var(--emoji); font-size: 120px; line-height: 1; align-self: center; }
+
+/* ---------- 14 ---------- */
+.mega.xl { font-size: 300px; }
+
+/* ---------- Halves (16, 20) ---------- */
+.split { display: grid; grid-template-columns: 1fr var(--hair) 1fr; column-gap: 100px; width: 100%; align-items: start; }
+.split .divider { align-self: stretch; background: var(--line); margin: -120px 0; }
+.split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: 168px; }
+
+/* ---------- 17 ---------- */
+.caveats { padding: 0; --step-top: 550px; }
+.question {
+  position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
+  display: grid; place-items: center; text-align: center;
+  font-size: 64px; line-height: 1.1; font-weight: 600; letter-spacing: -0.01em;
+}
+.input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
+.input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: 36px; height: 80px; padding: 0 32px; }
+.input::before {
+  content: ""; position: absolute; left: -1.5px; top: 92px; width: 3px;
+  height: calc(var(--step-top) - var(--top) - 92px - 24px);
+  background: var(--flow);
+}
+.input::after {
+  content: ""; position: absolute; left: -10px; top: calc(var(--step-top) - var(--top) - 24px);
+  width: 20px; height: 16px; background: var(--flow);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.caveats .sub { position: absolute; left: 0; right: 0; top: 790px; margin: 0 auto; text-align: center; }
+
+/* ---------- Framework stack (21, 46) ---------- */
+.slide.tall { padding-top: 96px; padding-bottom: 120px; }
+.stack { width: 100%; }
+.stack-goal { font-size: 170px; line-height: 0.92; font-weight: 600; letter-spacing: -0.02em; margin-top: 8px; }
+.stack-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
+.bar {
+  height: 106px; border-radius: 6px; padding: 0 44px;
+  display: flex; align-items: center; gap: 28px;
+  color: var(--idle); box-shadow: inset 0 0 0 var(--hair) var(--idle);
+}
+.bar-num { font-size: 56px; font-weight: 600; line-height: 1; width: 44px; }
+.bar-name { font-size: 48px; font-weight: 600; line-height: 1; }
+.bar-text { margin-left: auto; font-size: 40px; font-weight: 400; line-height: 1.1; text-align: right; visibility: hidden; }
+.bar.filled { background: var(--c); color: var(--on-p); box-shadow: none; }
+.bar.filled .bar-text { visibility: inherit; }
+
+/* ---------- Principle dividers ---------- */
+.p-title { display: flex; align-items: baseline; gap: 48px; }
+.p-title .chip { align-self: center; }
+.p-num { color: var(--c); }
+.builds-on { display: flex; align-items: center; gap: 28px; }
+.cell {
+  flex: none; width: 64px; height: 88px; border-radius: 6px;
+  display: grid; place-items: center;
+  font-size: 32px; font-weight: 600;
+  background: var(--c); color: var(--on-p);
+}
+.builds-on .arrow { width: 64px; height: 18px; }
+.builds-on .sub { max-width: 1300px; }
+
+/* ---------- 25 · You say / it means ---------- */
+.says { display: grid; grid-template-columns: 790px 96px 600px; column-gap: 24px; row-gap: 40px; align-items: center; }
+.says .label { margin-bottom: -8px; }
+.says .arrow { width: 88px; height: 20px; justify-self: center; }
+.says .ex { font-size: 66px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
+.says.guess { grid-template-columns: 620px 88px 1fr; width: 100%; }
+.doubts { display: flex; gap: 16px; flex-wrap: nowrap; }
+.doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 26px; border: 3px dashed var(--ink); border-radius: 38px; font-size: 32px; font-weight: 600; color: var(--ink); white-space: nowrap; }
+.says .said { font-weight: 400; color: var(--ink-2); }
+
+/* ---------- 31 · step grid ---------- */
+.steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; width: 100%; }
+.steps-grid .step { min-height: 170px; padding: 32px 36px; display: flex; align-items: center; font-size: 44px; line-height: 1.15; font-weight: 600; }
+
+/* ---------- Framework rail (CSS only: driven by the active slide's data-principle) ---------- */
+.rail {
+  display: none; position: absolute; right: 70px; top: 50%; transform: translateY(-50%);
+  flex-direction: column; align-items: flex-end; gap: 8px;
+}
+.stage:has(> .slide.active[data-principle]:not([data-rail="off"])) .rail { display: flex; }
+.rail-cap { width: 64px; height: 64px; border-radius: 50%; box-shadow: inset 0 0 0 3px var(--trust); }
+.rail-cell {
+  width: 64px; height: 96px; border-radius: 6px;
+  display: grid; place-items: center;
+  font-size: 32px; font-weight: 600; line-height: 1;
+  color: var(--muted); box-shadow: inset 0 0 0 2px var(--idle);
+}
+/* covered = an earlier principle */
+.stage:has(> .slide.active[data-principle="2"]) .rail-cell[data-n="1"],
+.stage:has(> .slide.active[data-principle="3"]) .rail-cell:is([data-n="1"], [data-n="2"]),
+.stage:has(> .slide.active[data-principle="4"]) .rail-cell:is([data-n="1"], [data-n="2"], [data-n="3"]),
+.stage:has(> .slide.active[data-principle="5"]) .rail-cell:not([data-n="5"]),
+.stage:has(> .slide.active[data-principle="wrap"]) .rail-cell,
+/* current = this principle: filled and wider, growing leftwards */
+.stage:has(> .slide.active[data-principle="1"]) .rail-cell[data-n="1"],
+.stage:has(> .slide.active[data-principle="2"]) .rail-cell[data-n="2"],
+.stage:has(> .slide.active[data-principle="3"]) .rail-cell[data-n="3"],
+.stage:has(> .slide.active[data-principle="4"]) .rail-cell[data-n="4"],
+.stage:has(> .slide.active[data-principle="5"]) .rail-cell[data-n="5"] {
+  background: var(--c); color: var(--on-p); box-shadow: none;
+}
+.stage:has(> .slide.active[data-principle="1"]) .rail-cell[data-n="1"],
+.stage:has(> .slide.active[data-principle="2"]) .rail-cell[data-n="2"],
+.stage:has(> .slide.active[data-principle="3"]) .rail-cell[data-n="3"],
+.stage:has(> .slide.active[data-principle="4"]) .rail-cell[data-n="4"],
+.stage:has(> .slide.active[data-principle="5"]) .rail-cell[data-n="5"] { width: 96px; }
+.stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--trust); }
+
+/* ---------- Chrome ---------- */
+.progress { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); pointer-events: none; }
+.progress > i { display: block; height: 100%; width: 0; background: var(--ink); }
+.counter {
+  position: fixed; right: 14px; bottom: 10px;
+  font-size: 12px; line-height: 1; font-weight: 600; color: var(--muted);
+  font-variant-numeric: tabular-nums; opacity: 0.7; pointer-events: none;
+}
+
+/* ---------- Motion (dormant) ----------
+   The author asked for no motion. To turn it back on, change data-motion="off"
+   to data-motion="on" on #stage. Everything below then applies. */
+.stage[data-motion="on"] .slide { opacity: 0; transition: opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base); }
+.stage[data-motion="on"] .slide.active { opacity: 1; transition: opacity var(--dur-base) var(--ease-out), visibility 0s; }
+.stage[data-motion="on"] [data-step] { transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out), visibility 0s; }
+.stage[data-motion="on"] [data-step]:not(.shown) { opacity: 0; transform: translateY(8px); }
+.stage[data-motion="on"] .emoji-reel li { transition: left var(--dur-draw) var(--ease-in-out), top var(--dur-draw) var(--ease-in-out), font-size var(--dur-draw) var(--ease-in-out), transform var(--dur-draw) var(--ease-in-out); }
+.stage[data-motion="on"] .ask.shown::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  animation: ring 900ms var(--ease-out) 200ms 1 both;
+}
+.stage[data-motion="on"] .slide.instant * { transition: none !important; }
+@keyframes ring { from { box-shadow: 0 0 0 0 var(--needs-you); } to { box-shadow: 0 0 0 56px transparent; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="viewport" id="viewport">
+<div class="stage" id="stage" data-motion="off">
+<!-- 01 · Title -->
+<section class="slide" id="s-title">
+  <h1 class="title-block">
+    <span class="headline t-line"><span class="t1">Stop Talking to Your Spreadsheets;</span></span>
+    <span class="display t-line"><span class="t2">Building a Financial Analyst</span> <span class="t3">Harness You Can <span class="trust">Trust</span></span></span>
+  </h1>
+  <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
+</section>
+
+<!-- 02 · Striking the title -->
+<section class="slide" id="s-title-struck">
+  <h1 class="title-block">
+    <span class="headline t-line"><span class="t1" data-step-strike="1">Stop Talking to Your Spreadsheets;</span></span>
+    <span class="display t-line"><span class="t2">Building a <span data-step-strike="2">Financial Analyst</span></span> <span class="t3">Harness You Can <span class="trust">Trust</span></span></span>
+  </h1>
+  <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
+  <p class="footnote" data-step="3">* Sorry, a bit clickbaity. This will not run your private-equity firm. Other companies do that.</p>
+</section>
+
+<!-- 03 · Francesco -->
+<section class="slide person" id="s-francesco">
+  <div class="photo ph" data-placeholder><span>photo</span></div>
+  <h2 class="mega person-name">Francesco</h2>
+  <ul class="emoji-reel">
+    <li style="--x:11.5%; --y:18.5%; --r:-8deg">🇻🇪</li>
+    <li style="--x:88.5%; --y:18.5%; --r:7deg">🇬🇧</li>
+    <li style="--x:28.5%; --y:24%; --r:6deg">🇪🇸</li>
+    <li style="--x:71.5%; --y:24%; --r:-6deg">📊</li>
+    <li style="--x:8.5%; --y:55.6%; --r:5deg">🏦</li>
+    <li style="--x:91.5%; --y:55.6%; --r:-7deg">🍜</li>
+    <li style="--x:22.9%; --y:81%; --r:-5deg">🧭</li>
+    <li style="--x:77.1%; --y:81%; --r:8deg">🛠️</li>
+  </ul>
+</section>
+
+<!-- 04 · Felippe -->
+<section class="slide person" id="s-felippe">
+  <div class="photo ph" data-placeholder><span>photo</span></div>
+  <h2 class="mega person-name">Felippe</h2>
+  <ul class="emoji-reel">
+    <li style="--x:11.5%; --y:18.5%; --r:-8deg"><span class="q ph" data-placeholder><span>?</span></span></li>
+    <li style="--x:88.5%; --y:18.5%; --r:7deg"><span class="q ph" data-placeholder><span>?</span></span></li>
+    <li style="--x:8.5%; --y:55.6%; --r:5deg"><span class="q ph" data-placeholder><span>?</span></span></li>
+    <li style="--x:91.5%; --y:55.6%; --r:-7deg"><span class="q ph" data-placeholder><span>?</span></span></li>
+    <li style="--x:22.9%; --y:81%; --r:-5deg"><span class="q ph" data-placeholder><span>?</span></span></li>
+    <li style="--x:77.1%; --y:81%; --r:8deg"><span class="q ph" data-placeholder><span>?</span></span></li>
+  </ul>
+</section>
+
+<!-- 05 · Where this comes from -->
+<section class="slide" id="s-origin">
+  <p class="label">AT WORK</p>
+  <h2 class="headline gap-xs">Data teams in financial services</h2>
+  <p class="sub gap-xs">Monzo Bank, Nubank, and a few more. Now pushing what AI can do there.</p>
+  <div data-step="1" class="gap-xl">
+    <p class="label">AT HOME</p>
+    <h2 class="headline gap-xs">Applied AI to make our life easier</h2>
+  </div>
+  <p class="footnote" data-step="2">* Not speaking on behalf of Monzo today.</p>
+</section>
+
+<!-- 06 · Excited -->
+<section class="slide" id="s-excited">
+  <h1 class="display">I got excited about this one.</h1>
+  <p class="sub gap-m" data-step="1">I may have overdone it.</p>
+  <p class="footnote" data-step="2">* Possibly ADHD. Not a doctor.</p>
+</section>
+
+<!-- 07 · How we got here -->
+<section class="slide tall" id="s-path">
+  <p class="label">HOW WE GOT HERE</p>
+  <svg class="sketch gap-s" viewBox="0 0 1640 760" role="img" aria-label="How we got here">
+    <g><g transform="rotate(-2 200.0 361.0)"><path class="ln" d="M29.7 300.2 Q221.2 299.6 370.0 300.3 Q388.7 300.0 390.5 321.8 Q385.1 357.9 388.4 403.9 Q390.8 420.2 372.9 423.9 Q207.7 423.4 27.9 420.1 Q10.1 420.2 8.8 400.5 Q4.4 360.4 9.8 322.1 Q10.1 300.6 30.0 304.0 L53.5 304.1"/><text class="nm" x="200.0" y="363.0" text-anchor="middle" dominant-baseline="central">The principles</text></g><text class="note" x="44" y="500" transform="rotate(-4 44 500)">too abstract</text><path class="ln tick" d="M41.0 521.0 Q151.4 528.8 267.6 513.5"/></g>
+    <g data-step="1"><path class="ln" d="M338.0 288.0 C372.0 190.0 440.0 106.0 544.0 100.0"/><path class="ln" d="M520.0 90.1 L544.0 100.0 L525.4 112.0"/><g transform="rotate(2.5 785.0 96.0)"><path class="ln" d="M581.6 39.6 Q802.3 38.6 992.7 41.4 Q1008.0 38.8 1011.6 59.8 Q1015.8 94.4 1008.3 132.8 Q1011.1 151.1 987.5 151.3 Q808.2 155.1 577.7 151.0 Q558.4 150.2 561.2 130.1 Q560.7 95.2 558.8 61.4 Q558.5 40.6 577.7 43.3 L600.6 44.1"/><text class="nm" x="785.0" y="98.0" text-anchor="middle" dominant-baseline="central" data-step-mute="2">A harness builder</text></g></g>
+    <g data-step="2"><path class="ln" d="M578.9 150.6 Q789.2 113.5 999.4 51.8"/><path class="ln" d="M586.7 52.3 Q798.4 98.0 993.4 157.5"/><path class="ln" d="M612.5 159.7 Q719.2 118.3 929.2 40.2"/><text class="note" x="878" y="226" transform="rotate(4 878 226)">too meta</text><path class="ln tick" d="M873.5 248.2 Q939.5 257.8 1032.9 256.0"/></g>
+    <g data-step="3"><path class="ln" d="M400.0 392.0 C474.0 418.0 452.0 586.0 536.0 592.0 C590.0 596.0 606.0 548.0 624.0 512.0"/><path class="ln" d="M603.0 527.3 L624.0 512.0 L623.3 534.1"/><g transform="rotate(-1.5 782.0 495.0)"><path class="ln" d="M650.1 430.6 Q802.4 435.8 910.5 430.8 Q933.0 433.8 930.8 454.7 Q936.6 496.7 931.7 535.6 Q930.2 559.9 910.4 558.8 Q769.8 561.9 652.6 557.2 Q630.7 558.9 630.3 536.4 Q632.7 500.6 632.5 450.7 Q633.7 430.8 649.1 434.8 L675.3 435.2"/><text class="nm" x="782.0" y="497.0" text-anchor="middle" dominant-baseline="central">An example</text></g></g>
+    <g data-step="4"><path class="ln" d="M940.0 528.0 C990.0 566.0 1030.0 610.0 1100.0 606.0"/><path class="ln" d="M1075.9 596.3 L1100.0 606.0 L1081.1 617.4"/><g transform="rotate(3 1273.0 604.0)"><path class="ln" d="M1132.4 546.5 Q1266.1 552.7 1416.9 548.6 Q1434.8 548.3 1432.6 565.2 Q1428.2 610.6 1434.8 642.8 Q1432.1 660.5 1413.9 660.9 Q1263.9 666.0 1129.5 660.2 Q1112.9 661.6 1112.9 641.2 Q1115.5 610.6 1111.4 569.1 Q1113.6 549.5 1131.5 552.4 L1160.4 553.3"/><text class="nm" x="1273.0" y="606.0" text-anchor="middle" dominant-baseline="central">Scaffolding</text></g><text class="note" x="1144" y="728" transform="rotate(-3 1144 728)">just for today</text><path class="ln tick" d="M1142.2 743.8 Q1200.3 734.4 1235.2 752.3"/></g>
+    <g data-step="5"><path class="ln" d="M1362.0 542.0 C1382.0 476.0 1416.0 430.0 1452.0 392.0"/><path class="ln" d="M1427.1 399.4 L1452.0 392.0 L1444.9 412.9"/><g transform="rotate(-3 1483.0 327.0)"><path class="ln" d="M1393.4 267.6 Q1494.8 269.0 1573.6 269.4 Q1592.3 269.0 1592.1 288.6 Q1593.8 322.7 1594.8 366.0 Q1594.5 387.7 1572.5 384.0 Q1473.1 388.1 1390.2 384.7 Q1373.6 386.6 1371.8 368.4 Q1369.9 329.7 1370.8 287.6 Q1373.2 269.7 1394.3 271.2 L1417.0 272.3"/><text class="nm" x="1483.0" y="329.0" text-anchor="middle" dominant-baseline="central" data-step-mute="6">A UI</text></g></g>
+    <g data-step="6"><path class="ln" d="M1387.3 388.0 Q1491.3 337.4 1598.4 272.9"/><path class="ln" d="M1383.6 277.3 Q1487.8 321.1 1593.4 389.8"/><text class="note" x="1176" y="238" transform="rotate(-4 1176 238)">looked like a product</text></g>
+    <g data-step="7"><path class="ln dash" d="M1360.0 340.0 C1306.0 350.0 1262.0 364.0 1242.0 394.0 C1224.0 422.0 1244.0 454.0 1274.0 444.0 C1306.0 432.0 1290.0 384.0 1232.0 384.0 C1150.0 382.0 1060.0 396.0 1006.0 426.0"/><path class="ln" d="M1032.0 425.4 L1006.0 426.0 L1018.3 407.7"/><path class="ln" d="M572.5 457.2 Q591.8 434.2 606.5 423.8 Q621.2 413.3 641.4 405.0 Q661.7 396.7 685.7 390.9 Q709.8 385.1 736.1 382.5 Q762.5 379.8 789.6 379.8 Q816.7 379.9 841.2 385.5 Q865.6 391.1 888.2 397.3 Q910.8 403.4 929.1 412.2 Q947.5 420.9 962.4 430.9 Q977.4 440.8 990.8 451.7 Q1004.2 462.5 1009.3 475.0 Q1014.5 487.5 1015.2 500.5 Q1016.0 513.4 1009.4 526.1 Q1002.8 538.9 987.1 549.5 Q971.4 560.1 953.1 569.4 Q934.9 578.7 911.1 584.2 Q887.4 589.7 863.3 593.6 Q839.2 597.5 814.3 599.6 Q789.3 601.7 763.3 602.6 Q737.2 603.5 711.2 600.7 Q685.2 597.8 660.8 592.1 Q636.4 586.3 616.6 577.2 Q596.9 568.1 583.2 556.7 Q569.5 545.3 562.6 532.8 Q555.6 520.3 548.6 507.6 Q541.5 495.0 546.5 482.1 Q551.5 469.2 558.6 456.5 Q565.7 443.9 578.9 432.2 Q592.2 420.6 610.4 410.3 Q628.6 400.0 651.4 391.6 Q674.1 383.2 701.4 378.6 Q728.6 373.9 757.3 374.2 Q786.1 374.6 813.3 377.5 Q840.6 380.5 865.5 386.0 Q890.4 391.6 913.2 398.7 Q936.0 405.8 955.3 415.1 Q974.6 424.4 991.0 435.2 Q1007.4 446.1 1018.7 458.7 Q1030.0 471.4 1032.6 485.2 Q1035.1 499.0 1031.3 512.8 Q1027.4 526.7 1015.0 539.2 Q1002.6 551.7 982.4 561.4 Q962.2 571.1 942.0 580.0 Q921.8 588.9 897.4 594.9 Q873.0 600.8 846.8 604.3 Q820.6 607.8 793.2 610.2 Q765.8 612.5 737.4 611.5 Q709.0 610.5 681.7 605.9 Q654.3 601.3 632.3 592.2 Q610.4 583.0 593.2 572.1"/><text class="note big" x="590" y="694" transform="rotate(-3 590 694)">here we are</text><path class="ln" d="M586.8 716.6 Q731.8 727.9 884.3 707.4"/></g>
+  </svg>
+</section>
+
+<!-- 08 · Why -->
+<section class="slide" id="s-why">
+  <h1 class="display"><span class="trust">Trust</span> is the ultimate goal in finance.</h1>
+  <p class="sub gap-m" data-step="1">Today's ultimate goal is for you to have a strong perspective.</p>
+  <p class="sub gap-s" data-step="2">This workshop won't be a straight line, but rather an open conversation.</p>
+</section>
+
+<!-- 09 · What you get -->
+<section class="slide" id="s-get">
+  <h1 class="display">Today you build a harness
+    <span class="swap swap-left">
+      <span data-step-out="1">for making decisions over finances.</span>
+      <span data-step="1" data-step-out="2">to analyze financial data.</span>
+      <span data-step="2" data-step-out="3">to reduce complexity when talking about money.</span>
+      <span data-step="3">to build a financial analyst.</span>
+    </span>
+  </h1>
+  <p class="sub gap-m" data-step="4">The principles hold for one person or a bank.</p>
+</section>
+
+<!-- 10 · What this is not -->
+<section class="slide" id="s-not">
+  <h1 class="display">A meta-workshop.</h1>
+  <div class="stack-tight gap-l">
+    <p class="soft" data-step="1"><span class="lead">No</span> secret sauce from work.</p>
+    <p class="soft" data-step="2"><span class="lead">No</span> solution to your use case.</p>
+    <p class="soft" data-step="3"><span class="lead">Not</span> plug and play.</p>
+  </div>
+  <p class="sub gap-l" data-step="4">A toy example to land a framework to build harnesses.</p>
+  <p class="footnote hand" data-step="5">There are layers, folks <span class="emo">🧅</span></p>
+</section>
+
+<!-- 11 · The real ask -->
+<section class="slide centred" id="s-bait">
+  <h1 class="display">Speaking of <span class="trust">trust</span>, this is another bait.</h1>
+</section>
+
+<!-- 12 · The value question -->
+<section class="slide centred" id="s-value">
+  <div class="swap">
+    <h1 class="display" data-step-out="1">You thought you would get all the value today?</h1>
+    <p class="mega dots" data-step="1" aria-label="pause">…</p>
+  </div>
+</section>
+
+<!-- 13 · The real ask -->
+<section class="slide centred" id="s-ask">
+  <p class="display step from-you ask">You are here to help <span class="ask-us">me</span>. <span class="hand-aside ask-who" data-step="1">(Francesco)</span></p>
+</section>
+
+<!-- 14 · The demo -->
+<section class="slide" id="s-demo">
+  <p class="label">TODAY'S DEMO</p>
+  <div class="mega-row gap-s">
+    <h1 class="mega">My wedding.</h1>
+    <span class="ring-emoji" aria-hidden="true">💍</span>
+  </div>
+  <p class="sub gap-m" data-step="1">Paying for it, to be exact.</p>
+</section>
+
+<!-- 15 · Show of hands -->
+<section class="slide" id="s-hands">
+  <p class="label">SHOW OF HANDS</p>
+  <h1 class="display gap-s">Who has had a wedding?</h1>
+  <p class="label gap-l">GUESTS</p>
+  <div class="hands gap-xs">
+    <span class="num" data-step="1" data-step-mute="2">50</span>
+    <span class="num" data-step="2" data-step-mute="3">100</span>
+    <span class="num" data-step="3" data-step-mute="4">150</span>
+    <span class="num" data-step="4">200</span>
+  </div>
+  <p class="sub gap-l" data-step="5">These things are expensive. I do not recommend it.</p>
+</section>
+
+<!-- 16 · Looks simple -->
+<section class="slide" id="s-simple">
+  <h1 class="display">Looks simple. It is not.</h1>
+  <p class="big-emoji gap-m" data-step="1" aria-label="sweating">😅</p>
+</section>
+
+<!-- 17 · Fine print -->
+<section class="slide" id="s-fine">
+  <p class="label">DISCLAIMER, FIRST OF ALL</p>
+  <h1 class="display gap-s">Something will break.</h1>
+  <p class="sub gap-m" data-step="1">Some of this is over-engineered.</p>
+  <p class="sub gap-s" data-step="2">When it breaks, we fix it with you.</p>
+</section>
+
+<!-- 18 · Two tracks -->
+<section class="slide" id="s-tracks">
+  <p class="label">PICK A TRACK</p>
+  <div class="tracks gap-m">
+    <div class="track step">
+      <span class="track-num">1</span>
+      <h2 class="headline track-name">Follow along</h2>
+      <p class="sub track-line">Help plan the wedding. <span class="hand-aside" data-step="1">(unpaid)</span></p>
+    </div>
+    <div class="track step your-call" data-step="2">
+      <span class="track-num">2</span>
+      <h2 class="headline track-name">Build your own</h2>
+      <p class="sub track-line">Same framework, same principles. Something you actually care about.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 19 · Setup -->
+<section class="slide" id="s-setup">
+  <div class="setup">
+    <div>
+      <div class="row"><p class="label">SETUP</p><span class="chip">10 min</span></div>
+      <svg class="qr gap-m" viewBox="-4 -4 41 41" role="img" aria-label="QR code for github.com/francescogalletta/aienyc-harness-workshop"><rect x="-4" y="-4" width="41" height="41" rx="2" fill="#ffffff"/><path fill="#0f2440" d="M0 0h7v1h-7zM8 0h2v1h-2zM12 0h5v1h-5zM18 0h1v1h-1zM21 0h1v1h-1zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM13 1h2v1h-2zM16 1h2v1h-2zM19 1h2v1h-2zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h1v1h-1zM12 2h1v1h-1zM17 2h3v1h-3zM21 2h4v1h-4zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h1v1h-1zM10 3h2v1h-2zM15 3h2v1h-2zM18 3h1v1h-1zM20 3h1v1h-1zM23 3h1v1h-1zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM13 4h2v1h-2zM18 4h1v1h-1zM23 4h1v1h-1zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h7v1h-7zM18 5h2v1h-2zM21 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM14 7h5v1h-5zM20 7h5v1h-5zM0 8h1v1h-1zM4 8h1v1h-1zM6 8h6v1h-6zM17 8h1v1h-1zM21 8h1v1h-1zM23 8h1v1h-1zM25 8h5v1h-5zM32 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM8 9h1v1h-1zM10 9h2v1h-2zM14 9h5v1h-5zM23 9h1v1h-1zM25 9h1v1h-1zM29 9h2v1h-2zM0 10h1v1h-1zM2 10h2v1h-2zM5 10h4v1h-4zM10 10h1v1h-1zM13 10h3v1h-3zM18 10h1v1h-1zM21 10h3v1h-3zM26 10h1v1h-1zM29 10h1v1h-1zM31 10h1v1h-1zM0 11h2v1h-2zM3 11h3v1h-3zM7 11h1v1h-1zM10 11h1v1h-1zM12 11h2v1h-2zM17 11h5v1h-5zM23 11h1v1h-1zM25 11h1v1h-1zM31 11h1v1h-1zM2 12h1v1h-1zM4 12h3v1h-3zM9 12h5v1h-5zM15 12h3v1h-3zM19 12h6v1h-6zM26 12h1v1h-1zM28 12h2v1h-2zM32 12h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM8 13h2v1h-2zM11 13h7v1h-7zM20 13h6v1h-6zM27 13h1v1h-1zM29 13h2v1h-2zM2 14h5v1h-5zM9 14h1v1h-1zM13 14h3v1h-3zM18 14h1v1h-1zM20 14h1v1h-1zM23 14h4v1h-4zM28 14h2v1h-2zM31 14h1v1h-1zM0 15h1v1h-1zM2 15h4v1h-4zM8 15h2v1h-2zM13 15h2v1h-2zM17 15h1v1h-1zM19 15h1v1h-1zM21 15h2v1h-2zM25 15h4v1h-4zM0 16h2v1h-2zM6 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM19 16h4v1h-4zM24 16h1v1h-1zM26 16h1v1h-1zM28 16h2v1h-2zM31 16h1v1h-1zM0 17h4v1h-4zM5 17h1v1h-1zM7 17h2v1h-2zM10 17h1v1h-1zM12 17h1v1h-1zM15 17h2v1h-2zM18 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM29 17h3v1h-3zM2 18h1v1h-1zM6 18h1v1h-1zM9 18h1v1h-1zM11 18h1v1h-1zM13 18h1v1h-1zM15 18h1v1h-1zM20 18h1v1h-1zM22 18h2v1h-2zM25 18h1v1h-1zM27 18h1v1h-1zM29 18h1v1h-1zM31 18h1v1h-1zM1 19h1v1h-1zM3 19h3v1h-3zM8 19h1v1h-1zM11 19h1v1h-1zM13 19h2v1h-2zM16 19h2v1h-2zM19 19h7v1h-7zM27 19h1v1h-1zM2 20h1v1h-1zM6 20h2v1h-2zM9 20h1v1h-1zM14 20h1v1h-1zM17 20h1v1h-1zM21 20h2v1h-2zM24 20h1v1h-1zM26 20h1v1h-1zM28 20h2v1h-2zM0 21h1v1h-1zM2 21h1v1h-1zM5 21h1v1h-1zM7 21h1v1h-1zM13 21h4v1h-4zM18 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM29 21h3v1h-3zM2 22h5v1h-5zM8 22h3v1h-3zM15 22h2v1h-2zM20 22h1v1h-1zM22 22h4v1h-4zM29 22h1v1h-1zM31 22h1v1h-1zM5 23h1v1h-1zM7 23h1v1h-1zM9 23h1v1h-1zM12 23h8v1h-8zM21 23h1v1h-1zM23 23h1v1h-1zM25 23h2v1h-2zM0 24h4v1h-4zM6 24h2v1h-2zM9 24h1v1h-1zM11 24h5v1h-5zM17 24h1v1h-1zM19 24h10v1h-10zM8 25h1v1h-1zM10 25h3v1h-3zM15 25h4v1h-4zM20 25h2v1h-2zM23 25h2v1h-2zM28 25h1v1h-1zM30 25h2v1h-2zM0 26h7v1h-7zM8 26h2v1h-2zM14 26h2v1h-2zM20 26h1v1h-1zM24 26h1v1h-1zM26 26h1v1h-1zM28 26h2v1h-2zM31 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h2v1h-2zM14 27h1v1h-1zM16 27h3v1h-3zM20 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h2v1h-2zM14 28h1v1h-1zM17 28h1v1h-1zM21 28h2v1h-2zM24 28h6v1h-6zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM9 29h1v1h-1zM12 29h2v1h-2zM15 29h2v1h-2zM21 29h1v1h-1zM23 29h2v1h-2zM26 29h3v1h-3zM30 29h1v1h-1zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM10 30h1v1h-1zM12 30h2v1h-2zM15 30h1v1h-1zM17 30h2v1h-2zM20 30h1v1h-1zM23 30h2v1h-2zM26 30h3v1h-3zM0 31h1v1h-1zM6 31h1v1h-1zM11 31h3v1h-3zM16 31h3v1h-3zM20 31h2v1h-2zM24 31h3v1h-3zM29 31h1v1h-1zM0 32h7v1h-7zM8 32h1v1h-1zM10 32h1v1h-1zM12 32h1v1h-1zM14 32h1v1h-1zM16 32h2v1h-2zM19 32h7v1h-7zM32 32h1v1h-1z"/></svg>
+      <a class="mono url" href="https://github.com/francescogalletta/aienyc-harness-workshop" target="_blank" rel="noopener">github.com/<wbr>francescogalletta/<wbr>aienyc-harness-workshop</a>
+    </div>
+    <div>
+      <p class="label">YOU NEED ONE OF</p>
+      <div class="pills gap-s">
+        <span class="pill">Claude Code</span>
+        <span class="pill">Codex</span>
+        <span class="pill">Claude Desktop</span>
+        <span class="pill">an API key</span>
+        <span class="pill ph" data-placeholder>others to confirm</span>
+      </div>
+      <p class="label gap-l">CHECK IT WORKS</p>
+      <div class="gap-s"><code class="mono step command">uv run python -m harness check</code></div>
+      <p class="sub gap-m">It should end with “Setup works”.</p>
+      <p class="hand-note gap-m">Please be lazy and ask your agent to set it up for you.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 20 · The two hours -->
+<section class="slide" id="s-map">
+  <p class="label">TODAY'S STRUCTURE</p>
+  <h2 class="headline gap-xs">For each principle, we explain it, show it working, then discuss and play.</h2>
+  <div class="flow gap-xl">
+    <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Setup</span></div></div>
+    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p1)"><span class="node-emoji" aria-hidden="true">🤝</span><span class="node-num">1</span><span class="node-name">Shared Domain</span></div></div></div>
+    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p2)"><span class="node-emoji" aria-hidden="true">🧮</span><span class="node-num">2</span><span class="node-name">Consistency</span></div></div></div>
+    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p3)"><span class="node-emoji" aria-hidden="true">🧾</span><span class="node-num">3</span><span class="node-name">Evidence</span></div></div></div>
+    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p4)"><span class="node-emoji" aria-hidden="true">🙋</span><span class="node-num">4</span><span class="node-name">Accountability</span></div></div></div>
+    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p5)"><span class="node-emoji" aria-hidden="true">🔍</span><span class="node-num">5</span><span class="node-name">Verification</span></div></div></div>
+    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
+    <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Wrap</span></div></div>
+  </div>
+</section>
+
+<!-- 21 · Trust -->
+<section class="slide centred" id="s-trust">
+  <h1 class="mega xl"><span class="trust">Trust.</span></h1>
+  <p class="sub gap-l" data-step="1">Money is never decided lightly. Not by a company, not by you.</p>
+</section>
+
+<!-- 22 · Tailored -->
+<section class="slide" id="s-tailored">
+  <h1 class="display">Finance is tailored.</h1>
+  <div class="stack-tight gap-l">
+    <p class="headline" data-step="1">Your numbers.</p>
+    <p class="headline" data-step="2">Your strategy. <span class="hand-aside" data-step="3">Generally none...</span></p>
+    <p class="headline" data-step="4">Your knowledge. <span class="hand-aside" data-step="5">(or misconceptions)</span></p>
+  </div>
+</section>
+
+<!-- 23 · The gap -->
+<section class="slide" id="s-gap">
+  <div class="split">
+    <div>
+      <p class="label">YOU</p>
+      <h2 class="headline gap-xs">know your situation</h2>
+    </div>
+    <div class="divider"></div>
+    <div data-step="1">
+      <p class="label">THE MODEL</p>
+      <h2 class="headline gap-xs">knows the field</h2>
+    </div>
+  </div>
+</section>
+
+<!-- 24 · Caveats -->
+<section class="slide caveats" id="s-caveats">
+  <div class="input" data-step="1" style="--cx:440px; --top:400px"><span class="pill">guest count not final</span></div>
+  <div class="input" data-step="2" style="--cx:700px; --top:290px"><span class="pill">three payment dates</span></div>
+  <div class="input" data-step="3" style="--cx:960px; --top:180px"><span class="pill">family money, maybe</span></div>
+  <div class="input" data-step="4" style="--cx:1220px; --top:290px"><span class="pill">gross or net?</span></div>
+  <div class="input" data-step="5" style="--cx:1480px; --top:400px"><span class="pill">what we really spend</span></div>
+  <div class="question step">Can we pay for the wedding?</div>
+  <p class="sub" data-step="6">Simple question. Then the caveats.</p>
+</section>
+
+<!-- 25 · The deal -->
+<section class="slide" id="s-deal">
+  <h1 class="display">Earn the <span class="trust">trust</span>.</h1>
+  <p class="display quiet gap-m" data-step="1">Delegate the boring work.</p>
+</section>
+
+<!-- 26 · Why "analyst" -->
+<section class="slide" id="s-analyst">
+  <p class="label">WHY “ANALYST”</p>
+  <h1 class="display gap-s">Treat the agent like a new hire.</h1>
+  <p class="sub gap-m" data-step="1">Nobody hands a new analyst the money on day one.</p>
+  <p class="sub gap-s" data-step="2">A good manager builds that <span class="trust">trust</span> on purpose.</p>
+</section>
+
+<!-- 27 · Code and model -->
+<section class="slide" id="s-code-model">
+  <div class="split">
+    <div>
+      <p class="label">CODE</p>
+      <h2 class="headline gap-xs">repeats exactly</h2>
+    </div>
+    <div class="divider"></div>
+    <div data-step="1">
+      <p class="label">THE MODEL</p>
+      <h2 class="headline gap-xs">uses judgement</h2>
+    </div>
+    <p class="sub foot" data-step="2">The harness decides which does what.</p>
+  </div>
+</section>
+
+<!-- 28 · The framework (builds bottom-up) -->
+<section class="slide tall" id="s-framework">
+  <span data-step="6" data-confetti hidden></span>
+  <div class="stack">
+    <p class="label">THE GOAL</p>
+    <p class="stack-goal"><span class="trust">Trust</span></p>
+    <ol class="stack-bars">
+      <li class="bar" data-step-fill="5" style="--c:var(--p5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">Check what you say against your own files.</span></li>
+      <li class="bar" data-step-fill="4" style="--c:var(--p4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar" data-step-fill="3" style="--c:var(--p3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar" data-step-fill="2" style="--c:var(--p2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar" data-step-fill="1" style="--c:var(--p1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the words before any number.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- 29 · Principle 1 · Shared Domain -->
+<section class="slide" id="s-p1" data-principle="1">
+  <div class="p-title"><span class="mega p-num" style="--c:var(--p1)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">20 min</span></div>
+  <p class="sub gap-m">Agree the words before any number.</p>
+</section>
+
+<!-- 30 · P1 · Why -->
+<section class="slide" id="s-p1-why" data-principle="1">
+  <p class="label">WHY</p>
+  <h1 class="display gap-s">What is obvious to you is not what the model learned.</h1>
+  <p class="sub gap-m" data-step="1">Start from the goal. Work backwards, together.</p>
+</section>
+
+<!-- 31 · P1 · Without it -->
+<section class="slide" id="s-p1-without" data-principle="1">
+  <p class="label">WITHOUT IT</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">One shot.</p>
+    <p class="headline" data-step="2">A vague goal.</p>
+    <p class="headline" data-step="3">Your reality, assumed to be everyone's.</p>
+  </div>
+</section>
+
+<!-- 32 · P1 · Examples -->
+<section class="slide" id="s-p1-examples" data-principle="1">
+  <p class="label">EXAMPLES</p>
+  <div class="says guess gap-m">
+    <p class="label">YOU SAY</p><span></span><p class="label">THE MODEL HAS TO GUESS</p>
+    <p class="ex said">“I make 10k”</p>
+    <svg class="arrow" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+    <div class="doubts"><span class="doubt">net or gross?</span><span class="doubt">a month or a year?</span></div>
+    <p class="ex said" data-step="1">“I can save 2k”</p>
+    <svg class="arrow" data-step="1" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+    <div class="doubts" data-step="1"><span class="doubt">every month?</span><span class="doubt">before investing?</span></div>
+    <p class="ex said" data-step="2">“The wedding is 40k”</p>
+    <svg class="arrow" data-step="2" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+    <div class="doubts" data-step="2"><span class="doubt">all in?</span><span class="doubt">how many guests?</span></div>
+  </div>
+  <p class="sub gap-l" data-step="3">So it guesses, or it keeps asking.</p>
+</section>
+
+<!-- 33 · P1 · Demo -->
+<section class="slide" id="s-p1-demo" data-principle="1">
+  <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
+</section>
+
+<!-- 34 · P1 · Your turn -->
+<section class="slide" id="s-p1-turn" data-principle="1">
+  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
+</section>
+
+<!-- 35 · Principle 2 · Consistency -->
+<section class="slide" id="s-p2" data-principle="2">
+  <div class="p-title"><span class="mega p-num" style="--c:var(--p2)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">25 min</span></div>
+  <p class="sub gap-m">Numbers come only from tested code.</p>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
+</section>
+
+<!-- 36 · P2 · Why -->
+<section class="slide" id="s-p2-why" data-principle="2">
+  <p class="label">WHY</p>
+  <h1 class="display gap-s">Write the calculation once. Run it the same way every time.</h1>
+  <p class="sub gap-m" data-step="1">The model picks the tool. It never does the arithmetic.</p>
+</section>
+
+<!-- 37 · P2 · Without it -->
+<section class="slide" id="s-p2-without" data-principle="2">
+  <p class="label">WITHOUT IT</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">Arithmetic in the model's head.</p>
+    <p class="headline" data-step="2">New code for every question.</p>
+    <p class="headline" data-step="3">Same question, different answer.</p>
+  </div>
+</section>
+
+<!-- 38 · P2 · Examples -->
+<section class="slide" id="s-p2-examples" data-principle="2">
+  <p class="label">EXAMPLES</p>
+  <div class="steps-grid gap-m">
+    <div class="step">Total cost</div>
+    <div class="step">Payment schedule</div>
+    <div class="step">Monthly surplus</div>
+    <div class="step">Monthly saving needed</div>
+    <div class="step">Fund balance forecast</div>
+    <div class="step">Cost per guest</div>
+  </div>
+  <p class="sub gap-m">Each one is code, with tests.</p>
+</section>
+
+<!-- 39 · P2 · Demo -->
+<section class="slide" id="s-p2-demo" data-principle="2">
+  <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
+</section>
+
+<!-- 40 · P2 · Your turn -->
+<section class="slide" id="s-p2-turn" data-principle="2">
+  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
+</section>
+
+<!-- 41 · Principle 3 · Evidence -->
+<section class="slide" id="s-p3" data-principle="3">
+  <div class="p-title"><span class="mega p-num" style="--c:var(--p3)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">15 min</span></div>
+  <p class="sub gap-m">Every number can be followed back.</p>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
+</section>
+
+<!-- 42 · P3 · Why / without it / examples -->
+<section class="slide" id="s-p3-content" data-principle="3">
+  <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
+</section>
+
+<!-- 43 · P3 · Demo -->
+<section class="slide" id="s-p3-demo" data-principle="3">
+  <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
+</section>
+
+<!-- 44 · P3 · Your turn -->
+<section class="slide" id="s-p3-turn" data-principle="3">
+  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
+</section>
+
+<!-- 45 · Principle 4 · Accountability -->
+<section class="slide" id="s-p4" data-principle="4">
+  <div class="p-title"><span class="mega p-num" style="--c:var(--p4)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">20 min</span></div>
+  <p class="sub gap-m">Ask only where a person must decide.</p>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
+</section>
+
+<!-- 46 · P4 · Why / without it / examples -->
+<section class="slide" id="s-p4-content" data-principle="4">
+  <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
+</section>
+
+<!-- 47 · P4 · Demo -->
+<section class="slide" id="s-p4-demo" data-principle="4">
+  <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
+</section>
+
+<!-- 48 · P4 · Your turn -->
+<section class="slide" id="s-p4-turn" data-principle="4">
+  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
+</section>
+
+<!-- 49 · Principle 5 · Verification -->
+<section class="slide" id="s-p5" data-principle="5">
+  <div class="p-title"><span class="mega p-num" style="--c:var(--p5)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">20 min</span></div>
+  <p class="sub gap-m">Check what you say against your own files.</p>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Your own figures get checked too.</p></div>
+</section>
+
+<!-- 50 · P5 · Why / without it / examples -->
+<section class="slide" id="s-p5-content" data-principle="5">
+  <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
+</section>
+
+<!-- 51 · P5 · Demo -->
+<section class="slide" id="s-p5-demo" data-principle="5">
+  <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
+</section>
+
+<!-- 52 · P5 · Your turn -->
+<section class="slide" id="s-p5-turn" data-principle="5">
+  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
+</section>
+
+<!-- 53 · Wrap · The framework again -->
+<section class="slide tall" id="s-framework-again" data-principle="wrap" data-rail="off">
+  <div class="stack">
+    <p class="label">THE GOAL</p>
+    <p class="stack-goal"><span class="trust">Trust</span></p>
+    <ol class="stack-bars">
+      <li class="bar filled" style="--c:var(--p5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">Check what you say against your own files.</span></li>
+      <li class="bar filled" style="--c:var(--p4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar filled" style="--c:var(--p3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar filled" style="--c:var(--p2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar filled" style="--c:var(--p1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the words before any number.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- 54 · Wrap · Better models -->
+<section class="slide" id="s-better" data-principle="wrap">
+  <h1 class="display">Better models still have to earn <span class="trust">trust</span>.</h1>
+</section>
+
+<!-- 55 · Wrap · Questions -->
+<section class="slide" id="s-questions" data-principle="wrap">
+  <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">10 min</span></div>
+</section>
+
+<!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); state comes from that attribute. -->
+<div class="rail" aria-hidden="true">
+  <span class="rail-cap"></span>
+  <span class="rail-cell" data-n="5" style="--c:var(--p5)">5</span>
+  <span class="rail-cell" data-n="4" style="--c:var(--p4)">4</span>
+  <span class="rail-cell" data-n="3" style="--c:var(--p3)">3</span>
+  <span class="rail-cell" data-n="2" style="--c:var(--p2)">2</span>
+  <span class="rail-cell" data-n="1" style="--c:var(--p1)">1</span>
+</div>
+
+</div>
+</div>
+<div class="progress" aria-hidden="true"><i id="progress"></i></div>
+<div class="counter" id="counter" aria-live="polite"></div>
+
+<script>
+(function () {
+  var doc = document, root = doc.documentElement;
+  var viewport = doc.getElementById('viewport');
+  var stage = doc.getElementById('stage');
+  var bar = doc.getElementById('progress');
+  var counter = doc.getElementById('counter');
+  var slides = Array.prototype.slice.call(stage.querySelectorAll('.slide'));
+  var N = slides.length;
+  var idx = 0, step = 0;
+  var STEP_ATTRS = ['data-step', 'data-step-out', 'data-step-fill', 'data-step-strike', 'data-step-mute'];
+
+  function stepsOf(s) {
+    var m = 0;
+    STEP_ATTRS.forEach(function (a) {
+      s.querySelectorAll('[' + a + ']').forEach(function (el) { m = Math.max(m, +el.getAttribute(a) || 0); });
+    });
+    var reel = s.querySelector('.emoji-reel');
+    if (reel) m = Math.max(m, reel.children.length + 1);
+    return m;
+  }
+  var steps = slides.map(stepsOf);
+
+  function fit() {
+    var s = Math.min(viewport.clientWidth / 1920, viewport.clientHeight / 1080);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+
+  function setHash(n) {
+    var h = '#' + n;
+    if (location.hash === h) return;
+    try { history.replaceState(null, '', h); }
+    catch (e) { try { location.replace(h); } catch (e2) {} }
+  }
+
+  function toggleBy(s, attr, cls) {
+    s.querySelectorAll('[' + attr + ']').forEach(function (el) {
+      el.classList.toggle(cls, (+el.getAttribute(attr) || 0) <= step);
+    });
+  }
+
+  function render(entering) {
+    var s = slides[idx];
+    if (entering) {
+      s.classList.add('instant');
+      requestAnimationFrame(function () { requestAnimationFrame(function () { s.classList.remove('instant'); }); });
+    }
+    slides.forEach(function (el, i) { el.classList.toggle('active', i === idx); });
+    toggleBy(s, 'data-step', 'shown');
+    toggleBy(s, 'data-step-out', 'gone');
+    toggleBy(s, 'data-step-fill', 'filled');
+    toggleBy(s, 'data-step-strike', 'struck');
+    toggleBy(s, 'data-step-mute', 'muted');
+    var reel = s.querySelector('.emoji-reel');
+    if (reel) {
+      Array.prototype.forEach.call(reel.children, function (li, i) {
+        li.classList.toggle('spot', i === step - 1);
+        li.classList.toggle('out', i < step - 1);
+      });
+    }
+    bar.style.width = ((idx + 1) / N * 100) + '%';
+    counter.textContent = (idx + 1) + ' / ' + N;
+    setHash(idx + 1);
+  }
+
+  function next() {
+    if (step < steps[idx]) { step++; render(false); if (slides[idx].querySelector('[data-confetti][data-step="' + step + '"]')) confetti(slides[idx].querySelector('.trust')); }
+    else if (idx < N - 1) { idx++; step = 0; render(true); }
+  }
+
+  /* Confetti burst from an element (used when the framework reaches Trust). Plays on a forward click only. */
+  function confetti(el) {
+    if (!el || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    var old = stage.querySelector('canvas.confetti'); if (old) old.remove();
+    var c = doc.createElement('canvas'); c.className = 'confetti'; c.width = 1920; c.height = 1080;
+    stage.appendChild(c);
+    var ctx = c.getContext('2d'), cs = getComputedStyle(root);
+    var cols = ['--p1', '--p2', '--p3', '--p4', '--p5', '--trust'].map(function (v) { return cs.getPropertyValue(v).trim() || '#0b6b6a'; });
+    var sr = stage.getBoundingClientRect(), r = el.getBoundingClientRect(), k = 1920 / sr.width;
+    var ox = (r.left + r.width / 2 - sr.left) * k, oy = (r.top + r.height / 2 - sr.top) * k;
+    var parts = [], i;
+    for (i = 0; i < 220; i++) {
+      var ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5, sp = 9 + Math.random() * 24;
+      parts.push({ x: ox + (Math.random() - 0.5) * r.width * k * 0.8, y: oy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 4,
+        w: 12 + Math.random() * 16, h: 8 + Math.random() * 10, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.5,
+        col: cols[i % cols.length], round: Math.random() < 0.25 });
+    }
+    var t0 = performance.now(), slide = slides[idx];
+    (function frame(now) {
+      var t = (now - t0) / 2600;
+      ctx.clearRect(0, 0, 1920, 1080);
+      if (t >= 1 || slides[idx] !== slide || !c.isConnected) { c.remove(); return; }
+      parts.forEach(function (q) {
+        q.vy += 0.55; q.vx *= 0.99; q.x += q.vx; q.y += q.vy; q.rot += q.vr;
+        ctx.save(); ctx.globalAlpha = t < 0.7 ? 1 : (1 - t) / 0.3; ctx.translate(q.x, q.y); ctx.rotate(q.rot);
+        ctx.fillStyle = q.col;
+        if (q.round) { ctx.beginPath(); ctx.arc(0, 0, q.h * 0.7, 0, 6.3); ctx.fill(); }
+        else ctx.fillRect(-q.w / 2, -q.h / 2 * Math.cos(q.rot * 2), q.w, q.h * Math.cos(q.rot * 2));
+        ctx.restore();
+      });
+      requestAnimationFrame(frame);
+    })(t0);
+  }
+
+  function prev() {
+    if (step > 0) { step--; render(false); }
+    else if (idx > 0) { idx--; step = steps[idx]; render(true); }
+  }
+  function goTo(i) {
+    idx = Math.max(0, Math.min(N - 1, i)); step = 0;
+    render(true);
+  }
+  function fromHash() {
+    var n = parseInt((location.hash || '').replace('#', ''), 10);
+    return isNaN(n) ? null : n - 1;
+  }
+
+  function toggleFullscreen() {
+    try {
+      if (!doc.fullscreenElement) {
+        var p = root.requestFullscreen && root.requestFullscreen();
+        if (p && p.catch) p.catch(function () {});
+      } else {
+        var q = doc.exitFullscreen && doc.exitFullscreen();
+        if (q && q.catch) q.catch(function () {});
+      }
+    } catch (e) {}
+  }
+  function toggleTheme() {
+    var cur = root.getAttribute('data-theme');
+    if (!cur) cur = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  }
+
+  doc.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var k = e.key;
+    var onLink = e.target && e.target.closest && e.target.closest('a, button');
+    if (k === 'ArrowRight' || k === 'PageDown' || k === ' ' || k === 'Spacebar' || (k === 'Enter' && !onLink)) { e.preventDefault(); next(); }
+    else if (k === 'ArrowLeft' || k === 'PageUp' || k === 'Backspace') { e.preventDefault(); prev(); }
+    else if (k === 'Home') { e.preventDefault(); goTo(0); }
+    else if (k === 'End') { e.preventDefault(); goTo(N - 1); }
+    else if (k === 'f' || k === 'F') { toggleFullscreen(); }
+    else if (k === 'd' || k === 'D') { toggleTheme(); }
+  });
+
+  var swipedAt = 0, tx = 0, ty = 0, tracking = false;
+  viewport.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1) { tracking = false; return; }
+    tracking = true; tx = e.touches[0].clientX; ty = e.touches[0].clientY;
+  }, { passive: true });
+  viewport.addEventListener('touchend', function (e) {
+    if (!tracking) return; tracking = false;
+    var t = e.changedTouches[0], dx = t.clientX - tx, dy = t.clientY - ty;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      swipedAt = Date.now();
+      if (dx < 0) next(); else prev();
+    }
+  }, { passive: true });
+  viewport.addEventListener('click', function (e) {
+    if (Date.now() - swipedAt < 500) return;
+    if (e.target.closest && e.target.closest('a, button')) return;
+    var r = stage.getBoundingClientRect();
+    if (e.clientX < r.left + r.width / 3) prev(); else next();
+  });
+
+  window.addEventListener('resize', fit);
+  doc.addEventListener('fullscreenchange', fit);
+  window.addEventListener('hashchange', function () {
+    var i = fromHash();
+    if (i !== null && i !== idx && i >= 0 && i < N) goTo(i);
+  });
+
+  var start = fromHash();
+  if (start !== null && start >= 0 && start < N) idx = start;
+  fit();
+  render(true);
+})();
+</script>
+
+</body>
+</html>
