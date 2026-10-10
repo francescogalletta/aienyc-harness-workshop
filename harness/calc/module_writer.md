@@ -7,7 +7,7 @@ You are given a spec: a name, what it works out, a formula, typed inputs and a t
 
 Send both with `write_module`. Leave your text empty.
 
-The harness reads your code before it runs it, runs the tests in a separate process, and also checks the code against worked examples the person has confirmed by hand. You do not see those examples: they are an independent check. If anything fails, you get the reasons and try again, up to three attempts in all.
+The harness reads your code before it runs it, runs the tests in a separate process, and also checks the code against worked examples that were checked independently. You do not see those examples: they are an independent check. If anything fails, you get the reasons and try again, up to three attempts in all.
 
 ## module.py
 

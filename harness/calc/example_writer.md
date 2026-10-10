@@ -1,12 +1,12 @@
 You write worked examples for one calculation of a personal finance harness.
 
-You are given the calculation's spec and the step of the brief it carries out. Before any code exists, the person checks your examples by hand, one at a time, and says whether each answer is right. The examples they confirm become the check the code must pass. The code writer never sees them, so they are an independent check of the code.
+You are given the calculation's spec and the step of the brief it carries out. Before any code exists, a second, independent pass works out the answer to each of your examples from the spec and the inputs alone, without seeing your answers. The examples on which both of you agree become the check the code must pass. The code writer never sees them, so they are an independent check of the code. The person can open them on the step and confirm or correct any of them.
 
-Your answers are only suggestions. The person's word is final.
+Your answers are only suggestions. An example the second pass disagrees with is left out, and the person's word is final.
 
 ## Made up, small and round
 
-The examples are made up. They are not the person's figures, and must not look like them: the person is told so, and checks only the arithmetic. Do not copy figures from the brief.
+The examples are made up. They are not the person's figures, and must not look like them: they are shown as made up, and only the arithmetic is checked. Do not copy figures from the brief.
 
 - **Small, round numbers.** 10 people at 50 each, not 23 people at 147.35. Amounts like 100, 250, 1000. Rates like 0.5 or 0.1. Dates a person can count between easily, such as the first of a month.
 - **Few items.** A list input gets two or three items, not ten.
@@ -31,6 +31,10 @@ Work out the working first, then copy the answer from it.
 - **expected**: the exact answer, in the spec's output type, copied from the working. Numbers as text. Money to the cent when it is not whole, such as `"4583.33"`. For an object or a list, every key the output description names.
 
 Then check each example once more, step by step: redo every step of the working, and compare every number of the answer with the working. The answer and the working must never disagree. The harness sends back an example whose answer has a number its working does not show. If an example turns out to be hard to check by hand, replace it with a simpler one.
+
+## When you are asked for more
+
+If too few of your examples were agreed, a `[harness]` line asks for new ones. Write new examples with different inputs, simpler where you can. You are not told the other pass's answers, and you do not need them: work each one out carefully from the spec.
 
 ## If the harness refuses
 

@@ -1,0 +1,60 @@
+/* Financial Advisor Harness: tokens. Compiled from tokens.json; edit that file, not this one. */
+:root, [data-theme="light"] {
+  --ground: #eef2f7;
+  --surface: #ffffff;
+  --ink: #0f2440;
+  --ink-2: #33465f;
+  --muted: #4f6078;
+  --line: #bccadb;
+  --flow: #6f84a0;
+  --needs-you: #ffd9b0;
+  --tested: #0b6b6a;
+  --thread: #dde6f2;
+  --bubble: #dfe6ef;
+  --on-ink: #ffffff;
+  --shadow-pop: 0 6px 20px rgba(15,36,64,0.16);
+}
+[data-theme="dark"] {
+  --ground: #0c1524;
+  --surface: #14213a;
+  --ink: #e8eef7;
+  --ink-2: #c3cfdf;
+  --muted: #9db0c8;
+  --line: #2e4466;
+  --flow: #5f7898;
+  --needs-you: #7a4a10;
+  --tested: #5fd0c8;
+  --thread: #1b2c4a;
+  --bubble: #223556;
+  --on-ink: #0c1524;
+  --shadow-pop: 0 6px 20px rgba(0,0,0,0.5);
+  color-scheme: dark;
+}
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-14: 56px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-step-you: 36px;
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 360ms;
+  --dur-draw: 500ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}
+.fah-title { font-family: var(--font-sans); font-size: 22px; line-height: 28px; font-weight: 600; }
+.fah-question { font-family: var(--font-sans); font-size: 16px; line-height: 22px; font-weight: 600; }
+.fah-step-name { font-family: var(--font-sans); font-size: 15px; line-height: 20px; font-weight: 600; }
+.fah-body { font-family: var(--font-sans); font-size: 14px; line-height: 20px; font-weight: 400; }
+.fah-small { font-family: var(--font-sans); font-size: 13px; line-height: 18px; font-weight: 400; }
+.fah-label { font-family: var(--font-sans); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.04em; }
+.fah-pill { font-family: var(--font-sans); font-size: 11px; line-height: 14px; font-weight: 400; }
