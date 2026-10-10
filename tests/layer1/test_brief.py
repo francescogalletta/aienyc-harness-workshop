@@ -20,9 +20,7 @@ def errors(brief, words=WORDS, lookups=LOOKUPS):
 def test_the_example_briefs_are_valid_version_2_briefs(name):
     brief = json.loads((EXAMPLES / name / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
     found = validate_brief(brief, brief["meta"]["lookups"], person_quotes(brief))
-    # The seeded wedding brief predates the rule that every input feeds a step: its "Wedding date" feeds none.
-    assert [each for each in found if "is used by no step" not in each] == []
-    assert len(found) == (1 if name == "wedding" else 0)
+    assert found == []
 
 
 def test_a_small_valid_brief_passes_and_a_missing_key_does_not():

@@ -71,7 +71,9 @@ THREAD = {"id": STR, "kind": ("side", "review"), "step": OPT(STR), "after": OPT(
           "challenge": OPT(CHALLENGE)}
 BUILD = {"status": ("none", "building", "built", "not_built", "stale"), "module": OPT(STR), "examples": INT,
          "tests": INT, "passing": INT, "examples_passing": INT, "reason": STR,
-         "plan_check": OPT({"departures": LIST(STR), "confirmed": BOOL}), "spec": ANY,
+         "plan_check": OPT({"departures": LIST(STR), "confirmed": BOOL}),
+         "spec": OPT({"formula": STR, "inputs": LIST({"name": STR, "type": STR, "description": STR}),
+                      "output": {"type": STR, "description": STR}}),
          "example_list": LIST({"n": INT, "inputs": dict, "expected": ANY, "working": STR,
                                "checked_by": (None, "second_pass", "you"), "second_pass": ANY}),
          "disagreement": LIST({"n": INT, "expected": ANY, "code_gives": ANY}),
@@ -96,7 +98,58 @@ CONTEXT = {"scope_in": LIST(ITEM), "scope_out": LIST(ITEM), "assumptions": LIST(
 WAITING = ({"kind": "message"}, {"kind": "plan"}, {"kind": "decision", "decision": STR, "step": STR})
 
 
-def problems(state: dict) -> list[str]:
+def build_problems(state: dict) -> list[str]:
+    """What layer 2 must keep true of the `build` keys, beyond their shape (ARCHITECTURE.md 3.3, SPEC 2.4)."""
+    out: list[str] = []
+    accepted = state["phase"] == "accepted"
+    added_started = False
+    for n, step in enumerate(state["steps"]):
+        where, build = f"steps[{n}] ({step['id']})", step.get("build")
+        if step["in_plan"] == step["id"].startswith("added_"):
+            out.append(f"{where}: in_plan and the added_ id disagree")
+        if not step["in_plan"]:
+            added_started = True
+        elif added_started:
+            out.append(f"{where}: a step of the plan after an added step")
+        if step["kind"] != "calculation" or not accepted:
+            if build is not None:
+                out.append(f"{where}: a build on a step that is not a calculation, or before the plan is accepted")
+            continue
+        if build is None:
+            out.append(f"{where}: a calculation step with no build")
+            continue
+        status = build["status"]
+        if not (0 <= build["passing"] <= build["tests"] and 0 <= build["examples_passing"] <= build["examples"]):
+            out.append(f"{where}: passing counts are out of range")
+        if bool(build["reason"]) != (status in ("not_built", "stale")):
+            out.append(f"{where}: reason {build['reason']!r} for status {status}")
+        if build["disagreement"] and status != "not_built":
+            out.append(f"{where}: a disagreement while {status}")
+        if status == "built" and not (build["module"] and build["code"] and build["spec"]):
+            out.append(f"{where}: built without a module, code or spec")
+        if status == "none" and (build["module"] or build["tests"]):
+            out.append(f"{where}: status none but a module or tests")
+        if [each["n"] for each in build["example_list"]] != list(range(1, len(build["example_list"]) + 1)):
+            out.append(f"{where}: examples are not numbered 1, 2, 3 ...")
+        if build["tests"] and not build["tested_at"]:
+            out.append(f"{where}: tests without tested_at")
+        if build["plan_check"] is not None and not build["plan_check"]["departures"]:
+            out.append(f"{where}: a plan check with no departures")
+        line = step["line"] or {}
+        if not step["needs_you"] and not step.get("last_run", {}) and status == "building" and line.get("text") != "Building":
+            out.append(f"{where}: building but the line says {line.get('text')!r}")
+        if (not step["needs_you"] and not (step.get("last_run") or {}).get("in_last_answer") and status == "built"
+                and line.get("text") != f"{build['examples']} examples · {build['passing']}/{build['tests']}"):
+            out.append(f"{where}: built but the line says {line.get('text')!r}")
+        unconfirmed = bool(build["plan_check"]) and not build["plan_check"]["confirmed"]
+        if unconfirmed != any(mark["symbol"] == "plan check" for mark in step["marks"]):
+            out.append(f"{where}: the plan check mark and the departures disagree")
+    return out
+
+
+def problems(state: dict, strict: bool = False) -> list[str]:
+    """What is wrong with the shape of `state`. `strict` also runs the checks a live state must keep
+    (`build_problems`); the hand-written samples in `states/` are sparse and are checked without it."""
     out: list[str] = []
     check(state, {"version": INT, "layers": LIST(INT), "product": STR, "phase": ("empty", "interview", "proposed", "accepted"),
                   "error": OPT(STR), "lanes": {"main": LANES, "side": LANES, "review": LANES},
@@ -146,17 +199,42 @@ def problems(state: dict) -> list[str]:
                 out.append(f"{where}: figure {figure['text']!r} is not at its offsets")
             if figure["step"] is not None and figure["step"] not in step_ids:
                 out.append(f"{where}: figure of unknown step")
+        if 3 in layers and message["who"] == "assistant":
+            if not isinstance(message.get("figures"), list):
+                out.append(f"{where}: an assistant message carries figures (layer 3)")
+            for figure in message.get("figures") or []:
+                if figure["input"] is not None and figure["input"] not in state["inputs"]:
+                    out.append(f"{where}: figure of unknown input {figure['input']}")
+                if figure["run"] is not None and figure["input"] is not None:
+                    out.append(f"{where}: a figure is of a run or of an input, not both")
         if message["kind"] == "decision":
             check(message.get("decision"), DECISION, f"{where}.decision", out)
             if message.get("decision") and message["decision"]["question"] != message["text"]:
                 out.append(f"{where}: a decision message's text is its question")
         if message.get("notice") is not None:
             check(message["notice"], NOTICE, f"{where}.notice", out)
+    if 3 in layers:
+        answered = {step["last_run"]["message"] for step in state["steps"]
+                    if step.get("last_run") and step["last_run"]["in_last_answer"]}
+        if len(answered) > 1:
+            out.append(f"steps of the last answer name different messages: {sorted(answered)}")
+        for step in state["steps"]:
+            run = step.get("last_run")
+            if run and run["message"] is not None and run["message"] not in messages:
+                out.append(f"{step['id']}: last_run feeds a message that is not in the chat")
+            if run and run["in_last_answer"] and step["kind"] != "calculation":
+                out.append(f"{step['id']}: only a calculation has a run")
+        lit = {step["id"] for step in state["steps"] if (step.get("last_run") or {}).get("in_last_answer")}
+        for key, entry in state["inputs"].items():
+            if entry.get("used") != any(step in lit for step in entry["steps"]):
+                out.append(f"inputs.{key}: used differs from the steps of the last answer")
     if waiting and waiting.get("kind") == "decision":
         open_ids = [m["decision"]["id"] for m in messages.values()
                     if m["kind"] == "decision" and m["decision"]["status"] == "open"]
         if waiting["decision"] not in open_ids:
             out.append("waiting: no open decision message of that id")
+    if strict and 2 in layers:
+        out.extend(build_problems(state))
     if state["lanes"]["main"] == "waiting" and waiting is None:
         out.append("lanes.main waits but waiting is null")
     if len([step for step in state["steps"] if step["needs_you"]]) > 1:

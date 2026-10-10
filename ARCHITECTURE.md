@@ -694,3 +694,90 @@ Each has the default the work plan takes.
 - **A2a · Not done here.** `registry.module_dir` and the staging folder still read `load_config()` rather than the
   session's config (as in version 1; a Session made with another config than the environment's would build
   elsewhere). The example writer is asked once more only for the step's whole set, not per left-out example.
+- **A2b · Files.** `helper.py` is the step helper (`route`, `handle`, `wants(core, step_id)`, `rebuild_code(work,
+  step_id)`); `layer.py` has the actions `confirm_example`, `confirm_plan_check`, `run_tests`, the `build` command
+  (`run_build_command(session, write=)`: builds, prints the activity and a line per calculation step, exit 0 only when
+  all are built) and the `steps` expectation. `wants(core, step_id)` takes the session (or anything with `conn` and
+  `config`); layer 3 calls it as `helper.wants(core, step_id)`.
+- **A2b · The state.** `build` is a key of every step once layer 2 is on: null before the plan is accepted and on steps
+  that are not calculations. While a step is `building` its `reason` is "" and its `disagreement` empty (the old ones
+  are not shown while the step is rebuilt). The build button's label and progress are not a key of their own: the page
+  works them out from `activity` (`what` `build`, `step`, `text`) and the steps' `build.status`. Steps "not in the
+  plan" are the added steps, last, `in_plan` false, with `needs` and `inputs` empty (their `needs` is free text).
+  `tests/layer0/state_shape.py` checks the Build's spec shape always, and what a live state must keep
+  (`build_problems`, `problems(state, strict=True)`: counts, reasons, numbering, line) only when asked, since the
+  hand-written samples are sparse.
+- **A2b · The helper's checks.** One model call, no retry. A `correct` answer must fit the spec's output type, have the
+  shape of the example's `expected` (same keys, same list lengths), and every number must be in the person's message or
+  in the example's `inputs`, `expected` or `second_pass` (so "the second answer is right" works). An `explain` message
+  is number-checked against the person's words, the step, spec, departures, examples, disagreement and reason. Any
+  failure, an unknown example, a missing tool call, or `confirm` 0 with no departures to confirm gives
+  `HELPER_UNCLEAR` (a harness message with the step) and changes nothing. `note` and `rebuild` keep the person's own
+  words (`message["text"]`) as the note, not the model's. The helper's own text (`explain`) is posted as `assistant`;
+  every other line (`NOTE_KEPT`, `EXAMPLE_CONFIRMED`, `EXAMPLE_CORRECTED`, `DEPARTURES_CONFIRMED`, `REBUILDING`,
+  `STEP_BUILT`, `STEP_NOT_BUILT`) as `harness`, with the step. They carry no `figures`. A rebuild or a code-only check
+  runs inside the helper's job (activity `helper`, then `build` per phase), and ends with `STEP_BUILT` or
+  `STEP_NOT_BUILT`. New event `build.helper {step, action, example, accepted}`, one per helper turn.
+- **A2b · Actions.** `confirm_example` is refused (NotNow) for an unknown step or example, an example that is already
+  yours, or a step being built now; a missing or ill-typed `step` or `n` is a BadAction. When `record_confirmation`
+  says `rebuild`, a main-lane job (`what` `build`) runs the code-only rebuild, with no model call when the module's code
+  already passes. `confirm_plan_check` is refused with no unconfirmed departures. `run_tests` queues a main-lane job
+  (`what` `tests`, one per step in the queue) and is refused when the step has no registered module.
+- **A2b · Expectation `steps`.** `check(value, session)` gets the replay's Session and compares `value` with the `steps`
+  of the latest `build.finished` event (`seen` is that map); it validates a non-empty map of step id to `built`,
+  `reused`, `kept` or `not_built`. A6 passes the Session as the context.
+- **A2b · The wedding seed.** The input "Wedding date" is now in the `needs` of s2 (the payment schedule, the one step
+  whose module takes `wedding_date`). The seed records no step fingerprints (adoption computes them from the plan at
+  adoption time), so nothing had to be updated and the seeded modules adopt as `built`, not `stale`.
+  `tests/layer1/test_brief.py` no longer special-cases it, and `tests/layer2/test_adopt.py` checks the input's step.
+- **A2b · Not changed in `harness/core/`.** Layer 2 touched only `harness/calc/` (`helper.py` new, `layer.py`, a two-line
+  change in `registry.build_view` for the `building` status).
+- **A3 · Files and interfaces.** `answers/agent.py` (the analyst turn, `Turn`, the number-check sources, the system
+  prompt, the three tools), `figures.py` (`figures(text, sources, *, step_of_run, input_of)`, `input_backing`),
+  `layer.py` (`contribute`, `route`, `ask`, expects). `Turn` has `work`, `message`, `runs` (calc_runs ids made in the
+  turn), `reply` (the id of the message that ended it), `withheld`, `corrections`, and `unbacked(value)`, `sources()`,
+  `plan()`, `today()`, `record()`. A tool is `(ToolSpec, handle(turn, call) -> result)`; the result is
+  `agent.tool_result(call, content, error=False)`. The hook is `turn_finished(work, turn)`. The analyst prompt is the
+  `prompt` files of the enabled layers, joined, then `## What you know` with layer 3's sections (`today`, `goal`,
+  `particulars`, `inputs the plan names`, `process` with each calculation step's `module` and `build` status,
+  `modules`, `saved inputs`, `notes`, and `earlier runs in this conversation`, the last eight, so a new process knows
+  them), then every other layer's `context(conn)` (called with the connection only, as 4.3 says).
+- **A3 · No action.** Layer 3 registers no action: the person speaks through `say`, and the `ask` command is `say`
+  through the terminal driver (`ask [QUESTION...]`; it exits 1 with a pointer to `ground` when there is no accepted
+  plan, because a message then would start an interview).
+- **A3 · Today.** `core.memory["today"]` (a date or an ISO date) replaces the clock for the prompt, the number check
+  and the gate's callers; replay sets it from the scenario's `today`. Without it, today is the real date.
+- **A3 · Number check.** Sources of the reply check: the confirmed plan (without `meta`) and the added steps, today,
+  every message the person typed in the main chat (a choice made by `choose` is posted as one, so decision words
+  need no source of their own), saved inputs, notes, and the inputs and results of this conversation's runs. Tool
+  inputs are checked too: `run_module`'s `inputs` and `assumptions` (not `expected`, which is never shown) and
+  `save_input`'s `value`; a refusal goes back to the model as an error result and counts as `ask.correction`
+  (`reason` `run_module` or `save_input`). The reply check is corrected once per turn (`reason` `reply`), then
+  withheld. A withheld or stopped notice is a `harness` message (kinds `withheld`, `text`) and carries no `figures`;
+  the model is told of a withheld reply in the person's next message.
+- **A3 · Figures.** For `trace`, only a run's result is labelled `run` (a run's inputs back a number but never
+  lead to the step), and runs are given newest first so that of several runs showing the same number (a later step
+  repeats what an earlier one produced) the earliest is the source. A `run` figure carries the run's id and its
+  module's own step (`spec.step_id`), or no step when the plan no longer has it. `run` wins over `input`, `input`
+  over the person's words, as `trace` orders them; so a number the person gave that a step's result happens to
+  repeat leads to that step. A figure from a saved input gets `input` only when the name is a brief input id
+  without `in:` (the model is told to use the plan's names). Only assistant replies carry `figures`.
+- **A3 · Runs and the last answer.** A turn's reply (or withheld or stop notice) keeps the turn's run ids in its
+  private `_runs`. "The last answer" is the latest such message with at least one run, so a reply that only asks or
+  explains leaves the steps and inputs of the answer before it lit; a newer answer with runs replaces them. A
+  withheld answer still lights the steps it ran. `last_run` is the module's latest run in the conversation; for a
+  range (two runs of one module in a turn) it is the later run, and each number's figure names its own run.
+  `message` is the message that ended the turn of that run, else null. Layer 3 sets `last_run` on every step (null but
+  on calculation steps once the plan is accepted) and `value` and `used` on every input; it never sets
+  `unconfirmed` (layer 4).
+- **A3 · Saved inputs on the plan.** `inputs[id].value` is the saved value as written for the saved name equal to the
+  id without `in:` (a non-text value is shown as JSON). Saved inputs are kept across conversations.
+- **A3 · Routing.** The analyst takes a message in phase `accepted` unless it has a step and `calc.helper.wants(core,
+  step)` is true. The model's messages are kept in `core.memory["analyst"]`, started again in a new conversation; a failed
+  model call drops the half turn.
+- **A3 · Replay expectations.** `runs`, `shown`, `not_shown`, `max_withheld`, `max_corrections` as in version 1;
+  `check(value, session)` is given the Session and reads `calc_runs` and the `ask.*` events of its conversation. A
+  `runs` entry matches when the module ran with those inputs written as text (`"150"`, not `150`).
+- **A3 · Not changed outside layer 3.** Nothing in `harness/core/` or `harness/calc/`. Shared: `tests/layer0/state_shape.py`
+  checks layer 3 (assistant messages carry `figures`, figures name known inputs, `last_run.message` is in the chat, the
+  steps of the last answer share one message, `used` agrees with them).

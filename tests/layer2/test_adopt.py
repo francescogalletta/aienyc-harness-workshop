@@ -27,6 +27,7 @@ def test_the_seeded_modules_are_adopted_on_load_and_run_through_the_gate(monkeyp
     assert [step["id"] for step in calculation] == ["s1", "s2", "s3", "s5", "s6", "added_1"]
     assert all(step["build"]["status"] == "built" and step["line"]["kind"] == "tested" for step in calculation)
     assert step_of(state, "added_1")["in_plan"] is False
+    assert state["inputs"]["in:wedding_date"]["steps"] == ["s2"]          # every input feeds a step
     assert all(each["checked_by"] == "second_pass" for each in step_of(state, "s1")["build"]["example_list"])
     adopted = events(session, "build.adopted")
     assert len(adopted) == 6 and {each["outcome"] for each in adopted} == {"adopted"}

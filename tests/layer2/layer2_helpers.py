@@ -1,7 +1,10 @@
 """Helpers for the layer 2 tests: a small confirmed plan, and scripted model turns for a build."""
 import copy
 import json
+import sys
 from pathlib import Path
+
+sys.path.append(str(Path(__file__).resolve().parents[1] / "layer0"))      # state_shape, the state validator
 
 PROPOSED = {"kind": "proposed"}
 SETTLE = 20
@@ -118,6 +121,11 @@ def double_turns():
 def events(session, kind):
     from harness import db
     return [json.loads(row["payload"]) for row in db.list_events(session.conn, kind=kind)]
+
+
+def respond_turn(action, **arguments):
+    """The step helper's one call."""
+    return call("respond", action=action, **arguments)
 
 
 def step_of(state, step_id):

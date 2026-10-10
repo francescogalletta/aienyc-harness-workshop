@@ -265,7 +265,8 @@
       "formula": "payment 1 = 6k; remaining = total cost - 6k; payment 2 = payment 3 = remaining x 50%",
       "needs": [
         "s1",
-        "Payment schedule"
+        "Payment schedule",
+        "Wedding date"
       ],
       "produces": "Amount and due date of each of the three payments",
       "cadence": "when s1 changes",

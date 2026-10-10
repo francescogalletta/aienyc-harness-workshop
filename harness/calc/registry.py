@@ -370,12 +370,12 @@ def build_view(conn, brief: dict | None, step_id: str, *, building: bool = False
         "examples": len(golden) if run else len([each for each in examples if each.get("checked_by")]),
         "tests": len(tests), "passing": sum(1 for each in tests if each.get("passed")),
         "examples_passing": sum(1 for each in golden if each.get("passed")),
-        "reason": reason,
+        "reason": "" if building else reason,
         "plan_check": ({"departures": departures, "confirmed": bool(record.get("departures_confirmed"))}
                        if departures else None),
         "spec": ({key: spec[key] for key in ("formula", "inputs", "output") if key in spec} if spec else None),
         "example_list": examples,
-        "disagreement": (record.get("disagreement") or []) if status == "not_built" else [],
+        "disagreement": (record.get("disagreement") or []) if status == "not_built" and not building else [],
         "code": _code(named),
         "tested_at": run["ts"] if run else None,
     }
