@@ -125,6 +125,23 @@ colour alone. A theme can fix its own order: for paper, setting
 modes. That override is not applied: the example themes are left as they were
 reviewed, to show the kit working with no theme edits.
 
+### Candidate looks (October 2026)
+
+Each look sets its own series order (`--viz-series-*` in its theme file).
+Validator results, adjacent pairs, against each palette's ground:
+
+| Look | Primary | Alternate |
+| --- | --- | --- |
+| dusk | CVD 11.4, normal 24.4 pass; lightness band fails (luminous fills on dark slate) | same fills: same result |
+| mist | all checks pass (CVD 12.0) | CVD 8.1, normal 15.7 pass; lightness band fails (tints) |
+| chalkboard | CVD 11.3, normal 17.8 pass; lightness band fails (chalk pastels) | all checks pass (CVD 17.0) |
+| ledger | all checks pass (CVD 11.9) | CVD 11.1, normal 16.7 pass; lightness band fails (tints) |
+| receipt | all checks pass (CVD 9.7): its series are the pen inks, not the pale highlighters | CVD 8.5, normal 16.8 pass; lightness and chroma fail (highlighters on dark) |
+
+The first two series pass in every look and palette (CVD ΔE ≥ 21). The
+lightness-band failures come from the brief itself: luminous or pastel fills
+that carry dark text.
+
 ## Not tested
 
 - Firefox and Safari: only Chromium was run (Playwright's build).

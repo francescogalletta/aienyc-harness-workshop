@@ -6,6 +6,7 @@
     python build.py --all            every theme in src/themes/
     python build.py --check          validate the sources; exit 1 on problems
     python build.py --gallery [--theme NAME | --all]   dist/gallery.<theme>.html (+ fragment)
+    python build.py --looks a,b,c [--gallery]           dist/deck.looks.html: several looks, one page, a switcher
 
 The standalone form is a whole page. The fragment form is what the hosting page
 wraps: <title>, the font <link>, one <style>, the markup, one <script>.
@@ -301,6 +302,8 @@ class Deck:
         self.meta = read_toml(self.slides_dir / "gallery.toml" if gallery else src / "deck.toml")
         self.vocab = read_toml(src / "layouts" / "layouts.toml")
         self.principles = json.loads((src / "principles.json").read_text(encoding="utf-8"))["principles"]
+        for p in self.principles:
+            p["ink"] = p.get("color", "") + "-ink"   # the colour as text or a thin stroke
         self.by_n = {p["n"]: p for p in self.principles}
         self.loader = Loader(src / "layouts")
         self.slides = self._load_slides()
@@ -499,8 +502,8 @@ class SlideRenderer:
         return s
 
     def render_slide(self, number: int, slide: dict) -> str:
-        if self.deck.gallery:
-            slide = substitute(slide, {"{theme}": self.theme})
+        if self.deck.gallery:  # in a looks build the name is filled in live by looks.js
+            slide = substitute(slide, {"{theme}": "[looks]{lookname}" if self.theme == "looks" else self.theme})
         s = self.resolve(slide)
         layout = self.layouts[s["layout"]]
         ps = self.deck.principles
@@ -904,19 +907,33 @@ def tokens_css(deck: Deck, kit: bool) -> str:
     return text
 
 
-def build_css(deck: Deck, theme: Theme, standalone: bool, kit: bool = False) -> str:
+def scoped_theme_css(theme: Theme) -> str:
+    """A theme's CSS with every block scoped to :root[data-look="<name>"], for a looks build."""
+    sel = f':root[data-look="{theme.name}"]'
+    css = theme.css().replace(':root:not([data-theme="light"])', sel + ':not([data-theme="light"])')
+    css = css.replace(':root[data-theme="dark"]', sel + '[data-theme="dark"]')
+    return re.sub(r":root(\s*\{)", sel + r"\1", css)
+
+
+def build_css(deck: Deck, theme: Theme, standalone: bool, kit: bool = False, looks: list[Theme] | None = None) -> str:
     styles = deck.src / "styles"
     parts = []
     if standalone:
         parts.append(STANDALONE_RESET)
     parts.append("/* ---------- Tokens: defaults (src/styles/tokens.css) ---------- */\n" + tokens_css(deck, kit))
-    parts.append(f"/* ---------- Theme: {theme.name} (src/themes/{theme.name}.css) ---------- */\n" + theme.css())
+    if looks:
+        for t in looks:
+            parts.append(f"/* ---------- Look: {t.name} (src/themes/{t.name}.css), on data-look=\"{t.name}\" ---------- */\n" + scoped_theme_css(t))
+    else:
+        parts.append(f"/* ---------- Theme: {theme.name} (src/themes/{theme.name}.css) ---------- */\n" + theme.css())
     parts.append("/* ---------- Base (src/styles/base.css) ---------- */\n" + (styles / "base.css").read_text(encoding="utf-8"))
     parts.append("/* ---------- Components (src/styles/components.css) ---------- */\n" + (styles / "components.css").read_text(encoding="utf-8"))
     if kit:
         parts.append("/* ---------- Visuals kit (src/styles/viz.css) ---------- */\n" + (styles / "viz.css").read_text(encoding="utf-8"))
     if deck.gallery:
         parts.append("/* ---------- Gallery (src/gallery/gallery.css) ---------- */\n" + (deck.slides_dir / "gallery.css").read_text(encoding="utf-8"))
+    if looks:
+        parts.append("/* ---------- Looks switcher (src/styles/looks.css) ---------- */\n" + (styles / "looks.css").read_text(encoding="utf-8"))
     return "\n".join(p.strip("\n") + "\n" for p in parts)
 
 
@@ -928,9 +945,9 @@ def vendor_js(deck: Deck, name: str) -> str:
     return f"/* ---- vendor: {note} ---- */\n{code}"
 
 
-def build_js(deck: Deck, kit: bool = False, libs: list[str] = ()) -> str:
+def build_js(deck: Deck, kit: bool = False, libs: list[str] = (), looks: bool = False) -> str:
     js = deck.src / "js"
-    modules = [js / "confetti.js"] + ([js / "viz.js"] if kit else []) + [js / "deck.js"]
+    modules = ([js / "looks.js"] if looks else []) + [js / "confetti.js"] + ([js / "viz.js"] if kit else []) + [js / "deck.js"]
     if deck.gallery:
         modules.append(deck.slides_dir / "gallery.js")
     body = "\n\n".join(m.read_text(encoding="utf-8").strip("\n") for m in modules)
@@ -941,19 +958,37 @@ def build_js(deck: Deck, kit: bool = False, libs: list[str] = ()) -> str:
 # ===========================================================================
 # Output
 # ===========================================================================
-def build(deck: Deck, theme_name: str, standalone: bool) -> str:
-    theme = Theme(deck.src / "themes" / f"{theme_name}.css")
-    if not theme.font_link:
-        raise BuildError(f"themes/{theme_name}.css: no 'font-link:' line in its first comment")
-    r = SlideRenderer(deck, theme_name)
+def build(deck: Deck, theme_name: str, standalone: bool, looks: list[str] | None = None) -> str:
+    """One page. With looks, every listed theme is in it, scoped by data-look, with a switcher."""
+    names = list(looks) if looks else [theme_name]
+    themes = []
+    for name in names:
+        if not (deck.src / "themes" / f"{name}.css").is_file():
+            raise BuildError(f"no theme {name!r}")
+        t = Theme(deck.src / "themes" / f"{name}.css")
+        if not t.font_link:
+            raise BuildError(f"themes/{name}.css: no 'font-link:' line in its first comment")
+        themes.append(t)
+    theme = themes[0]
+    r = SlideRenderer(deck, "looks" if looks else theme_name)
     slides = r.render_all()
     kit, libs = kit_usage(slides)
-    title = deck.meta["title"] + (f" · {theme_name}" if deck.gallery else "")
-    ctx = {"standalone": standalone, "lang": deck.meta.get("lang", "en"), "title": title,
-           "font_link": theme.font_link, "css": Markup(build_css(deck, theme, standalone, kit).rstrip("\n")),
-           "motion": deck.meta.get("motion", "off"), "slides": Markup(slides),
-           "rail": Markup(r.render_rail()), "js": Markup(build_js(deck, kit, libs))}
+    if looks:
+        title = deck.meta["title"] + " · looks: " + ", ".join(names)
+    else:
+        title = deck.meta["title"] + (f" · {theme_name}" if deck.gallery else "")
+    font_links = list(dict.fromkeys(t.font_link for t in themes))
+    ctx = {"standalone": standalone, "lang": deck.meta.get("lang", "en"), "title": title, "font_links": font_links,
+           "css": Markup(build_css(deck, theme, standalone, kit, themes if looks else None).rstrip("\n")),
+           "motion": deck.meta.get("motion", "off"), "slides": Markup(slides), "looks": names if looks else [],
+           "rail": Markup(r.render_rail()), "js": Markup(build_js(deck, kit, libs, bool(looks)))}
     return deck.loader.get("deck.html").render(ctx)
+
+
+def looks_outputs(deck: Deck, names: list[str]) -> dict[Path, str]:
+    stem = "gallery" if deck.gallery else "deck"
+    return {DIST / f"{stem}.looks.html": build(deck, names[0], True, names),
+            DIST / f"{stem}.looks.fragment.html": build(deck, names[0], False, names)}
 
 
 def outputs(deck: Deck, theme: str) -> dict[Path, str]:
@@ -1047,8 +1082,9 @@ def resolve_color(name: str, tokens: dict, seen=()) -> str | None:
 
 CONTRAST_PAIRS = [  # (foreground, background, minimum)
     *[("--on-principle", f"--principle-{n}", 4.0) for n in range(1, 6)],
-    ("--text", "--slide-bg", 4.5), ("--text-quiet", "--slide-bg", 4.5), ("--text-muted", "--slide-bg", 3.0),
-    ("--accent-trust", "--slide-bg", 3.0), ("--text", "--surface", 4.5), ("--pill-text", "--pill-fill", 4.5),
+    *[(f"--principle-{n}-ink", "--slide-bg", 3.0) for n in range(1, 6)],
+    ("--text", "--slide-bg", 7.0), ("--text-quiet", "--slide-bg", 4.5), ("--text-muted", "--slide-bg", 4.5),
+    ("--accent-trust", "--slide-bg", 4.5), ("--text", "--surface", 4.5), ("--pill-text", "--pill-fill", 4.5),
     ("--ask-text", "--ask-fill", 4.5), ("--qr-ink", "--qr-ground", 7.0),
 ]
 
@@ -1108,6 +1144,7 @@ def check(deck: Deck) -> int:
     base_css = (styles / "base.css").read_text(encoding="utf-8")
     comp_css = (styles / "components.css").read_text(encoding="utf-8")
     viz_css = (styles / "viz.css").read_text(encoding="utf-8") if (styles / "viz.css").exists() else ""
+    looks_css = (styles / "looks.css").read_text(encoding="utf-8") if (styles / "looks.css").exists() else ""
     gallery = Deck(deck.src, gallery=True) if (deck.src / "gallery" / "gallery.toml").exists() else None
     gal_css = (gallery.slides_dir / "gallery.css").read_text(encoding="utf-8") if gallery else ""
     js_files = sorted((deck.src / "js").glob("*.js")) + ([gallery.slides_dir / "gallery.js"] if gallery else [])
@@ -1164,6 +1201,7 @@ def check(deck: Deck) -> int:
     # literal values outside the token files
     problems += literal_problems("styles/base.css", base_css) + literal_problems("styles/components.css", comp_css)
     problems += literal_problems("styles/viz.css", viz_css) + literal_problems("gallery/gallery.css", gal_css)
+    problems += literal_problems("styles/looks.css", looks_css)
     if re.search(r"#[0-9a-fA-F]{3,8}\b", js):
         problems.append("js: literal hex colour")
     for name, t in themes.items():
@@ -1175,7 +1213,7 @@ def check(deck: Deck) -> int:
 
     # tokens: referenced but undefined, theme parity, dark-only, unused
     defaults = declarations(tokens_css)
-    styles_all = base_css + comp_css + viz_css + gal_css
+    styles_all = base_css + comp_css + viz_css + gal_css + looks_css
     local = set(re.findall(r"(--[\w-]+)\s*:", strip_comments(styles_all))) | set(re.findall(r"(--[\w-]+)\s*:", markup)) | set(re.findall(r"(--[\w-]+):", js))
     refs = set(re.findall(r"var\((--[\w-]+)", tokens_css + styles_all + markup))
     refs |= {t for t in re.findall(r"'(--[\w-]+)'", js) if not t.endswith("-")} | {p["color"] for p in deck.principles}
@@ -1217,6 +1255,22 @@ def check(deck: Deck) -> int:
             except BuildError as e:
                 problems.append(f"theme {name}{' (gallery)' if book.gallery else ''}: {e}")
 
+    # a looks build of every theme, deck and gallery: builds, one switcher button per look, every look scoped
+    if len(themes) > 1:
+        names = list(themes)
+        for book in [deck] + ([gallery] if gallery else []):
+            try:
+                page = build(book, names[0], False, names)
+                if page.count("data-look-btn=") != len(names):
+                    problems.append(f"looks build{' (gallery)' if book.gallery else ''}: expected {len(names)} look buttons")
+                for n in names:
+                    if f':root[data-look="{n}"] {{' not in page or f':root[data-look="{n}"][data-theme="dark"]' not in page:
+                        problems.append(f"looks build: theme {n} is not scoped to data-look=\"{n}\" (light and dark)")
+                if re.search(r"(?m)^:root\s*\{[^}]*--slide-bg\s*:", page):
+                    problems.append("looks build: a theme's colours are on bare :root (they would leak into every look)")
+            except BuildError as e:
+                problems.append(f"looks build{' (gallery)' if book.gallery else ''}: {e}")
+
     if deck.src == SRC and deck.meta["theme"] in themes and not problems:
         if (HERE / "deck.html").read_text(encoding="utf-8") != build(deck, deck.meta["theme"], True):
             problems.append("deck.html is out of date: run python build.py")
@@ -1235,6 +1289,7 @@ def main(argv=None) -> int:
     ap.add_argument("--theme", help="build this theme into dist/ (the default theme also writes deck.html)")
     ap.add_argument("--all", action="store_true", help="build every theme")
     ap.add_argument("--check", action="store_true", help="validate sources and exit")
+    ap.add_argument("--looks", help="comma-separated themes: one page with all of them and a switcher → dist/deck.looks.html (or gallery.looks.html)")
     ap.add_argument("--gallery", action="store_true", help="build the design-system gallery (src/gallery/) into dist/gallery.<theme>.html")
     a = ap.parse_args(argv)
     try:
@@ -1243,6 +1298,13 @@ def main(argv=None) -> int:
             return check(deck)
         if a.gallery:
             deck = Deck(gallery=True)
+        if a.looks:
+            names = [n.strip() for n in a.looks.split(",") if n.strip()]
+            unknown = [n for n in names if n not in deck.themes]
+            if unknown or len(names) < 2:
+                raise BuildError(f"--looks needs two or more of: {', '.join(deck.themes)} (unknown: {unknown})")
+            write(looks_outputs(deck, names))
+            return 0
         names = deck.themes if a.all else [a.theme or deck.meta.get("theme") or Deck().meta["theme"]]
         for name in names:
             if name not in deck.themes:

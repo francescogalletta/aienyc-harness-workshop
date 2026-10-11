@@ -1,0 +1,25 @@
+/* Looks switcher (build.py --looks only): a slim bar above the stage, in the current look's tokens. */
+:root {
+  --looks-bar-h: 44px;
+  --looks-size: 15px;
+  --looks-pad: 12px;
+  --looks-btn-pad-y: 5px;
+  --looks-gap: 8px;
+}
+.viewport { top: var(--looks-bar-h); }
+.looks-bar {
+  position: fixed; left: 0; right: 0; top: 0; height: var(--looks-bar-h); z-index: 10;
+  display: flex; align-items: center; gap: var(--looks-gap); padding: 0 var(--looks-pad);
+  overflow-x: auto; overflow-y: hidden; white-space: nowrap;
+  background: var(--surface); color: var(--text); border-bottom: var(--stroke-hair) solid var(--line);
+  font-family: var(--label-font); font-size: var(--looks-size); line-height: 1;
+}
+.looks-btn, .looks-mode {
+  font-family: inherit; font-size: inherit; color: var(--text-quiet); background: transparent; cursor: pointer;
+  border: var(--stroke-hair) solid var(--line); border-radius: var(--radius-s);
+  padding: var(--looks-btn-pad-y) var(--looks-pad);
+}
+.looks-btn[aria-pressed="true"] { background: var(--text); color: var(--slide-bg); border-color: var(--text); }
+.looks-mode { margin-left: var(--looks-gap); }
+.looks-title, .looks-keys { color: var(--text-muted); }
+.looks-keys { margin-left: auto; padding-left: var(--looks-pad); }

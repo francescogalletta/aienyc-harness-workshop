@@ -28,8 +28,10 @@
   --fs-7xl: calc(300px * var(--type-scale));
 
   --font-display: var(--font-sans);  /* themes with a separate display face override this */
+  --font-label: var(--font-sans);    /* labels, chips and number-heavy bits */
   --weight-regular: 400;
   --weight-strong: 600;
+  --weight-display: var(--weight-strong);  /* mega, display, headline and big numbers */
   --weight-hand: 500;
   --weight-hand-strong: 700;
   --tracking-tight: -0.02em;
@@ -74,6 +76,7 @@
   /* Fonts by role */
   --body-font: var(--font-sans);
   --display-font: var(--font-display);
+  --label-font: var(--font-label);
   --code-font: var(--font-mono);
   --footnote-font: var(--font-mono);
   --aside-font: var(--font-hand);
@@ -157,6 +160,7 @@
 
   /* Connectors (flow arrows, converging lines) */
   --connector-width: var(--stroke);
+  --connector-style: solid;   /* the lines that drop from pills onto a question; dashed in some looks */
 
   /* Footnote (mono) and aside (handwritten) */
   --footnote-text: var(--text-muted);
@@ -290,6 +294,15 @@
   --focus-ring-offset: var(--space-3xs);
   --focus-radius: var(--radius-s);
 
+  /* A principle's colour used as text or a thin stroke on the slide ground (the
+     divider's big number, chart lines). Fills use --principle-N. A look with pale
+     "highlighter" fills sets darker inks here. */
+  --principle-1-ink: var(--principle-1);
+  --principle-2-ink: var(--principle-2);
+  --principle-3-ink: var(--principle-3);
+  --principle-4-ink: var(--principle-4);
+  --principle-5-ink: var(--principle-5);
+
   /* Confetti (canvas): read by js/confetti.js as a comma-separated list */
   --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
 }
@@ -306,11 +319,19 @@
   --viz-series-3: var(--principle-2);
   --viz-series-4: var(--principle-5);
   --viz-series-5: var(--principle-3);
+  --viz-series-1-ink: var(--principle-1-ink);   /* lines, points, rough strokes: the ink of each */
+  --viz-series-2-ink: var(--principle-4-ink);
+  --viz-series-3-ink: var(--principle-2-ink);
   --viz-bar: var(--viz-series-1);
+  --viz-bar-ink: var(--viz-series-1-ink);
+  --viz-highlight-ink: var(--viz-series-2-ink);
+  --viz-down-ink: var(--viz-series-2-ink);
   --viz-highlight: var(--viz-series-2);
   --viz-up: var(--accent-trust);
   --viz-down: var(--viz-series-2);
   --viz-total: var(--text-muted);
+  --viz-up-ink: var(--viz-up);
+  --viz-total-ink: var(--viz-total);
   --viz-text: var(--text);
   --viz-label: var(--text-quiet);
   --viz-muted: var(--text-muted);
@@ -321,6 +342,7 @@
   --viz-node-stroke: var(--step-stroke-color);
   --viz-on-fill: var(--on-principle);
   --viz-link: var(--connector);
+  --viz-link-dash: none;      /* e.g. 10 8 for dashed arrows */
   --viz-marker: var(--text);
   --viz-annotate: var(--accent-trust);
   --viz-area-opacity: 0.12;

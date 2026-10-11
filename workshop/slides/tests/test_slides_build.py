@@ -295,3 +295,54 @@ def test_viz_tokens_are_stripped_but_kept_in_tokens_css(deck):
     assert build.VIZ_TOKENS_MARK in (SLIDES / "src" / "styles" / "tokens.css").read_text(encoding="utf-8")
     assert build.VIZ_TOKENS_MARK not in build.tokens_css(deck, False)
     assert "--viz-bar-radius" in build.tokens_css(deck, True)
+
+
+# ---------- looks: several themes in one page ----------
+LOOKS = ["dusk", "mist", "chalkboard", "ledger", "receipt"]
+
+
+def test_looks_build_scopes_every_theme_and_adds_a_switcher(deck):
+    frag = build.build(deck, LOOKS[0], False, LOOKS)
+    stand = build.build(deck, LOOKS[0], True, LOOKS)
+    assert frag.startswith("<title>Harness You Can Trust · looks: dusk, mist, chalkboard, ledger, receipt</title>")
+    assert frag.count("<style>") == frag.count("<script>") == 1 and "<!doctype" not in frag.lower()
+    assert frag.count('<link rel="stylesheet"') == 5  # one font link per look (receipt and dusk share none)
+    for name in LOOKS:
+        assert f':root[data-look="{name}"] {{' in frag
+        assert f':root[data-look="{name}"][data-theme="dark"] {{' in frag
+        assert f':root[data-look="{name}"]:not([data-theme="light"])' in frag
+        assert f'data-look-btn="{name}"' in frag
+    assert '<html lang="en" data-look="dusk" data-theme="light">' in stand
+    assert '<nav class="looks-bar"' in frag and ".viewport { top: var(--looks-bar-h); }" in frag
+    assert frag.index("Looks switcher (build.py --looks only)") < frag.index("var viewport = doc.getElementById")  # looks.js first
+
+
+def test_normal_builds_carry_no_looks_machinery(deck):
+    for name in deck.themes:
+        page = build.build(deck, name, True)
+        assert "looks-bar" not in page and "data-look" not in page and page.count('<link rel="stylesheet"') == 1
+
+
+def test_scoped_theme_css_leaves_no_bare_root():
+    css = build.scoped_theme_css(build.Theme(SLIDES / "src" / "themes" / "mist.css"))
+    assert re.search(r"(?m)^:root\s*\{", css) is None and ':root[data-look="mist"] {' in css
+
+
+def test_looks_cli_rejects_unknown_or_single(capsys):
+    assert build.main(["--looks", "dusk,nope"]) == 1
+    assert build.main(["--looks", "dusk"]) == 1
+
+
+def test_principle_ink_is_used_for_text_and_checked(deck, tmp_path, capsys):
+    html = build.SlideRenderer(deck).render_all()
+    assert '<span class="mega p-num" style="--c:var(--principle-1-ink)">1</span>' in html
+    src = copy_src(tmp_path)
+    t = src / "themes" / "receipt.css"
+    t.write_text(t.read_text(encoding="utf-8").replace("--principle-1-ink: var(--pen-blue);", "--principle-1-ink: var(--hi-blue);"), encoding="utf-8")
+    assert build.check(build.Deck(src)) == 1
+    assert "receipt light: --principle-1-ink on --slide-bg" in capsys.readouterr().out
+
+
+def test_minutes_match_the_facilitator_plan(deck):
+    assert [p["minutes"] for p in deck.principles] == [18, 20, 17, 25, 12]
+    assert '<span class="chip">8 min</span>' in build.SlideRenderer(deck).render_all()

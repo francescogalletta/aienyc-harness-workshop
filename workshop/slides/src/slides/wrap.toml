@@ -22,5 +22,5 @@ id = "s-questions"
 name = "Wrap · Questions"
 layout = "statement"
 blocks = [
-  { mega = "Questions", chip = "10 min" },
+  { mega = "Questions", chip = "8 min" },
 ]

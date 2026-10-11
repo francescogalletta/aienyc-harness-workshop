@@ -1,0 +1,97 @@
+/* Mist (candidate look): calm and light, easy on the eyes; sections pop as solid
+   saturated blocks with white text. Figtree, generous radii, slightly thinner strokes.
+   font-link: https://fonts.googleapis.com/css2?family=Figtree:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --mist-50: #eef1ef;
+  --white: #ffffff;
+  --mist-200: #c9d3d0;
+  --mist-400: #7d908d;
+  --mist-600: #5f706f;
+  --mist-700: #3c4d4c;
+  --mist-900: #1c2a2a;
+  --deep-950: #162120;
+  --deep-900: #1f2c2a;
+  --deep-800: #34443f;
+  --deep-600: #6f8681;
+  --deep-400: #93a5a1;
+  --deep-200: #c3d0cc;
+  --deep-50: #e8efec;
+  --butter: #ffe08a;
+  --butter-dark: #6b5210;
+  --pine: #0d7a66;
+  --pine-light: #4fc9ae;
+  --blue: #2f6fdb;
+  --violet: #7a4fd0;
+  --raspberry: #c6417c;
+  --amber: #b86400;
+  --green: #2c8a57;
+  --blue-tint: #8fb5f5;
+  --violet-tint: #b9a0f0;
+  --raspberry-tint: #f29bbd;
+  --amber-tint: #f2b65c;
+  --green-tint: #84d3a5;
+
+  /* fonts */
+  --font-sans: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+
+  /* shape: generous radii, slightly thinner strokes */
+  --radius-s: 8px;
+  --radius-m: 14px;
+  --radius-l: 72px;
+  --stroke-hair: 1.5px;
+  --stroke: 2.5px;
+  --stroke-sketch: 3px;
+
+  /* colour roles (primary) */
+  --slide-bg: var(--mist-50);
+  --surface: var(--white);
+  --text: var(--mist-900);
+  --text-quiet: var(--mist-700);
+  --text-muted: var(--mist-600);
+  --line: var(--mist-200);
+  --connector: var(--mist-400);
+  --attention: var(--butter);
+  --accent-trust: var(--pine);
+  --principle-1: var(--blue);
+  --principle-2: var(--violet);
+  --principle-3: var(--raspberry);
+  --principle-4: var(--amber);
+  --principle-5: var(--green);
+  --on-principle: var(--white);
+  --qr-ink: var(--mist-900);
+  --qr-ground: var(--white);
+
+  /* chart series: the principle hues reordered so neighbours stay apart (docs/visuals.md) */
+  --viz-series-1: var(--principle-2);
+  --viz-series-2: var(--principle-4);
+  --viz-series-3: var(--principle-3);
+  --viz-series-4: var(--principle-1);
+  --viz-series-5: var(--principle-5);
+  --viz-series-1-ink: var(--principle-2-ink);
+  --viz-series-2-ink: var(--principle-4-ink);
+  --viz-series-3-ink: var(--principle-3-ink);
+}
+
+/* Alternate: deep green-grey, lighter tints with dark text. */
+:root[data-theme="dark"] {
+  --slide-bg: var(--deep-950);
+  --surface: var(--deep-900);
+  --text: var(--deep-50);
+  --text-quiet: var(--deep-200);
+  --text-muted: var(--deep-400);
+  --line: var(--deep-800);
+  --connector: var(--deep-600);
+  --attention: var(--butter-dark);
+  --accent-trust: var(--pine-light);
+  --principle-1: var(--blue-tint);
+  --principle-2: var(--violet-tint);
+  --principle-3: var(--raspberry-tint);
+  --principle-4: var(--amber-tint);
+  --principle-5: var(--green-tint);
+  --on-principle: var(--deep-950);
+}

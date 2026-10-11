@@ -12,6 +12,9 @@ var viz = (function () {
   var STEP_ATTRS = ['data-step', 'data-step-out', 'data-step-fill', 'data-step-strike', 'data-step-mute'];
   var CLASSES = ['shown', 'gone', 'filled', 'struck', 'muted'];
   var KINDS = {};
+  /* fills and the ink (stroke/text strength) used for the same role when drawn as lines */
+  var INK = { '--viz-bar': '--viz-bar-ink', '--viz-highlight': '--viz-highlight-ink', '--viz-up': '--viz-up-ink',
+    '--viz-down': '--viz-down-ink', '--viz-total': '--viz-total-ink' };
 
   /* ---------- helpers ---------- */
   function reduce() { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -29,6 +32,16 @@ var viz = (function () {
     t.textContent = s; return t;
   }
   function r1(v) { return Math.round(v * 10) / 10; }
+  function fit(t, width) {  /* a label wider than its slot breaks onto two lines at the middle space */
+    var s = t.textContent;
+    if (!t.getComputedTextLength || t.getComputedTextLength() <= width || s.indexOf(' ') < 0) return t;
+    var words = s.split(' '), best = 1, half = s.length / 2, pos = 0;
+    words.forEach(function (w, i) { pos += w.length + 1; if (i < words.length - 1 && Math.abs(pos - half) < Math.abs(words.slice(0, best).join(' ').length - half)) best = i + 1; });
+    var x = t.getAttribute('x'), lines = [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+    t.textContent = '';
+    lines.forEach(function (l, i) { var ts = el('tspan', { x: x, dy: i ? '1.1em' : 0 }, t); ts.textContent = l; });
+    return t;
+  }
   function stepOn(node, n) { if (n) node.setAttribute('data-step', n); return node; }
   function fmt(v, spec) {
     spec = spec || {};
@@ -112,7 +125,7 @@ var viz = (function () {
   function barShape(parent, x, y, w, h, rad, up, rc, fig, colorTok, seed) {
     if (h < 0.5) h = 0.5;
     if (rc) {
-      var c = tok(colorTok);
+      var c = tok(INK[colorTok]);
       parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed })));
       return;
     }
@@ -124,7 +137,7 @@ var viz = (function () {
   }
   function hbarShape(parent, x, y, w, h, rad, rc, fig, colorTok, seed) {
     if (w < 0.5) w = 0.5;
-    if (rc) { var c = tok(colorTok); parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed }))); return; }
+    if (rc) { var c = tok(INK[colorTok]); parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed }))); return; }
     var r = Math.max(0, Math.min(rad, h / 2, w));
     el('path', { d: 'M' + x + ' ' + y + 'H' + r1(x + w - r) + 'Q' + r1(x + w) + ' ' + y + ' ' + r1(x + w) + ' ' + r1(y + r) + 'V' + r1(y + h - r) + 'Q' + r1(x + w) + ' ' + r1(y + h) + ' ' + r1(x + w - r) + ' ' + r1(y + h) + 'H' + x + 'Z' }, parent);
   }
@@ -156,7 +169,7 @@ var viz = (function () {
           var h = stepOn(el('g', { 'class': 'viz-bar viz-hl', style: '--i:' + i }, hl), spec.highlight_step || spec.step);
           barShape(h, x, y, bw, base - y, rad, true, rc, fig, '--viz-highlight', 40 + i);
         }
-        text(svg, cx, base + 48, r[0], 'viz-label' + (r[0] === spec.highlight ? ' viz-strong' : ''));
+        fit(text(svg, cx, base + 48, r[0], 'viz-label' + (r[0] === spec.highlight ? ' viz-strong' : '')), band * 0.96);
         if (wantsValue(spec, r[0], i, n)) stepOn(text(data, cx, y - 16, fmt(r[1], spec), 'viz-value'), spec.step);
       });
     } else {
@@ -197,7 +210,7 @@ var viz = (function () {
         var lvl = yOf(it.to), nx = box.x + band * (i + 1) + band / 2 - bw / 2;
         el('line', { 'class': 'viz-connector', x1: r1(x + bw), x2: r1(nx), y1: r1(lvl), y2: r1(lvl) }, g);
       }
-      text(svg, cx, box.y + box.h + 50, it.label, 'viz-label' + (it.kind === 'total' ? ' viz-strong' : ''));
+      fit(text(svg, cx, box.y + box.h + 50, it.label, 'viz-label' + (it.kind === 'total' ? ' viz-strong' : '')), band * 0.96);
     });
     if (rough) inkable(data);
   };
@@ -218,7 +231,7 @@ var viz = (function () {
       var g = stepOn(el('g', { 'class': 'viz-series ' + cls }, svg), s.step || spec.step);
       var d = 'M' + pts.map(function (p) { return r1(p[0]) + ' ' + r1(p[1]); }).join('L');
       if (spec.area && !rough && k === 0) el('path', { 'class': 'viz-area', d: d + 'L' + r1(pts[n - 1][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'L' + r1(pts[0][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'Z' }, g);
-      if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok('--viz-series-' + (k + 1)), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
+      if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok('--viz-series-' + (k + 1) + '-ink'), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
       else el('path', { 'class': 'viz-line', d: d }, g);
       inkable(g);
       if (spec.points !== false) pts.forEach(function (p, i) { el('circle', { 'class': 'viz-point', cx: r1(p[0]), cy: r1(p[1]), r: pr, style: '--i:' + i }, g); });
@@ -262,7 +275,7 @@ var viz = (function () {
       var x = xOf(day(e.date)), up = i % 2 === 0, g = stepOn(el('g', { 'class': 'viz-event', style: '--i:' + i }, svg), each ? (s0 + i || null) : (e.step || spec.step));
       var y2 = up ? mid - 70 : mid + 70;
       el('line', { 'class': 'viz-leader', x1: r1(x), x2: r1(x), y1: mid, y2: y2 }, g);
-      if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-series-1'), fill: tok('--viz-series-1'), fillStyle: 'solid', seed: 90 + i })));
+      if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-series-1-ink'), fill: tok('--viz-series-1-ink'), fillStyle: 'solid', seed: 90 + i })));
       else el('circle', { 'class': 'viz-point viz-s1', cx: r1(x), cy: mid, r: pr * 1.5 }, g);
       var anchorPos = x < x0 + 160 ? 'start' : x > x1 - 160 ? 'end' : 'middle';
       var dt = new Date(day(e.date)), when = MONTHS[dt.getUTCMonth()] + ' ' + dt.getUTCDate();
@@ -299,7 +312,9 @@ var viz = (function () {
       var h1 = [q[0] - L * Math.cos(ang) + hw * Math.sin(ang), q[1] - L * Math.sin(ang) - hw * Math.cos(ang)], h2 = [q[0] - L * Math.cos(ang) - hw * Math.sin(ang), q[1] - L * Math.sin(ang) + hw * Math.cos(ang)];
       if (rc) { var o = roughOpts(fig, { stroke: tok('--viz-link'), roughness: 1.1, seed: 60 + k }); g.appendChild(rc.line(p[0], p[1], q[0], q[1], o)); g.appendChild(rc.linearPath([h1, q, h2], o)); }
       else { el('path', { 'class': 'viz-arrow-line', d: 'M' + r1(p[0]) + ' ' + r1(p[1]) + 'L' + r1(q[0] - 10 * Math.cos(ang)) + ' ' + r1(q[1] - 10 * Math.sin(ang)) }, g); el('path', { 'class': 'viz-arrow-head', d: 'M' + r1(h1[0]) + ' ' + r1(h1[1]) + 'L' + r1(q[0]) + ' ' + r1(q[1]) + 'L' + r1(h2[0]) + ' ' + r1(h2[1]) + 'Z' }, g); }
-      inkable(g);
+      var dash = tok('--viz-link-dash');
+      if (dash && dash !== 'none') g.querySelectorAll('path').forEach(function (pth) { if (!pth.classList.contains('viz-arrow-head')) pth.style.strokeDasharray = dash; });
+      else inkable(g);
       segs.push({ p: p, q: q, from: lk[0] - 1, to: lk[1] - 1 });
     });
     var nodeG = el('g', { 'class': 'viz-nodes' }, svg), rings = [];
@@ -496,7 +511,7 @@ var viz = (function () {
     });
   }
   function remark() { doc.querySelectorAll('[data-viz="mark"]').forEach(drawOne); }
-  new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+  new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-theme', 'data-look', 'class', 'style'] });
   if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', retheme); }
   if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(remark);
   window.addEventListener('resize', remark);

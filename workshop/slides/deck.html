@@ -40,8 +40,10 @@ img { max-width: 100%; }
   --fs-7xl: calc(300px * var(--type-scale));
 
   --font-display: var(--font-sans);  /* themes with a separate display face override this */
+  --font-label: var(--font-sans);    /* labels, chips and number-heavy bits */
   --weight-regular: 400;
   --weight-strong: 600;
+  --weight-display: var(--weight-strong);  /* mega, display, headline and big numbers */
   --weight-hand: 500;
   --weight-hand-strong: 700;
   --tracking-tight: -0.02em;
@@ -86,6 +88,7 @@ img { max-width: 100%; }
   /* Fonts by role */
   --body-font: var(--font-sans);
   --display-font: var(--font-display);
+  --label-font: var(--font-label);
   --code-font: var(--font-mono);
   --footnote-font: var(--font-mono);
   --aside-font: var(--font-hand);
@@ -169,6 +172,7 @@ img { max-width: 100%; }
 
   /* Connectors (flow arrows, converging lines) */
   --connector-width: var(--stroke);
+  --connector-style: solid;   /* the lines that drop from pills onto a question; dashed in some looks */
 
   /* Footnote (mono) and aside (handwritten) */
   --footnote-text: var(--text-muted);
@@ -301,6 +305,15 @@ img { max-width: 100%; }
   --focus-ring-width: var(--stroke);
   --focus-ring-offset: var(--space-3xs);
   --focus-radius: var(--radius-s);
+
+  /* A principle's colour used as text or a thin stroke on the slide ground (the
+     divider's big number, chart lines). Fills use --principle-N. A look with pale
+     "highlighter" fills sets darker inks here. */
+  --principle-1-ink: var(--principle-1);
+  --principle-2-ink: var(--principle-2);
+  --principle-3-ink: var(--principle-3);
+  --principle-4-ink: var(--principle-4);
+  --principle-5-ink: var(--principle-5);
 
   /* Confetti (canvas): read by js/confetti.js as a comma-separated list */
   --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
@@ -452,11 +465,11 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 
 /* ---------- Type roles ---------- */
 .mega, .display, .headline, .sub { text-wrap: balance; }
-.mega     { font-family: var(--display-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
-.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); max-width: var(--display-measure); }
-.headline { font-family: var(--display-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); max-width: var(--display-measure); }
+.mega     { font-family: var(--display-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); }
+.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); max-width: var(--display-measure); }
+.headline { font-family: var(--display-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-display); letter-spacing: var(--tracking-snug); max-width: var(--display-measure); }
 .sub      { font-size: var(--sub-size); line-height: var(--sub-leading); font-weight: var(--weight-regular); color: var(--text-quiet); max-width: var(--sub-measure); }
-.label    { font-size: var(--label-size); line-height: 1.2; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps); color: var(--text-muted); }
+.label    { font-family: var(--label-font); font-size: var(--label-size); line-height: 1.2; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps); color: var(--text-muted); }
 .mono     { font-family: var(--code-font); font-size: var(--code-size); font-weight: var(--weight-regular); line-height: 1.3; }
 .quiet    { color: var(--text-quiet); }
 .soft     { font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-regular); color: var(--text-quiet); }
@@ -486,7 +499,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
   position: fixed; right: 14px; bottom: 10px;
-  font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--text-muted);
+  font-family: var(--label-font); font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--text-muted);
   font-variant-numeric: tabular-nums; opacity: 0.7; pointer-events: none;
 }
 
@@ -531,7 +544,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .chip {
   display: inline-flex; align-items: center; white-space: nowrap;
   height: var(--chip-h); padding: 0 var(--chip-pad-x);
-  font-size: var(--chip-size); line-height: 1; font-weight: var(--weight-regular);
+  font-family: var(--label-font); font-size: var(--chip-size); line-height: 1; font-weight: var(--weight-regular);
   font-variant-numeric: tabular-nums; letter-spacing: 0;
   color: var(--chip-text);
   border-radius: var(--chip-radius); box-shadow: inset 0 0 0 var(--chip-stroke) var(--chip-stroke-color);
@@ -616,7 +629,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 
 /* ---------- Tally (show of hands) ---------- */
 .hands { display: flex; justify-content: space-between; width: 100%; }
-.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
+.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
 .hands .num.muted { color: var(--text-muted); }
 
 /* ---------- Swap (one line replaces another) and the big ask ---------- */
@@ -642,7 +655,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 /* ---------- Tracks ---------- */
 .tracks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--tracks-gap); width: 100%; }
 .track { padding: var(--track-pad-top) var(--track-pad-x) var(--track-pad-bottom); display: flex; flex-direction: column; }
-.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
+.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); }
 .track-name { margin-top: var(--track-name-gap); }
 .track-line { margin-top: var(--track-line-gap); }
 .hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; color: var(--text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
@@ -679,7 +692,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   justify-content: flex-start;
 }
 .flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
-.node-num { font-size: var(--node-num-size); line-height: 1; }
+.node-num { font-family: var(--label-font); font-size: var(--node-num-size); line-height: 1; }
 .node-name { font-size: var(--node-name-size); line-height: 1.15; }
 .flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
 .flow-node.step.tint { background: var(--c); color: var(--on-principle); box-shadow: none; position: relative; }
@@ -701,14 +714,14 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .question {
   position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
   display: grid; place-items: center; text-align: center;
-  font-family: var(--display-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug);
+  font-family: var(--display-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--weight-display); letter-spacing: var(--tracking-snug);
 }
 .input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
 .input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: var(--input-pill-size); height: var(--input-pill-h); padding: 0 var(--placeholder-pad-x); }
 .input::before {
-  content: ""; position: absolute; left: calc(var(--connector-width) / -2); top: 92px; width: var(--connector-width);
+  content: ""; position: absolute; left: calc(var(--connector-width) / -2); top: 92px; width: 0;
   height: calc(var(--step-top) - var(--top) - 92px - 24px);
-  background: var(--connector);
+  border-left: var(--connector-width) var(--connector-style) var(--connector);
 }
 .input::after {
   content: ""; position: absolute; left: -10px; top: calc(var(--step-top) - var(--top) - 24px);
@@ -719,14 +732,14 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 /* ---------- Framework stack ---------- */
 .stack { width: 100%; }
-.stack-goal { font-family: var(--display-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); margin-top: var(--space-2xs); }
+.stack-goal { font-family: var(--display-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); margin-top: var(--space-2xs); }
 .stack-bars { display: flex; flex-direction: column; gap: var(--bars-gap); margin-top: var(--bars-top); }
 .bar {
   height: var(--bar-h); border-radius: var(--bar-radius); padding: 0 var(--bar-pad-x);
   display: flex; align-items: center; gap: var(--row-gap);
   color: var(--framework-idle); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
 }
-.bar-num { font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
+.bar-num { font-family: var(--label-font); font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
 .bar-name { font-size: var(--bar-name-size); font-weight: var(--weight-strong); line-height: 1; }
 .bar-text { margin-left: auto; font-size: var(--bar-text-size); font-weight: var(--weight-regular); line-height: 1.1; text-align: right; visibility: hidden; }
 .bar.filled { background: var(--c); color: var(--on-principle); box-shadow: none; }
@@ -740,7 +753,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .cell {
   flex: none; width: 64px; height: 88px; border-radius: var(--cell-radius);
   display: grid; place-items: center;
-  font-size: var(--cell-size); font-weight: var(--weight-strong);
+  font-family: var(--label-font); font-size: var(--cell-size); font-weight: var(--weight-strong);
   background: var(--c); color: var(--on-principle);
 }
 .builds-on .arrow { width: 64px; height: 18px; }
@@ -772,7 +785,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .rail-cell {
   width: 64px; height: 96px; border-radius: var(--cell-radius);
   display: grid; place-items: center;
-  font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
+  font-family: var(--label-font); font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
   color: var(--text-muted); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
 }
 .rail-cell.done, .rail-cell.now { background: var(--c); color: var(--on-principle); box-shadow: none; }
@@ -1106,7 +1119,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 29 · Principle 1 · Shared Domain -->
 <section class="slide" id="s-p1" data-principle="1">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">20 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1-ink)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">18 min</span></div>
   <p class="sub gap-m">Agree the plan before any number.</p>
 </section>
 
@@ -1157,7 +1170,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 35 · Principle 2 · Consistency -->
 <section class="slide" id="s-p2" data-principle="2">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">25 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2-ink)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">20 min</span></div>
   <p class="sub gap-m">Numbers come only from tested code.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
@@ -1205,7 +1218,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 41 · Principle 3 · Evidence -->
 <section class="slide" id="s-p3" data-principle="3">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">15 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3-ink)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">17 min</span></div>
   <p class="sub gap-m">Every number can be followed back.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
 </section>
@@ -1227,7 +1240,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 45 · Principle 4 · Accountability -->
 <section class="slide" id="s-p4" data-principle="4">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4-ink)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Ask only where a person must decide.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
@@ -1249,7 +1262,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 49 · Principle 5 · Verification -->
 <section class="slide" id="s-p5" data-principle="5">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">15 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5-ink)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">12 min</span></div>
   <p class="sub gap-m">A reviewer challenges the plan.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
@@ -1291,7 +1304,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 55 · Wrap · Questions -->
 <section class="slide" id="s-questions" data-principle="wrap">
-  <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">10 min</span></div>
+  <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">8 min</span></div>
 </section>
 
 <!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); deck.js sets its state from that attribute. -->

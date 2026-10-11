@@ -20,6 +20,7 @@ python workshop/slides/build.py --theme ink  # dist/deck.ink.html + dist/deck.in
 python workshop/slides/build.py --all        # every theme
 python workshop/slides/build.py --check      # validate; exits 1 on problems
 python workshop/slides/build.py --gallery --all   # dist/gallery.<theme>.html for every theme
+python workshop/slides/build.py --looks a,b,c     # several looks in one page, with a switcher
 ```
 
 `deck.html` is committed; `dist/` is not. The fragment is the form the hosting
@@ -141,6 +142,27 @@ clean and rough styles, on sample data. Press `D` for dark. Change a token,
 rebuild, look. Screenshots for a side-by-side:
 `python workshop/slides/tools/shoot.py shots dist/gallery.NAME.html dist/shots/gallery/NAME --set all --dark`.
 
+## Compare looks side by side
+
+```
+python workshop/slides/build.py --looks dusk,mist,chalkboard,ledger,receipt            # dist/deck.looks.html
+python workshop/slides/build.py --looks dusk,mist,chalkboard,ledger,receipt --gallery  # dist/gallery.looks.html
+```
+
+One page holds every listed theme, each scoped to `data-look="<name>"` on the
+root, and a slim bar above the stage to switch between them: click a name, or
+`T` for the next look and `Shift+T` for the previous one. Every look opens on
+its primary palette whatever your OS prefers; `D` (or the Primary/Alternate
+button) shows its alternate. The slide, the step and any visuals stay put.
+Each build also writes a `.fragment.html` for the hosting page. Normal builds
+are unchanged: no bar, one theme.
+
+The candidate looks are `dusk` (dark slate, luminous fills), `mist` (calm
+light, solid saturated sections), `chalkboard` (green board, chalk pastels;
+alternate: whiteboard), `ledger` (accounting paper, serif) and `receipt`
+(monospace, highlighter fills). `blueprint` stays the default; `ink` and
+`paper` stay as examples.
+
 ## Change the look
 
 Everything visual is a token. `src/styles/tokens.css` holds the defaults (type
@@ -164,6 +186,13 @@ shape is:
 :root { palette; --font-sans/mono/hand/emoji; colour roles (light); overrides }
 :root[data-theme="dark"] { colour roles (dark) }
 ```
+
+A few tokens exist for looks that need them: `--font-display` (mega, display
+and headline), `--font-label` (labels, chips, numbers), `--weight-display`,
+`--principle-N-ink` (a principle's colour as text or a thin line, for looks with
+pale fills), `--connector-style` and `--viz-link-dash` (dashed connectors).
+`--check` asks for text at 7:1, muted text and the trust accent at 4.5:1, inks
+at 3:1 on the ground and text on principle fills at 4:1, in both palettes.
 
 Write the dark values once; the build repeats them under
 `prefers-color-scheme: dark` as the hosting page needs. Then

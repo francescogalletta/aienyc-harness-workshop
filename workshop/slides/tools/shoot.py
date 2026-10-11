@@ -151,6 +151,11 @@ def cmd_shots(a):
         page = new_page(b)
         page.goto(url)
         page.evaluate("document.fonts.ready")
+        if a.look:
+            page.evaluate(f"document.documentElement.setAttribute('data-look', '{a.look}')")
+        if a.alt:
+            page.evaluate("document.documentElement.setAttribute('data-theme', 'dark')")
+        page.wait_for_timeout(100)
         steps = page.evaluate(STEPS_JS)
         wanted = [int(x) for x in a.slides.split(",")] if a.slides else None
         count = 0
@@ -158,7 +163,7 @@ def cmd_shots(a):
             for n in (wanted or range(1, len(steps) + 1)):
                 open_at(page, url, n)
                 forward(page, steps[n - 1])
-                page.screenshot(path=str(outdir / f"{n:02d}.png")); count += 1
+                page.screenshot(path=str(outdir / f"{a.prefix}{n:02d}.png")); count += 1
             if a.dark:
                 dark = new_page(b, scheme="dark")
                 for n in (wanted or range(1, len(steps) + 1)):
@@ -216,26 +221,50 @@ def cmd_check(a):
         page.evaluate("document.fonts.ready")
         steps = page.evaluate(STEPS_JS)
         n_slides = len(steps)
-        for i, total in enumerate(steps):
-            for k in range(total + 1):
-                h = page.evaluate("location.hash")
-                if h != f"#{i + 1}":
-                    problems.append(f"slide {i + 1} step {k}: hash {h}")
+        looks = page.evaluate("Array.from(document.querySelectorAll('.looks-bar [data-look-btn]')).map(function (b) { return b.getAttribute('data-look-btn'); })")
+        if looks and page.evaluate("document.documentElement.getAttribute('data-theme')") != "light":
+            problems.append("looks build did not open on the primary palette (data-theme=light)")
+        for look in (looks or [None]):
+            tag = f"[{look}] " if look else ""
+            if look:
+                # switching keeps slide and step, and the button does not move the deck
+                open_at(page, url, 28)
+                forward(page, 3)
+                before = page.evaluate("[location.hash, document.querySelectorAll('.slide.active .shown, .slide.active .filled').length]")
+                page.click(f'.looks-bar [data-look-btn="{look}"]')
+                page.keyboard.press(" ")  # a focused button must not take Space as "next" (it was blurred anyway)
+                page.keyboard.press("ArrowLeft")
+                after = page.evaluate("[location.hash, document.querySelectorAll('.slide.active .shown, .slide.active .filled').length, document.documentElement.getAttribute('data-look')]")
+                if after[0] != before[0] or after[2] != look:
+                    problems.append(f"{tag}switching look moved the deck or failed: {before} -> {after}")
+                page.keyboard.press("Home")
+            for i, total in enumerate(steps):
+                for k in range(total + 1):
+                    h = page.evaluate("location.hash")
+                    if h != f"#{i + 1}":
+                        problems.append(f"{tag}slide {i + 1} step {k}: hash {h}")
+                    for issue in page.evaluate(BOUNDS_JS):
+                        problems.append(f"{tag}slide {i + 1} step {k}: {issue}")
+                    if not (i == n_slides - 1 and k == total):
+                        page.keyboard.press("ArrowRight")
+            page.keyboard.press("ArrowRight")  # past the end: must stay put
+            end = page.evaluate("[location.hash, document.querySelectorAll('.slide.active').length]")
+            if end != [f"#{n_slides}", 1]:
+                problems.append(f"{tag}past the end: {end}")
+            for _ in range(sum(steps) + n_slides + 2):
+                page.keyboard.press("ArrowLeft")
                 for issue in page.evaluate(BOUNDS_JS):
-                    problems.append(f"slide {i + 1} step {k}: {issue}")
-                if not (i == n_slides - 1 and k == total):
-                    page.keyboard.press("ArrowRight")
-        page.keyboard.press("ArrowRight")  # past the end: must stay put
-        end = page.evaluate("[location.hash, document.querySelectorAll('.slide.active').length]")
-        if end != [f"#{n_slides}", 1]:
-            problems.append(f"past the end: {end}")
-        for _ in range(sum(steps) + n_slides + 2):
-            page.keyboard.press("ArrowLeft")
-            for issue in page.evaluate(BOUNDS_JS):
-                problems.append(f"going back, {page.evaluate('location.hash')}: {issue}")
-        back = page.evaluate("[location.hash, document.querySelector('.slide.active').id, document.querySelectorAll('.slide.active .shown, .slide.active .gone, .slide.active .filled, .slide.active .struck').length]")
-        if back[0] != "#1" or back[2] != 0:
-            problems.append(f"back to start: {back}")
+                    problems.append(f"{tag}going back, {page.evaluate('location.hash')}: {issue}")
+            back = page.evaluate("[location.hash, document.querySelector('.slide.active').id, document.querySelectorAll('.slide.active .shown, .slide.active .gone, .slide.active .filled, .slide.active .struck').length]")
+            if back[0] != "#1" or back[2] != 0:
+                problems.append(f"{tag}back to start: {back}")
+        if looks:
+            page.keyboard.press("t")
+            if page.evaluate("document.documentElement.getAttribute('data-look')") != looks[0]:
+                problems.append("T did not cycle back to the first look")
+            page.keyboard.press("Shift+T")
+            if page.evaluate("document.documentElement.getAttribute('data-look')") != looks[-1]:
+                problems.append("Shift+T did not go back a look")
         open_at(page, url, 18)
         if page.evaluate("document.querySelector('.slide.active').id") != page.evaluate("document.querySelectorAll('#stage > .slide')[17].id"):
             problems.append("loading #18 did not open slide 18")
@@ -254,7 +283,7 @@ def cmd_check(a):
                 problems.append(f"400px viewport, slide {n}: horizontal scroll {sw}>{cw}")
         problems += mobile.errors
         b.close()
-    print(f"checked {n_slides} slides, {sum(steps)} steps")
+    print(f"checked {n_slides} slides, {sum(steps)} steps" + (f", in {len(looks)} looks" if looks else ""))
     for p in problems:
         print("PROBLEM", p)
     print("ok" if not problems else f"{len(problems)} problems")
@@ -323,6 +352,9 @@ def main(argv=None):
     s = sub.add_parser("shots"); s.add_argument("deck"); s.add_argument("outdir")
     s.add_argument("--set", choices=["regress", "review", "all"], default="regress"); s.add_argument("--slides")
     s.add_argument("--dark", action="store_true", help="with --set all: dark shots too")
+    s.add_argument("--look", help="in a looks build: switch to this look first")
+    s.add_argument("--alt", action="store_true", help="switch to the alternate palette (data-theme=dark) first")
+    s.add_argument("--prefix", default="", help="prefix for file names")
     c = sub.add_parser("check"); c.add_argument("deck"); c.add_argument("--outdir")
     f = sub.add_parser("frames"); f.add_argument("deck"); f.add_argument("outdir")
     f.add_argument("--at", required=True, help="slide:step pairs, e.g. 20:1,24:2")
