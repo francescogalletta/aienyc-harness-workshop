@@ -9,7 +9,7 @@ only, no network). The harness never uses this folder.
 | Right arrow, Space, click on the right | Next step or slide |
 | Left arrow, click on the left | Back |
 | `F` | Fullscreen |
-| `D` | Light or dark |
+| `D` | The theme's other palette (Nord: Polar Night or Snow Storm) |
 | `#12` at the end of the address | Open at slide 12 |
 
 ## Build
@@ -33,6 +33,7 @@ also says when `deck.html` is out of date. The build's own tests:
 
 ```
 src/deck.toml          title, default theme, motion switch, section order
+                       (opening, about-us, trust, demo, setup, principle-1..5, wrap)
 src/principles.json    the five principles, one per line: name, emoji, colour token,
                        minutes, statement, "builds on" line
 src/slides/*.toml      the words: one file per section, slides in order
@@ -57,16 +58,17 @@ and that layout's fields. A statement slide is a list of blocks, top to bottom:
 
 ```toml
 [[slide]]
-id = "s-excited"
-name = "Excited"
+id = "s-example"
+name = "Example"
 layout = "statement"
 blocks = [
-  { display = "I got excited about this one." },
-  { sub = "I may have overdone it.", step = 1 },
+  { display = "A line shown at once." },
+  { sub = "A second one, at the first click.", step = 1 },
 ]
-footnote = { text = "* Possibly ADHD. Not a doctor.", step = 2 }
+footnote = { text = "* A footnote, at the second click.", step = 2 }
 ```
 
+- `arrow = "down"` is a small down arrow block; a split half takes `examples = [ { text, step } ]` (handwritten, under its headline); `lines` accept `sub` lines.
 - `step = n` shows a thing at click n (`out`, `mute`, `strike`, `fill` likewise).
 - In any text: `==trust==` is the trust accent; `[words]{aside step=3}` is a
   handwritten aside at click 3; `[words]{strike=2}` strikes them at click 2.
@@ -75,10 +77,20 @@ footnote = { text = "* Possibly ADHD. Not a doctor.", step = 2 }
 - Layouts, block roles and inline roles are all listed, with their fields, in
   `src/layouts/layouts.toml`. `raw` takes bespoke HTML when nothing fits.
 - Slides are numbered by position; move one by moving its `[[slide]]`.
+- **Section label** (top-left, quiet, uppercase): a section file may set a
+  top-level `group = "…"`; every slide in it shows that label. Principle files
+  with no `group` get "{n} · {name}" from `principles.json`; the opening has none.
+- **Slide number** (bottom-right, `#counter`, inside the stage): written by
+  `deck.js` from the slide's position, never in the sources.
+- `chrome = false` on a slide hides both (the title slide does).
+- **Layouts with a picture to choose**: `layout = "structure"` takes `variant = "stairs"` (default),
+  `"layers"` or `"timeline"`; anything else fails the build. All three read `principles.json`.
+  `layout = "repo"` is a file tree (`items` of `path`, `gloss`, optional `mute = n`, and a `line` with
+  `text`, `command`, `step`). A statement block `{ command = "…" }` is a large shell command.
 - A principle (name, emoji, minutes, statement) is one line in
   `principles.json`; the structure flow, the framework stack and its repeat,
   the rail and the dividers all follow.
-- The sketch on "How we got here" is drawn by `tools/sketch.py`; the QR by
+- `tools/sketch.py` draws `src/assets/sketch.svg` (not used by a slide now); the QR by
   `tools/qr.py` (needs `segno`; `--check` says when the QR is for another URL).
 
 ## Add a chart, diagram or animation
@@ -92,6 +104,7 @@ still. `--check` rejects unknown keys, malformed data and steps out of order.
 
 ```toml
 { viz = "flow", label = "…", nodes = ["Ask", { text = "Plan", principle = 1 }, { text = "Check", role = "accent", step = 2 }], travel = 3 }
+#   node_size = "l" (a type-scale step, xs..2xl, for node text on one slide; pair with node_width/node_height and \n in a node's text);
 #   direction = "column" | "grid" (+ columns, at = [col, row] per node, links = [[1, 2], [1, 3]]); reveal = "each"
 { viz = "bars", label = "…", data = [["Jan 15", 18200], ["Jun 10", 9800]], highlight = "Jun 10", highlight_step = 2, prefix = "$" }
 #   orient = "horizontal"; values = "all" | "none" | ["Jun 10"]; max, ticks, axis = false
@@ -138,39 +151,56 @@ same `<script>`. A deck with no visuals builds exactly as before.
 `python workshop/slides/build.py --gallery --theme NAME` (or `--all`) builds
 `dist/gallery.NAME.html` and its fragment: the theme's colour roles and type
 scale with live values, every layout, every component, and every visual in
-clean and rough styles, on sample data. Press `D` for dark. Change a token,
+clean and rough styles, on sample data. Press `D` for the alternate palette. Change a token,
 rebuild, look. Screenshots for a side-by-side:
 `python workshop/slides/tools/shoot.py shots dist/gallery.NAME.html dist/shots/gallery/NAME --set all --dark`.
 
 ## Compare looks side by side
 
 ```
-python workshop/slides/build.py --looks blueprint-night,catppuccin,nord,swiss,prospectus            # dist/deck.looks.html
-python workshop/slides/build.py --looks blueprint-night,catppuccin,nord,swiss,prospectus --gallery  # dist/gallery.looks.html
+python workshop/slides/build.py --looks nord,catppuccin,blueprint            # dist/deck.looks.html
+python workshop/slides/build.py --looks nord,catppuccin,blueprint --gallery  # dist/gallery.looks.html
 ```
 
 One page holds every listed theme, each scoped to `data-look="<name>"` on the
 root, and a slim bar above the stage to switch between them: click a name, or
 `T` for the next look and `Shift+T` for the previous one. Every look opens on
-its primary palette whatever your OS prefers; `D` (or the Primary/Alternate
-button) shows its alternate. The slide, the step and any visuals stay put.
+the palette `deck.toml` asks for (see "Palettes" below); `D` (or the
+Primary/Alternate button) shows the other one. The slide, the step and any visuals stay put.
 Each build also writes a `.fragment.html` for the hosting page. Normal builds
 are unchanged: no bar, one theme. The bar shows each theme's display name (the
 `name:` line in its header comment) and, under 760px wide, its `short:` form.
 `tools/shoot.py check` on a looks page walks every look in both palettes.
 
-The candidate looks (primary palette, then alternate):
+The three themes (primary palette, then alternate):
 
-| Look | Primary | Alternate | Type and shape |
+| Theme | Primary | Alternate | Type and shape |
 | --- | --- | --- | --- |
-| `blueprint-night` | deep navy, soft blue-grey outlines, faint drafting grid | blueprint light, unchanged | IBM Plex, blueprint shapes |
-| `catppuccin` | Macchiato | Latte | Figtree, JetBrains Mono, 12px corners, round pills |
-| `nord` | Polar Night | Snow Storm | IBM Plex, blueprint shapes |
-| `swiss` | warm white, near-black ink, solid OKLCH section fields | graphite | Schibsted Grotesk 800 set tight, square, heavier rules |
-| `prospectus` | warm white, deep blue-green ink, muted deep sections | ink-dark | Instrument Serif display, Instrument Sans, 3px corners |
+| `nord` (the default) | Polar Night (dark) | Snow Storm (light) | IBM Plex, blueprint shapes |
+| `catppuccin` | Macchiato (dark) | Latte (light) | Figtree, JetBrains Mono, 12px corners, round pills |
+| `blueprint` | navy on pale blue-grey (light) | night: deep navy, soft outlines, faint drafting grid (dark) | IBM Plex |
 
-`blueprint` stays the default. Palette sources, licences and every deviation
-from them are in each theme's header comment and in `docs/visuals.md`.
+Palette sources, licences and every deviation from them are in each theme's
+header comment and in `docs/visuals.md`.
+
+## Palettes
+
+Every theme has two palettes, a primary and an alternate, and says whether each
+is light or dark. A deck is a projected thing, so by default everyone sees the
+**primary** palette, whatever their OS setting or the hosting page's own
+`data-theme` attribute; `D` switches to the alternate and back. The deck uses
+its own attribute for this (`data-palette="alternate"` on the root), so a host
+that sets `data-theme` never flips it. `deck.toml` chooses:
+
+```toml
+palette = "primary"     # default: the theme's primary palette for everyone
+palette = "alternate"   # the other one for everyone
+palette = "system"      # the palette that matches the viewer's light or dark setting
+                        # (a host page's data-theme="light"/"dark" wins over the OS)
+```
+
+In every mode `D` still toggles. The build writes `color-scheme` on each block,
+so form controls and scrollbars match, and `body` always paints `--slide-bg`.
 
 ## Change the look
 
@@ -192,8 +222,8 @@ shape is:
 /* NAME: one line on the look.
    font-link: https://fonts.googleapis.com/css2?family=...
 */
-:root { palette; --font-sans/mono/hand/emoji; colour roles (light); overrides }
-:root[data-theme="dark"] { colour roles (dark) }
+:root { palette; --font-sans/mono/hand/emoji; colour roles; overrides; color-scheme: light | dark; }
+:root[data-palette="alternate"] { the other palette's colour roles; color-scheme: dark | light; }
 ```
 
 Tokens a look can set (all default to blueprint's values, so `deck.html` does
@@ -224,13 +254,11 @@ not change):
 4.5:1, inks at 3:1 on the ground and each `--on-principle-N` on its fill at 4:1,
 in both palettes.
 
-Write the dark values once; the build repeats them under
-`prefers-color-scheme: dark` as the hosting page needs. Then
-`build.py --theme NAME` and `build.py --check` (it lists missing tokens and
-reports contrast; text on a principle fill must be at least 4:1).
-
-The five candidate looks above show the range; `blueprint-night.css` is the
-smallest one to start from (blueprint's shapes, a new palette).
+Write each palette once; the build adds whatever the `palette` setting needs
+(for "system", the OS and host rules). Do not write `data-theme` or
+`prefers-color-scheme` in a theme: `--check` refuses it, and also asks every
+block for its `color-scheme`. Then `build.py --theme NAME` and `build.py --check`
+(it lists missing tokens and reports contrast in both palettes).
 
 ## Look at it
 
@@ -241,6 +269,7 @@ the address, elements outside the 1920×1080 stage and phone-width scrolling:
 ```
 python workshop/slides/tools/shoot.py shots deck.html dist/shots/blueprint --set review
 python workshop/slides/tools/shoot.py check deck.html --csp     # with the hosting page's CSP
+                                                               # (also: OS dark/light and a host data-theme leave the palette alone; D toggles)
 python workshop/slides/tools/shoot.py frames dist/gallery.blueprint.html dist/shots/frames --at 21:1
 python workshop/slides/tools/shoot.py compare BEFORE_DIR AFTER_DIR
 ```

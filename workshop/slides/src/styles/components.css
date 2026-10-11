@@ -108,6 +108,12 @@
 .hands { display: flex; justify-content: space-between; width: 100%; }
 .hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); font-variant-numeric: tabular-nums; }
 .hands .num.muted { color: var(--text-muted); }
+.hands.grow { align-items: flex-end; }
+.hands.grow .num { line-height: var(--tally-grow-leading); }
+.hands.grow .num:nth-child(1) { font-size: calc(var(--tally-size) * var(--tally-grow-1)); }
+.hands.grow .num:nth-child(2) { font-size: calc(var(--tally-size) * var(--tally-grow-2)); }
+.hands.grow .num:nth-child(3) { font-size: calc(var(--tally-size) * var(--tally-grow-3)); }
+.hands.grow .num:nth-child(4) { font-size: calc(var(--tally-size) * var(--tally-grow-4)); }
 
 /* ---------- Swap (one line replaces another) and the big ask ---------- */
 .swap { display: grid; place-items: center; }
@@ -140,7 +146,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .footnote.hand { bottom: var(--aside-bottom); font-family: var(--aside-font); font-weight: var(--weight-hand); font-size: var(--aside-size); transform: rotate(-2deg); transform-origin: left center; }
 .footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
 /* Who is speaking, under the ask. The rest of its look comes from .hand-aside. */
-.ask-who { margin-top: var(--ask-who-gap); }
+.hand-aside.ask-who { margin-top: var(--ask-who-gap); margin-left: 0; font-size: var(--ask-who-size); line-height: 1; }
+/* The same aside under a line in a stack: on its own line, smaller. */
+.stack-tight .hand-aside.ask-who { display: block; width: fit-content; margin-top: var(--space-xs); font-size: var(--aside-stack-scale); }
 /* Handwritten asides pop in even while deck motion is off (author's request). */
 @keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
 @media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
@@ -156,6 +164,18 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
 .pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
 .command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); }
+.command.xl { font-size: var(--command-xl-size); }
+.setup-note { font-size: var(--setup-note-size); line-height: 1.25; color: var(--text-muted); max-width: var(--sub-measure); }
+
+/* ---------- Repo tree (the "what you cloned" slide) ---------- */
+.tree { list-style: none; margin-left: 0; padding: 0; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--tree-col-gap); row-gap: var(--tree-row-gap); align-items: baseline; }
+.tree-row { display: contents; color: var(--text); }
+.tree-path { font-size: var(--tree-path-size); font-weight: var(--weight-strong); }
+.tree-gloss { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
+.tree-row.muted .tree-path, .tree-row.muted .tree-gloss { color: var(--tree-muted); font-weight: var(--weight-regular); opacity: var(--tree-muted-opacity); }
+.tree-line { display: flex; align-items: center; gap: var(--tree-line-gap); }
+.tree-line-text { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
+.tree-line .command { padding: var(--tree-command-pad-y) var(--tree-command-pad-x); }
 
 /* ---------- Flow (the structure slide) ---------- */
 .flow { display: flex; align-items: flex-start; width: 100%; }
@@ -173,6 +193,47 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .node-name { font-size: var(--node-name-size); line-height: 1.15; }
 .flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
 .flow-node.step.tint { background: var(--c); color: var(--oc); box-shadow: none; position: relative; }
+
+/* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
+.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--hairline); }
+.stairs-start { margin-right: var(--space-xs); }
+.stairs-end { position: absolute; top: 0; right: 0; }
+.stair {
+  flex: 1 1 0; min-width: 0; box-sizing: border-box; margin-left: calc(var(--stroke-hair) * -1);
+  height: calc(var(--stair-base) + (var(--n) - 1) * var(--stair-rise));
+  padding: var(--stair-pad-y) var(--stair-pad-x); display: flex; flex-direction: column; justify-content: space-between;
+  border: var(--stroke-hair) solid var(--hairline); border-bottom: 0; border-top: var(--stair-tread) solid var(--ci, var(--c));
+  background: color-mix(in srgb, var(--ci, var(--c)) var(--stair-tint), transparent);
+}
+.stair-head { display: flex; align-items: center; justify-content: space-between; }
+.stair-num { font-size: var(--stair-num-size); line-height: 1; font-weight: var(--weight-strong); }
+.stair-emoji { font-family: var(--emoji-font); font-size: var(--stair-num-size); line-height: 1; }
+.stair-name { font-size: var(--stair-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+
+.layers { display: flex; align-items: center; justify-content: center; gap: var(--space-s); width: 100%; }
+.nests { flex: none; width: var(--nests-w); }
+.nest {
+  box-sizing: border-box; display: flex; flex-direction: column; gap: var(--nest-gap);
+  padding: var(--nest-pad-y) var(--nest-pad-x); border: var(--stroke) solid var(--ci, var(--c)); border-radius: var(--nest-radius);
+  background: color-mix(in srgb, var(--ci, var(--c)) var(--nest-tint), transparent);
+}
+.nest-name { display: flex; align-items: center; gap: var(--nest-name-gap); font-size: var(--nest-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+.nest-num { font-size: var(--nest-name-size); }
+.nest-emoji { font-family: var(--emoji-font); }
+
+.timeline { display: flex; align-items: flex-start; width: 100%; gap: var(--space-s); }
+.timeline .pill { margin-top: calc(var(--tl-above-h) + var(--tl-gap) + (var(--tl-dot) - var(--pill-h)) / 2); }
+.timeline-track { flex: 1 1 0; display: flex; min-width: 0; }
+.tl-seg { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.tl-above { height: var(--tl-above-h); margin-bottom: var(--tl-gap); display: flex; flex-direction: column; justify-content: flex-end; gap: var(--tl-name-gap); }
+.tl-head { display: flex; align-items: center; gap: var(--tl-name-gap); }
+.tl-num { font-size: var(--tl-num-size); line-height: 1; font-weight: var(--weight-strong); }
+.tl-emoji { font-family: var(--emoji-font); font-size: var(--tl-num-size); line-height: 1; }
+.tl-name { font-size: var(--tl-name-size); line-height: 1.15; font-weight: var(--weight-strong); white-space: nowrap; }
+.tl-dot { position: relative; height: var(--tl-dot); }
+.tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--hairline); }
+.tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--ci, var(--c)); }
+.tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }
@@ -184,7 +245,15 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 /* ---------- Split halves ---------- */
 .split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
 .split .divider { align-self: stretch; background: var(--hairline); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .examples { display: flex; flex-direction: column; gap: var(--split-example-gap); margin-top: var(--split-example-top); }
+.split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; }
+.split.has-examples .foot { margin-top: var(--split-foot-gap-examples); }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
+
+/* ---------- Down arrow between blocks (the arrow part, turned) ---------- */
+.arrow-down { display: flex; justify-content: flex-start; }
+.arrow-down .arrow { width: auto; height: var(--arrow-down-h); stroke-width: var(--arrow-down-stroke); margin: var(--arrow-down-margin) 0; }
+.arrow-down .arrow .l { vector-effect: non-scaling-stroke; stroke-dasharray: none; stroke-linecap: butt; }
 
 /* ---------- Converging pills (inputs drop onto a question) ---------- */
 .converge { padding: 0; --step-top: 550px; }
@@ -243,6 +312,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .says .ex { font-size: var(--example-size); line-height: 1.15; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); white-space: nowrap; }
 .doubts { display: flex; gap: var(--doubts-gap); flex-wrap: nowrap; }
 .doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 var(--doubt-pad-x); border: var(--stroke) dashed var(--your-call-stroke); border-radius: var(--doubt-radius); font-size: var(--doubt-size); font-weight: var(--weight-strong); color: var(--text); white-space: nowrap; }
+.says.compact { --says-said-w: var(--says-compact-said-w); --example-size: var(--says-compact-example-size); --doubt-size: var(--says-compact-doubt-size); --says-row-gap: var(--says-compact-row-gap); }
+.says.compact .doubt { height: var(--says-compact-doubt-h); }
 .says .said { font-weight: var(--weight-regular); color: var(--text-quiet); }
 
 /* ---------- Step grid ---------- */

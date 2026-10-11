@@ -130,7 +130,7 @@ def building_step(memory: dict) -> str | None:
 
 
 def build_running(memory: dict) -> bool:
-    """Whether the build job (`run_build`) is running now."""
+    """Whether the build job (`run_build`) is queued or running now."""
     return bool(_memory(memory).get("running"))
 
 
@@ -146,7 +146,13 @@ def start_build(core) -> None:
 
     if phase_of(core) != "accepted":
         raise NotNow(NO_PLAN)
-    if build_running(core.memory) or not core.queue("main", run_build, what="build", text=STARTING, key="build"):
+    state = _memory(core.memory)
+    if state["running"]:
+        raise NotNow(ALREADY_BUILDING)
+    # Marked before queueing: the lane can take the job off its queue before `run_build` marks it.
+    state["running"] = True
+    if not core.queue("main", run_build, what="build", text=STARTING, key="build"):
+        state["running"] = False
         raise NotNow(ALREADY_BUILDING)
 
 

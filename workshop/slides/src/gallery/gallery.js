@@ -14,7 +14,7 @@
     document.querySelectorAll('[data-token]').forEach(function (e) { e.textContent = hex(probe('backgroundColor', 'var(' + e.getAttribute('data-token') + ')')); });
     document.querySelectorAll('[data-size]').forEach(function (e) { e.textContent = '· ' + Math.round(parseFloat(probe('fontSize', 'var(' + e.getAttribute('data-size') + ')'))) + 'px'; });
   }
-  new MutationObserver(fill).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-look'] });
+  new MutationObserver(fill).observe(document.documentElement, { attributes: true, attributeFilter: ['data-palette', 'data-theme', 'data-look'] });
   if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', fill); }
   fill();
 })();

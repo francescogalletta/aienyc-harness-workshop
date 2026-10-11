@@ -155,6 +155,10 @@ def parse_output(returncode: int, stdout: str, stderr: str) -> dict:
         reply = json.loads(stdout)
     except ValueError:
         reply = None
+    if isinstance(reply, list):
+        # Newer versions print every event of the run; the reply is the last `result` event.
+        results = [event for event in reply if isinstance(event, dict) and event.get("type") == "result"]
+        reply = results[-1] if results else None
     if not isinstance(reply, dict):
         detail = " ".join((stderr or stdout or "no output").split())[:300]
         raise RuntimeError(f"Claude Code did not return a result (exit {returncode}): {detail}")

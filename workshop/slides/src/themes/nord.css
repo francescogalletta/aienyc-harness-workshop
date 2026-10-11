@@ -2,14 +2,18 @@
    Palette values from the nord 0.2.1 package (Arctic Ice Studio), licence
    Apache-2.0 AND CC-BY-SA-4.0 as the package declares.
    Roles: ground nord0, boxes nord1, hairlines nord2, text nord6, quiet nord4,
-   trust frost nord7, attention aurora nord12; sections nord9, nord15, nord11, nord13,
-   nord14 with nord0 as text. IBM Plex and blueprint's shapes.
-   Deviations (smallest OKLCH lightness change to pass the checks):
+   trust frost nord7, attention (the ask) aurora nord13 with nord0 text; sections
+   1 nord9 blue, 2 nord15 purple, 3 nord11 red, 4 nord12 orange, 5 nord14 green.
+   IBM Plex and blueprint's shapes.
+   Deviations (smallest OKLCH lightness change to reach 4.5:1 with the text on it):
+   nord15 #b48ead -> #b690af (+0.005, nord0 text 4.52:1); nord12 #d08770 -> #d38a73
+   (+0.01, nord0 text 4.55:1); nord11 #bf616a -> #ab4f59 (-0.06, nord6 text 4.5:1: lifting
+   it for nord0 text would have needed +0.10 and a bright salmon); nord11 itself stays
+   the red's ink (text and lines, 3.05:1 on nord0).
    muted text: nord3 #4c566a lifted to #909cb2 (4.5:1 on nord0; Nord has no mid grey);
-   box outlines and dashes: nord3 lifted to #687388 (visible as a quiet frame);
-   nord11 #bf616a -> #d6767e as a fill (nord0 text 4:1); nord12 #d08770 -> #d38972
-   (nord0 text 4.5:1). Snow Storm: nord7 as trust -> #497474 (4.5:1 on nord6); inks
-   (text-strength copies) nord15 -> #a47e9d, nord13 -> #a48547, nord14 -> #779161, nord12 -> #be7660 (chart highlight).
+   box outlines and dashes: nord3 lifted to #687388 (visible as a quiet frame).
+   Snow Storm: nord7 as trust -> #497474 (4.5:1 on nord6); inks (text-strength copies,
+   3:1 on nord6) nord15 -> #a47e9d, nord13 -> #a48547, nord14 -> #779161, nord12 -> #be7660.
    name: Nord
    short: Nord
    font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
@@ -34,8 +38,9 @@
   --nord15: #b48ead;
   --nord3-lift: #687388;      /* deviation */
   --nord3-muted: #909cb2;     /* deviation */
-  --nord11-fill: #d6767e;     /* deviation */
-  --nord12-fill: #d38972;     /* deviation */
+  --nord11-fill: #ab4f59;     /* deviation: carries nord6 text */
+  --nord12-fill: #d38a73;     /* deviation */
+  --nord15-fill: #b690af;     /* deviation */
   --nord7-deep: #497474;      /* deviation, Snow Storm */
   --nord15-ink: #a47e9d;      /* deviation, Snow Storm */
   --nord13-ink: #a48547;      /* deviation, Snow Storm */
@@ -56,15 +61,17 @@
   --text-muted: var(--nord3-muted);
   --line: var(--nord2);
   --connector: var(--nord3-lift);
-  --attention: var(--nord12-fill);
+  --attention: var(--nord13);
   --ask-text: var(--nord0);
   --accent-trust: var(--nord7);
   --principle-1: var(--nord9);
-  --principle-2: var(--nord15);
+  --principle-2: var(--nord15-fill);
   --principle-3: var(--nord11-fill);
-  --principle-4: var(--nord13);
+  --principle-4: var(--nord12-fill);
   --principle-5: var(--nord14);
   --on-principle: var(--nord0);
+  --on-principle-3: var(--nord6);
+  --principle-3-ink: var(--nord11);
   --qr-ink: var(--nord0);
   --qr-ground: var(--nord4);   /* softer than nord6 on the dark ground; nord0 on it is 10:1 */
   --outline: var(--nord3-lift);
@@ -80,16 +87,23 @@
   --diagram-quiet: var(--nord3-muted);
   --progress-fill: var(--nord9);
   --strike-color: var(--nord4);
+  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  --viz-series-3: var(--principle-3);
+  --viz-series-4: var(--principle-2);
+  --viz-series-5: var(--principle-5);
+  --viz-series-3-ink: var(--principle-3-ink);
   --viz-highlight: var(--attention);
   --viz-up: var(--nord14);
   --viz-down: var(--nord11-fill);
   --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
   --viz-down-ink: var(--viz-down);
+  --stair-tint: 22%;   /* on a dark ground the 14% tint goes grey */
+  --nest-tint: 10%;
   color-scheme: dark;
 }
 
 /* Alternate: Snow Storm. */
-:root[data-theme="dark"] {
+:root[data-palette="alternate"] {
   --slide-bg: var(--nord6);
   --surface: var(--nord5);
   --text: var(--nord0);
@@ -101,7 +115,7 @@
   --principle-1-ink: var(--nord10);
   --principle-2-ink: var(--nord15-ink);
   --principle-3-ink: var(--nord11);
-  --principle-4-ink: var(--nord13-ink);
+  --principle-4-ink: var(--nord12-ink);
   --principle-5-ink: var(--nord14-ink);
   --qr-ink: var(--nord0);
   --qr-ground: var(--nord5);
@@ -118,8 +132,10 @@
   --diagram-quiet: var(--nord3);
   --progress-fill: var(--nord10);
   --strike-color: var(--nord1);
-  --viz-highlight: var(--nord12-ink);
+  --viz-highlight: var(--nord13-ink);
   --viz-up: var(--nord14-ink);
   --viz-down: var(--nord11);
+  --stair-tint: 14%;
+  --nest-tint: 6%;
   color-scheme: light;
 }

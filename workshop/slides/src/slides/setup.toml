@@ -1,0 +1,62 @@
+# Setup and the shape of the session.
+group = "Setup"
+
+[[slide]]
+id = "s-setup"
+name = "Setup"
+layout = "setup"
+label = "GET THE REPO"
+minutes = 10
+url = "https://github.com/francescogalletta/aienyc-harness-workshop"
+needs_label = "YOU NEED ONE OF"
+needs = ["Claude Code", "Codex", "Claude Desktop", "an API key"]
+needs_todo = "others to confirm"
+note = "Or just ask your agent to guide you."
+
+[[slide]]
+id = "s-repo"
+name = "What you cloned"
+layout = "repo"
+label = "WHAT YOU JUST CLONED"
+items = [
+  { path = "harness/", gloss = "the harness you build" },
+  { path = "examples/wedding/", gloss = "today's example" },
+  { path = "my/", gloss = "your own plan" },
+  { path = "workshop/", gloss = "the steps, and how to catch up" },
+  { path = "tests/", gloss = "offline tests per layer", mute = 1 },
+  { path = "reference/", gloss = "checked finance terms", mute = 1 },
+  { path = "design/", gloss = "product design, page source", mute = 1 },
+  { path = "SPEC.md", gloss = "the contract", mute = 1 },
+]
+line = { text = "Catch up to step N:", command = "uv run python -m workshop at N", step = 2 }
+
+[[slide]]
+id = "s-map"
+name = "The two hours"
+layout = "structure"
+label = "TODAY'S STRUCTURE"
+headline = "For each principle, we explain it, show it working, then discuss and play."
+variant = "stairs"
+start = "Setup"
+end = "Wrap"
+
+[[slide]]
+id = "s-fine"
+name = "Fine print"
+layout = "statement"
+blocks = [
+  { label = "DISCLAIMER" },
+  { display = "Something will break." },
+  { sub = "Some of this is over-engineered.", step = 1 },
+  { sub = "If something breaks or does not make sense, raise your hand. We will come to you.", step = 2 },
+]
+
+[[slide]]
+id = "s-check"
+name = "Check it works"
+layout = "statement"
+blocks = [
+  { label = "CHECK IT WORKS" },
+  { command = "uv run python -m harness check" },
+  { sub = "It should end with “Setup works”." },
+]

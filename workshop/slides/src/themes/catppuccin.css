@@ -88,7 +88,7 @@
   --principle-5: var(--mac-green);
   --on-principle: var(--mac-crust);
   --qr-ink: var(--mac-crust);
-  --qr-ground: var(--mac-text);
+  --qr-ground: var(--mac-subtext1);   /* one step under text: no glare, crust on it 9.7:1 */
   --outline: var(--mac-overlay1);
   --hairline: var(--mac-surface1);
   --placeholder-stroke: var(--mac-overlay0);
@@ -114,11 +114,13 @@
   --viz-down: var(--mac-red);
   --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
   --viz-down-ink: var(--viz-down);
+  --stair-tint: 22%;   /* on a dark ground the 14% tint goes grey */
+  --nest-tint: 10%;
   color-scheme: dark;
 }
 
 /* Alternate: Latte. */
-:root[data-theme="dark"] {
+:root[data-palette="alternate"] {
   --slide-bg: var(--lat-base);
   --surface: var(--lat-mantle);
   --text: var(--lat-text);
@@ -154,5 +156,7 @@
   --strike-color: var(--lat-text);
   --viz-highlight: var(--lat-yellow-ink);
   --viz-down: var(--lat-red);
+  --stair-tint: 14%;
+  --nest-tint: 6%;
   color-scheme: light;
 }

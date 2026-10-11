@@ -73,10 +73,16 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .progress { position: fixed; left: 0; right: 0; bottom: 0; height: var(--progress-h); background: var(--progress-track); pointer-events: none; }
 .progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
-  position: fixed; right: 14px; bottom: 10px;
+  position: absolute; right: var(--counter-right); bottom: var(--counter-bottom);
   font-family: var(--label-font); font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--counter-text);
-  font-variant-numeric: var(--numeric-variant); opacity: 0.7; pointer-events: none;
+  font-variant-numeric: var(--numeric-variant); opacity: var(--chrome-opacity); pointer-events: none;
 }
+.section-label {
+  position: absolute; left: var(--slide-margin); top: var(--section-label-top);
+  font-family: var(--label-font); font-size: var(--section-label-size); line-height: 1; font-weight: var(--label-weight); letter-spacing: var(--label-tracking);
+  text-transform: uppercase; color: var(--section-label-text); opacity: var(--chrome-opacity); pointer-events: none;
+}
+.stage:has(> .slide.active[data-chrome="off"]) .counter { display: none; }
 
 /* ---------- Motion (dormant) ----------
    The author asked for no motion. To turn it back on, set motion = "on" in

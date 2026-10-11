@@ -1,5 +1,5 @@
 {
-  "_comment": "Local woff2 files used only by tools/shoot.py, for screenshots where Google Fonts cannot be reached. Paths are relative to --font-dir (or $DECK_FONT_DIR); the folder names match the npm packages ibm-plex-sans, ibm-plex-mono and @fontsource/{caveat,figtree,jetbrains-mono,schibsted-grotesk,instrument-serif,instrument-sans} unpacked side by side. The deck itself never uses these.",
+  "_comment": "Local woff2 files used only by tools/shoot.py, for screenshots where Google Fonts cannot be reached. Paths are relative to --font-dir (or $DECK_FONT_DIR); the folder names match the npm packages ibm-plex-sans, ibm-plex-mono and @fontsource/{caveat,figtree,jetbrains-mono} unpacked side by side. The deck itself never uses these.",
   "IBM Plex Sans": {
     "400": "ibm-plex-sans-1.1.0/package/fonts/complete/woff2/IBMPlexSans-Regular.woff2",
     "600": "ibm-plex-sans-1.1.0/package/fonts/complete/woff2/IBMPlexSans-SemiBold.woff2"
@@ -18,17 +18,5 @@
   },
   "JetBrains Mono": {
     "400": "jetbrains-mono/package/files/jetbrains-mono-latin-400-normal.woff2"
-  },
-  "Schibsted Grotesk": {
-    "400": "schibsted-grotesk/package/files/schibsted-grotesk-latin-400-normal.woff2",
-    "600": "schibsted-grotesk/package/files/schibsted-grotesk-latin-600-normal.woff2",
-    "800": "schibsted-grotesk/package/files/schibsted-grotesk-latin-800-normal.woff2"
-  },
-  "Instrument Serif": {
-    "400": "instrument-serif/package/files/instrument-serif-latin-400-normal.woff2"
-  },
-  "Instrument Sans": {
-    "400": "instrument-sans/package/files/instrument-sans-latin-400-normal.woff2",
-    "600": "instrument-sans/package/files/instrument-sans-latin-600-normal.woff2"
   }
 }

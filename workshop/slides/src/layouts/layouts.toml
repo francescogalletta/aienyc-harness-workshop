@@ -39,16 +39,23 @@ required = ["figure"]
 [layouts.setup]
 template = "setup"
 fields = ["label", "minutes", "url", "needs_label", "needs", "needs_todo", "check_label", "command", "check_result", "note"]
-required = ["label", "minutes", "url", "needs_label", "needs", "check_label", "command", "check_result"]
+required = ["label", "minutes", "url", "needs_label", "needs"]   # check_label, command, check_result: optional; note is small and quiet
 
-[layouts.structure]
+[layouts.repo]   # the top level of the repository as a file tree: path, gloss, mute = n; then one line (text + command) at its step
+template = "repo"
+fields = ["label", "items", "line"]
+required = ["label", "items"]
+
+[layouts.structure]   # the five modules, each building on the one before; variant picks the picture (one template each)
 template = "structure"
-fields = ["label", "headline", "start", "end"]
+variants = { stairs = "structure", layers = "structure-layers", timeline = "structure-timeline" }
+default_variant = "stairs"
+fields = ["label", "headline", "start", "end", "variant"]
 required = ["label", "headline", "start", "end"]
 
 [layouts.split]
 template = "split"
-fields = ["left", "right", "foot"]
+fields = ["left", "right", "foot"]   # left/right: label, headline, step, and optional examples = [ { text, step } ] (handwritten, under the headline)
 required = ["left", "right"]
 
 [layouts.converge]
@@ -125,27 +132,33 @@ label    = { tag = "p", class = "label" }
 display  = { tag = "heading", class = "display", template = "display" }   # + cycle = [...] to swap the end of the line, + quiet = true
 headline = { tag = "h2", class = "headline" }
 sub      = { tag = "p", class = "sub" }
+command  = { tag = "code", class = "mono step command xl" }               # a shell command, large
 mega     = { tag = "heading", class = "mega", template = "mega" }         # + emoji = "…" or chip = "…" beside it
 hero     = { tag = "heading", class = "mega xl" }                         # one huge word
 pause    = { tag = "p", class = "mega dots", aria = "pause" }
 big_emoji = { tag = "p", class = "big-emoji" }                            # + say = "aria label"
 ask      = { tag = "p", class = "display step from-you ask" }
+who      = { tag = "p", class = "hand-aside ask-who" }                    # handwritten line below the ask, outside its oval
 lines    = { class = "stack-tight", template = "lines" }                  # [ { headline = "…", step = 1 }, … ]; or soft
 swap     = { class = "swap", template = "swap" }                          # blocks shown one after another in one place
-tally    = { class = "hands", template = "tally" }                        # numbers that appear one by one, the previous one muting
+tally    = { class = "hands", template = "tally" }                        # numbers that appear one by one, the previous one muting; + grow = true makes each larger than the last
 tracks   = { class = "tracks", template = "tracks" }
 guesses  = { class = "says", template = "guesses" }                       # + heads = ["YOU SAY", "…"]
 grid     = { class = "steps-grid", template = "grid" }
+arrow    = { class = "arrow-down", template = "arrow" }                   # a small down arrow between two blocks: arrow = "down"
 viz      = { class = "viz" }                                              # a chart, diagram or animation: see "Visuals" below
 
 # Roles allowed inside `lines`.
 [line_roles]
 headline = "headline"
 soft = "soft"
+sub = "sub"          # smaller: five lines under a display
 
 # Modifiers: a block key that adds a class.
 [modifiers]
 quiet = "quiet"
+grow = "grow"
+compact = "compact"   # on guesses: a smaller table for long quotes
 
 # Gap before a block, by "previous-role role". Anything not listed gets default.
 [rhythm]
@@ -154,6 +167,7 @@ default = "m"
 "label display" = "s"
 "label mega" = "s"
 "label tally" = "xs"
+"ask who" = "xs"
 "headline sub" = "xs"
 "sub sub" = "s"
 "sub label" = "xl"

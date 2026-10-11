@@ -325,7 +325,7 @@ class Deck:
             if not path.exists():
                 raise BuildError(f"the manifest lists section {section!r} but there is no {rel}/{section}.toml")
             data = read_toml(path)
-            extra = set(data) - {"principle", "rail", "slide"}
+            extra = set(data) - {"principle", "rail", "group", "slide"}
             if extra:
                 raise BuildError(f"{rel}/{section}.toml: unknown top-level keys {sorted(extra)}")
             for i, slide in enumerate(data.get("slide", []), 1):
@@ -333,6 +333,11 @@ class Deck:
                 slide["_where"] = f"{rel}/{section}.toml, slide {i}"
                 slide.setdefault("principle", data.get("principle"))
                 slide.setdefault("rail", data.get("rail", True))
+                group = data.get("group")
+                if group is None and isinstance(data.get("principle"), int) and data["principle"] in self.by_n:
+                    pr = self.by_n[data["principle"]]
+                    group = f"{pr['n']} · {pr['name']}"
+                slide.setdefault("group", group)
                 slides.append(slide)
         return slides
 
@@ -470,7 +475,7 @@ class SlideRenderer:
         if name not in self.layouts:
             raise BuildError(f"{where}: unknown layout {name!r} (known: {', '.join(self.layouts)})")
         layout = self.layouts[name]
-        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "marks", "choreo", "_where"}
+        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "group", "chrome", "marks", "choreo", "_where"}
         unknown = set(slide) - allowed
         if unknown:
             raise BuildError(f"{where}: layout {name!r} has no fields {sorted(unknown)}")
@@ -478,6 +483,10 @@ class SlideRenderer:
         if missing:
             raise BuildError(f"{where}: layout {name!r} needs {missing}")
         s = dict(slide)
+        if layout.get("variants"):   # a layout with variants: one template each, a default, unknown values rejected
+            s.setdefault("variant", layout["default_variant"])
+            if s["variant"] not in layout["variants"]:
+                raise BuildError(f"{where}: layout {name!r} has no variant {s['variant']!r} (known: {', '.join(layout['variants'])})")
         pn = s.get("principle")
         if pn is not None and pn != "wrap" and pn not in self.deck.by_n:
             raise BuildError(f"{where}: principle {pn!r} is not in principles.json")
@@ -512,7 +521,8 @@ class SlideRenderer:
                "qr": self.deck.qr or Undefined("qr (src/assets/qr.json: run tools/qr.py)")}
         self.h1_used = False
         try:
-            inner = self.deck.loader.get(f"{layout['template']}.html").render(ctx, self.filters())
+            template = layout["variants"][s["variant"]] if layout.get("variants") else layout["template"]
+            inner = self.deck.loader.get(f"{template}.html").render(ctx, self.filters())
         except BuildError as e:
             raise BuildError(f"{s['_where']} ({s['id']}): {e}") from None
         try:
@@ -520,12 +530,17 @@ class SlideRenderer:
         except BuildError as e:
             raise BuildError(f"{s['_where']} ({s['id']}): {e}") from None
         inner = "\n".join(line.rstrip() for line in inner.split("\n") if line.strip())
+        chrome = s.get("chrome", True) is not False
+        if chrome and s.get("group"):
+            inner = f'  <p class="section-label">{escape(s["group"])}</p>\n' + inner
         classes = " ".join(c for c in ["slide", layout.get("class"), s.get("class") if s["layout"] == "raw" else None] if c)
         attrs = f' id="{escape(s["id"])}"'
         if s.get("principle") is not None:
             attrs += f' data-principle="{s["principle"]}"'
         if s.get("rail") is False:
             attrs += ' data-rail="off"'
+        if not chrome:
+            attrs += ' data-chrome="off"'
         return f"<!-- {number:02d} · {s['name']} -->\n<section class=\"{classes}\"{attrs}>\n{inner}\n</section>"
 
     def render_all(self) -> str:
@@ -541,7 +556,7 @@ class SlideRenderer:
 # ===========================================================================
 VIZ_COMMON = {"step", "style", "animate"}
 VIZ_TYPES = {  # type: (required keys, optional keys)
-    "flow": (["label", "nodes"], ["direction", "columns", "links", "travel", "reveal", "numbers", "node_width", "node_height", "gap", "width", "height"]),
+    "flow": (["label", "nodes"], ["direction", "columns", "links", "travel", "reveal", "numbers", "node_size", "node_width", "node_height", "gap", "width", "height"]),
     "bars": (["label", "data"], ["orient", "highlight", "highlight_step", "values", "axis", "max", "ticks", "prefix", "suffix", "decimals", "width", "height", "label_width"]),
     "waterfall": (["label", "start", "changes"], ["end", "reveal", "max", "ticks", "prefix", "suffix", "decimals", "axis", "width", "height"]),
     "line": (["label", "x", "series"], ["area", "points", "note", "max", "ticks", "prefix", "suffix", "axis", "width", "height"]),
@@ -661,6 +676,8 @@ def validate_viz(kind: str, spec: dict, deck: "Deck") -> list[str]:
                 later(f"event {e['text']!r} step", e.get("step"))
         if spec.get("reveal", "all") not in ("all", "each"):
             p.append("viz 'timeline': reveal is 'all' or 'each'")
+    if kind == "flow" and "node_size" in spec and spec["node_size"] not in ("xs", "s", "m", "l", "xl", "2xl"):
+        p.append("viz 'flow': node_size is a step of the type scale: xs, s, m, l, xl or 2xl")
     if kind == "flow" and "nodes" in spec:
         nodes = spec["nodes"]
         if not (isinstance(nodes, list) and nodes):
@@ -852,9 +869,11 @@ def kit_usage(markup: str) -> tuple[bool, list[str]]:
 # ===========================================================================
 # Themes and CSS
 # ===========================================================================
-_DARK = re.compile(r':root\[data-theme="dark"\]\s*\{(.*?)\}', re.S)
-_LIGHT = re.compile(r":root\s*\{(.*?)\}", re.S)
+_ALT = re.compile(r':root\[data-palette="alternate"\]\s*\{(.*?)\}', re.S)
+_PRIMARY = re.compile(r":root\s*\{(.*?)\}", re.S)
 _FONT_LINK = re.compile(r"font-link:\s*(\S+)")
+_SCHEME = re.compile(r"(?<![\w-])color-scheme\s*:\s*(light|dark)\s*;")
+PALETTE_MODES = ("primary", "alternate", "system")
 
 
 def strip_comments(css: str) -> str:
@@ -869,6 +888,9 @@ def declarations(block: str) -> dict:
 
 
 class Theme:
+    """A theme file: a primary palette on :root and an alternate on :root[data-palette="alternate"].
+    Each block says which kind it is with color-scheme: light or dark."""
+
     def __init__(self, path: Path):
         self.name, self.path = path.stem, path
         self.text = path.read_text(encoding="utf-8")
@@ -878,26 +900,43 @@ class Theme:
         meta = dict(re.findall(r"^\s*(name|short):\s*(.+?)\s*$", head.group(1) if head else "", re.M))
         self.display = meta.get("name", self.name)       # shown in the looks bar
         self.short = meta.get("short", self.display[:5])  # ... when the bar is narrow
-        light = _LIGHT.search(strip_comments(self.text))
-        dark = _DARK.search(strip_comments(self.text))
-        self.light = declarations(light.group(1)) if light else {}
-        self.dark = declarations(dark.group(1)) if dark else {}
+        bare = strip_comments(self.text)
+        primary, alt = _PRIMARY.search(bare), _ALT.search(bare)
+        self.primary = declarations(primary.group(1)) if primary else {}
+        self.alternate = declarations(alt.group(1)) if alt else {}
+        sp = _SCHEME.search(primary.group(1)) if primary else None
+        sa = _SCHEME.search(alt.group(1)) if alt else None
+        self.schemes = (sp.group(1) if sp else None, sa.group(1) if sa else None)
 
-    def css(self) -> str:
-        """The theme as the hosting page needs it: light :root, dark under the media query, dark on [data-theme]."""
+    def css(self, mode: str = "primary") -> str:
+        """The theme as the page needs it. mode "primary": everyone sees the primary palette and
+        data-palette="alternate" on the root shows the other one (the deck's D key). "alternate": the
+        other way round. "system": the palette whose color-scheme matches the viewer's (a host page's
+        data-theme wins over the OS), until D sets data-palette. --palette-shown tells the deck's
+        script which palette is on screen."""
+        if mode not in PALETTE_MODES:
+            raise BuildError(f"palette {mode!r}: use one of {', '.join(PALETTE_MODES)}")
         text = self.text
-        light = _LIGHT.search(text)
-        if light and "color-scheme" not in light.group(1):
-            body = light.group(1).rstrip() + "\n  color-scheme: light;\n"
-            text = text[:light.start(1)] + body + text[light.end(1):]
-        dark = _DARK.search(text)
-        if dark:
-            body = dark.group(1).rstrip("\n ")
-            if "color-scheme" not in body:
-                body += "\n  color-scheme: dark;"
-            media = ('@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {'
-                     + indent(body, "  ") + "\n  }\n}\n")
-            text = text[:dark.start()] + media + ':root[data-theme="dark"] {' + body + "\n}" + text[dark.end():]
+        p = _PRIMARY.search(text)
+        if p:
+            text = text[:p.end(1)].rstrip() + "\n  --palette-shown: primary;\n" + text[p.end(1):]
+        a = _ALT.search(text)
+        if not a:
+            return text.strip("\n") + "\n"
+        body = a.group(1).rstrip("\n ") + "\n  --palette-shown: alternate;"
+        if mode == "primary":
+            blocks = ':root[data-palette="alternate"] {' + body + "\n}"
+        elif mode == "alternate":
+            blocks = ':root:not([data-palette="primary"]) {' + body + "\n}"
+        else:
+            blocks = ':root[data-palette="alternate"] {' + body + "\n}"
+            pa, al = self.schemes
+            if pa and al and pa != al:
+                other = "light" if al == "dark" else "dark"
+                blocks += (f'\n@media (prefers-color-scheme: {al}) {{\n  :root:not([data-palette]):not([data-theme="{other}"]) {{'
+                           + indent(body, "  ") + "\n  }\n}\n"
+                           + f':root[data-theme="{al}"]:not([data-palette]) {{' + body + "\n}")
+        text = text[:a.start()] + blocks + text[a.end():]
         return text.strip("\n") + "\n"
 
 
@@ -912,15 +951,13 @@ def tokens_css(deck: Deck, kit: bool) -> str:
     return text
 
 
-def scoped_theme_css(theme: Theme) -> str:
+def scoped_theme_css(theme: Theme, mode: str = "primary") -> str:
     """A theme's CSS with every block scoped to :root[data-look="<name>"], for a looks build."""
-    sel = f':root[data-look="{theme.name}"]'
-    css = theme.css().replace(':root:not([data-theme="light"])', sel + ':not([data-theme="light"])')
-    css = css.replace(':root[data-theme="dark"]', sel + '[data-theme="dark"]')
-    return re.sub(r":root(\s*\{)", sel + r"\1", css)
+    return theme.css(mode).replace(":root", f':root[data-look="{theme.name}"]')
 
 
 def build_css(deck: Deck, theme: Theme, standalone: bool, kit: bool = False, looks: list[Theme] | None = None) -> str:
+    mode = deck.meta.get("palette", "primary")
     styles = deck.src / "styles"
     parts = []
     if standalone:
@@ -928,9 +965,9 @@ def build_css(deck: Deck, theme: Theme, standalone: bool, kit: bool = False, loo
     parts.append("/* ---------- Tokens: defaults (src/styles/tokens.css) ---------- */\n" + tokens_css(deck, kit))
     if looks:
         for t in looks:
-            parts.append(f"/* ---------- Look: {t.name} (src/themes/{t.name}.css), on data-look=\"{t.name}\" ---------- */\n" + scoped_theme_css(t))
+            parts.append(f"/* ---------- Look: {t.name} (src/themes/{t.name}.css), on data-look=\"{t.name}\" ---------- */\n" + scoped_theme_css(t, mode))
     else:
-        parts.append(f"/* ---------- Theme: {theme.name} (src/themes/{theme.name}.css) ---------- */\n" + theme.css())
+        parts.append(f"/* ---------- Theme: {theme.name} (src/themes/{theme.name}.css) ---------- */\n" + theme.css(mode))
     parts.append("/* ---------- Base (src/styles/base.css) ---------- */\n" + (styles / "base.css").read_text(encoding="utf-8"))
     parts.append("/* ---------- Components (src/styles/components.css) ---------- */\n" + (styles / "components.css").read_text(encoding="utf-8"))
     if kit:
@@ -1098,7 +1135,7 @@ CONTRAST_PAIRS = [  # (foreground, background, minimum)
 def contrast_report(deck: Deck, theme: Theme) -> tuple[list[str], list[str]]:
     defaults = declarations((deck.src / "styles" / "tokens.css").read_text(encoding="utf-8"))
     lines, problems = [], []
-    for mode, tokens in (("light", {**defaults, **theme.light}), ("dark", {**defaults, **theme.light, **theme.dark})):
+    for mode, tokens in (("primary", {**defaults, **theme.primary}), ("alternate", {**defaults, **theme.primary, **theme.alternate})):
         worst = None
         for fg, bg, minimum in CONTRAST_PAIRS:
             if fg not in tokens or bg not in tokens:
@@ -1113,7 +1150,7 @@ def contrast_report(deck: Deck, theme: Theme) -> tuple[list[str], list[str]]:
             if c < minimum:
                 problems.append(f"{theme.name} {mode}: {fg} on {bg} is {c:.2f}:1 (needs {minimum}:1)")
         if worst:
-            lines.append(f"{theme.name:10} {mode:5}  worst text on a principle fill: {worst[0]:.2f}:1 ({worst[1]})")
+            lines.append(f"{theme.name:10} {mode:9}  worst text on a principle fill: {worst[0]:.2f}:1 ({worst[1]})")
     return lines, problems
 
 
@@ -1156,6 +1193,8 @@ def check(deck: Deck) -> int:
     js_files = sorted((deck.src / "js").glob("*.js")) + ([gallery.slides_dir / "gallery.js"] if gallery else [])
     js = "\n".join(p.read_text(encoding="utf-8") for p in js_files)
     themes = {name: Theme(deck.src / "themes" / f"{name}.css") for name in deck.themes}
+    if deck.meta.get("palette", "primary") not in PALETTE_MODES:
+        problems.append(f"deck.toml: palette = {deck.meta.get('palette')!r}; use one of {', '.join(PALETTE_MODES)}")
     if deck.meta["theme"] not in themes:
         problems.append(f"deck.toml: default theme {deck.meta['theme']!r} is not in src/themes/")
 
@@ -1216,6 +1255,13 @@ def check(deck: Deck) -> int:
             problems.append(f"themes/{name}.css: themes hold custom properties only, found {non_custom}")
         if not t.font_link:
             problems.append(f"themes/{name}.css: no 'font-link:' line")
+        if re.search(r"data-theme|prefers-color-scheme", strip_comments(t.text)):
+            problems.append(f"themes/{name}.css: write the alternate palette as :root[data-palette=\"alternate\"]; the build adds any OS or host rules")
+        if not t.alternate:
+            problems.append(f"themes/{name}.css: no alternate palette (:root[data-palette=\"alternate\"] {{ ... }})")
+        for which, scheme in zip(("primary", "alternate"), t.schemes):
+            if scheme is None:
+                problems.append(f"themes/{name}.css: the {which} palette must say color-scheme: light or dark")
 
     # tokens: referenced but undefined, theme parity, dark-only, unused
     defaults = declarations(tokens_css)
@@ -1226,7 +1272,7 @@ def check(deck: Deck) -> int:
     theme_refs = set()
     for t in themes.values():
         theme_refs |= set(re.findall(r"var\((--[\w-]+)", strip_comments(t.text)))
-    all_theme_defs = set().union(*(set(t.light) | set(t.dark) for t in themes.values())) if themes else set()
+    all_theme_defs = set().union(*(set(t.primary) | set(t.alternate) for t in themes.values())) if themes else set()
     for ref in sorted(refs | theme_refs):
         if ref not in defaults and ref not in local and ref not in all_theme_defs:
             problems.append(f"token {ref} is used but never defined")
@@ -1234,11 +1280,11 @@ def check(deck: Deck) -> int:
     # theme uses only inside itself (its palette) are its own business.
     required = {r for r in refs if r not in defaults and r not in local}
     for name, t in themes.items():
-        own = set(t.light) | set(t.dark)
+        own = set(t.primary) | set(t.alternate)
         for tok in sorted(required - own):
             problems.append(f"themes/{name}.css: missing {tok} (other files use it and it has no default)")
-        for tok in sorted(set(t.dark) - set(t.light) - set(defaults)):
-            problems.append(f"themes/{name}.css: {tok} is set for dark only")
+        for tok in sorted(set(t.alternate) - set(t.primary) - set(defaults)):
+            problems.append(f"themes/{name}.css: {tok} is set for the alternate palette only")
         for ref in sorted(set(re.findall(r"var\((--[\w-]+)", strip_comments(t.text))) - own - set(defaults)):
             problems.append(f"themes/{name}.css: uses {ref}, which it does not define")
     used = refs | theme_refs
@@ -1270,8 +1316,8 @@ def check(deck: Deck) -> int:
                 if page.count("data-look-btn=") != len(names):
                     problems.append(f"looks build{' (gallery)' if book.gallery else ''}: expected {len(names)} look buttons")
                 for n in names:
-                    if f':root[data-look="{n}"] {{' not in page or f':root[data-look="{n}"][data-theme="dark"]' not in page:
-                        problems.append(f"looks build: theme {n} is not scoped to data-look=\"{n}\" (light and dark)")
+                    if f':root[data-look="{n}"] {{' not in page or f':root[data-look="{n}"][data-palette="alternate"]' not in page:
+                        problems.append(f"looks build: theme {n} is not scoped to data-look=\"{n}\" (both palettes)")
                 if re.search(r"(?m)^:root\s*\{[^}]*--slide-bg\s*:", page):
                     problems.append("looks build: a theme's colours are on bare :root (they would leak into every look)")
             except BuildError as e:

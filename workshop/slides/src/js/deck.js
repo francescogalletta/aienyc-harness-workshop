@@ -72,7 +72,7 @@ function render(entering) {
   }
   markRail(s);
   bar.style.width = ((idx + 1) / N * 100) + '%';
-  counter.textContent = (idx + 1) + ' / ' + N;
+  counter.textContent = String(idx + 1);
   setHash(idx + 1);
 }
 
@@ -111,10 +111,11 @@ function toggleFullscreen() {
     }
   } catch (e) {}
 }
-function toggleTheme() {
-  var cur = root.getAttribute('data-theme');
-  if (!cur) cur = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-  root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+/* D: the theme's other palette. The deck has its own attribute, data-palette, so a hosting
+   page's data-theme never flips it; the CSS says which palette is showing (--palette-shown). */
+function togglePalette() {
+  var shown = getComputedStyle(root).getPropertyValue('--palette-shown').trim() || 'primary';
+  root.setAttribute('data-palette', shown === 'alternate' ? 'primary' : 'alternate');
 }
 
 doc.addEventListener('keydown', function (e) {
@@ -126,7 +127,7 @@ doc.addEventListener('keydown', function (e) {
   else if (k === 'Home') { e.preventDefault(); goTo(0); }
   else if (k === 'End') { e.preventDefault(); goTo(N - 1); }
   else if (k === 'f' || k === 'F') { toggleFullscreen(); }
-  else if (k === 'd' || k === 'D') { toggleTheme(); }
+  else if (k === 'd' || k === 'D') { togglePalette(); }
 });
 
 var swipedAt = 0, tx = 0, ty = 0, tracking = false;

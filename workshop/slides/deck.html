@@ -17,6 +17,7 @@ img { max-width: 100%; }
    theme's colour roles.
    ========================================================================== */
 :root {
+  --palette-shown: primary;   /* which palette is on screen; the build sets it in each theme block, D reads it */
   /* ---------- Tier 1: primitives ---------- */
 
   /* The fixed stage everything is laid out on (deck.js assumes 1920x1080). */
@@ -130,7 +131,13 @@ img { max-width: 100%; }
   --code-size: var(--fs-m);
   --hero-size: var(--fs-7xl);
   --footnote-size: var(--fs-xs);
-  --counter-size: var(--fs-3xs);
+  --counter-size: 22px;
+  --section-label-size: 22px;
+  --section-label-top: 44px;
+  --counter-right: 40px;
+  --counter-bottom: 32px;
+  --chrome-opacity: 0.6;  /* section label and slide number: clearly secondary */
+  --section-label-text: var(--text-muted);
   --display-measure: 1600px;
   --sub-measure: 1500px;
 
@@ -220,6 +227,7 @@ img { max-width: 100%; }
   --aside-emoji-scale: 0.8em;
   --aside-scale: 1.4em;  /* inline handwritten aside, relative to its line */
   --aside-indent: 10px;
+  --aside-stack-scale: 0.9em;  /* the same aside on its own line under a stacked line */
   --hand-note-size: calc(60px * var(--type-scale));
 
   /* Title block, strike, stress */
@@ -236,7 +244,8 @@ img { max-width: 100%; }
   --ask-pad-x: 160px;
   --ask-max: 1200px;
   --ask-pad-bottom: 80px;
-  --ask-who-gap: 36px;
+  --ask-who-gap: 48px;
+  --ask-who-size: var(--fs-2xl);
 
   /* Person intro */
   --photo-size: 340px;
@@ -261,6 +270,11 @@ img { max-width: 100%; }
 
   /* Big numbers and emoji */
   --tally-size: calc(200px * var(--type-scale));
+  --tally-grow-1: 0.6;
+  --tally-grow-2: 0.8;
+  --tally-grow-3: 1.05;
+  --tally-grow-4: 1.4;
+  --tally-grow-leading: 0.72;
   --mega-row-gap: 48px;
   --mega-emoji-size: calc(160px * var(--type-scale));
   --big-emoji-size: var(--fs-7xl);
@@ -277,6 +291,17 @@ img { max-width: 100%; }
   --pills-gap: 18px;
   --command-pad-y: 30px;
   --command-pad-x: 40px;
+  --command-xl-size: var(--fs-xl);
+  --setup-note-size: var(--fs-s);
+  --tree-col-gap: var(--space-m);
+  --tree-row-gap: var(--space-xs);
+  --tree-path-size: var(--fs-l);
+  --tree-gloss-size: var(--fs-l);
+  --tree-muted: var(--text-muted);
+  --tree-muted-opacity: 0.7;
+  --tree-line-gap: var(--space-s);
+  --tree-command-pad-y: 14px;
+  --tree-command-pad-x: 28px;
   --link-underline: var(--stroke-hair);
   --link-underline-offset: 6px;
   --grid-gap: 32px;
@@ -296,12 +321,43 @@ img { max-width: 100%; }
   --node-num-size: var(--fs-2xl);
   --node-name-size: calc(34px * var(--type-scale));
   --node-emoji-size: var(--fs-2xl);
+  --stair-base: 128px;
+  --stair-rise: 46px;
+  --stair-tread: var(--stroke-heavy);
+  --stair-tint: 14%;
+  --stair-pad-y: var(--space-xs);
+  --stair-pad-x: var(--space-xs);
+  --stair-num-size: var(--fs-l);
+  --stair-name-size: var(--fs-xs);
+  --nests-w: 1040px;
+  --nest-gap: var(--space-2xs);
+  --nest-pad-y: var(--space-2xs);
+  --nest-pad-x: var(--space-m);
+  --nest-radius: var(--radius-l);
+  --nest-tint: 6%;
+  --nest-name-size: var(--fs-s);
+  --nest-name-gap: var(--space-xs);
+  --tl-above-h: 150px;
+  --tl-gap: var(--space-xs);
+  --tl-name-gap: var(--space-2xs);
+  --tl-dot: 36px;
+  --tl-line: var(--stroke-hair);
+  --tl-num-size: var(--fs-xl);
+  --tl-name-size: calc(34px * var(--type-scale));
+  --tl-min-size: var(--fs-xs);
 
   /* Split halves */
   --split-gap: 100px;
   --split-rule-width: var(--stroke-hair);
-  --split-rule-overhang: var(--space-xl);
+  --split-rule-overhang: var(--space-l);
   --split-foot-gap: 168px;
+  --split-foot-gap-examples: 120px;
+  --split-example-gap: var(--space-xs);
+  --split-example-top: var(--space-s);  /* between the headline and its first example */
+  --split-example-size: var(--fs-2xl);
+  --arrow-down-h: 96px;  /* the down arrow between two display lines */
+  --arrow-down-stroke: var(--stroke-heavy);
+  --arrow-down-margin: var(--space-s);
 
   /* Converging pills (slide "Caveats") */
   --input-pill-h: 80px;
@@ -335,6 +391,11 @@ img { max-width: 100%; }
   --doubts-gap: var(--space-xs);
   --doubt-pad-x: 26px;
   --doubt-size: var(--fs-xs);
+  --says-compact-said-w: 560px;   /* guesses with compact = true: long quotes, a smaller table */
+  --says-compact-example-size: calc(44px * var(--type-scale));
+  --says-compact-doubt-size: calc(32px * var(--type-scale));
+  --says-compact-row-gap: 32px;
+  --says-compact-doubt-h: 60px;
   --doubt-radius: var(--pill-radius);
 
   /* Chrome and focus */
@@ -359,41 +420,126 @@ img { max-width: 100%; }
   --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
 }
 
-/* ---------- Theme: blueprint (src/themes/blueprint.css) ---------- */
-/* Blueprint: the workshop's own look. Navy ink on a pale blue-grey ground,
-   IBM Plex, a teal for trust and five principle hues.
+/* ---------- Visuals kit tokens ----------
+   Only in builds that use the visuals kit: build.py drops everything from the
+   line above to the end of this file otherwise, so a deck without charts is
+   unchanged. All derived from the roles above; a theme may override any. */
+:root {
+  /* series: the principle hues, reordered so neighbours stay apart for colour-blind
+     readers (docs/visuals.md has the validator results) */
+  --viz-series-1: var(--principle-1);
+  --viz-series-2: var(--principle-4);
+  --viz-series-3: var(--principle-2);
+  --viz-series-4: var(--principle-5);
+  --viz-series-5: var(--principle-3);
+  --viz-series-1-ink: var(--principle-1-ink);   /* lines, points, rough strokes: the ink of each */
+  --viz-series-2-ink: var(--principle-4-ink);
+  --viz-series-3-ink: var(--principle-2-ink);
+  --viz-primary: var(--principle-1-ink);   /* single-series charts */
+  --viz-bar: var(--viz-primary);
+  --viz-bar-ink: var(--viz-primary);
+  --viz-highlight-ink: var(--viz-series-2-ink);
+  --viz-down-ink: var(--viz-series-2-ink);
+  --viz-highlight: var(--viz-series-2);
+  --viz-up: var(--accent-trust);
+  --viz-down: var(--viz-series-2);
+  --viz-total: var(--text-muted);
+  --viz-up-ink: var(--viz-up);
+  --viz-total-ink: var(--viz-total);
+  --viz-text: var(--text);
+  --viz-label: var(--text-quiet);
+  --viz-muted: var(--text-muted);
+  --viz-grid: var(--line);
+  --viz-axis: var(--text-muted);
+  --viz-surface: var(--slide-bg);
+  --viz-node-fill: var(--surface);
+  --viz-node-stroke: var(--step-stroke-color);
+  --viz-on-fill: var(--on-principle);
+  --viz-link: var(--connector);
+  --viz-link-dash: none;      /* e.g. 10 8 for dashed arrows */
+  --viz-marker: var(--text);
+  --viz-annotate: var(--accent-trust);
+  --viz-area-opacity: 0.12;
+
+  --viz-font: var(--body-font);
+  --viz-hand-font: var(--aside-font);
+  --viz-label-size: var(--fs-2xs);
+  --viz-tick-size: var(--fs-2xs);
+  --viz-value-size: var(--fs-xs);
+  --viz-node-size: var(--fs-xs);
+  --viz-node-num-size: var(--fs-l);
+  --viz-note-size: var(--fs-m);
+  --viz-count-size: var(--fs-5xl);
+
+  --viz-stroke: var(--stroke);
+  --viz-line-width: var(--stroke);
+  --viz-hair: var(--stroke-hair);
+  --viz-annotate-width: var(--stroke-strike);
+  --viz-bar-radius: var(--radius-m);
+  --viz-node-radius: var(--step-radius);
+  --viz-bar-fill: 0.56;      /* share of each band a bar takes */
+  --viz-point-r: 8px;
+  --viz-marker-r: 16px;
+  --viz-ring-width: var(--stroke);
+
+  --viz-dur: var(--dur-slow);
+  --viz-dur-draw: var(--dur-draw);
+  --viz-dur-line: 900ms;
+  --viz-dur-travel: 2400ms;
+  --viz-dur-count: 1200ms;
+  --viz-stagger: 110ms;
+  --viz-ease: var(--ease-out);
+}
+
+/* ---------- Theme: nord (src/themes/nord.css) ---------- */
+/* Nord: Polar Night, with Snow Storm as the alternate. Calm and low-glare.
+   Palette values from the nord 0.2.1 package (Arctic Ice Studio), licence
+   Apache-2.0 AND CC-BY-SA-4.0 as the package declares.
+   Roles: ground nord0, boxes nord1, hairlines nord2, text nord6, quiet nord4,
+   trust frost nord7, attention (the ask) aurora nord13 with nord0 text; sections
+   1 nord9 blue, 2 nord15 purple, 3 nord11 red, 4 nord12 orange, 5 nord14 green.
+   IBM Plex and blueprint's shapes.
+   Deviations (smallest OKLCH lightness change to reach 4.5:1 with the text on it):
+   nord15 #b48ead -> #b690af (+0.005, nord0 text 4.52:1); nord12 #d08770 -> #d38a73
+   (+0.01, nord0 text 4.55:1); nord11 #bf616a -> #ab4f59 (-0.06, nord6 text 4.5:1: lifting
+   it for nord0 text would have needed +0.10 and a bright salmon); nord11 itself stays
+   the red's ink (text and lines, 3.05:1 on nord0).
+   muted text: nord3 #4c566a lifted to #909cb2 (4.5:1 on nord0; Nord has no mid grey);
+   box outlines and dashes: nord3 lifted to #687388 (visible as a quiet frame).
+   Snow Storm: nord7 as trust -> #497474 (4.5:1 on nord6); inks (text-strength copies,
+   3:1 on nord6) nord15 -> #a47e9d, nord13 -> #a48547, nord14 -> #779161, nord12 -> #be7660.
+   name: Nord
+   short: Nord
    font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
 */
 :root {
   /* palette */
-  --white: #ffffff;
-  --navy-25: #e8eef7;
-  --navy-50: #eef2f7;
-  --navy-150: #c3cfdf;
-  --navy-200: #bccadb;
-  --navy-300: #9db0c8;
-  --navy-400: #6f84a0;
-  --navy-500: #5f7898;
-  --navy-600: #4f6078;
-  --navy-700: #33465f;
-  --navy-800: #2e4466;
-  --navy-900: #0f2440;
-  --navy-925: #14213a;
-  --navy-950: #0c1524;
-  --apricot-200: #ffd9b0;
-  --apricot-800: #7a4a10;
-  --teal-300: #5fd0c8;
-  --teal-700: #0b6b6a;
-  --blue-300: #7fb0ff;
-  --blue-600: #2563c9;
-  --violet-300: #b3a1f5;
-  --violet-600: #6d4fc4;
-  --magenta-300: #ee8fcb;
-  --magenta-600: #a8387f;
-  --amber-300: #f2b25c;
-  --amber-700: #b96a0c;
-  --green-300: #86d67f;
-  --green-600: #3d8a3a;
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord3: #4c566a;
+  --nord4: #d8dee9;
+  --nord5: #e5e9f0;
+  --nord6: #eceff4;
+  --nord7: #8fbcbb;
+  --nord8: #88c0d0;
+  --nord9: #81a1c1;
+  --nord10: #5e81ac;
+  --nord11: #bf616a;
+  --nord12: #d08770;
+  --nord13: #ebcb8b;
+  --nord14: #a3be8c;
+  --nord15: #b48ead;
+  --nord3-lift: #687388;      /* deviation */
+  --nord3-muted: #909cb2;     /* deviation */
+  --nord11-fill: #ab4f59;     /* deviation: carries nord6 text */
+  --nord12-fill: #d38a73;     /* deviation */
+  --nord15-fill: #b690af;     /* deviation */
+  --nord7-deep: #497474;      /* deviation, Snow Storm */
+  --nord15-ink: #a47e9d;      /* deviation, Snow Storm */
+  --nord13-ink: #a48547;      /* deviation, Snow Storm */
+  --nord14-ink: #779161;      /* deviation, Snow Storm */
+  --nord12-ink: #be7660;    /* deviation: chart highlight on nord6, 3:1 */
 
   /* fonts */
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -401,66 +547,93 @@ img { max-width: 100%; }
   --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
   --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 
-  /* colour roles (light) */
-  --slide-bg: var(--navy-50);
-  --surface: var(--white);
-  --text: var(--navy-900);
-  --text-quiet: var(--navy-700);
-  --text-muted: var(--navy-600);
-  --line: var(--navy-200);
-  --connector: var(--navy-400);
-  --attention: var(--apricot-200);
-  --accent-trust: var(--teal-700);
-  --principle-1: var(--blue-600);
-  --principle-2: var(--violet-600);
-  --principle-3: var(--magenta-600);
-  --principle-4: var(--amber-700);
-  --principle-5: var(--green-600);
-  --on-principle: var(--white);
-  --qr-ink: var(--navy-900);   /* the QR stays dark on light in both modes */
-  --qr-ground: var(--white);
-  color-scheme: light;
+  /* colour roles (primary: Polar Night) */
+  --slide-bg: var(--nord0);
+  --surface: var(--nord1);
+  --text: var(--nord6);
+  --text-quiet: var(--nord4);
+  --text-muted: var(--nord3-muted);
+  --line: var(--nord2);
+  --connector: var(--nord3-lift);
+  --attention: var(--nord13);
+  --ask-text: var(--nord0);
+  --accent-trust: var(--nord7);
+  --principle-1: var(--nord9);
+  --principle-2: var(--nord15-fill);
+  --principle-3: var(--nord11-fill);
+  --principle-4: var(--nord12-fill);
+  --principle-5: var(--nord14);
+  --on-principle: var(--nord0);
+  --on-principle-3: var(--nord6);
+  --principle-3-ink: var(--nord11);
+  --qr-ink: var(--nord0);
+  --qr-ground: var(--nord4);   /* softer than nord6 on the dark ground; nord0 on it is 10:1 */
+  --outline: var(--nord3-lift);
+  --hairline: var(--nord2);
+  --placeholder-stroke: var(--nord3-lift);
+  --placeholder-text: var(--nord3-muted);
+  --rail-idle-stroke: var(--nord3);
+  --rail-idle-text: var(--nord3-muted);
+  --photo-ring: var(--nord3-lift);
+  --photo-fill: var(--nord1);
+  --diagram-stroke: var(--nord4);
+  --diagram-label: var(--nord6);
+  --diagram-quiet: var(--nord3-muted);
+  --progress-fill: var(--nord9);
+  --strike-color: var(--nord4);
+  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  --viz-series-3: var(--principle-3);
+  --viz-series-4: var(--principle-2);
+  --viz-series-5: var(--principle-5);
+  --viz-series-3-ink: var(--principle-3-ink);
+  --viz-highlight: var(--attention);
+  --viz-up: var(--nord14);
+  --viz-down: var(--nord11-fill);
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+  --stair-tint: 22%;   /* on a dark ground the 14% tint goes grey */
+  --nest-tint: 10%;
+  color-scheme: dark;
+  --palette-shown: primary;
 }
 
-/* Colour roles (dark). Written once: the build repeats this block under
-   prefers-color-scheme: dark (unless the page says data-theme="light"). */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --slide-bg: var(--navy-950);
-    --surface: var(--navy-925);
-    --text: var(--navy-25);
-    --text-quiet: var(--navy-150);
-    --text-muted: var(--navy-300);
-    --line: var(--navy-800);
-    --connector: var(--navy-500);
-    --attention: var(--apricot-800);
-    --accent-trust: var(--teal-300);
-    --principle-1: var(--blue-300);
-    --principle-2: var(--violet-300);
-    --principle-3: var(--magenta-300);
-    --principle-4: var(--amber-300);
-    --principle-5: var(--green-300);
-    --on-principle: var(--navy-950);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --slide-bg: var(--navy-950);
-  --surface: var(--navy-925);
-  --text: var(--navy-25);
-  --text-quiet: var(--navy-150);
-  --text-muted: var(--navy-300);
-  --line: var(--navy-800);
-  --connector: var(--navy-500);
-  --attention: var(--apricot-800);
-  --accent-trust: var(--teal-300);
-  --principle-1: var(--blue-300);
-  --principle-2: var(--violet-300);
-  --principle-3: var(--magenta-300);
-  --principle-4: var(--amber-300);
-  --principle-5: var(--green-300);
-  --on-principle: var(--navy-950);
-  color-scheme: dark;
+/* Alternate: Snow Storm. */
+:root[data-palette="alternate"] {
+  --slide-bg: var(--nord6);
+  --surface: var(--nord5);
+  --text: var(--nord0);
+  --text-quiet: var(--nord1);
+  --text-muted: var(--nord3);
+  --line: var(--nord4);
+  --connector: var(--nord3-lift);
+  --accent-trust: var(--nord7-deep);
+  --principle-1-ink: var(--nord10);
+  --principle-2-ink: var(--nord15-ink);
+  --principle-3-ink: var(--nord11);
+  --principle-4-ink: var(--nord12-ink);
+  --principle-5-ink: var(--nord14-ink);
+  --qr-ink: var(--nord0);
+  --qr-ground: var(--nord5);
+  --outline: var(--nord3);
+  --hairline: var(--nord4);
+  --placeholder-stroke: var(--nord3-lift);
+  --placeholder-text: var(--nord3);
+  --rail-idle-stroke: var(--nord4);
+  --rail-idle-text: var(--nord3);
+  --photo-ring: var(--nord3-lift);
+  --photo-fill: var(--nord5);
+  --diagram-stroke: var(--nord1);
+  --diagram-label: var(--nord0);
+  --diagram-quiet: var(--nord3);
+  --progress-fill: var(--nord10);
+  --strike-color: var(--nord1);
+  --viz-highlight: var(--nord13-ink);
+  --viz-up: var(--nord14-ink);
+  --viz-down: var(--nord11);
+  --stair-tint: 14%;
+  --nest-tint: 6%;
+  color-scheme: light;
+  --palette-shown: alternate;
 }
 
 /* ---------- Base (src/styles/base.css) ---------- */
@@ -539,10 +712,16 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .progress { position: fixed; left: 0; right: 0; bottom: 0; height: var(--progress-h); background: var(--progress-track); pointer-events: none; }
 .progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
-  position: fixed; right: 14px; bottom: 10px;
+  position: absolute; right: var(--counter-right); bottom: var(--counter-bottom);
   font-family: var(--label-font); font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--counter-text);
-  font-variant-numeric: var(--numeric-variant); opacity: 0.7; pointer-events: none;
+  font-variant-numeric: var(--numeric-variant); opacity: var(--chrome-opacity); pointer-events: none;
 }
+.section-label {
+  position: absolute; left: var(--slide-margin); top: var(--section-label-top);
+  font-family: var(--label-font); font-size: var(--section-label-size); line-height: 1; font-weight: var(--label-weight); letter-spacing: var(--label-tracking);
+  text-transform: uppercase; color: var(--section-label-text); opacity: var(--chrome-opacity); pointer-events: none;
+}
+.stage:has(> .slide.active[data-chrome="off"]) .counter { display: none; }
 
 /* ---------- Motion (dormant) ----------
    The author asked for no motion. To turn it back on, set motion = "on" in
@@ -673,6 +852,12 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .hands { display: flex; justify-content: space-between; width: 100%; }
 .hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); font-variant-numeric: tabular-nums; }
 .hands .num.muted { color: var(--text-muted); }
+.hands.grow { align-items: flex-end; }
+.hands.grow .num { line-height: var(--tally-grow-leading); }
+.hands.grow .num:nth-child(1) { font-size: calc(var(--tally-size) * var(--tally-grow-1)); }
+.hands.grow .num:nth-child(2) { font-size: calc(var(--tally-size) * var(--tally-grow-2)); }
+.hands.grow .num:nth-child(3) { font-size: calc(var(--tally-size) * var(--tally-grow-3)); }
+.hands.grow .num:nth-child(4) { font-size: calc(var(--tally-size) * var(--tally-grow-4)); }
 
 /* ---------- Swap (one line replaces another) and the big ask ---------- */
 .swap { display: grid; place-items: center; }
@@ -705,7 +890,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .footnote.hand { bottom: var(--aside-bottom); font-family: var(--aside-font); font-weight: var(--weight-hand); font-size: var(--aside-size); transform: rotate(-2deg); transform-origin: left center; }
 .footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
 /* Who is speaking, under the ask. The rest of its look comes from .hand-aside. */
-.ask-who { margin-top: var(--ask-who-gap); }
+.hand-aside.ask-who { margin-top: var(--ask-who-gap); margin-left: 0; font-size: var(--ask-who-size); line-height: 1; }
+/* The same aside under a line in a stack: on its own line, smaller. */
+.stack-tight .hand-aside.ask-who { display: block; width: fit-content; margin-top: var(--space-xs); font-size: var(--aside-stack-scale); }
 /* Handwritten asides pop in even while deck motion is off (author's request). */
 @keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
 @media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
@@ -721,6 +908,18 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
 .pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
 .command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); }
+.command.xl { font-size: var(--command-xl-size); }
+.setup-note { font-size: var(--setup-note-size); line-height: 1.25; color: var(--text-muted); max-width: var(--sub-measure); }
+
+/* ---------- Repo tree (the "what you cloned" slide) ---------- */
+.tree { list-style: none; margin-left: 0; padding: 0; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--tree-col-gap); row-gap: var(--tree-row-gap); align-items: baseline; }
+.tree-row { display: contents; color: var(--text); }
+.tree-path { font-size: var(--tree-path-size); font-weight: var(--weight-strong); }
+.tree-gloss { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
+.tree-row.muted .tree-path, .tree-row.muted .tree-gloss { color: var(--tree-muted); font-weight: var(--weight-regular); opacity: var(--tree-muted-opacity); }
+.tree-line { display: flex; align-items: center; gap: var(--tree-line-gap); }
+.tree-line-text { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
+.tree-line .command { padding: var(--tree-command-pad-y) var(--tree-command-pad-x); }
 
 /* ---------- Flow (the structure slide) ---------- */
 .flow { display: flex; align-items: flex-start; width: 100%; }
@@ -738,6 +937,47 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .node-name { font-size: var(--node-name-size); line-height: 1.15; }
 .flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
 .flow-node.step.tint { background: var(--c); color: var(--oc); box-shadow: none; position: relative; }
+
+/* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
+.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--hairline); }
+.stairs-start { margin-right: var(--space-xs); }
+.stairs-end { position: absolute; top: 0; right: 0; }
+.stair {
+  flex: 1 1 0; min-width: 0; box-sizing: border-box; margin-left: calc(var(--stroke-hair) * -1);
+  height: calc(var(--stair-base) + (var(--n) - 1) * var(--stair-rise));
+  padding: var(--stair-pad-y) var(--stair-pad-x); display: flex; flex-direction: column; justify-content: space-between;
+  border: var(--stroke-hair) solid var(--hairline); border-bottom: 0; border-top: var(--stair-tread) solid var(--ci, var(--c));
+  background: color-mix(in srgb, var(--ci, var(--c)) var(--stair-tint), transparent);
+}
+.stair-head { display: flex; align-items: center; justify-content: space-between; }
+.stair-num { font-size: var(--stair-num-size); line-height: 1; font-weight: var(--weight-strong); }
+.stair-emoji { font-family: var(--emoji-font); font-size: var(--stair-num-size); line-height: 1; }
+.stair-name { font-size: var(--stair-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+
+.layers { display: flex; align-items: center; justify-content: center; gap: var(--space-s); width: 100%; }
+.nests { flex: none; width: var(--nests-w); }
+.nest {
+  box-sizing: border-box; display: flex; flex-direction: column; gap: var(--nest-gap);
+  padding: var(--nest-pad-y) var(--nest-pad-x); border: var(--stroke) solid var(--ci, var(--c)); border-radius: var(--nest-radius);
+  background: color-mix(in srgb, var(--ci, var(--c)) var(--nest-tint), transparent);
+}
+.nest-name { display: flex; align-items: center; gap: var(--nest-name-gap); font-size: var(--nest-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+.nest-num { font-size: var(--nest-name-size); }
+.nest-emoji { font-family: var(--emoji-font); }
+
+.timeline { display: flex; align-items: flex-start; width: 100%; gap: var(--space-s); }
+.timeline .pill { margin-top: calc(var(--tl-above-h) + var(--tl-gap) + (var(--tl-dot) - var(--pill-h)) / 2); }
+.timeline-track { flex: 1 1 0; display: flex; min-width: 0; }
+.tl-seg { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.tl-above { height: var(--tl-above-h); margin-bottom: var(--tl-gap); display: flex; flex-direction: column; justify-content: flex-end; gap: var(--tl-name-gap); }
+.tl-head { display: flex; align-items: center; gap: var(--tl-name-gap); }
+.tl-num { font-size: var(--tl-num-size); line-height: 1; font-weight: var(--weight-strong); }
+.tl-emoji { font-family: var(--emoji-font); font-size: var(--tl-num-size); line-height: 1; }
+.tl-name { font-size: var(--tl-name-size); line-height: 1.15; font-weight: var(--weight-strong); white-space: nowrap; }
+.tl-dot { position: relative; height: var(--tl-dot); }
+.tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--hairline); }
+.tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--ci, var(--c)); }
+.tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }
@@ -749,7 +989,15 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 /* ---------- Split halves ---------- */
 .split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
 .split .divider { align-self: stretch; background: var(--hairline); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .examples { display: flex; flex-direction: column; gap: var(--split-example-gap); margin-top: var(--split-example-top); }
+.split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; }
+.split.has-examples .foot { margin-top: var(--split-foot-gap-examples); }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
+
+/* ---------- Down arrow between blocks (the arrow part, turned) ---------- */
+.arrow-down { display: flex; justify-content: flex-start; }
+.arrow-down .arrow { width: auto; height: var(--arrow-down-h); stroke-width: var(--arrow-down-stroke); margin: var(--arrow-down-margin) 0; }
+.arrow-down .arrow .l { vector-effect: non-scaling-stroke; stroke-dasharray: none; stroke-linecap: butt; }
 
 /* ---------- Converging pills (inputs drop onto a question) ---------- */
 .converge { padding: 0; --step-top: 550px; }
@@ -808,6 +1056,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .says .ex { font-size: var(--example-size); line-height: 1.15; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); white-space: nowrap; }
 .doubts { display: flex; gap: var(--doubts-gap); flex-wrap: nowrap; }
 .doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 var(--doubt-pad-x); border: var(--stroke) dashed var(--your-call-stroke); border-radius: var(--doubt-radius); font-size: var(--doubt-size); font-weight: var(--weight-strong); color: var(--text); white-space: nowrap; }
+.says.compact { --says-said-w: var(--says-compact-said-w); --example-size: var(--says-compact-example-size); --doubt-size: var(--says-compact-doubt-size); --says-row-gap: var(--says-compact-row-gap); }
+.says.compact .doubt { height: var(--says-compact-doubt-h); }
 .says .said { font-weight: var(--weight-regular); color: var(--text-quiet); }
 
 /* ---------- Step grid ---------- */
@@ -833,6 +1083,92 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .rail-cell.done, .rail-cell.now { background: var(--c); color: var(--oc); box-shadow: none; }
 .rail-cell.now { width: var(--rail-current-w); }
 .stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--accent-trust); }
+
+/* ---------- Visuals kit (src/styles/viz.css) ---------- */
+/* Visuals kit (src/js/viz.js). Styled only through --viz-* tokens (bottom of tokens.css).
+   Motion is CSS keyed on the deck's step classes (.shown); .instant (entering a slide),
+   .viz-still (animate = false) and reduced motion show end states at once. */
+.viz { display: block; margin-inline: 0; margin-block-end: 0; position: relative; font-family: var(--viz-font); color: var(--viz-text); }
+.viz:not([class*=" gap-"]) { margin-block-start: 0; }
+figure.viz { align-self: stretch; }
+.viz-svg { display: block; overflow: visible; max-width: 100%; height: auto; }
+.viz-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.viz-anchor { position: absolute; width: 0; height: 0; overflow: hidden; }
+.viz-choreo { display: none; }
+
+/* text */
+.viz .viz-label { font-size: var(--viz-label-size); fill: var(--viz-label); }
+.viz .viz-tick { font-family: var(--label-font); font-size: var(--viz-tick-size); fill: var(--viz-muted); font-variant-numeric: var(--numeric-variant); }
+.viz .viz-value { font-family: var(--label-font); font-size: var(--viz-value-size); font-weight: var(--weight-strong); fill: var(--viz-text); font-variant-numeric: var(--numeric-variant); }
+.viz .viz-strong { font-weight: var(--weight-strong); fill: var(--viz-text); }
+.viz .viz-note-text, .viz-marks .viz-mark-note { font-family: var(--viz-hand-font); font-weight: var(--weight-hand-strong); font-size: var(--viz-note-size); fill: var(--viz-text); }
+
+/* frame */
+.viz .viz-grid { stroke: var(--viz-grid); stroke-width: var(--viz-hair); }
+.viz .viz-axis { stroke: var(--viz-axis); stroke-width: var(--viz-stroke); stroke-linecap: round; }
+.viz .viz-leader, .viz .viz-connector { stroke: var(--viz-muted); stroke-width: var(--viz-hair); }
+
+/* bars and waterfall */
+.viz .viz-bar path:not(.viz-ink) { fill: var(--viz-bar); }
+.viz .viz-hl path:not(.viz-ink) { fill: var(--viz-highlight); }
+.viz .viz-up path:not(.viz-ink) { fill: var(--viz-up); }
+.viz .viz-down path:not(.viz-ink) { fill: var(--viz-down); }
+.viz .viz-total path:not(.viz-ink) { fill: var(--viz-total); }
+
+/* lines */
+.viz .viz-sp { --sc: var(--viz-primary); }
+.viz .viz-s1 { --sc: var(--viz-series-1-ink); }
+.viz .viz-s2 { --sc: var(--viz-series-2-ink); }
+.viz .viz-s3 { --sc: var(--viz-series-3-ink); }
+.viz .viz-line { fill: none; stroke: var(--sc); stroke-width: var(--viz-line-width); stroke-linejoin: round; stroke-linecap: round; }
+.viz .viz-area { fill: var(--sc); opacity: var(--viz-area-opacity); stroke: none; }
+.viz .viz-point { fill: var(--sc); stroke: var(--viz-surface); stroke-width: var(--viz-ring-width); }
+.viz .viz-key { fill: var(--sc); }
+.viz .viz-note-ring { fill: none; stroke: var(--viz-annotate); stroke-width: var(--viz-ring-width); }
+
+/* flow */
+.viz .viz-node rect { fill: var(--viz-node-fill); stroke: var(--viz-node-stroke); stroke-width: var(--viz-stroke); }
+.viz .viz-node.viz-filled rect { fill: var(--c); stroke: none; }
+.viz .viz-node.viz-muted rect { stroke: var(--viz-grid); }
+.viz .viz-node-text { font-size: var(--viz-node-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
+.viz .viz-node-num { font-family: var(--label-font); font-size: var(--viz-node-num-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
+.viz .viz-filled .viz-node-text, .viz .viz-filled .viz-node-num { fill: var(--oc, var(--viz-on-fill)); }
+.viz .viz-muted .viz-node-text { fill: var(--viz-muted); }
+.viz .viz-arrow-line { fill: none; stroke: var(--viz-link); stroke-width: var(--viz-stroke); stroke-linecap: round; }
+.viz .viz-arrow-head { fill: var(--viz-link); }
+.viz .viz-ring { fill: none; stroke: var(--viz-annotate); stroke-width: var(--viz-ring-width); opacity: 0; }
+.viz .viz-ring.on { opacity: 1; }
+.viz .viz-marker { fill: var(--viz-marker); stroke: var(--viz-surface); stroke-width: var(--viz-ring-width); opacity: 0; }
+
+/* count-up */
+.viz-count { font-family: var(--display-font); font-size: var(--viz-count-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: var(--numeric-variant); white-space: nowrap; }
+
+/* marks: an overlay on the slide */
+.viz-marks { position: absolute; left: 0; top: 0; width: var(--stage-w); height: var(--stage-h); overflow: visible; pointer-events: none; }
+.viz-marks .viz-mark :is(ellipse, path, rect) { fill: none; stroke: var(--viz-annotate); stroke-width: var(--viz-annotate-width); stroke-linecap: round; stroke-linejoin: round; }
+.viz-marks .viz-mark-note { fill: var(--viz-annotate); }
+
+/* ECharts host */
+.viz-echarts-host { display: block; }
+
+/* ---------- motion ---------- */
+.viz-ink { stroke-dasharray: 1; stroke-dashoffset: 0; }
+[data-step]:not(.shown) .viz-ink, .viz-ink[data-step]:not(.shown) { stroke-dashoffset: 1; }
+.viz-ink { transition: stroke-dashoffset var(--viz-dur-line) var(--viz-ease); }
+.viz-drawn text { transition: opacity var(--viz-dur) var(--viz-ease); }
+.viz-drawn:not(.shown) text { opacity: 0; }
+.viz .viz-grow .viz-bar { transform-box: fill-box; transform-origin: 50% 100%; transition: transform var(--viz-dur) var(--viz-ease); transition-delay: calc(var(--i) * var(--viz-stagger)); }
+.viz .viz-grow .viz-bar.viz-down { transform-origin: 50% 0%; }
+.viz .viz-grow .viz-hbar { transform-origin: 0% 50%; }
+.viz .viz-grow[data-step]:not(.shown) .viz-bar, .viz .viz-grow .viz-bar[data-step]:not(.shown) { transform: scaleY(0); }
+.viz .viz-grow[data-step]:not(.shown) .viz-hbar { transform: scaleX(0); }
+.viz .viz-hl { transition: opacity var(--viz-dur) var(--viz-ease); }
+.viz .viz-hl:not(.shown) { opacity: 0; }
+.viz .viz-point, .viz .viz-node, .viz .viz-event, .viz .viz-note, .viz .viz-value { transition: opacity var(--viz-dur) var(--viz-ease); }
+.viz [data-step]:not(.shown) .viz-point, .viz .viz-node[data-step]:not(.shown), .viz .viz-event[data-step]:not(.shown), .viz .viz-note[data-step]:not(.shown) { opacity: 0; }
+.viz .viz-series .viz-point { transition-delay: calc(var(--viz-dur-line) * 0.6); }
+.slide.instant .viz *, .slide.instant .viz-marks *, .viz-still *, .viz-still { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .viz *, .viz-marks * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
@@ -840,7 +1176,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <div class="viewport" id="viewport">
 <div class="stage" id="stage" data-motion="off">
 <!-- 01 · Title -->
-<section class="slide" id="s-title">
+<section class="slide" id="s-title" data-chrome="off">
   <h1 class="title-block">
     <span class="headline t-line">Stop Talking to Your Spreadsheets;</span>
     <span class="display t-line">Building a Financial Analyst Harness You Can <span class="trust">Trust</span></span>
@@ -848,18 +1184,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
 </section>
 
-<!-- 02 · Striking the title -->
-<section class="slide" id="s-title-struck">
-  <h1 class="title-block">
-    <span class="headline t-line"><span data-step-strike="1">Stop Talking to Your Spreadsheets;</span></span>
-    <span class="display t-line">Building a <span data-step-strike="2">Financial Analyst</span> Harness You Can <span class="trust">Trust</span></span>
-  </h1>
-  <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
-  <p class="footnote" data-step="3">* Sorry, a bit clickbaity. This will not run your private-equity firm. Other companies do that.</p>
-</section>
-
-<!-- 03 · Francesco -->
+<!-- 02 · Francesco -->
 <section class="slide person" id="s-francesco">
+  <p class="section-label">Intro</p>
   <div class="photo ph" data-placeholder><span>photo</span></div>
   <h2 class="mega person-name">Francesco</h2>
   <ul class="emoji-reel">
@@ -874,8 +1201,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </ul>
 </section>
 
-<!-- 04 · Felippe -->
+<!-- 03 · Felippe -->
 <section class="slide person" id="s-felippe">
+  <p class="section-label">Intro</p>
   <div class="photo ph" data-placeholder><span>photo</span></div>
   <h2 class="mega person-name">Felippe</h2>
   <ul class="emoji-reel">
@@ -888,105 +1216,194 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </ul>
 </section>
 
-<!-- 05 · Where this comes from -->
+<!-- 04 · Where this comes from -->
 <section class="slide" id="s-origin">
+  <p class="section-label">Intro</p>
   <p class="label">AT WORK</p>
   <h2 class="headline gap-xs">Data teams in financial services</h2>
   <p class="sub gap-xs">Monzo Bank, Nubank, and a few more. Now pushing what AI can do there.</p>
   <p class="label gap-xl" data-step="1">AT HOME</p>
-  <h2 class="headline gap-xs" data-step="1">Applied AI to make our life easier</h2>
-  <p class="footnote" data-step="2">* Not speaking on behalf of Monzo today.</p>
+  <h2 class="headline gap-xs" data-step="1">Applied AI to make our lives easier</h2>
 </section>
 
-<!-- 06 · Excited -->
-<section class="slide" id="s-excited">
-  <h1 class="display">I got excited about this one.</h1>
-  <p class="sub gap-m" data-step="1">I may have overdone it.</p>
-  <p class="footnote" data-step="2">* Possibly ADHD. Not a doctor.</p>
+<!-- 05 · Not Monzo -->
+<section class="slide" id="s-monzo">
+  <p class="section-label">Intro</p>
+  <h1 class="display">We are not representing Monzo today.</h1>
+  <p class="sub gap-m" data-step="1">We do have a breakout session tomorrow: 11:55, McCarthy Room (L3).</p>
 </section>
 
-<!-- 07 · How we got here -->
-<section class="slide tall" id="s-path">
-  <p class="label">HOW WE GOT HERE</p>
-  <svg class="sketch gap-s" viewBox="0 0 1640 760" role="img" aria-label="How we got here">
-    <g><g transform="rotate(-2 200.0 361.0)"><path class="ln" d="M29.7 300.2 Q221.2 299.6 370.0 300.3 Q388.7 300.0 390.5 321.8 Q385.1 357.9 388.4 403.9 Q390.8 420.2 372.9 423.9 Q207.7 423.4 27.9 420.1 Q10.1 420.2 8.8 400.5 Q4.4 360.4 9.8 322.1 Q10.1 300.6 30.0 304.0 L53.5 304.1"/><text class="nm" x="200.0" y="363.0" text-anchor="middle" dominant-baseline="central">The principles</text></g><text class="note" x="44" y="500" transform="rotate(-4 44 500)">too abstract</text><path class="ln tick" d="M41.0 521.0 Q151.4 528.8 267.6 513.5"/></g>
-    <g data-step="1"><path class="ln" d="M338.0 288.0 C372.0 190.0 440.0 106.0 544.0 100.0"/><path class="ln" d="M520.0 90.1 L544.0 100.0 L525.4 112.0"/><g transform="rotate(2.5 785.0 96.0)"><path class="ln" d="M581.6 39.6 Q802.3 38.6 992.7 41.4 Q1008.0 38.8 1011.6 59.8 Q1015.8 94.4 1008.3 132.8 Q1011.1 151.1 987.5 151.3 Q808.2 155.1 577.7 151.0 Q558.4 150.2 561.2 130.1 Q560.7 95.2 558.8 61.4 Q558.5 40.6 577.7 43.3 L600.6 44.1"/><text class="nm" x="785.0" y="98.0" text-anchor="middle" dominant-baseline="central" data-step-mute="2">A harness builder</text></g></g>
-    <g data-step="2"><path class="ln" d="M578.9 150.6 Q789.2 113.5 999.4 51.8"/><path class="ln" d="M586.7 52.3 Q798.4 98.0 993.4 157.5"/><path class="ln" d="M612.5 159.7 Q719.2 118.3 929.2 40.2"/><text class="note" x="878" y="226" transform="rotate(4 878 226)">too meta</text><path class="ln tick" d="M873.5 248.2 Q939.5 257.8 1032.9 256.0"/></g>
-    <g data-step="3"><path class="ln" d="M400.0 392.0 C474.0 418.0 452.0 586.0 536.0 592.0 C590.0 596.0 606.0 548.0 624.0 512.0"/><path class="ln" d="M603.0 527.3 L624.0 512.0 L623.3 534.1"/><g transform="rotate(-1.5 782.0 495.0)"><path class="ln" d="M650.1 430.6 Q802.4 435.8 910.5 430.8 Q933.0 433.8 930.8 454.7 Q936.6 496.7 931.7 535.6 Q930.2 559.9 910.4 558.8 Q769.8 561.9 652.6 557.2 Q630.7 558.9 630.3 536.4 Q632.7 500.6 632.5 450.7 Q633.7 430.8 649.1 434.8 L675.3 435.2"/><text class="nm" x="782.0" y="497.0" text-anchor="middle" dominant-baseline="central">An example</text></g></g>
-    <g data-step="4"><path class="ln" d="M940.0 528.0 C990.0 566.0 1030.0 610.0 1100.0 606.0"/><path class="ln" d="M1075.9 596.3 L1100.0 606.0 L1081.1 617.4"/><g transform="rotate(3 1273.0 604.0)"><path class="ln" d="M1132.4 546.5 Q1266.1 552.7 1416.9 548.6 Q1434.8 548.3 1432.6 565.2 Q1428.2 610.6 1434.8 642.8 Q1432.1 660.5 1413.9 660.9 Q1263.9 666.0 1129.5 660.2 Q1112.9 661.6 1112.9 641.2 Q1115.5 610.6 1111.4 569.1 Q1113.6 549.5 1131.5 552.4 L1160.4 553.3"/><text class="nm" x="1273.0" y="606.0" text-anchor="middle" dominant-baseline="central">Scaffolding</text></g><text class="note" x="1144" y="728" transform="rotate(-3 1144 728)">just for today</text><path class="ln tick" d="M1142.2 743.8 Q1200.3 734.4 1235.2 752.3"/></g>
-    <g data-step="5"><path class="ln" d="M1362.0 542.0 C1382.0 476.0 1416.0 430.0 1452.0 392.0"/><path class="ln" d="M1427.1 399.4 L1452.0 392.0 L1444.9 412.9"/><g transform="rotate(-3 1483.0 327.0)"><path class="ln" d="M1393.4 267.6 Q1494.8 269.0 1573.6 269.4 Q1592.3 269.0 1592.1 288.6 Q1593.8 322.7 1594.8 366.0 Q1594.5 387.7 1572.5 384.0 Q1473.1 388.1 1390.2 384.7 Q1373.6 386.6 1371.8 368.4 Q1369.9 329.7 1370.8 287.6 Q1373.2 269.7 1394.3 271.2 L1417.0 272.3"/><text class="nm" x="1483.0" y="329.0" text-anchor="middle" dominant-baseline="central" data-step-mute="6">A UI</text></g></g>
-    <g data-step="6"><path class="ln" d="M1387.3 388.0 Q1491.3 337.4 1598.4 272.9"/><path class="ln" d="M1383.6 277.3 Q1487.8 321.1 1593.4 389.8"/><text class="note" x="1176" y="238" transform="rotate(-4 1176 238)">looked like a product</text></g>
-    <g data-step="7"><path class="ln dash" d="M1360.0 340.0 C1306.0 350.0 1262.0 364.0 1242.0 394.0 C1224.0 422.0 1244.0 454.0 1274.0 444.0 C1306.0 432.0 1290.0 384.0 1232.0 384.0 C1150.0 382.0 1060.0 396.0 1006.0 426.0"/><path class="ln" d="M1032.0 425.4 L1006.0 426.0 L1018.3 407.7"/><path class="ln" d="M572.5 457.2 Q591.8 434.2 606.5 423.8 Q621.2 413.3 641.4 405.0 Q661.7 396.7 685.7 390.9 Q709.8 385.1 736.1 382.5 Q762.5 379.8 789.6 379.8 Q816.7 379.9 841.2 385.5 Q865.6 391.1 888.2 397.3 Q910.8 403.4 929.1 412.2 Q947.5 420.9 962.4 430.9 Q977.4 440.8 990.8 451.7 Q1004.2 462.5 1009.3 475.0 Q1014.5 487.5 1015.2 500.5 Q1016.0 513.4 1009.4 526.1 Q1002.8 538.9 987.1 549.5 Q971.4 560.1 953.1 569.4 Q934.9 578.7 911.1 584.2 Q887.4 589.7 863.3 593.6 Q839.2 597.5 814.3 599.6 Q789.3 601.7 763.3 602.6 Q737.2 603.5 711.2 600.7 Q685.2 597.8 660.8 592.1 Q636.4 586.3 616.6 577.2 Q596.9 568.1 583.2 556.7 Q569.5 545.3 562.6 532.8 Q555.6 520.3 548.6 507.6 Q541.5 495.0 546.5 482.1 Q551.5 469.2 558.6 456.5 Q565.7 443.9 578.9 432.2 Q592.2 420.6 610.4 410.3 Q628.6 400.0 651.4 391.6 Q674.1 383.2 701.4 378.6 Q728.6 373.9 757.3 374.2 Q786.1 374.6 813.3 377.5 Q840.6 380.5 865.5 386.0 Q890.4 391.6 913.2 398.7 Q936.0 405.8 955.3 415.1 Q974.6 424.4 991.0 435.2 Q1007.4 446.1 1018.7 458.7 Q1030.0 471.4 1032.6 485.2 Q1035.1 499.0 1031.3 512.8 Q1027.4 526.7 1015.0 539.2 Q1002.6 551.7 982.4 561.4 Q962.2 571.1 942.0 580.0 Q921.8 588.9 897.4 594.9 Q873.0 600.8 846.8 604.3 Q820.6 607.8 793.2 610.2 Q765.8 612.5 737.4 611.5 Q709.0 610.5 681.7 605.9 Q654.3 601.3 632.3 592.2 Q610.4 583.0 593.2 572.1"/><text class="note big" x="590" y="694" transform="rotate(-3 590 694)">here we are</text><path class="ln" d="M586.8 716.6 Q731.8 727.9 884.3 707.4"/></g>
-  </svg>
+<!-- 06 · Trust -->
+<section class="slide centred" id="s-trust">
+  <p class="section-label">Why trust</p>
+  <p class="label">THE GOAL IS</p>
+  <h1 class="mega xl gap-m" data-step="1"><span class="trust">Trust.</span></h1>
+  <p class="sub gap-l" data-step="2">Money is never decided lightly. Not by a company, not by you.</p>
 </section>
 
-<!-- 08 · Why -->
-<section class="slide" id="s-why">
-  <h1 class="display"><span class="trust">Trust</span> is the ultimate goal in finance.</h1>
-  <p class="sub gap-m" data-step="1">Today's ultimate goal is for you to have a strong perspective.</p>
-  <p class="sub gap-s" data-step="2">This workshop won't be a straight line, but rather an open conversation.</p>
-</section>
-
-<!-- 09 · What you get -->
-<section class="slide" id="s-get">
-  <h1 class="display">Today you build a harness
-    <span class="swap swap-left">
-      <span data-step-out="1">for making decisions over finances.</span>
-      <span data-step="1" data-step-out="2">to analyze financial data.</span>
-      <span data-step="2" data-step-out="3">to reduce complexity when talking about money.</span>
-      <span data-step="3">to build a financial analyst.</span>
-    </span>
-  </h1>
-  <p class="sub gap-m" data-step="4">The principles hold for one person or a bank.</p>
-</section>
-
-<!-- 10 · What this is not -->
-<section class="slide" id="s-not">
-  <h1 class="display">A meta-workshop.</h1>
+<!-- 07 · Tailored -->
+<section class="slide" id="s-tailored">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">Finance is tailored.</h1>
   <div class="stack-tight gap-l">
-    <p class="soft" data-step="1"><span class="lead">No</span> secret sauce from work.</p>
-    <p class="soft" data-step="2"><span class="lead">No</span> solution to your use case.</p>
-    <p class="soft" data-step="3"><span class="lead">Not</span> plug and play.</p>
+    <p class="headline" data-step="1">Your numbers.</p>
+    <p class="headline" data-step="2">Your strategy. <span class="hand-aside" data-step="3">Generally none...</span></p>
+    <p class="headline" data-step="4">Your knowledge. <span class="hand-aside" data-step="5">(or misconceptions)</span></p>
   </div>
-  <p class="sub gap-l" data-step="4">A toy example to land a framework to build harnesses.</p>
-  <p class="footnote hand" data-step="5">There are layers, folks <span class="emo">🧅</span></p>
 </section>
 
-<!-- 11 · The real ask -->
+<!-- 08 · How the work changed -->
+<section class="slide" id="s-evolution">
+  <p class="section-label">Why trust</p>
+  <p class="label">HOW THE WORK CHANGED</p>
+  <figure class="viz viz-flow gap-m" data-viz="flow" data-spec="{&quot;label&quot;:&quot;The work moved from one-shots to prompt engineering, then RAG and tools, then loops and graphs&quot;,&quot;reveal&quot;:&quot;each&quot;,&quot;node_size&quot;:&quot;l&quot;,&quot;node_width&quot;:340,&quot;node_height&quot;:200,&quot;nodes&quot;:[&quot;One-shots&quot;,&quot;Prompt\nengineering&quot;,&quot;RAG and\ntools&quot;,&quot;Loops and\ngraphs&quot;]}">
+    <table class="viz-sr"><caption>The work moved from one-shots to prompt engineering, then RAG and tools, then loops and graphs</caption><thead><tr><th>From</th><th>To</th></tr></thead><tbody><tr><td>One-shots</td><td>Prompt engineering</td></tr><tr><td>Prompt engineering</td><td>RAG and tools</td></tr><tr><td>RAG and tools</td><td>Loops and graphs</td></tr></tbody></table>
+  </figure>
+  <p class="sub gap-m" data-step="5">Agents now take on far more complex work.</p>
+</section>
+
+<!-- 09 · The interface -->
+<section class="slide" id="s-interface">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">The gap is no longer speed.</h1>
+  <p class="sub gap-m" data-step="1">It is how the work meets us.</p>
+  <p class="sub gap-s" data-step="2">So we can <span class="trust">trust</span> agents with the highest stakes we have: money.</p>
+</section>
+
+<!-- 10 · The stakes -->
+<section class="slide centred" id="s-stakes">
+  <p class="section-label">Why trust</p>
+  <p class="sub">Money is not high stakes for you? A one-shot is enough?</p>
+  <h1 class="display gap-m" data-step="1">Find me after the workshop.</h1>
+  <p class="sub gap-m"><span class="hand-aside" data-step="2">I have some great investment ideas for you.</span></p>
+</section>
+
+<!-- 11 · The gap -->
+<section class="slide" id="s-gap">
+  <p class="section-label">Why trust</p>
+  <div class="split has-examples">
+    <div>
+      <p class="label">YOU</p>
+      <h2 class="headline gap-xs">know your situation</h2>
+      <div class="examples">
+        <p class="example" data-step="1">the venue wants 30% up front</p>
+        <p class="example" data-step="2">my bonus lands in March</p>
+        <p class="example" data-step="3">her parents may chip in</p>
+        <p class="example" data-step="4">we never stick to a budget</p>
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div data-step="5">
+      <p class="label">THE MODEL</p>
+      <h2 class="headline gap-xs">knows the field</h2>
+      <div class="examples">
+        <p class="example" data-step="6">the average wedding</p>
+        <p class="example" data-step="6">the average couple</p>
+        <p class="example" data-step="6">the average budget</p>
+      </div>
+    </div>
+    <p class="sub foot" data-step="7">Second nature to you. Averaged out in the training data.</p>
+  </div>
+</section>
+
+<!-- 12 · Caveats -->
+<section class="slide converge" id="s-caveats">
+  <p class="section-label">Why trust</p>
+  <div class="input" data-step="1" style="--cx:440px; --top:400px"><span class="pill">guest count not final</span></div>
+  <div class="input" data-step="2" style="--cx:700px; --top:290px"><span class="pill">three payment dates</span></div>
+  <div class="input" data-step="3" style="--cx:960px; --top:180px"><span class="pill">family money, maybe</span></div>
+  <div class="input" data-step="4" style="--cx:1220px; --top:290px"><span class="pill">gross or net?</span></div>
+  <div class="input" data-step="5" style="--cx:1480px; --top:400px"><span class="pill">what we really spend</span></div>
+  <div class="question step">Can we pay for the wedding?</div>
+  <p class="sub" data-step="6">Simple question. Then the caveats.</p>
+</section>
+
+<!-- 13 · The deal -->
+<section class="slide" id="s-deal">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">Earn the <span class="trust">trust</span>.</h1>
+  <div class="arrow-down gap-s" data-step="1">
+    <svg class="arrow" viewBox="0 0 48 100"><path class="l" d="M24 4V68"/><path class="h" d="M2 62L24 98L46 62z"/></svg>
+  </div>
+  <p class="display gap-m" data-step="1">Then you can truly delegate the boring work.</p>
+</section>
+
+<!-- 14 · Not new -->
+<section class="slide" id="s-not-new">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">None of this is new.</h1>
+  <div class="stack-tight gap-l">
+    <p class="sub" data-step="1">Unit tests <span class="hand-aside" data-step="1">decades old</span></p>
+    <p class="sub" data-step="2">Evals <span class="hand-aside" data-step="2">everyone knows</span></p>
+    <p class="sub" data-step="3">Traces and observability <span class="hand-aside" data-step="3">not new either</span></p>
+    <p class="sub" data-step="4">Loops and graphs <span class="hand-aside" data-step="4">this season's fashion</span></p>
+    <p class="sub" data-step="5">Planning with your agent <span class="hand-aside" data-step="5">the most obvious one</span></p>
+  </div>
+</section>
+
+<!-- 15 · Not tools -->
+<section class="slide" id="s-not-tools">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">Not which tools to use.</h1>
+  <p class="display gap-m" data-step="1">The design framework that makes them work.</p>
+  <p class="sub gap-m" data-step="2">Closing the distance between knowing it should be done, and knowing WHY.</p>
+</section>
+
+<!-- 16 · The framework (builds bottom-up) -->
+<section class="slide tall" id="s-framework">
+  <p class="section-label">Why trust</p>
+  <span data-step="6" data-confetti hidden></span>
+  <div class="stack">
+    <p class="label">THE GOAL</p>
+    <p class="stack-goal"><span class="trust">Trust</span></p>
+    <ol class="stack-bars">
+      <li class="bar" data-step-fill="5" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar" data-step-fill="4" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar" data-step-fill="3" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar" data-step-fill="2" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar" data-step-fill="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- 17 · The real ask -->
 <section class="slide centred" id="s-bait">
-  <h1 class="display">Speaking of <span class="trust">trust</span>, this is another bait.</h1>
+  <p class="section-label">Today's demo</p>
+  <h1 class="display">Speaking of <span class="trust">trust</span>…</h1>
 </section>
 
-<!-- 12 · The value question -->
+<!-- 18 · The value question -->
 <section class="slide centred" id="s-value">
-  <div class="swap">
-    <h1 class="display" data-step-out="1">You thought you would get all the value today?</h1>
-    <p class="mega dots" data-step="1" aria-label="pause">…</p>
-  </div>
+  <p class="section-label">Today's demo</p>
+  <h1 class="display">I have an ulterior motive today.</h1>
 </section>
 
-<!-- 13 · The real ask -->
+<!-- 19 · The real ask -->
 <section class="slide centred" id="s-ask">
-  <p class="display step from-you ask">You are here to help <span class="ask-us">me</span>. <span class="hand-aside ask-who" data-step="1">(Francesco)</span></p>
+  <p class="section-label">Today's demo</p>
+  <p class="display step from-you ask">You are here to help <span class="ask-us">me</span>.</p>
+  <p class="hand-aside ask-who gap-xs" data-step="1">(Francesco)</p>
 </section>
 
-<!-- 14 · The demo -->
+<!-- 20 · The demo -->
 <section class="slide" id="s-demo">
+  <p class="section-label">Today's demo</p>
   <p class="label">TODAY'S DEMO</p>
   <div class="mega-row gap-s">
     <h1 class="mega">My wedding.</h1>
     <span class="ring-emoji" aria-hidden="true">💍</span>
   </div>
-  <p class="sub gap-m" data-step="1">Paying for it, to be exact.</p>
+  <p class="sub gap-m" data-step="1">Figuring out the finances around it, to be exact.</p>
 </section>
 
-<!-- 15 · Show of hands -->
+<!-- 21 · Show of hands -->
 <section class="slide" id="s-hands">
+  <p class="section-label">Today's demo</p>
   <p class="label">SHOW OF HANDS</p>
   <h1 class="display gap-s">Who has had a wedding?</h1>
   <p class="label gap-l">GUESTS</p>
-  <div class="hands gap-xs">
-    <span class="num" data-step="1" data-step-mute="2">50</span>
+  <div class="hands grow gap-xs">
+    <span class="num" data-step="1" data-step-mute="2">&lt;50</span>
     <span class="num" data-step="2" data-step-mute="3">100</span>
     <span class="num" data-step="3" data-step-mute="4">150</span>
     <span class="num" data-step="4">200</span>
@@ -994,22 +1411,16 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="sub gap-l" data-step="5">These things are expensive. I do not recommend it.</p>
 </section>
 
-<!-- 16 · Looks simple -->
+<!-- 22 · Looks simple -->
 <section class="slide" id="s-simple">
+  <p class="section-label">Today's demo</p>
   <h1 class="display">Looks simple. It is not.</h1>
   <p class="big-emoji gap-m" data-step="1" aria-label="sweating">😅</p>
 </section>
 
-<!-- 17 · Fine print -->
-<section class="slide" id="s-fine">
-  <p class="label">DISCLAIMER, FIRST OF ALL</p>
-  <h1 class="display gap-s">Something will break.</h1>
-  <p class="sub gap-m" data-step="1">Some of this is over-engineered.</p>
-  <p class="sub gap-s" data-step="2">When it breaks, we fix it with you.</p>
-</section>
-
-<!-- 18 · Two tracks -->
+<!-- 23 · Two tracks -->
 <section class="slide" id="s-tracks">
+  <p class="section-label">Today's demo</p>
   <p class="label">PICK A TRACK</p>
   <div class="tracks gap-m">
     <div class="track step">
@@ -1025,11 +1436,12 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 19 · Setup -->
+<!-- 24 · Setup -->
 <section class="slide" id="s-setup">
+  <p class="section-label">Setup</p>
   <div class="setup">
     <div>
-      <div class="row"><p class="label">SETUP</p><span class="chip">10 min</span></div>
+      <div class="row"><p class="label">GET THE REPO</p><span class="chip">10 min</span></div>
       <svg class="qr gap-m" viewBox="-4 -4 41 41" role="img" aria-label="QR code for github.com/francescogalletta/aienyc-harness-workshop"><rect class="qr-ground" x="-4" y="-4" width="41" height="41" rx="2"/><path class="qr-ink" d="M0 0h7v1h-7zM8 0h2v1h-2zM12 0h5v1h-5zM18 0h1v1h-1zM21 0h1v1h-1zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM13 1h2v1h-2zM16 1h2v1h-2zM19 1h2v1h-2zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h1v1h-1zM12 2h1v1h-1zM17 2h3v1h-3zM21 2h4v1h-4zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h1v1h-1zM10 3h2v1h-2zM15 3h2v1h-2zM18 3h1v1h-1zM20 3h1v1h-1zM23 3h1v1h-1zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM13 4h2v1h-2zM18 4h1v1h-1zM23 4h1v1h-1zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h7v1h-7zM18 5h2v1h-2zM21 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM14 7h5v1h-5zM20 7h5v1h-5zM0 8h1v1h-1zM4 8h1v1h-1zM6 8h6v1h-6zM17 8h1v1h-1zM21 8h1v1h-1zM23 8h1v1h-1zM25 8h5v1h-5zM32 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM8 9h1v1h-1zM10 9h2v1h-2zM14 9h5v1h-5zM23 9h1v1h-1zM25 9h1v1h-1zM29 9h2v1h-2zM0 10h1v1h-1zM2 10h2v1h-2zM5 10h4v1h-4zM10 10h1v1h-1zM13 10h3v1h-3zM18 10h1v1h-1zM21 10h3v1h-3zM26 10h1v1h-1zM29 10h1v1h-1zM31 10h1v1h-1zM0 11h2v1h-2zM3 11h3v1h-3zM7 11h1v1h-1zM10 11h1v1h-1zM12 11h2v1h-2zM17 11h5v1h-5zM23 11h1v1h-1zM25 11h1v1h-1zM31 11h1v1h-1zM2 12h1v1h-1zM4 12h3v1h-3zM9 12h5v1h-5zM15 12h3v1h-3zM19 12h6v1h-6zM26 12h1v1h-1zM28 12h2v1h-2zM32 12h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM8 13h2v1h-2zM11 13h7v1h-7zM20 13h6v1h-6zM27 13h1v1h-1zM29 13h2v1h-2zM2 14h5v1h-5zM9 14h1v1h-1zM13 14h3v1h-3zM18 14h1v1h-1zM20 14h1v1h-1zM23 14h4v1h-4zM28 14h2v1h-2zM31 14h1v1h-1zM0 15h1v1h-1zM2 15h4v1h-4zM8 15h2v1h-2zM13 15h2v1h-2zM17 15h1v1h-1zM19 15h1v1h-1zM21 15h2v1h-2zM25 15h4v1h-4zM0 16h2v1h-2zM6 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM19 16h4v1h-4zM24 16h1v1h-1zM26 16h1v1h-1zM28 16h2v1h-2zM31 16h1v1h-1zM0 17h4v1h-4zM5 17h1v1h-1zM7 17h2v1h-2zM10 17h1v1h-1zM12 17h1v1h-1zM15 17h2v1h-2zM18 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM29 17h3v1h-3zM2 18h1v1h-1zM6 18h1v1h-1zM9 18h1v1h-1zM11 18h1v1h-1zM13 18h1v1h-1zM15 18h1v1h-1zM20 18h1v1h-1zM22 18h2v1h-2zM25 18h1v1h-1zM27 18h1v1h-1zM29 18h1v1h-1zM31 18h1v1h-1zM1 19h1v1h-1zM3 19h3v1h-3zM8 19h1v1h-1zM11 19h1v1h-1zM13 19h2v1h-2zM16 19h2v1h-2zM19 19h7v1h-7zM27 19h1v1h-1zM2 20h1v1h-1zM6 20h2v1h-2zM9 20h1v1h-1zM14 20h1v1h-1zM17 20h1v1h-1zM21 20h2v1h-2zM24 20h1v1h-1zM26 20h1v1h-1zM28 20h2v1h-2zM0 21h1v1h-1zM2 21h1v1h-1zM5 21h1v1h-1zM7 21h1v1h-1zM13 21h4v1h-4zM18 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM29 21h3v1h-3zM2 22h5v1h-5zM8 22h3v1h-3zM15 22h2v1h-2zM20 22h1v1h-1zM22 22h4v1h-4zM29 22h1v1h-1zM31 22h1v1h-1zM5 23h1v1h-1zM7 23h1v1h-1zM9 23h1v1h-1zM12 23h8v1h-8zM21 23h1v1h-1zM23 23h1v1h-1zM25 23h2v1h-2zM0 24h4v1h-4zM6 24h2v1h-2zM9 24h1v1h-1zM11 24h5v1h-5zM17 24h1v1h-1zM19 24h10v1h-10zM8 25h1v1h-1zM10 25h3v1h-3zM15 25h4v1h-4zM20 25h2v1h-2zM23 25h2v1h-2zM28 25h1v1h-1zM30 25h2v1h-2zM0 26h7v1h-7zM8 26h2v1h-2zM14 26h2v1h-2zM20 26h1v1h-1zM24 26h1v1h-1zM26 26h1v1h-1zM28 26h2v1h-2zM31 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h2v1h-2zM14 27h1v1h-1zM16 27h3v1h-3zM20 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h2v1h-2zM14 28h1v1h-1zM17 28h1v1h-1zM21 28h2v1h-2zM24 28h6v1h-6zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM9 29h1v1h-1zM12 29h2v1h-2zM15 29h2v1h-2zM21 29h1v1h-1zM23 29h2v1h-2zM26 29h3v1h-3zM30 29h1v1h-1zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM10 30h1v1h-1zM12 30h2v1h-2zM15 30h1v1h-1zM17 30h2v1h-2zM20 30h1v1h-1zM23 30h2v1h-2zM26 30h3v1h-3zM0 31h1v1h-1zM6 31h1v1h-1zM11 31h3v1h-3zM16 31h3v1h-3zM20 31h2v1h-2zM24 31h3v1h-3zM29 31h1v1h-1zM0 32h7v1h-7zM8 32h1v1h-1zM10 32h1v1h-1zM12 32h1v1h-1zM14 32h1v1h-1zM16 32h2v1h-2zM19 32h7v1h-7zM32 32h1v1h-1z"/></svg>
       <a class="mono url" href="https://github.com/francescogalletta/aienyc-harness-workshop" target="_blank" rel="noopener">github.com/<wbr>francescogalletta/<wbr>aienyc-harness-workshop</a>
     </div>
@@ -1042,131 +1454,71 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
         <span class="pill">an API key</span>
         <span class="pill ph" data-placeholder>others to confirm</span>
       </div>
-      <p class="label gap-l">CHECK IT WORKS</p>
-      <div class="gap-s"><code class="mono step command">uv run python -m harness check</code></div>
-      <p class="sub gap-m">It should end with “Setup works”.</p>
-      <p class="hand-note gap-m">Please be lazy and ask your agent to set it up for you.</p>
+      <p class="setup-note gap-l">Or just ask your agent to guide you.</p>
     </div>
   </div>
 </section>
 
-<!-- 20 · The two hours -->
+<!-- 25 · What you cloned -->
+<section class="slide" id="s-repo">
+  <p class="section-label">Setup</p>
+  <p class="label">WHAT YOU JUST CLONED</p>
+  <ul class="tree gap-m">
+    <li class="tree-row"><code class="mono tree-path">harness/</code><span class="tree-gloss">the harness you build</span></li>
+    <li class="tree-row"><code class="mono tree-path">examples/wedding/</code><span class="tree-gloss">today's example</span></li>
+    <li class="tree-row"><code class="mono tree-path">my/</code><span class="tree-gloss">your own plan</span></li>
+    <li class="tree-row"><code class="mono tree-path">workshop/</code><span class="tree-gloss">the steps, and how to catch up</span></li>
+    <li class="tree-row" data-step-mute="1"><code class="mono tree-path">tests/</code><span class="tree-gloss">offline tests per layer</span></li>
+    <li class="tree-row" data-step-mute="1"><code class="mono tree-path">reference/</code><span class="tree-gloss">checked finance terms</span></li>
+    <li class="tree-row" data-step-mute="1"><code class="mono tree-path">design/</code><span class="tree-gloss">product design, page source</span></li>
+    <li class="tree-row" data-step-mute="1"><code class="mono tree-path">SPEC.md</code><span class="tree-gloss">the contract</span></li>
+  </ul>
+  <p class="tree-line gap-m" data-step="2"><span class="tree-line-text">Catch up to step N:</span><code class="mono step command">uv run python -m workshop at N</code></p>
+</section>
+
+<!-- 26 · The two hours -->
 <section class="slide" id="s-map">
+  <p class="section-label">Setup</p>
   <p class="label">TODAY'S STRUCTURE</p>
   <h2 class="headline gap-xs">For each principle, we explain it, show it working, then discuss and play.</h2>
-  <div class="flow gap-xl">
-    <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Setup</span></div></div>
-    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="node-emoji" aria-hidden="true">🤝</span><span class="node-num">1</span><span class="node-name">Shared Domain</span></div></div></div>
-    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="node-emoji" aria-hidden="true">🧮</span><span class="node-num">2</span><span class="node-name">Consistency</span></div></div></div>
-    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="node-emoji" aria-hidden="true">🧾</span><span class="node-num">3</span><span class="node-name">Evidence</span></div></div></div>
-    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="node-emoji" aria-hidden="true">🙋</span><span class="node-num">4</span><span class="node-name">Accountability</span></div></div></div>
-    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="node-emoji" aria-hidden="true">🔍</span><span class="node-num">5</span><span class="node-name">Verification</span></div></div></div>
-    <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Wrap</span></div></div>
+  <div class="stairs gap-l">
+    <span class="flow-node pill stairs-start">Setup</span>
+    <div class="stair" style="--c:var(--principle-1); --ci:var(--principle-1-ink); --n:1"><span class="stair-head"><span class="stair-num">1</span><span class="stair-emoji" aria-hidden="true">🤝</span></span><span class="stair-name">Shared Domain</span></div>
+    <div class="stair" style="--c:var(--principle-2); --ci:var(--principle-2-ink); --n:2"><span class="stair-head"><span class="stair-num">2</span><span class="stair-emoji" aria-hidden="true">🧮</span></span><span class="stair-name">Consistency</span></div>
+    <div class="stair" style="--c:var(--principle-3); --ci:var(--principle-3-ink); --n:3"><span class="stair-head"><span class="stair-num">3</span><span class="stair-emoji" aria-hidden="true">🧾</span></span><span class="stair-name">Evidence</span></div>
+    <div class="stair" style="--c:var(--principle-4); --ci:var(--principle-4-ink); --n:4"><span class="stair-head"><span class="stair-num">4</span><span class="stair-emoji" aria-hidden="true">🙋</span></span><span class="stair-name">Accountability</span></div>
+    <div class="stair" style="--c:var(--principle-5); --ci:var(--principle-5-ink); --n:5"><span class="stair-head"><span class="stair-num">5</span><span class="stair-emoji" aria-hidden="true">🔍</span></span><span class="stair-name">Verification</span></div>
+    <span class="flow-node pill stairs-end">Wrap</span>
   </div>
 </section>
 
-<!-- 21 · Trust -->
-<section class="slide centred" id="s-trust">
-  <h1 class="mega xl"><span class="trust">Trust.</span></h1>
-  <p class="sub gap-l" data-step="1">Money is never decided lightly. Not by a company, not by you.</p>
+<!-- 27 · Fine print -->
+<section class="slide" id="s-fine">
+  <p class="section-label">Setup</p>
+  <p class="label">DISCLAIMER</p>
+  <h1 class="display gap-s">Something will break.</h1>
+  <p class="sub gap-m" data-step="1">Some of this is over-engineered.</p>
+  <p class="sub gap-s" data-step="2">If something breaks or does not make sense, raise your hand. We will come to you.</p>
 </section>
 
-<!-- 22 · Tailored -->
-<section class="slide" id="s-tailored">
-  <h1 class="display">Finance is tailored.</h1>
-  <div class="stack-tight gap-l">
-    <p class="headline" data-step="1">Your numbers.</p>
-    <p class="headline" data-step="2">Your strategy. <span class="hand-aside" data-step="3">Generally none...</span></p>
-    <p class="headline" data-step="4">Your knowledge. <span class="hand-aside" data-step="5">(or misconceptions)</span></p>
-  </div>
-</section>
-
-<!-- 23 · The gap -->
-<section class="slide" id="s-gap">
-  <div class="split">
-    <div>
-      <p class="label">YOU</p>
-      <h2 class="headline gap-xs">know your situation</h2>
-    </div>
-    <div class="divider"></div>
-    <div data-step="1">
-      <p class="label">THE MODEL</p>
-      <h2 class="headline gap-xs">knows the field</h2>
-    </div>
-  </div>
-</section>
-
-<!-- 24 · Caveats -->
-<section class="slide converge" id="s-caveats">
-  <div class="input" data-step="1" style="--cx:440px; --top:400px"><span class="pill">guest count not final</span></div>
-  <div class="input" data-step="2" style="--cx:700px; --top:290px"><span class="pill">three payment dates</span></div>
-  <div class="input" data-step="3" style="--cx:960px; --top:180px"><span class="pill">family money, maybe</span></div>
-  <div class="input" data-step="4" style="--cx:1220px; --top:290px"><span class="pill">gross or net?</span></div>
-  <div class="input" data-step="5" style="--cx:1480px; --top:400px"><span class="pill">what we really spend</span></div>
-  <div class="question step">Can we pay for the wedding?</div>
-  <p class="sub" data-step="6">Simple question. Then the caveats.</p>
-</section>
-
-<!-- 25 · The deal -->
-<section class="slide" id="s-deal">
-  <h1 class="display">Earn the <span class="trust">trust</span>.</h1>
-  <p class="display quiet gap-m" data-step="1">Delegate the boring work.</p>
-</section>
-
-<!-- 26 · Why “analyst” -->
-<section class="slide" id="s-analyst">
-  <p class="label">WHY “ANALYST”</p>
-  <h1 class="display gap-s">Treat the agent like a new hire.</h1>
-  <p class="sub gap-m" data-step="1">Nobody hands a new analyst the money on day one.</p>
-  <p class="sub gap-s" data-step="2">A good manager builds that <span class="trust">trust</span> on purpose.</p>
-</section>
-
-<!-- 27 · Code and model -->
-<section class="slide" id="s-code-model">
-  <div class="split">
-    <div>
-      <p class="label">CODE</p>
-      <h2 class="headline gap-xs">repeats exactly</h2>
-    </div>
-    <div class="divider"></div>
-    <div data-step="1">
-      <p class="label">THE MODEL</p>
-      <h2 class="headline gap-xs">uses judgement</h2>
-    </div>
-    <p class="sub foot" data-step="2">The harness decides which does what.</p>
-  </div>
-</section>
-
-<!-- 28 · The framework (builds bottom-up) -->
-<section class="slide tall" id="s-framework">
-  <span data-step="6" data-confetti hidden></span>
-  <div class="stack">
-    <p class="label">THE GOAL</p>
-    <p class="stack-goal"><span class="trust">Trust</span></p>
-    <ol class="stack-bars">
-      <li class="bar" data-step-fill="5" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
-      <li class="bar" data-step-fill="4" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar" data-step-fill="3" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar" data-step-fill="2" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar" data-step-fill="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
-    </ol>
-  </div>
+<!-- 28 · Check it works -->
+<section class="slide" id="s-check">
+  <p class="section-label">Setup</p>
+  <p class="label">CHECK IT WORKS</p>
+  <code class="mono step command xl gap-m">uv run python -m harness check</code>
+  <p class="sub gap-m">It should end with “Setup works”.</p>
 </section>
 
 <!-- 29 · Principle 1 · Shared Domain -->
 <section class="slide" id="s-p1" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1-ink)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">18 min</span></div>
   <p class="sub gap-m">Agree the plan before any number.</p>
 </section>
 
 <!-- 30 · P1 · Why -->
 <section class="slide" id="s-p1-why" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <p class="label">WHY</p>
   <h1 class="display gap-s">What is obvious to you is not what the model learned.</h1>
   <p class="sub gap-m" data-step="1">Start from the goal. Work backwards, together.</p>
@@ -1174,6 +1526,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 31 · P1 · Without it -->
 <section class="slide" id="s-p1-without" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <p class="label">WITHOUT IT</p>
   <div class="stack-tight gap-m">
     <p class="headline" data-step="1">One shot.</p>
@@ -1184,6 +1537,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 32 · P1 · Examples -->
 <section class="slide" id="s-p1-examples" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <p class="label">EXAMPLES</p>
   <div class="says gap-m">
     <p class="label">YOU SAY</p><span></span><p class="label">THE MODEL HAS TO GUESS</p>
@@ -1202,30 +1556,29 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 33 · P1 · Demo -->
 <section class="slide" id="s-p1-demo" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 34 · P1 · Your turn -->
-<section class="slide" id="s-p1-turn" data-principle="1">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 35 · Principle 2 · Consistency -->
+<!-- 34 · Principle 2 · Consistency -->
 <section class="slide" id="s-p2" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2-ink)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">20 min</span></div>
   <p class="sub gap-m">Numbers come only from tested code.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
 
-<!-- 36 · P2 · Why -->
+<!-- 35 · P2 · Why -->
 <section class="slide" id="s-p2-why" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <p class="label">WHY</p>
   <h1 class="display gap-s">Write the calculation once. Run it the same way every time.</h1>
   <p class="sub gap-m" data-step="1">The model picks the tool. It never does the arithmetic.</p>
 </section>
 
-<!-- 37 · P2 · Without it -->
+<!-- 36 · P2 · Without it -->
 <section class="slide" id="s-p2-without" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <p class="label">WITHOUT IT</p>
   <div class="stack-tight gap-m">
     <p class="headline" data-step="1">Arithmetic in the model's head.</p>
@@ -1234,8 +1587,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 38 · P2 · Examples -->
+<!-- 37 · P2 · Examples -->
 <section class="slide" id="s-p2-examples" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <p class="label">EXAMPLES</p>
   <div class="steps-grid gap-m">
     <div class="step">Total cost</div>
@@ -1248,84 +1602,190 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="sub gap-m">Each one is code, with tests.</p>
 </section>
 
-<!-- 39 · P2 · Demo -->
+<!-- 38 · P2 · Demo -->
 <section class="slide" id="s-p2-demo" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 40 · P2 · Your turn -->
-<section class="slide" id="s-p2-turn" data-principle="2">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 41 · Principle 3 · Evidence -->
+<!-- 39 · Principle 3 · Evidence -->
 <section class="slide" id="s-p3" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3-ink)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">17 min</span></div>
   <p class="sub gap-m">Every number can be followed back.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2); --oc:var(--on-principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
 </section>
 
-<!-- 42 · P3 · Why / without it / examples -->
-<section class="slide" id="s-p3-content" data-principle="3">
-  <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
+<!-- 40 · P3 · Why -->
+<section class="slide" id="s-p3-why" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
+  <p class="label">WHY</p>
+  <h1 class="display gap-s">Not all information is the same.</h1>
+  <p class="sub gap-m" data-step="1">Keep the trail: where each thing came from, and how far to trust it.</p>
 </section>
 
-<!-- 43 · P3 · Demo -->
+<!-- 41 · P3 · Without it -->
+<section class="slide" id="s-p3-without" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
+  <p class="label">WITHOUT IT</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">Everything treated as fact.</p>
+    <p class="headline" data-step="2">A rough guess used as the truth.</p>
+    <p class="headline" data-step="3">“I ran the numbers.” No receipts.</p>
+  </div>
+</section>
+
+<!-- 42 · P3 · Examples -->
+<section class="slide" id="s-p3-examples" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
+  <p class="label">EXAMPLES</p>
+  <div class="says compact gap-m">
+    <p class="label">“I MAKE 10K NET”, FROM</p><span></span><p class="label">SO IT IS</p>
+    <p class="ex said">A payslip or bank statement</p>
+    <svg class="arrow" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+    <div class="doubts"><span class="doubt">a fact</span></div>
+    <p class="ex said" data-step="1">Your answer to a question</p>
+    <svg class="arrow" data-step="1" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+    <div class="doubts" data-step="1"><span class="doubt">stated</span><span class="doubt">people forget, or round</span></div>
+    <p class="ex said" data-step="2">“About 10k”, said in passing</p>
+    <svg class="arrow" data-step="2" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+    <div class="doubts" data-step="2"><span class="doubt">an estimate</span></div>
+  </div>
+  <p class="sub gap-l" data-step="3">Same number. Three levels of trust.</p>
+</section>
+
+<!-- 43 · P3 · Receipts -->
+<section class="slide" id="s-p3-receipts" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
+  <h1 class="display">“I ran the numbers, but the template changed recently.”</h1>
+  <p class="sub gap-m" data-step="1">You would ask for a closer look.</p>
+  <p class="sub gap-s" data-step="2">Show the receipts for what matters, not everything.</p>
+</section>
+
+<!-- 44 · P3 · Demo -->
 <section class="slide" id="s-p3-demo" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
-</section>
-
-<!-- 44 · P3 · Your turn -->
-<section class="slide" id="s-p3-turn" data-principle="3">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
 </section>
 
 <!-- 45 · Principle 4 · Accountability -->
 <section class="slide" id="s-p4" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4-ink)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Ask only where a person must decide.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3); --oc:var(--on-principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
 
-<!-- 46 · P4 · Why / without it / examples -->
-<section class="slide" id="s-p4-content" data-principle="4">
-  <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
+<!-- 46 · P4 · Why -->
+<section class="slide" id="s-p4-why" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
+  <p class="label">WHY</p>
+  <h1 class="display gap-s">Agents face no real-world consequences. You do.</h1>
+  <p class="sub gap-m" data-step="1">That is your leverage. Keep it.</p>
 </section>
 
-<!-- 47 · P4 · Demo -->
+<!-- 47 · P4 · Ambiguity -->
+<section class="slide" id="s-p4-ambiguity" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
+  <h1 class="display">Reduce ambiguity. Do not remove it.</h1>
+  <p class="sub gap-m" data-step="1">The judgement calls stay with you. The harness makes them easy to make.</p>
+</section>
+
+<!-- 48 · P4 · Without it -->
+<section class="slide" id="s-p4-without" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
+  <p class="label">WITHOUT IT</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">“IDK, the stochastic machine said it was fine.”</p>
+    <p class="headline" data-step="2">Approving every calculation.</p>
+    <p class="headline" data-step="3">Reviewing every PR your agent ships. <span class="hand-aside ask-who" data-step="4">lying, or doing it badly</span></p>
+  </div>
+</section>
+
+<!-- 49 · P4 · In practice -->
+<section class="slide" id="s-p4-examples" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
+  <p class="label">IN PRACTICE</p>
+  <h1 class="display gap-s">Few gates. High signal.</h1>
+  <div class="stack-tight gap-l">
+    <p class="headline" data-step="1">Two plausible readings that conflict: stop and ask.</p>
+    <p class="headline" data-step="2">An assumption: run it, and mark it.</p>
+    <p class="headline" data-step="3">Arithmetic: never ask.</p>
+  </div>
+</section>
+
+<!-- 50 · P4 · Demo -->
 <section class="slide" id="s-p4-demo" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 48 · P4 · Your turn -->
-<section class="slide" id="s-p4-turn" data-principle="4">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 49 · Principle 5 · Verification -->
+<!-- 51 · Principle 5 · Verification -->
 <section class="slide" id="s-p5" data-principle="5">
+  <p class="section-label">5 · Verification</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5-ink)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">12 min</span></div>
   <p class="sub gap-m">A reviewer challenges the plan.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4); --oc:var(--on-principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
 
-<!-- 50 · P5 · Why / without it / examples -->
-<section class="slide" id="s-p5-content" data-principle="5">
-  <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
+<!-- 52 · P5 · Why -->
+<section class="slide" id="s-p5-why" data-principle="5">
+  <p class="section-label">5 · Verification</p>
+  <p class="label">WHY</p>
+  <h1 class="display gap-s">Experts do not check every cell.</h1>
+  <p class="sub gap-m" data-step="1">They know where it usually goes wrong.</p>
+  <p class="sub gap-s" data-step="2">And roughly what the answer should look like.</p>
 </section>
 
-<!-- 51 · P5 · Demo -->
+<!-- 53 · P5 · Thin slices -->
+<section class="slide" id="s-p5-thin" data-principle="5">
+  <p class="section-label">5 · Verification</p>
+  <div class="split">
+    <div>
+      <p class="label">YOU</p>
+      <h2 class="headline gap-xs">thin slices of your own experience</h2>
+    </div>
+    <div class="divider"></div>
+    <div data-step="1">
+      <p class="label">THE MODEL</p>
+      <h2 class="headline gap-xs">everyone's experience, averaged</h2>
+    </div>
+    <p class="sub foot" data-step="2">Its “probably fine” may look nothing like yours.</p>
+  </div>
+</section>
+
+<!-- 54 · P5 · Without it -->
+<section class="slide" id="s-p5-without" data-principle="5">
+  <p class="section-label">5 · Verification</p>
+  <p class="label">WITHOUT IT</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">Checking everything, line by line.</p>
+    <p class="headline" data-step="2">Or checking nothing.</p>
+    <p class="headline" data-step="3">No sense of what “about right” looks like.</p>
+  </div>
+</section>
+
+<!-- 55 · P5 · Examples -->
+<section class="slide" id="s-p5-examples" data-principle="5">
+  <p class="section-label">5 · Verification</p>
+  <p class="label">EXAMPLES</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">Is the guest count really settled?</p>
+    <p class="headline" data-step="2">Is the price per guest all in?</p>
+    <p class="headline" data-step="3">Will each payment be covered by its date?</p>
+  </div>
+  <p class="sub gap-l" data-step="3">Each challenge is yours to use or dismiss.</p>
+</section>
+
+<!-- 56 · P5 · Demo -->
 <section class="slide" id="s-p5-demo" data-principle="5">
+  <p class="section-label">5 · Verification</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 52 · P5 · Your turn -->
-<section class="slide" id="s-p5-turn" data-principle="5">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 53 · Wrap · The framework again -->
+<!-- 57 · Wrap · The framework again -->
 <section class="slide tall" id="s-framework-again" data-principle="wrap" data-rail="off">
+  <p class="section-label">Wrap</p>
   <div class="stack">
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
@@ -1339,13 +1799,26 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 54 · Wrap · Better models -->
+<!-- 58 · Wrap · Takeaways -->
+<section class="slide" id="s-takeaways" data-principle="wrap">
+  <p class="section-label">Wrap</p>
+  <p class="label">WHEN TRUST IS PARAMOUNT</p>
+  <div class="stack-tight gap-m">
+    <p class="headline" data-step="1">Show how the numbers ran.</p>
+    <p class="headline" data-step="2">Nothing generic. Finance is an ocean of nuance.</p>
+  </div>
+  <h1 class="display gap-m" data-step="3">Design to increase <span class="trust">trust</span>. Never assume it.</h1>
+</section>
+
+<!-- 59 · Wrap · Better models -->
 <section class="slide" id="s-better" data-principle="wrap">
+  <p class="section-label">Wrap</p>
   <h1 class="display">Better models still have to earn <span class="trust">trust</span>.</h1>
 </section>
 
-<!-- 55 · Wrap · Questions -->
+<!-- 60 · Wrap · Questions -->
 <section class="slide" id="s-questions" data-principle="wrap">
+  <p class="section-label">Wrap</p>
   <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">8 min</span></div>
 </section>
 
@@ -1359,10 +1832,10 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <span class="rail-cell" data-n="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span>
 </div>
 
+<div class="counter" id="counter" aria-hidden="true"></div>
 </div>
 </div>
 <div class="progress" aria-hidden="true"><i id="progress"></i></div>
-<div class="counter" id="counter" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -1403,6 +1876,532 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
       requestAnimationFrame(frame);
     })(t0);
   }
+
+  /* viz.js: the visuals kit. Draws <figure class="viz" data-viz="…" data-spec="{json}"> as inline SVG.
+     No dependencies. Optional shelf libraries, inlined by the build only when a slide asks:
+     window.rough (style = "rough"), window.echarts (viz = "echarts"), window.anime (choreo).
+
+     - Colours are written as CSS classes reading --viz-* tokens, so light/dark/theme switches repaint
+       with no JS. Rough.js and ECharts need concrete colours: they redraw on a theme change.
+     - Build steps: drawn parts carry data-step, so the deck's own engine shows them (.shown) and
+       counts them. Motion is CSS keyed on .shown; JS (Web Animations / rAF) only for the travel
+       marker and count-up. Entering a slide (.instant) or prefers-reduced-motion shows end states. */
+  var viz = (function () {
+    var NS = 'http://www.w3.org/2000/svg', doc = document, root = doc.documentElement;
+    var STEP_ATTRS = ['data-step', 'data-step-out', 'data-step-fill', 'data-step-strike', 'data-step-mute'];
+    var CLASSES = ['shown', 'gone', 'filled', 'struck', 'muted'];
+    var KINDS = {};
+    /* fills and the ink (stroke/text strength) used for the same role when drawn as lines */
+    var INK = { '--viz-bar': '--viz-bar-ink', '--viz-highlight': '--viz-highlight-ink', '--viz-up': '--viz-up-ink',
+      '--viz-down': '--viz-down-ink', '--viz-total': '--viz-total-ink' };
+
+    /* ---------- helpers ---------- */
+    function reduce() { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
+    function tok(name, scope) { return getComputedStyle(scope || root).getPropertyValue(name).trim(); }
+    function num(name, fallback, scope) { var v = parseFloat(tok(name, scope)); return isNaN(v) ? fallback : v; }
+    function ms(name, fallback) { var v = tok(name); var n = parseFloat(v); if (isNaN(n)) return fallback; return /ms$/.test(v) ? n : n * 1000; }
+    function el(tag, attrs, parent) {
+      var e = doc.createElementNS(NS, tag);
+      for (var k in attrs) if (attrs[k] !== undefined && attrs[k] !== null) e.setAttribute(k, attrs[k]);
+      if (parent) parent.appendChild(e);
+      return e;
+    }
+    function text(parent, x, y, s, cls, anchor) {
+      var t = el('text', { x: r1(x), y: r1(y), 'class': cls, 'text-anchor': anchor || 'middle' }, parent);
+      t.textContent = s; return t;
+    }
+    function r1(v) { return Math.round(v * 10) / 10; }
+    function fit(t, width) {  /* a label wider than its slot breaks onto two lines at the middle space */
+      var s = t.textContent;
+      if (!t.getComputedTextLength || t.getComputedTextLength() <= width || s.indexOf(' ') < 0) return t;
+      var words = s.split(' '), best = 1, half = s.length / 2, pos = 0;
+      words.forEach(function (w, i) { pos += w.length + 1; if (i < words.length - 1 && Math.abs(pos - half) < Math.abs(words.slice(0, best).join(' ').length - half)) best = i + 1; });
+      var x = t.getAttribute('x'), lines = [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+      t.textContent = '';
+      lines.forEach(function (l, i) { var ts = el('tspan', { x: x, dy: i ? '1.1em' : 0 }, t); ts.textContent = l; });
+      return t;
+    }
+    function stepOn(node, n) { if (n) node.setAttribute('data-step', n); return node; }
+    function fmt(v, spec) {
+      spec = spec || {};
+      var d = spec.decimals || 0, neg = v < 0, a = Math.abs(v);
+      var s = a.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+      return (neg ? '−' : (spec.sign && v > 0 ? '+' : '')) + (spec.prefix || '') + s + (spec.suffix || '');
+    }
+    function compact(v) { return Math.abs(v) >= 1000 ? (v / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'k' : String(v); }
+    function niceMax(v) { var p = Math.pow(10, Math.floor(Math.log10(v || 1))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
+    /* resolve a CSS value (e.g. a size token holding calc()) by measuring a probe inside the figure */
+    function cssPx(fig, prop, value) {
+      var p = doc.createElement('span'); p.style.position = 'absolute'; p.style.visibility = 'hidden'; p.style[prop] = value;
+      fig.appendChild(p); var v = parseFloat(getComputedStyle(p)[prop]); p.remove(); return v;
+    }
+    function svgFor(fig, w, h) {
+      return el('svg', { 'class': 'viz-svg', viewBox: '0 0 ' + w + ' ' + h, width: w, height: h, 'aria-hidden': 'true', focusable: 'false' }, fig);
+    }
+    function isRough(spec) { return spec.style === 'rough' && !!window.rough; }
+    function roughOpts(fig, extra) {
+      var o = { roughness: 1.3, bowing: 1, strokeWidth: num('--viz-stroke', 3, fig) + 0.5, seed: 7 };
+      for (var k in extra) o[k] = extra[k];
+      return o;
+    }
+    function inkable(node) {  /* draw-on: every path under node strokes in (rough paths included) */
+      node.querySelectorAll('path').forEach(function (p) { p.setAttribute('pathLength', '1'); p.classList.add('viz-ink'); });
+      return node;
+    }
+
+    /* ---------- build-step bookkeeping ---------- */
+    function slideOf(node) { return node.closest ? node.closest('.slide') : null; }
+    function currentStep(slide) {
+      var m = 0;
+      STEP_ATTRS.forEach(function (a, i) {
+        slide.querySelectorAll('[' + a + '].' + CLASSES[i]).forEach(function (e) { m = Math.max(m, +e.getAttribute(a) || 0); });
+      });
+      return m;
+    }
+    function restore(scope, s) {  /* after a redraw, give new parts the classes the deck gave the old ones */
+      var slide = slideOf(scope); if (!slide || !slide.classList.contains('active')) return;
+      if (s == null) s = currentStep(slide);
+      STEP_ATTRS.forEach(function (a, i) {
+        scope.querySelectorAll('[' + a + ']').forEach(function (e) { e.classList.toggle(CLASSES[i], (+e.getAttribute(a) || 0) <= s); });
+      });
+    }
+    function instant(node) { var s = slideOf(node); return !!(s && s.classList.contains('instant')); }
+    var observer = new MutationObserver(function (records) {
+      records.forEach(function (r) {
+        var t = r.target, on = t.classList.contains('shown');
+        if (!t._play || on === t._on) return;
+        t._on = on;
+        t._play(on, !instant(t) && !reduce() && t._animate !== false);
+      });
+    });
+    function anchor(fig, n, play) {  /* a hidden element whose .shown drives a JS-played effect */
+      var a = doc.createElement('i'); a.className = 'viz-anchor'; a.setAttribute('aria-hidden', 'true');
+      stepOn(a, n); fig.appendChild(a);
+      a._play = play; a._on = false; a._animate = fig._spec.animate !== false;
+      observer.observe(a, { attributes: true, attributeFilter: ['class'] });
+      play(!n, false);
+      return a;
+    }
+
+    /* ---------- chart frame: value axis + gridlines ---------- */
+    function valueScale(spec, values) {
+      var lo = Math.min(0, Math.min.apply(null, values)), hi = spec.max || niceMax(Math.max.apply(null, values));
+      var tick = spec.ticks || hi / 4;
+      return { lo: lo, hi: hi, tick: tick };
+    }
+    function gridY(svg, fig, spec, sc, box, rough) {
+      var g = el('g', { 'class': 'viz-frame' }, svg), rc = rough ? window.rough.svg(svg) : null;
+      svg.insertBefore(g, svg.firstChild);  /* gridlines sit behind the data, whatever was drawn first */
+      for (var t = sc.lo; t <= sc.hi + 1e-9; t += sc.tick) {
+        var y = box.y + box.h - (t - sc.lo) / (sc.hi - sc.lo) * box.h;
+        if (spec.axis !== false) {
+          if (rc) g.appendChild(rc.line(box.x, y, box.x + box.w, y, roughOpts(fig, { stroke: tok(t ? '--viz-grid' : '--viz-axis'), strokeWidth: t ? 1.5 : 3, roughness: 0.8, seed: 80 + t })));
+          else el('line', { 'class': t ? 'viz-grid' : 'viz-axis', x1: box.x, x2: box.x + box.w, y1: r1(y), y2: r1(y) }, g);
+          text(g, box.x - 18, y + 10, t ? (spec.prefix || '') + compact(t) : '0', 'viz-tick', 'end');
+        } else if (!t) el('line', { 'class': 'viz-axis', x1: box.x, x2: box.x + box.w, y1: r1(y), y2: r1(y) }, g);
+      }
+      return function (v) { return box.y + box.h - (v - sc.lo) / (sc.hi - sc.lo) * box.h; };
+    }
+    function barShape(parent, x, y, w, h, rad, up, rc, fig, colorTok, seed) {
+      if (h < 0.5) h = 0.5;
+      if (rc) {
+        var c = tok(INK[colorTok]);
+        parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed })));
+        return;
+      }
+      var r = Math.max(0, Math.min(rad, w / 2, h));
+      var d = up
+        ? 'M' + x + ' ' + (y + h) + 'V' + (y + r) + 'Q' + x + ' ' + y + ' ' + (x + r) + ' ' + y + 'H' + (x + w - r) + 'Q' + (x + w) + ' ' + y + ' ' + (x + w) + ' ' + (y + r) + 'V' + (y + h) + 'Z'
+        : 'M' + x + ' ' + y + 'V' + (y + h - r) + 'Q' + x + ' ' + (y + h) + ' ' + (x + r) + ' ' + (y + h) + 'H' + (x + w - r) + 'Q' + (x + w) + ' ' + (y + h) + ' ' + (x + w) + ' ' + (y + h - r) + 'V' + y + 'Z';
+      el('path', { d: d.replace(/(\d+\.\d{2,})/g, function (m) { return (+m).toFixed(1); }) }, parent);
+    }
+    function hbarShape(parent, x, y, w, h, rad, rc, fig, colorTok, seed) {
+      if (w < 0.5) w = 0.5;
+      if (rc) { var c = tok(INK[colorTok]); parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed }))); return; }
+      var r = Math.max(0, Math.min(rad, h / 2, w));
+      el('path', { d: 'M' + x + ' ' + y + 'H' + r1(x + w - r) + 'Q' + r1(x + w) + ' ' + y + ' ' + r1(x + w) + ' ' + r1(y + r) + 'V' + r1(y + h - r) + 'Q' + r1(x + w) + ' ' + r1(y + h) + ' ' + r1(x + w - r) + ' ' + r1(y + h) + 'H' + x + 'Z' }, parent);
+    }
+    function wantsValue(spec, label, i, n) {
+      var v = spec.values;
+      if (v === 'all') return true;
+      if (v === 'none') return false;
+      if (Array.isArray(v)) return v.indexOf(label) >= 0;
+      return label === spec.highlight || i === n - 1;
+    }
+
+    /* ---------- bars ---------- */
+    KINDS.bars = function (fig, spec) {
+      var rows = spec.data, n = rows.length, horiz = spec.orient === 'horizontal';
+      var W = spec.width || 1640, H = spec.height || (horiz ? Math.min(620, 90 * n + 40) : 560);
+      var svg = svgFor(fig, W, H), rough = isRough(spec), rc = rough ? window.rough.svg(svg) : null;
+      var rad = num('--viz-bar-radius', 6, fig), fill = num('--viz-bar-fill', 0.56, fig);
+      var sc = valueScale(spec, rows.map(function (r) { return r[1]; }));
+      var data = stepOn(el('g', { 'class': 'viz-data viz-grow' }, svg), spec.step);
+      var hl = el('g', { 'class': 'viz-hl-layer' }, svg);
+      if (!horiz) {
+        var box = { x: spec.axis === false ? 20 : 120, y: 56, w: 0, h: H - 56 - 76 }; box.w = W - box.x - 20;
+        var yOf = gridY(svg, fig, spec, sc, box, rough), band = box.w / n, bw = Math.min(band * fill, 160), base = yOf(0);
+        rows.forEach(function (r, i) {
+          var cx = box.x + band * i + band / 2, x = cx - bw / 2, y = yOf(r[1]);
+          var g = el('g', { 'class': 'viz-bar', style: '--i:' + i }, data);
+          barShape(g, x, y, bw, base - y, rad, true, rc, fig, '--viz-bar', 40 + i);
+          if (r[0] === spec.highlight) {
+            var h = stepOn(el('g', { 'class': 'viz-bar viz-hl', style: '--i:' + i }, hl), spec.highlight_step || spec.step);
+            barShape(h, x, y, bw, base - y, rad, true, rc, fig, '--viz-highlight', 40 + i);
+          }
+          fit(text(svg, cx, base + 48, r[0], 'viz-label' + (r[0] === spec.highlight ? ' viz-strong' : '')), band * 0.96);
+          if (wantsValue(spec, r[0], i, n)) stepOn(text(data, cx, y - 16, fmt(r[1], spec), 'viz-value'), spec.step);
+        });
+      } else {
+        var lw = spec.label_width || 360, bx = { x: lw, y: 10, w: W - lw - 220, h: H - 20 }, rowH = bx.h / n, bh = Math.min(rowH * fill, 64);
+        var xOf = function (v) { return bx.x + (v - sc.lo) / (sc.hi - sc.lo) * bx.w; };
+        el('line', { 'class': 'viz-axis', x1: bx.x, x2: bx.x, y1: bx.y, y2: bx.y + bx.h }, svg);
+        rows.forEach(function (r, i) {
+          var cy = bx.y + rowH * i + rowH / 2, y = cy - bh / 2, w = xOf(r[1]) - bx.x;
+          var g = el('g', { 'class': 'viz-bar viz-hbar', style: '--i:' + i }, data);
+          hbarShape(g, bx.x, y, w, bh, rad, rc, fig, '--viz-bar', 40 + i);
+          if (r[0] === spec.highlight) { var h = stepOn(el('g', { 'class': 'viz-bar viz-hbar viz-hl', style: '--i:' + i }, hl), spec.highlight_step || spec.step); hbarShape(h, bx.x, y, w, bh, rad, rc, fig, '--viz-highlight', 40 + i); }
+          text(svg, bx.x - 24, cy + 11, r[0], 'viz-label' + (r[0] === spec.highlight ? ' viz-strong' : ''), 'end');
+          if (wantsValue(spec, r[0], i, n)) stepOn(text(data, bx.x + w + 18, cy + 11, fmt(r[1], spec), 'viz-value', 'start'), spec.step);
+        });
+      }
+      if (rough) inkable(data);
+    };
+
+    /* ---------- waterfall: start, signed changes, end ---------- */
+    KINDS.waterfall = function (fig, spec) {
+      var items = [{ label: spec.start[0], v: spec.start[1], kind: 'total', from: 0, to: spec.start[1] }], run = spec.start[1];
+      spec.changes.forEach(function (c) { items.push({ label: c[0], v: c[1], kind: c[1] >= 0 ? 'up' : 'down', from: run, to: run + c[1] }); run += c[1]; });
+      items.push({ label: spec.end || 'End', v: run, kind: 'total', from: 0, to: run });
+      var W = spec.width || 1640, H = spec.height || 600, svg = svgFor(fig, W, H), rough = isRough(spec), rc = rough ? window.rough.svg(svg) : null;
+      var all = []; items.forEach(function (it) { all.push(it.from, it.to); });
+      var sc = valueScale(spec, all), box = { x: 120, y: 60, w: W - 140, h: H - 60 - 80 };
+      var yOf = gridY(svg, fig, spec, sc, box, rough), n = items.length, band = box.w / n, bw = Math.min(band * num('--viz-bar-fill', 0.56, fig), 150);
+      var rad = num('--viz-bar-radius', 6, fig), each = spec.reveal === 'each', s0 = spec.step || 0;
+      var data = stepOn(el('g', { 'class': 'viz-data viz-grow' }, svg), each ? null : spec.step);
+      items.forEach(function (it, i) {
+        var cx = box.x + band * i + band / 2, x = cx - bw / 2, top = yOf(Math.max(it.from, it.to)), bot = yOf(Math.min(it.from, it.to));
+        var g = stepOn(el('g', { 'class': 'viz-bar viz-' + it.kind, style: '--i:' + (each ? 0 : i) }, data), each ? (s0 + i || null) : null);
+        barShape(g, x, top, bw, bot - top, rad, it.kind !== 'down', rc, fig, it.kind === 'total' ? '--viz-total' : it.kind === 'up' ? '--viz-up' : '--viz-down', 50 + i);
+        var lab = it.kind === 'total' ? fmt(it.v, spec) : fmt(it.v, { prefix: spec.prefix, suffix: spec.suffix, sign: true, decimals: spec.decimals });
+        var ly = it.kind === 'down' ? bot + 40 : top - 16;
+        text(g, cx, ly, (it.kind === 'up' ? '▲ ' : it.kind === 'down' ? '▼ ' : '') + lab, 'viz-value');
+        if (i < n - 1) {
+          var lvl = yOf(it.to), nx = box.x + band * (i + 1) + band / 2 - bw / 2;
+          el('line', { 'class': 'viz-connector', x1: r1(x + bw), x2: r1(nx), y1: r1(lvl), y2: r1(lvl) }, g);
+        }
+        fit(text(svg, cx, box.y + box.h + 50, it.label, 'viz-label' + (it.kind === 'total' ? ' viz-strong' : '')), band * 0.96);
+      });
+      if (rough) inkable(data);
+    };
+
+    /* ---------- line: one or two series ---------- */
+    KINDS.line = function (fig, spec) {
+      var xs = spec.x, series = spec.series, n = xs.length;
+      var W = spec.width || 1640, H = spec.height || 560, svg = svgFor(fig, W, H), rough = isRough(spec), rc = rough ? window.rough.svg(svg) : null;
+      var vals = []; series.forEach(function (s) { vals = vals.concat(s.values); });
+      var legend = series.length > 1, endRoom = 260;
+      var sc = valueScale(spec, vals), box = { x: 120, y: legend ? 90 : 40, w: W - 120 - endRoom, h: 0 }; box.h = H - box.y - 76;
+      var yOf = gridY(svg, fig, spec, sc, box, rough), xOf = function (i) { return box.x + (n === 1 ? box.w / 2 : i * box.w / (n - 1)); };
+      var every = Math.ceil(n / 12);
+      xs.forEach(function (x, i) { if (i % every === 0 || i === n - 1) text(svg, xOf(i), box.y + box.h + 48, x, 'viz-label'); });
+      var pr = num('--viz-point-r', 8, fig);
+      series.forEach(function (s, k) {
+        var cls = series.length === 1 ? 'viz-sp' : 'viz-s' + (k + 1), pts = s.values.map(function (v, i) { return [xOf(i), yOf(v)]; });
+        var g = stepOn(el('g', { 'class': 'viz-series ' + cls }, svg), s.step || spec.step);
+        var d = 'M' + pts.map(function (p) { return r1(p[0]) + ' ' + r1(p[1]); }).join('L');
+        if (spec.area && !rough && k === 0) el('path', { 'class': 'viz-area', d: d + 'L' + r1(pts[n - 1][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'L' + r1(pts[0][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'Z' }, g);
+        if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok(series.length === 1 ? '--viz-primary' : '--viz-series-' + (k + 1) + '-ink'), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
+        else el('path', { 'class': 'viz-line', d: d }, g);
+        inkable(g);
+        if (spec.points !== false) pts.forEach(function (p, i) { el('circle', { 'class': 'viz-point', cx: r1(p[0]), cy: r1(p[1]), r: pr, style: '--i:' + i }, g); });
+        var last = pts[n - 1], clash = series.some(function (o, j) { return j !== k && Math.abs(yOf(o.values[n - 1]) - last[1]) < 44; });
+        if (!clash) text(g, last[0] + 24, last[1] + 10, (legend ? '' : s.name + ' ') + compactLabel(s.values[n - 1], spec), 'viz-value', 'start');
+        if (legend) {
+          var lx = box.x + k * 420;
+          el('rect', { 'class': 'viz-key ' + cls, x: lx, y: 22, width: 44, height: 8, rx: 4 }, svg);
+          text(svg, lx + 60, 36, s.name, 'viz-label', 'start');
+        }
+      });
+      if (spec.note) {
+        var nt = spec.note, si = (nt.series || 1) - 1, i = xs.indexOf(nt.at), v = series[si].values[i], p = [xOf(i), yOf(v)];
+        var g2 = stepOn(el('g', { 'class': 'viz-note' }, svg), nt.step || spec.step);
+        el('circle', { 'class': 'viz-note-ring', cx: r1(p[0]), cy: r1(p[1]), r: pr * 2.4 }, g2);
+        var above = p[1] - box.y > 140, ty = above ? p[1] - 96 : p[1] + 110;
+        el('line', { 'class': 'viz-leader', x1: r1(p[0]), y1: r1(p[1] + (above ? -pr * 2.4 : pr * 2.4)), x2: r1(p[0]), y2: r1(ty + (above ? 14 : -40)) }, g2);
+        text(g2, p[0], ty, nt.text, 'viz-note-text', p[0] > box.x + box.w * 0.7 ? 'end' : p[0] < box.x + box.w * 0.3 ? 'start' : 'middle');
+      }
+    };
+    function compactLabel(v, spec) { return (spec.prefix || '') + compact(v) + (spec.suffix || ''); }
+
+    /* ---------- timeline: dated events on an axis ---------- */
+    function day(s) { var p = String(s).split('-'); return Date.UTC(+p[0], (+p[1] || 1) - 1, +p[2] || 1); }
+    var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    KINDS.timeline = function (fig, spec) {
+      var ev = spec.events, W = spec.width || 1640, H = spec.height || 520, svg = svgFor(fig, W, H), rough = isRough(spec), rc = rough ? window.rough.svg(svg) : null;
+      var t0 = day(spec.start || ev[0].date), t1 = day(spec.end || ev[ev.length - 1].date), x0 = 40, x1 = W - 40, mid = H / 2;
+      var xOf = function (t) { return x0 + (t - t0) / (t1 - t0) * (x1 - x0); };
+      var frame = el('g', { 'class': 'viz-frame' }, svg);
+      if (rc) frame.appendChild(rc.line(x0, mid, x1, mid, roughOpts(fig, { stroke: tok('--viz-axis'), roughness: 0.8 })));
+      else el('line', { 'class': 'viz-axis', x1: x0, x2: x1, y1: mid, y2: mid }, frame);
+      function months(cb) {
+        var d = new Date(t0); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + (d.getUTCDate() > 1 ? 1 : 0), 1));
+        while (d.getTime() <= t1) { cb(d, xOf(d.getTime())); d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)); }
+      }
+      months(function (d, x) { el('line', { 'class': 'viz-grid', x1: r1(x), x2: r1(x), y1: mid - 12, y2: mid + 12 }, frame); });
+      if (spec.months !== false) months(function (d, x) { if (d.getUTCMonth() % (spec.every || 2) === 0) text(frame, x, H - 8, MONTHS[d.getUTCMonth()], 'viz-tick'); });
+      var each = spec.reveal === 'each', s0 = spec.step || 0, pr = num('--viz-point-r', 8, fig);
+      ev.forEach(function (e, i) {
+        var x = xOf(day(e.date)), up = i % 2 === 0, g = stepOn(el('g', { 'class': 'viz-event', style: '--i:' + i }, svg), each ? (s0 + i || null) : (e.step || spec.step));
+        var y2 = up ? mid - 70 : mid + 70;
+        el('line', { 'class': 'viz-leader', x1: r1(x), x2: r1(x), y1: mid, y2: y2 }, g);
+        if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-primary'), fill: tok('--viz-primary'), fillStyle: 'solid', seed: 90 + i })));
+        else el('circle', { 'class': 'viz-point viz-sp', cx: r1(x), cy: mid, r: pr * 1.5 }, g);
+        var anchorPos = x < x0 + 160 ? 'start' : x > x1 - 160 ? 'end' : 'middle';
+        var dt = new Date(day(e.date)), when = MONTHS[dt.getUTCMonth()] + ' ' + dt.getUTCDate();
+        var lines = [when, e.text]; if (e.value) lines.push(e.value);
+        lines.forEach(function (s, k) {
+          var y = up ? y2 - 18 - (lines.length - 1 - k) * 40 : y2 + 40 + k * 40;
+          text(g, x, y, s, k === 0 ? 'viz-label' : k === 2 ? 'viz-value' : 'viz-label viz-strong', anchorPos);
+        });
+      });
+    };
+
+    /* ---------- flow: nodes and arrows ---------- */
+    KINDS.flow = function (fig, spec) {
+      var nodes = spec.nodes.map(function (n) { return typeof n === 'string' ? { text: n } : n; }), N = nodes.length;
+      if (spec.node_size) fig.style.setProperty('--viz-node-size', 'var(--fs-' + spec.node_size + ')');   /* slide-scoped: a step of the type scale */
+      var dir = spec.direction || 'row', cols = dir === 'row' ? N : dir === 'column' ? 1 : (spec.columns || 3);
+      nodes.forEach(function (n, i) { if (!n.at) n.at = [i % cols + 1, Math.floor(i / cols) + 1]; });
+      var ncol = Math.max.apply(null, nodes.map(function (n) { return n.at[0]; })), nrow = Math.max.apply(null, nodes.map(function (n) { return n.at[1]; }));
+      var W = spec.width || 1640, gapX = spec.gap || 90, nw = spec.node_width || Math.min(360, (W - gapX * (ncol - 1)) / ncol);
+      var nh = spec.node_height || (dir === 'column' ? 112 : 150), gapY = dir === 'column' ? 48 : 80;
+      var H = spec.height || (nrow * nh + (nrow - 1) * gapY + 40), sx = ncol > 1 ? (W - nw) / (ncol - 1) : 0, sy = nh + gapY;
+      var svg = svgFor(fig, W, H), rough = isRough(spec), rc = rough ? window.rough.svg(svg) : null;
+      var rad = num('--viz-node-radius', 6, fig), sw = num('--viz-stroke', 3, fig);
+      var box = function (n) { var x = (n.at[0] - 1) * sx, y = 20 + (n.at[1] - 1) * sy; return { x: x, y: y, cx: x + nw / 2, cy: y + nh / 2 }; };
+      var links = spec.links || nodes.slice(1).map(function (_, i) { return [i + 1, i + 2]; });
+      var linkG = el('g', { 'class': 'viz-links' }, svg), segs = [];
+      links.forEach(function (lk, k) {
+        var a = box(nodes[lk[0] - 1]), b = box(nodes[lk[1] - 1]), p, q;
+        if (Math.abs(a.cy - b.cy) < 1) { var s = b.cx > a.cx ? 1 : -1; p = [a.cx + s * (nw / 2 + 14), a.cy]; q = [b.cx - s * (nw / 2 + 18), b.cy]; }
+        else if (Math.abs(a.cx - b.cx) < 1) { var t = b.cy > a.cy ? 1 : -1; p = [a.cx, a.cy + t * (nh / 2 + 12)]; q = [b.cx, b.cy - t * (nh / 2 + 16)]; }
+        else { var dx = b.cx - a.cx, dy = b.cy - a.cy, f = Math.min(Math.abs((nw / 2 + 14) / dx), Math.abs((nh / 2 + 12) / dy)); p = [a.cx + dx * f, a.cy + dy * f]; q = [b.cx - dx * f * 1.08, b.cy - dy * f * 1.08]; }
+        var lstep = Math.max(nodes[lk[0] - 1].step || 0, nodes[lk[1] - 1].step || 0) || spec.step;
+        var g = stepOn(el('g', { 'class': 'viz-link' }, linkG), lstep);
+        var ang = Math.atan2(q[1] - p[1], q[0] - p[0]), L = 18, hw = 12;
+        var h1 = [q[0] - L * Math.cos(ang) + hw * Math.sin(ang), q[1] - L * Math.sin(ang) - hw * Math.cos(ang)], h2 = [q[0] - L * Math.cos(ang) - hw * Math.sin(ang), q[1] - L * Math.sin(ang) + hw * Math.cos(ang)];
+        if (rc) { var o = roughOpts(fig, { stroke: tok('--viz-link'), roughness: 1.1, seed: 60 + k }); g.appendChild(rc.line(p[0], p[1], q[0], q[1], o)); g.appendChild(rc.linearPath([h1, q, h2], o)); }
+        else { el('path', { 'class': 'viz-arrow-line', d: 'M' + r1(p[0]) + ' ' + r1(p[1]) + 'L' + r1(q[0] - 10 * Math.cos(ang)) + ' ' + r1(q[1] - 10 * Math.sin(ang)) }, g); el('path', { 'class': 'viz-arrow-head', d: 'M' + r1(h1[0]) + ' ' + r1(h1[1]) + 'L' + r1(q[0]) + ' ' + r1(q[1]) + 'L' + r1(h2[0]) + ' ' + r1(h2[1]) + 'Z' }, g); }
+        var dash = tok('--viz-link-dash');
+        if (dash && dash !== 'none') g.querySelectorAll('path').forEach(function (pth) { if (!pth.classList.contains('viz-arrow-head')) pth.style.strokeDasharray = dash; });
+        else inkable(g);
+        segs.push({ p: p, q: q, from: lk[0] - 1, to: lk[1] - 1 });
+      });
+      var nodeG = el('g', { 'class': 'viz-nodes' }, svg), rings = [], bigLine = 0;
+      if (spec.node_size) { var probe = text(svg, 0, 0, 'x', 'viz-node-text'); bigLine = Math.round((parseFloat(getComputedStyle(probe).fontSize) || 32) * 1.2); svg.removeChild(probe); }
+      nodes.forEach(function (n, i) {
+        var b = box(n), fillTok = n.principle ? '--principle-' + n.principle : n.role === 'accent' ? '--viz-highlight' : null;
+        var cls = 'viz-node' + (fillTok ? ' viz-filled' : n.role === 'muted' ? ' viz-muted' : '');
+        var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' + (n.principle ? '; --oc:var(--on-principle-' + n.principle + ')' : '') : null }, nodeG), n.step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step));
+        if (rc) g.appendChild(rc.rectangle(b.x, b.y, nw, nh, roughOpts(fig, { stroke: tok('--viz-node-stroke'), strokeWidth: sw + 1, fill: fillTok ? tok(fillTok) : tok('--viz-node-fill'), fillStyle: 'solid', seed: i + 3 })));
+        else el('rect', { x: r1(b.x), y: r1(b.y), width: r1(nw), height: nh, rx: rad, ry: rad }, g);
+        var lines = String(n.text).split('\n'), hasNum = n.principle && spec.numbers !== false;
+        var lineH = bigLine || 40, lineB = bigLine ? Math.round(bigLine * 0.25) : 10, numH = hasNum ? 58 : 0, top = b.cy - (numH + lines.length * lineH) / 2;
+        if (hasNum) text(g, b.cx, top + 44, String(n.principle), 'viz-node-num');
+        lines.forEach(function (s, k) { text(g, b.cx, top + numH + (k + 1) * lineH - lineB, s, 'viz-node-text'); });
+        var ring = el('rect', { 'class': 'viz-ring', x: r1(b.x - 10), y: r1(b.y - 10), width: r1(nw + 20), height: nh + 20, rx: rad + 8, ry: rad + 8 }, nodeG);
+        rings.push(ring);
+      });
+      if (spec.travel) {
+        var mk = el('circle', { 'class': 'viz-marker', r: num('--viz-marker-r', 16, fig), cx: 0, cy: 0 }, svg);
+        var pts = [], arrive = [];   /* along the arrows: leave a node, arrive at the next */
+        segs.forEach(function (sg) { pts.push(sg.p, sg.q); arrive.push({ at: pts.length - 1, node: sg.to }); });
+        if (!pts.length) pts = [[box(nodes[0]).cx, box(nodes[0]).cy]];
+        var lens = [0]; for (var i = 1; i < pts.length; i++) lens.push(lens[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+        var total = lens[lens.length - 1] || 1, T = ms('--viz-dur-travel', 2400), first = segs.length ? segs[0].from : 0;
+        var frames = pts.map(function (p, i) { return { transform: 'translate(' + r1(p[0]) + 'px,' + r1(p[1]) + 'px)', offset: lens[i] / total }; });
+        var timers = [], light = function (k) { rings.forEach(function (r) { r.classList.remove('on'); }); if (rings[k]) rings[k].classList.add('on'); };
+        anchor(fig, spec.travel, function (on, animate) {
+          mk.getAnimations().forEach(function (a) { a.cancel(); });
+          timers.forEach(clearTimeout); timers = [];
+          rings.forEach(function (r) { r.classList.remove('on'); });
+          if (!on) { mk.style.opacity = 0; mk.style.transform = frames[0].transform; return; }
+          mk.style.opacity = 1; mk.style.transform = frames[frames.length - 1].transform;
+          var last = arrive.length ? arrive[arrive.length - 1].node : first;
+          if (!animate) { light(last); return; }
+          light(first);
+          mk.animate(frames, { duration: T, easing: 'linear', fill: 'backwards' });
+          arrive.forEach(function (a) { timers.push(setTimeout(function () { light(a.node); }, T * lens[a.at] / total)); });
+        });
+      }
+    };
+
+    /* ---------- count-up ---------- */
+    KINDS.count = function (fig, spec) {
+      var raf = 0, T = spec.duration || ms('--viz-dur-count', 1200);
+      fig.textContent = fmt(spec.to, spec);
+      fig._play = function (on, animate) {
+        cancelAnimationFrame(raf);
+        if (!on || !animate) { fig.textContent = fmt(spec.to, spec); return; }
+        var t0 = performance.now(), from = spec.from || 0;
+        (function f(now) {
+          var k = Math.min(1, (now - t0) / T), e = 1 - Math.pow(1 - k, 3);
+          fig.textContent = fmt(from + (spec.to - from) * e, spec);
+          if (k < 1) raf = requestAnimationFrame(f);
+        })(t0);
+      };
+      if (!fig._watched) { fig._watched = true; fig._on = fig.classList.contains('shown'); fig._animate = spec.animate !== false; observer.observe(fig, { attributes: true, attributeFilter: ['class'] }); }
+    };
+
+    /* ---------- draw-on for inline SVG: every [data-step] group strokes in at its step ---------- */
+    KINDS.draw = function (fig) {
+      fig.querySelectorAll('svg [data-step]').forEach(function (g) {
+        g.querySelectorAll('path').forEach(function (p) {
+          if (getComputedStyle(p).strokeDasharray !== 'none') return;  /* dashed lines keep their dashes and fade */
+          p.setAttribute('pathLength', '1'); p.classList.add('viz-ink');
+        });
+        g.classList.add('viz-drawn');
+      });
+    };
+
+    /* ---------- marks: underline / circle / bracket / box around an element on the slide ---------- */
+    KINDS.mark = function (layer, spec) {
+      var slide = slideOf(layer); if (!slide) return;
+      while (layer.firstChild) layer.removeChild(layer.firstChild);
+      var sr = slide.getBoundingClientRect(), k = sr.width / 1920 || 1;
+      layer.setAttribute('viewBox', '0 0 1920 1080');
+      var rc = null;
+      spec.marks.forEach(function (m, i) {
+        var t = slide.querySelector(m.target); if (!t) return;
+        var kind = m.kind || 'circle', r = t.getBoundingClientRect(), pad = m.pad == null ? (kind === 'circle' ? 8 : 14) : m.pad;
+        var x = (r.left - sr.left) / k - pad, y = (r.top - sr.top) / k - pad, w = r.width / k + pad * 2, h = r.height / k + pad * 2;
+        var g = stepOn(el('g', { 'class': 'viz-mark viz-mark-' + (m.kind || 'circle') }, layer), m.step);
+        var rough = m.style === 'rough' && window.rough;
+        if (rough && !rc) rc = window.rough.svg(layer);
+        var o = rough ? roughOpts(layer, { stroke: tok('--viz-annotate'), strokeWidth: num('--viz-annotate-width', 5), roughness: 1.6, seed: 30 + i }) : null;
+        if (kind === 'circle') {
+          if (rc && rough) g.appendChild(rc.ellipse(x + w / 2, y + h / 2, w + pad * 1.2, h + pad * 0.4, o));
+          else el('ellipse', { cx: r1(x + w / 2), cy: r1(y + h / 2), rx: r1(w / 2 + pad * 2), ry: r1(h / 2 - pad * 0.5) }, g);
+        } else if (kind === 'underline') {
+          var uy = y + h - pad / 2;
+          if (rc && rough) g.appendChild(rc.curve([[x + pad, uy], [x + w / 2, uy + 6], [x + w - pad, uy - 2]], o));
+          else el('path', { d: 'M' + r1(x + pad) + ' ' + r1(uy) + 'Q' + r1(x + w / 2) + ' ' + r1(uy + 10) + ' ' + r1(x + w - pad) + ' ' + r1(uy - 2) }, g);
+        } else if (kind === 'bracket') {
+          var bx = x - 6, arm = Math.min(28, w / 4);
+          if (rc && rough) g.appendChild(rc.linearPath([[bx + arm, y], [bx, y], [bx, y + h], [bx + arm, y + h]], o));
+          else el('path', { d: 'M' + r1(bx + arm) + ' ' + r1(y) + 'H' + r1(bx) + 'V' + r1(y + h) + 'H' + r1(bx + arm) }, g);
+        } else {
+          if (rc && rough) g.appendChild(rc.rectangle(x, y, w, h, o));
+          else el('rect', { x: r1(x), y: r1(y), width: r1(w), height: r1(h), rx: num('--viz-node-radius', 6), ry: num('--viz-node-radius', 6) }, g);
+        }
+        inkable(g);
+        if (m.note) text(g, x + w / 2, y + h + 46, m.note, 'viz-mark-note');
+      });
+    };
+
+    /* ---------- ECharts adapter (window.echarts, SVG renderer) ---------- */
+    function merge(a, b) {
+      if (Array.isArray(b) || typeof b !== 'object' || b === null) return b;
+      var out = {}; var k;
+      for (k in a) out[k] = a[k];
+      for (k in b) out[k] = (k in out && typeof out[k] === 'object' && !Array.isArray(out[k])) ? merge(out[k], b[k]) : b[k];
+      return out;
+    }
+    function echartsDefaults(fig) {
+      var size = cssPx(fig, 'fontSize', 'var(--viz-label-size)'), fam = getComputedStyle(fig).fontFamily;
+      var text = tok('--viz-text'), muted = tok('--viz-muted'), grid = tok('--viz-grid'), axis = tok('--viz-axis');
+      var axisDef = { axisLine: { lineStyle: { color: axis, width: num('--viz-stroke', 3) } }, axisTick: { show: false }, axisLabel: { color: muted, fontSize: size, fontFamily: fam, margin: 18 },
+        splitLine: { lineStyle: { color: grid, width: num('--viz-hair', 2) } }, nameTextStyle: { color: muted, fontSize: size, fontFamily: fam } };
+      return {
+        backgroundColor: 'transparent', animation: !reduce() && fig._spec.animate !== false, animationDuration: ms('--viz-dur-draw', 500) * 1.6,
+        color: [1, 2, 3, 4, 5].map(function (i) { return tok('--viz-series-' + i); }),
+        textStyle: { fontFamily: fam, fontSize: size, color: text },
+        grid: { left: 130, right: 40, top: 70, bottom: 80 },
+        legend: { textStyle: { color: text, fontSize: size, fontFamily: fam }, itemWidth: 44, itemHeight: 10, top: 0 },
+        tooltip: { show: false },
+        xAxis: axisDef, yAxis: merge(axisDef, { axisLine: { show: false } }),
+        _axis: axisDef
+      };
+    }
+    KINDS.echarts = function (fig, spec) {
+      if (!window.echarts) return;
+      var host = fig.querySelector('.viz-echarts-host');
+      if (!host) { host = doc.createElement('div'); host.className = 'viz-echarts-host'; fig.appendChild(host); }
+      var W = spec.width || 1640, H = spec.height || 560;
+      host.style.width = W + 'px'; host.style.height = H + 'px';
+      if (fig._chart) { fig._chart.dispose(); }
+      var chart = window.echarts.init(host, null, { renderer: 'svg', width: W, height: H });
+      fig._chart = chart;
+      function option(shown, animate) {
+        var d = echartsDefaults(fig), o = spec.option, axisDef = d._axis; delete d._axis;
+        var m = merge(d, o);
+        ['xAxis', 'yAxis'].forEach(function (ax) { if (Array.isArray(o[ax])) m[ax] = o[ax].map(function (a) { return merge(axisDef, a); }); });
+        if (!animate) m.animation = false;
+        if (!shown) m.series = (m.series || []).map(function (s) { return merge(s, { data: (s.data || []).map(function () { return null; }) }); });
+        return m;
+      }
+      var state = { shown: !spec.step };
+      chart.setOption(option(state.shown, false), true);
+      fig._retheme = function () { chart.setOption(option(state.shown, false), true); };
+      if (spec.step) anchor(fig, spec.step, function (on, animate) { state.shown = on; chart.setOption(option(on, animate), true); });
+    };
+
+    /* ---------- choreography (window.anime): run a timeline on a step, undo it stepping back ---------- */
+    KINDS.choreo = function (node, spec) {
+      var A = window.anime; if (!A) return;
+      var slide = slideOf(node) || doc, parts = spec.parts || [spec], running = null;
+      var targets = function (p) { return slide.querySelectorAll(p.targets); };
+      function setAll(which) { parts.forEach(function (p) { var t = targets(p); if (t.length && p[which]) A.utils.set(t, p[which]); }); }
+      setAll('from');
+      node._play = function (on, animate) {
+        if (running) { running.pause(); running = null; }
+        if (!on) { setAll('from'); return; }
+        if (!animate) { setAll('to'); return; }
+        var tl = A.createTimeline({ defaults: { ease: spec.ease || 'outExpo' } });
+        parts.forEach(function (p) {
+          var props = {}, k;
+          for (k in p.to) props[k] = [p.from && k in p.from ? p.from[k] : p.to[k], p.to[k]];
+          props.duration = p.duration || spec.duration || ms('--viz-dur-draw', 500) * 1.4;
+          if (p.stagger || spec.stagger) props.delay = A.stagger(p.stagger || spec.stagger);
+          if (p.ease) props.ease = p.ease;
+          tl.add(targets(p), props, p.at == null ? undefined : p.at);
+        });
+        running = tl;
+      };
+      if (!node._watched) { node._watched = true; node._on = false; node._animate = spec.animate !== false; observer.observe(node, { attributes: true, attributeFilter: ['class'] }); }
+    };
+
+    /* ---------- drawing everything ---------- */
+    function drawOne(fig) {
+      var kind = fig.getAttribute('data-viz'), fn = KINDS[kind]; if (!fn) return;
+      var spec = fig._spec || (fig._spec = JSON.parse(fig.getAttribute('data-spec') || '{}'));
+      var slide = slideOf(fig), step = slide && slide.classList.contains('active') ? currentStep(slide) : null;  /* before old parts go */
+      if (spec.animate === false) fig.classList.add('viz-still');
+      if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo' && kind !== 'mark') {
+        fig.querySelectorAll('.viz-svg, .viz-anchor').forEach(function (n) { n.remove(); });
+      }
+      fn(fig, spec);
+      restore(fig, step);
+    }
+    function draw(scope) { (scope || doc).querySelectorAll('[data-viz]').forEach(drawOne); }
+    function retheme() {  /* geometry (radii, strokes, label widths) and rough colours are read at
+                             draw time, and a look can change any of them: redraw every SVG figure */
+      doc.querySelectorAll('[data-viz]').forEach(function (f) {
+        var kind = f.getAttribute('data-viz');
+        if (f._retheme) { f._retheme(); return; }
+        if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo') drawOne(f);
+      });
+    }
+    function remark() { doc.querySelectorAll('[data-viz="mark"]').forEach(drawOne); }
+    new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-palette', 'data-theme', 'data-look', 'class', 'style'] });
+    if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', retheme); }
+    if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(remark);
+    window.addEventListener('resize', remark);
+    draw(doc);
+    return { draw: draw, redraw: function () { draw(doc); }, retheme: retheme };
+  })();
+  window.viz = viz;
 
   /* Navigation and build steps. Keys: arrows/Space/Enter/PageUp/PageDown/Home/End,
      F fullscreen, D light/dark. Click right two-thirds = next, left third = back.
@@ -1478,7 +2477,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
     }
     markRail(s);
     bar.style.width = ((idx + 1) / N * 100) + '%';
-    counter.textContent = (idx + 1) + ' / ' + N;
+    counter.textContent = String(idx + 1);
     setHash(idx + 1);
   }
 
@@ -1517,10 +2516,11 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
       }
     } catch (e) {}
   }
-  function toggleTheme() {
-    var cur = root.getAttribute('data-theme');
-    if (!cur) cur = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  /* D: the theme's other palette. The deck has its own attribute, data-palette, so a hosting
+     page's data-theme never flips it; the CSS says which palette is showing (--palette-shown). */
+  function togglePalette() {
+    var shown = getComputedStyle(root).getPropertyValue('--palette-shown').trim() || 'primary';
+    root.setAttribute('data-palette', shown === 'alternate' ? 'primary' : 'alternate');
   }
 
   doc.addEventListener('keydown', function (e) {
@@ -1532,7 +2532,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
     else if (k === 'Home') { e.preventDefault(); goTo(0); }
     else if (k === 'End') { e.preventDefault(); goTo(N - 1); }
     else if (k === 'f' || k === 'F') { toggleFullscreen(); }
-    else if (k === 'd' || k === 'D') { toggleTheme(); }
+    else if (k === 'd' || k === 'D') { togglePalette(); }
   });
 
   var swipedAt = 0, tx = 0, ty = 0, tracking = false;

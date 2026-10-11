@@ -33,23 +33,64 @@ figure = "sketch.svg"
 id = "g-setup"
 name = "Setup"
 layout = "setup"
-label = "SETUP"
+label = "LAYOUT · SETUP"
 minutes = 10
 url = "https://github.com/francescogalletta/aienyc-harness-workshop"
 needs_label = "YOU NEED ONE OF"
 needs = ["Claude Code", "Codex", "an API key"]
 needs_todo = "others to confirm"
-check_label = "CHECK IT WORKS"
-command = "uv run python -m harness check"
-check_result = "It should end with “Setup works”."
 note = "Sample setup slide."
 
 [[slide]]
+id = "g-repo"
+name = "Repo tree"
+layout = "repo"
+label = "LAYOUT · REPO"
+items = [
+  { path = "harness/", gloss = "the thing you build" },
+  { path = "examples/", gloss = "sample plans" },
+  { path = "tests/", gloss = "offline tests", mute = 1 },
+  { path = "SPEC.md", gloss = "the contract", mute = 1 },
+]
+line = { text = "A line under the tree:", command = "uv run python -m example", step = 2 }
+
+[[slide]]
+id = "g-command"
+name = "Command block"
+layout = "statement"
+blocks = [
+  { label = "BLOCK · COMMAND" },
+  { command = "uv run python -m harness check" },
+  { sub = "A shell command, large enough for the back of the room." },
+]
+
+[[slide]]
 id = "g-structure"
-name = "Structure (flow strip)"
+name = "Structure (stairs)"
 layout = "structure"
-label = "LAYOUT · STRUCTURE"
-headline = "The flow strip comes from principles.json."
+variant = "stairs"
+label = "LAYOUT · STRUCTURE · STAIRS"
+headline = "Each module stands on the one before."
+start = "Setup"
+end = "Wrap"
+
+[[slide]]
+id = "g-structure-layers"
+name = "Structure (layers)"
+layout = "structure"
+variant = "layers"
+label = "LAYOUT · STRUCTURE · LAYERS"
+headline = "Each module contains the ones before."
+start = "Setup"
+end = "Wrap"
+
+[[slide]]
+id = "g-structure-timeline"
+name = "Structure (timeline)"
+layout = "structure"
+variant = "timeline"
+label = "LAYOUT · STRUCTURE · TIMELINE"
+headline = "Spacing follows the minutes."
 start = "Setup"
 end = "Wrap"
 

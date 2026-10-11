@@ -1,25 +1,22 @@
 /* Blueprint: the workshop's own look. Navy ink on a pale blue-grey ground,
    IBM Plex, a teal for trust and five principle hues.
+   Alternate palette: blueprint at night. A deep navy ground (not black), soft
+   blue-grey outlines, surfaces one step above the ground, the light principle
+   hues with navy text, a faint drafting grid.
+   name: Blueprint
+   short: Blue
    font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
 */
 :root {
-  /* palette */
+  /* palette: day */
   --white: #ffffff;
-  --navy-25: #e8eef7;
   --navy-50: #eef2f7;
-  --navy-150: #c3cfdf;
   --navy-200: #bccadb;
-  --navy-300: #9db0c8;
   --navy-400: #6f84a0;
-  --navy-500: #5f7898;
   --navy-600: #4f6078;
   --navy-700: #33465f;
-  --navy-800: #2e4466;
   --navy-900: #0f2440;
-  --navy-925: #14213a;
-  --navy-950: #0c1524;
   --apricot-200: #ffd9b0;
-  --apricot-800: #7a4a10;
   --teal-300: #5fd0c8;
   --teal-700: #0b6b6a;
   --blue-300: #7fb0ff;
@@ -32,6 +29,19 @@
   --amber-700: #b96a0c;
   --green-300: #86d67f;
   --green-600: #3d8a3a;
+  /* palette: night */
+  --night-ground: #16263f;
+  --night-surface: #1d3050;
+  --night-rule: #2f486c;
+  --night-dash: #4d6a93;
+  --night-connector: #5f7fa8;
+  --night-outline: #6f8fb8;
+  --night-idle: #7d93b3;
+  --night-muted: #9db0c8;
+  --night-quiet: #c3cfdf;
+  --night-text: #e8eef7;
+  --night-tile: #dfe7f2;
+  --night-ask: #f0c396;     /* apricot-200 one step down: the big ask fills half the slide */
 
   /* fonts */
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -39,7 +49,7 @@
   --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
   --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 
-  /* colour roles (light) */
+  /* colour roles (primary: day) */
   --slide-bg: var(--navy-50);
   --surface: var(--white);
   --text: var(--navy-900);
@@ -55,26 +65,53 @@
   --principle-4: var(--amber-700);
   --principle-5: var(--green-600);
   --on-principle: var(--white);
-  --qr-ink: var(--navy-900);   /* the QR stays dark on light in both modes */
+  --qr-ink: var(--navy-900);   /* the QR stays dark on light in both palettes */
   --qr-ground: var(--white);
+  color-scheme: light;
 }
 
-/* Colour roles (dark). Written once: the build repeats this block under
-   prefers-color-scheme: dark (unless the page says data-theme="light"). */
-:root[data-theme="dark"] {
-  --slide-bg: var(--navy-950);
-  --surface: var(--navy-925);
-  --text: var(--navy-25);
-  --text-quiet: var(--navy-150);
-  --text-muted: var(--navy-300);
-  --line: var(--navy-800);
-  --connector: var(--navy-500);
-  --attention: var(--apricot-800);
+/* Alternate: night. */
+:root[data-palette="alternate"] {
+  --slide-bg: var(--night-ground);
+  --surface: var(--night-surface);
+  --text: var(--night-text);
+  --text-quiet: var(--night-quiet);
+  --text-muted: var(--night-muted);
+  --line: var(--night-rule);
+  --connector: var(--night-connector);
+  --ask-fill: var(--night-ask);
+  --ask-text: var(--navy-900);
   --accent-trust: var(--teal-300);
   --principle-1: var(--blue-300);
   --principle-2: var(--violet-300);
   --principle-3: var(--magenta-300);
   --principle-4: var(--amber-300);
   --principle-5: var(--green-300);
-  --on-principle: var(--navy-950);
+  --on-principle: var(--navy-900);
+  --qr-ink: var(--night-ground);
+  --qr-ground: var(--night-tile);
+  /* quiet containers: soft outlines, dimmer dashes, no white */
+  --outline: var(--night-outline);
+  --hairline: var(--night-rule);
+  --placeholder-stroke: var(--night-dash);
+  --placeholder-text: var(--night-muted);
+  --rail-idle-text: var(--night-idle);
+  --photo-ring: var(--night-dash);
+  --photo-fill: var(--night-surface);
+  --diagram-stroke: var(--night-quiet);
+  --diagram-label: var(--night-text);
+  --diagram-quiet: var(--night-muted);
+  --progress-fill: var(--night-outline);
+  --strike-color: var(--night-quiet);
+  /* drafting grid, 48px and 240px, very faint */
+  --slide-bg-image: linear-gradient(rgb(127 176 255 / 0.06) 1px, transparent 1px), linear-gradient(90deg, rgb(127 176 255 / 0.06) 1px, transparent 1px), linear-gradient(rgb(127 176 255 / 0.03) 1px, transparent 1px), linear-gradient(90deg, rgb(127 176 255 / 0.03) 1px, transparent 1px);
+  --slide-bg-size: 240px 240px, 240px 240px, 48px 48px, 48px 48px;
+  /* charts */
+  --viz-highlight: var(--attention);
+  --viz-down: var(--principle-3);
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+  --stair-tint: 22%;   /* on a dark ground the 14% tint goes grey */
+  --nest-tint: 10%;
+  color-scheme: dark;
 }
