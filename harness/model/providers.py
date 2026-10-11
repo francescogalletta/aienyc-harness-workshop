@@ -11,8 +11,8 @@ import shutil
 from .scripted import ScriptedModel
 
 NO_PROVIDER = ("No model provider is available. Install Claude Code and sign in, or set "
-               "ANTHROPIC_API_KEY and install the anthropic package, or set "
-               "HARNESS_MODEL_PROVIDER to the provider you want.")
+               "ANTHROPIC_API_KEY and install the anthropic package, or install Codex and sign in, "
+               "or set HARNESS_MODEL_PROVIDER to the provider you want.")
 
 MISSING_PACKAGE = ("The '{provider}' provider needs the '{package}' package. "
                    "Install it with: uv sync --extra {extra}  "
@@ -34,6 +34,8 @@ def resolve_provider(name):
         return "anthropic"
     if shutil.which("claude"):
         return "claude_code"
+    if shutil.which("codex"):
+        return "codex"
     raise RuntimeError(NO_PROVIDER)
 
 
@@ -61,10 +63,16 @@ def _claude_code(config):
     return ClaudeCodeModel(config.model_name)
 
 
+def _codex(config):
+    from .codex_provider import CodexModel
+    return CodexModel(config.model_name)
+
+
 # name -> function that takes the Config and returns a Model
 PROVIDERS = {
     "auto": _auto,
     "scripted": _scripted,
     "anthropic": _anthropic,
     "claude_code": _claude_code,
+    "codex": _codex,
 }

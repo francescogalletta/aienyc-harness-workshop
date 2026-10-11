@@ -529,7 +529,8 @@ Each has the default the work plan takes.
    file, then Wikipedia's top search hit, one request, no model), with only a
    general question of at most 100 characters and no digits. Offline
    (`HARNESS_RESEARCHER=reference`) the reviewer still runs but cites no
-   outside source. `claude_code` gives better answers where available.
+   outside source. `claude_code` gives better answers where Claude Code is
+   installed; there is no Codex researcher, so with Codex keep the default.
 4. **What attendees build at step 0.** Default: `config.py`, `db.py` and
    `model/` as today; the core, server, page, terminal and replay are given.
 5. **Starting the build.** Default: the person presses Build after accepting;

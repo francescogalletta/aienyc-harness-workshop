@@ -70,7 +70,19 @@ by `main()`.
 
 - `harness/model/` is kept unchanged: `Model.complete(system, messages,
   tools)`, `ToolSpec`, `ToolCall`, `ModelResponse`, the providers `scripted`,
-  `anthropic`, `claude_code`, `auto`.
+  `anthropic`, `claude_code`, `codex`, `auto`.
+- `auto` picks, in order: `anthropic` when `ANTHROPIC_API_KEY` is set and the
+  package is installed; `claude_code` when the `claude` command is found;
+  `codex` when the `codex` command is found; else it raises naming all three.
+- `codex` runs the person's signed-in Codex CLI once per call (`codex exec`,
+  read-only sandbox, no approvals, no web search, no shell, their own Codex
+  configuration ignored, nothing saved), as a plain model. Tool calls come back
+  through a JSON reply shape, as with `claude_code`; the arguments of each call
+  are a JSON object written as a string. A `HARNESS_MODEL` starting with
+  `claude` (the default) means Codex's own default model; `check` then shows
+  the model as `(the provider's default)`.
+- The `claude_code` researcher (section 3.4) needs Claude Code. Under `codex`
+  the default researcher (`auto`) is unchanged: it uses no model.
 - `db.connect(path=None)` opens SQLite with WAL, `busy_timeout` 5000 ms and
   foreign keys, creating the folder. `db.apply_schemas(conn, layers)` runs the
   `schema.sql` of `harness/` and of each enabled layer. `record_event(conn, *,

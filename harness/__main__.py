@@ -33,11 +33,13 @@ def check(args) -> int:
         reason = " ".join(str(error).split())       # keep it to one line
         print(f"check failed: {type(error).__name__}: {reason}", file=sys.stderr)
         return 1
+    # A provider may set its own model name, or None for its own default (Codex with a Claude name).
+    model_name = getattr(model, "model_name", config.model_name) or "(the provider's default)"
     event_id = db.record_event(
         conn, session_id=uuid.uuid4().hex, kind="core.check", actor="harness",
-        payload={"provider": provider, "model": config.model_name, "reply": response.text})
+        payload={"provider": provider, "model": model_name, "reply": response.text})
     print(f"provider: {provider}")
-    print(f"model:    {config.model_name}")
+    print(f"model:    {model_name}")
     print(f"database: {config.db_path}")
     print(f"reply:    {response.text}")
     print(f"Setup works: the model replied and the check was saved as event {event_id}.")

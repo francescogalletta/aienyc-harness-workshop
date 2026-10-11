@@ -75,14 +75,14 @@ def test_get_model_anthropic_is_built_lazily_with_the_configured_name(monkeypatc
 def test_get_model_unknown_provider():
     with pytest.raises(ValueError, match="carrier-pigeon"):
         get_model("carrier-pigeon")
-    with pytest.raises(ValueError, match="claude_code, scripted"):
+    with pytest.raises(ValueError, match="claude_code, codex, scripted"):
         get_model("carrier-pigeon")       # the error lists the providers that do exist
 
 
 def test_a_provider_is_one_entry_in_the_table(monkeypatch):
     """SPEC 3.7: adding or swapping a provider touches only the provider table."""
     from harness.model.providers import PROVIDERS
-    assert {"scripted", "anthropic", "claude_code"} <= set(PROVIDERS)
+    assert {"scripted", "anthropic", "claude_code", "codex"} <= set(PROVIDERS)
 
     class Echo:
         def __init__(self, config):
