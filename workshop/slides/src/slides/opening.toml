@@ -1,18 +1,10 @@
-# Opening: the title, then the title again with two parts struck out.
+# Opening: the title.
 
 [[slide]]
 id = "s-title"
 name = "Title"
 layout = "title"
+chrome = false
 kicker = "Stop Talking to Your Spreadsheets;"
 headline = "Building a Financial Analyst Harness You Can ==Trust=="
 byline = "Francesco Galletta · Felippe Caso"
-
-[[slide]]
-id = "s-title-struck"
-name = "Striking the title"
-layout = "title"
-kicker = "[Stop Talking to Your Spreadsheets;]{strike=1}"
-headline = "Building a [Financial Analyst]{strike=2} Harness You Can ==Trust=="
-byline = "Francesco Galletta · Felippe Caso"
-footnote = { text = "* Sorry, a bit clickbaity. This will not run your private-equity firm. Other companies do that.", step = 3 }

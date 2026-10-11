@@ -5,13 +5,51 @@ principle = 4
 layout = "divider"
 
 [[slide]]
-layout = "placeholder"
-kind = "content"
+id = "s-p4-why"
+name = "P4 · Why"
+layout = "statement"
+blocks = [
+  { label = "WHY" },
+  { display = "Agents face no real-world consequences. You do." },
+  { sub = "That is your leverage. Keep it.", step = 1 },
+]
+
+[[slide]]
+id = "s-p4-ambiguity"
+name = "P4 · Ambiguity"
+layout = "statement"
+blocks = [
+  { display = "Reduce ambiguity. Do not remove it." },
+  { sub = "The judgement calls stay with you. The harness makes them easy to make.", step = 1 },
+]
+
+[[slide]]
+id = "s-p4-without"
+name = "P4 · Without it"
+layout = "statement"
+blocks = [
+  { label = "WITHOUT IT" },
+  { lines = [
+      { headline = "“IDK, the stochastic machine said it was fine.”", step = 1 },
+      { headline = "Approving every calculation.", step = 2 },
+      { headline = "Reviewing every PR your agent ships. [lying, or doing it badly]{aside who step=4}", step = 3 },
+  ] },
+]
+
+[[slide]]
+id = "s-p4-examples"
+name = "P4 · In practice"
+layout = "statement"
+blocks = [
+  { label = "IN PRACTICE" },
+  { display = "Few gates. High signal." },
+  { lines = [
+      { headline = "Two plausible readings that conflict: stop and ask.", step = 1 },
+      { headline = "An assumption: run it, and mark it.", step = 2 },
+      { headline = "Arithmetic: never ask.", step = 3 },
+  ] },
+]
 
 [[slide]]
 layout = "placeholder"
 kind = "demo"
-
-[[slide]]
-layout = "placeholder"
-kind = "turn"

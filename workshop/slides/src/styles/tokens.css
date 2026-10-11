@@ -94,7 +94,12 @@
   --code-size: var(--fs-m);
   --hero-size: var(--fs-7xl);
   --footnote-size: var(--fs-xs);
-  --counter-size: var(--fs-3xs);
+  --counter-size: 22px;
+  --section-label-size: 22px;
+  --section-label-top: 44px;
+  --counter-right: 40px;
+  --counter-bottom: 32px;
+  --chrome-opacity: 0.6;  /* section label and slide number: clearly secondary */
   --display-measure: 1600px;
   --sub-measure: 1500px;
 
@@ -167,6 +172,7 @@
   --aside-emoji-scale: 0.8em;
   --aside-scale: 1.4em;  /* inline handwritten aside, relative to its line */
   --aside-indent: 10px;
+  --aside-stack-scale: 0.9em;  /* the same aside on its own line under a stacked line */
   --hand-note-size: calc(60px * var(--type-scale));
 
   /* Title block, strike, stress */
@@ -181,7 +187,8 @@
   --ask-pad-top: 72px;
   --ask-pad-x: 160px;
   --ask-pad-bottom: 80px;
-  --ask-who-gap: 36px;
+  --ask-who-gap: 48px;
+  --ask-who-size: var(--fs-2xl);
 
   /* Person intro */
   --photo-size: 340px;
@@ -205,6 +212,11 @@
 
   /* Big numbers and emoji */
   --tally-size: calc(200px * var(--type-scale));
+  --tally-grow-1: 0.6;
+  --tally-grow-2: 0.8;
+  --tally-grow-3: 1.05;
+  --tally-grow-4: 1.4;
+  --tally-grow-leading: 0.72;
   --mega-row-gap: 48px;
   --mega-emoji-size: calc(160px * var(--type-scale));
   --big-emoji-size: var(--fs-7xl);
@@ -221,6 +233,17 @@
   --pills-gap: 18px;
   --command-pad-y: 30px;
   --command-pad-x: 40px;
+  --command-xl-size: var(--fs-xl);
+  --setup-note-size: var(--fs-s);
+  --tree-col-gap: var(--space-m);
+  --tree-row-gap: var(--space-xs);
+  --tree-path-size: var(--fs-l);
+  --tree-gloss-size: var(--fs-l);
+  --tree-muted: var(--text-muted);
+  --tree-muted-opacity: 0.7;
+  --tree-line-gap: var(--space-s);
+  --tree-command-pad-y: 14px;
+  --tree-command-pad-x: 28px;
   --link-underline: var(--stroke-hair);
   --link-underline-offset: 6px;
   --grid-gap: 32px;
@@ -240,12 +263,43 @@
   --node-num-size: var(--fs-2xl);
   --node-name-size: calc(34px * var(--type-scale));
   --node-emoji-size: var(--fs-2xl);
+  --stair-base: 128px;
+  --stair-rise: 46px;
+  --stair-tread: var(--stroke-heavy);
+  --stair-tint: 14%;
+  --stair-pad-y: var(--space-xs);
+  --stair-pad-x: var(--space-xs);
+  --stair-num-size: var(--fs-l);
+  --stair-name-size: var(--fs-xs);
+  --nests-w: 1040px;
+  --nest-gap: var(--space-2xs);
+  --nest-pad-y: var(--space-2xs);
+  --nest-pad-x: var(--space-m);
+  --nest-radius: var(--radius-l);
+  --nest-tint: 6%;
+  --nest-name-size: var(--fs-s);
+  --nest-name-gap: var(--space-xs);
+  --tl-above-h: 150px;
+  --tl-gap: var(--space-xs);
+  --tl-name-gap: var(--space-2xs);
+  --tl-dot: 36px;
+  --tl-line: var(--stroke-hair);
+  --tl-num-size: var(--fs-xl);
+  --tl-name-size: calc(34px * var(--type-scale));
+  --tl-min-size: var(--fs-xs);
 
   /* Split halves */
   --split-gap: 100px;
   --split-rule-width: var(--stroke-hair);
-  --split-rule-overhang: var(--space-xl);
+  --split-rule-overhang: var(--space-l);
   --split-foot-gap: 168px;
+  --split-foot-gap-examples: 120px;
+  --split-example-gap: var(--space-xs);
+  --split-example-top: var(--space-s);  /* between the headline and its first example */
+  --split-example-size: var(--fs-2xl);
+  --arrow-down-h: 96px;  /* the down arrow between two display lines */
+  --arrow-down-stroke: var(--stroke-heavy);
+  --arrow-down-margin: var(--space-s);
 
   /* Converging pills (slide "Caveats") */
   --input-pill-h: 80px;

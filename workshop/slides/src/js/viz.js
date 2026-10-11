@@ -277,6 +277,7 @@ var viz = (function () {
   /* ---------- flow: nodes and arrows ---------- */
   KINDS.flow = function (fig, spec) {
     var nodes = spec.nodes.map(function (n) { return typeof n === 'string' ? { text: n } : n; }), N = nodes.length;
+    if (spec.node_size) fig.style.setProperty('--viz-node-size', 'var(--fs-' + spec.node_size + ')');   /* slide-scoped: a step of the type scale */
     var dir = spec.direction || 'row', cols = dir === 'row' ? N : dir === 'column' ? 1 : (spec.columns || 3);
     nodes.forEach(function (n, i) { if (!n.at) n.at = [i % cols + 1, Math.floor(i / cols) + 1]; });
     var ncol = Math.max.apply(null, nodes.map(function (n) { return n.at[0]; })), nrow = Math.max.apply(null, nodes.map(function (n) { return n.at[1]; }));
@@ -302,7 +303,8 @@ var viz = (function () {
       inkable(g);
       segs.push({ p: p, q: q, from: lk[0] - 1, to: lk[1] - 1 });
     });
-    var nodeG = el('g', { 'class': 'viz-nodes' }, svg), rings = [];
+    var nodeG = el('g', { 'class': 'viz-nodes' }, svg), rings = [], bigLine = 0;
+    if (spec.node_size) { var probe = text(svg, 0, 0, 'x', 'viz-node-text'); bigLine = Math.round((parseFloat(getComputedStyle(probe).fontSize) || 32) * 1.2); svg.removeChild(probe); }
     nodes.forEach(function (n, i) {
       var b = box(n), fillTok = n.principle ? '--principle-' + n.principle : n.role === 'accent' ? '--viz-highlight' : null;
       var cls = 'viz-node' + (fillTok ? ' viz-filled' : n.role === 'muted' ? ' viz-muted' : '');
@@ -310,9 +312,9 @@ var viz = (function () {
       if (rc) g.appendChild(rc.rectangle(b.x, b.y, nw, nh, roughOpts(fig, { stroke: tok('--viz-node-stroke'), strokeWidth: sw + 1, fill: fillTok ? tok(fillTok) : tok('--viz-node-fill'), fillStyle: 'solid', seed: i + 3 })));
       else el('rect', { x: r1(b.x), y: r1(b.y), width: r1(nw), height: nh, rx: rad, ry: rad }, g);
       var lines = String(n.text).split('\n'), hasNum = n.principle && spec.numbers !== false;
-      var lineH = 40, numH = hasNum ? 58 : 0, top = b.cy - (numH + lines.length * lineH) / 2;
+      var lineH = bigLine || 40, lineB = bigLine ? Math.round(bigLine * 0.25) : 10, numH = hasNum ? 58 : 0, top = b.cy - (numH + lines.length * lineH) / 2;
       if (hasNum) text(g, b.cx, top + 44, String(n.principle), 'viz-node-num');
-      lines.forEach(function (s, k) { text(g, b.cx, top + numH + (k + 1) * lineH - 10, s, 'viz-node-text'); });
+      lines.forEach(function (s, k) { text(g, b.cx, top + numH + (k + 1) * lineH - lineB, s, 'viz-node-text'); });
       var ring = el('rect', { 'class': 'viz-ring', x: r1(b.x - 10), y: r1(b.y - 10), width: r1(nw + 20), height: nh + 20, rx: rad + 8, ry: rad + 8 }, nodeG);
       rings.push(ring);
     });

@@ -9,9 +9,9 @@ motion = "off"        # "on" brings back slide/step transitions (see styles/base
 sections = [
   "opening",
   "about-us",
-  "framing",
-  "demo",
   "trust",
+  "demo",
+  "setup",
   "principle-1",
   "principle-2",
   "principle-3",

@@ -321,7 +321,7 @@ class Deck:
             if not path.exists():
                 raise BuildError(f"the manifest lists section {section!r} but there is no {rel}/{section}.toml")
             data = read_toml(path)
-            extra = set(data) - {"principle", "rail", "slide"}
+            extra = set(data) - {"principle", "rail", "group", "slide"}
             if extra:
                 raise BuildError(f"{rel}/{section}.toml: unknown top-level keys {sorted(extra)}")
             for i, slide in enumerate(data.get("slide", []), 1):
@@ -329,6 +329,11 @@ class Deck:
                 slide["_where"] = f"{rel}/{section}.toml, slide {i}"
                 slide.setdefault("principle", data.get("principle"))
                 slide.setdefault("rail", data.get("rail", True))
+                group = data.get("group")
+                if group is None and isinstance(data.get("principle"), int) and data["principle"] in self.by_n:
+                    pr = self.by_n[data["principle"]]
+                    group = f"{pr['n']} · {pr['name']}"
+                slide.setdefault("group", group)
                 slides.append(slide)
         return slides
 
@@ -466,7 +471,7 @@ class SlideRenderer:
         if name not in self.layouts:
             raise BuildError(f"{where}: unknown layout {name!r} (known: {', '.join(self.layouts)})")
         layout = self.layouts[name]
-        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "marks", "choreo", "_where"}
+        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "group", "chrome", "marks", "choreo", "_where"}
         unknown = set(slide) - allowed
         if unknown:
             raise BuildError(f"{where}: layout {name!r} has no fields {sorted(unknown)}")
@@ -474,6 +479,10 @@ class SlideRenderer:
         if missing:
             raise BuildError(f"{where}: layout {name!r} needs {missing}")
         s = dict(slide)
+        if layout.get("variants"):   # a layout with variants: one template each, a default, unknown values rejected
+            s.setdefault("variant", layout["default_variant"])
+            if s["variant"] not in layout["variants"]:
+                raise BuildError(f"{where}: layout {name!r} has no variant {s['variant']!r} (known: {', '.join(layout['variants'])})")
         pn = s.get("principle")
         if pn is not None and pn != "wrap" and pn not in self.deck.by_n:
             raise BuildError(f"{where}: principle {pn!r} is not in principles.json")
@@ -508,7 +517,8 @@ class SlideRenderer:
                "qr": self.deck.qr or Undefined("qr (src/assets/qr.json: run tools/qr.py)")}
         self.h1_used = False
         try:
-            inner = self.deck.loader.get(f"{layout['template']}.html").render(ctx, self.filters())
+            template = layout["variants"][s["variant"]] if layout.get("variants") else layout["template"]
+            inner = self.deck.loader.get(f"{template}.html").render(ctx, self.filters())
         except BuildError as e:
             raise BuildError(f"{s['_where']} ({s['id']}): {e}") from None
         try:
@@ -516,12 +526,17 @@ class SlideRenderer:
         except BuildError as e:
             raise BuildError(f"{s['_where']} ({s['id']}): {e}") from None
         inner = "\n".join(line.rstrip() for line in inner.split("\n") if line.strip())
+        chrome = s.get("chrome", True) is not False
+        if chrome and s.get("group"):
+            inner = f'  <p class="section-label">{escape(s["group"])}</p>\n' + inner
         classes = " ".join(c for c in ["slide", layout.get("class"), s.get("class") if s["layout"] == "raw" else None] if c)
         attrs = f' id="{escape(s["id"])}"'
         if s.get("principle") is not None:
             attrs += f' data-principle="{s["principle"]}"'
         if s.get("rail") is False:
             attrs += ' data-rail="off"'
+        if not chrome:
+            attrs += ' data-chrome="off"'
         return f"<!-- {number:02d} · {s['name']} -->\n<section class=\"{classes}\"{attrs}>\n{inner}\n</section>"
 
     def render_all(self) -> str:
@@ -537,7 +552,7 @@ class SlideRenderer:
 # ===========================================================================
 VIZ_COMMON = {"step", "style", "animate"}
 VIZ_TYPES = {  # type: (required keys, optional keys)
-    "flow": (["label", "nodes"], ["direction", "columns", "links", "travel", "reveal", "numbers", "node_width", "node_height", "gap", "width", "height"]),
+    "flow": (["label", "nodes"], ["direction", "columns", "links", "travel", "reveal", "numbers", "node_size", "node_width", "node_height", "gap", "width", "height"]),
     "bars": (["label", "data"], ["orient", "highlight", "highlight_step", "values", "axis", "max", "ticks", "prefix", "suffix", "decimals", "width", "height", "label_width"]),
     "waterfall": (["label", "start", "changes"], ["end", "reveal", "max", "ticks", "prefix", "suffix", "decimals", "axis", "width", "height"]),
     "line": (["label", "x", "series"], ["area", "points", "note", "max", "ticks", "prefix", "suffix", "axis", "width", "height"]),
@@ -657,6 +672,8 @@ def validate_viz(kind: str, spec: dict, deck: "Deck") -> list[str]:
                 later(f"event {e['text']!r} step", e.get("step"))
         if spec.get("reveal", "all") not in ("all", "each"):
             p.append("viz 'timeline': reveal is 'all' or 'each'")
+    if kind == "flow" and "node_size" in spec and spec["node_size"] not in ("xs", "s", "m", "l", "xl", "2xl"):
+        p.append("viz 'flow': node_size is a step of the type scale: xs, s, m, l, xl or 2xl")
     if kind == "flow" and "nodes" in spec:
         nodes = spec["nodes"]
         if not (isinstance(nodes, list) and nodes):

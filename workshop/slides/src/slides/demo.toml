@@ -1,4 +1,30 @@
-# Today's demo, the tracks, setup and the shape of the session.
+# Today's demo and the two tracks.
+group = "Today's demo"
+
+[[slide]]
+id = "s-bait"
+name = "The real ask"
+layout = "centred"
+blocks = [
+  { display = "Speaking of ==trust==…" },
+]
+
+[[slide]]
+id = "s-value"
+name = "The value question"
+layout = "centred"
+blocks = [
+  { display = "I have an ulterior motive today." },
+]
+
+[[slide]]
+id = "s-ask"
+name = "The real ask"
+layout = "centred"
+blocks = [
+  { ask = "You are here to help [me]{stress}." },
+  { who = "(Francesco)", step = 1 },
+]
 
 [[slide]]
 id = "s-demo"
@@ -7,7 +33,7 @@ layout = "statement"
 blocks = [
   { label = "TODAY'S DEMO" },
   { mega = "My wedding.", emoji = "💍" },
-  { sub = "Paying for it, to be exact.", step = 1 },
+  { sub = "Figuring out the finances around it, to be exact.", step = 1 },
 ]
 
 [[slide]]
@@ -18,7 +44,7 @@ blocks = [
   { label = "SHOW OF HANDS" },
   { display = "Who has had a wedding?" },
   { label = "GUESTS" },
-  { tally = ["50", "100", "150", "200"] },   # one per click; the previous one mutes
+  { tally = ["<50", "100", "150", "200"], grow = true },   # one per click; the previous one mutes
   { sub = "These things are expensive. I do not recommend it.", step = 5 },
 ]
 
@@ -32,17 +58,6 @@ blocks = [
 ]
 
 [[slide]]
-id = "s-fine"
-name = "Fine print"
-layout = "statement"
-blocks = [
-  { label = "DISCLAIMER, FIRST OF ALL" },
-  { display = "Something will break." },
-  { sub = "Some of this is over-engineered.", step = 1 },
-  { sub = "When it breaks, we fix it with you.", step = 2 },
-]
-
-[[slide]]
 id = "s-tracks"
 name = "Two tracks"
 layout = "statement"
@@ -53,27 +68,3 @@ blocks = [
       { name = "Build your own", line = "Same framework, same principles. Something you actually care about.", yours = true, step = 2 },
   ] },
 ]
-
-[[slide]]
-id = "s-setup"
-name = "Setup"
-layout = "setup"
-label = "SETUP"
-minutes = 10
-url = "https://github.com/francescogalletta/aienyc-harness-workshop"
-needs_label = "YOU NEED ONE OF"
-needs = ["Claude Code", "Codex", "Claude Desktop", "an API key"]
-needs_todo = "others to confirm"
-check_label = "CHECK IT WORKS"
-command = "uv run python -m harness check"
-check_result = "It should end with “Setup works”."
-note = "Please be lazy and ask your agent to set it up for you."
-
-[[slide]]
-id = "s-map"
-name = "The two hours"
-layout = "structure"
-label = "TODAY'S STRUCTURE"
-headline = "For each principle, we explain it, show it working, then discuss and play."
-start = "Setup"
-end = "Wrap"

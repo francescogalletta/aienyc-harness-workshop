@@ -1,5 +1,6 @@
 # Wrap. The rail shows every principle done.
 principle = "wrap"
+group = "Wrap"
 
 [[slide]]
 id = "s-framework-again"
@@ -8,6 +9,19 @@ layout = "framework"
 rail = false
 label = "THE GOAL"
 goal = "==Trust=="
+
+[[slide]]
+id = "s-takeaways"
+name = "Wrap · Takeaways"
+layout = "statement"
+blocks = [
+  { label = "WHEN TRUST IS PARAMOUNT" },
+  { lines = [
+      { headline = "Show how the numbers ran.", step = 1 },
+      { headline = "Nothing generic. Finance is an ocean of nuance.", step = 2 },
+  ] },
+  { display = "Design to increase ==trust==. Never assume it.", step = 3 },
+]
 
 [[slide]]
 id = "s-better"
