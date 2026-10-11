@@ -9,17 +9,18 @@ only, no network). The harness never uses this folder.
 | Right arrow, Space, click on the right | Next step or slide |
 | Left arrow, click on the left | Back |
 | `F` | Fullscreen |
-| `D` | Light or dark |
+| `D` | The theme's other palette (Nord: Polar Night or Snow Storm) |
 | `#12` at the end of the address | Open at slide 12 |
 
 ## Build
 
 ```
 python workshop/slides/build.py              # deck.html + dist/deck.fragment.html
-python workshop/slides/build.py --theme ink  # dist/deck.ink.html + dist/deck.ink.fragment.html
+python workshop/slides/build.py --theme nord # dist/deck.nord.html + dist/deck.nord.fragment.html
 python workshop/slides/build.py --all        # every theme
 python workshop/slides/build.py --check      # validate; exits 1 on problems
 python workshop/slides/build.py --gallery --all   # dist/gallery.<theme>.html for every theme
+python workshop/slides/build.py --looks a,b,c     # several looks in one page, with a switcher
 ```
 
 `deck.html` is committed; `dist/` is not. The fragment is the form the hosting
@@ -150,9 +151,56 @@ same `<script>`. A deck with no visuals builds exactly as before.
 `python workshop/slides/build.py --gallery --theme NAME` (or `--all`) builds
 `dist/gallery.NAME.html` and its fragment: the theme's colour roles and type
 scale with live values, every layout, every component, and every visual in
-clean and rough styles, on sample data. Press `D` for dark. Change a token,
+clean and rough styles, on sample data. Press `D` for the alternate palette. Change a token,
 rebuild, look. Screenshots for a side-by-side:
 `python workshop/slides/tools/shoot.py shots dist/gallery.NAME.html dist/shots/gallery/NAME --set all --dark`.
+
+## Compare looks side by side
+
+```
+python workshop/slides/build.py --looks nord,catppuccin,blueprint            # dist/deck.looks.html
+python workshop/slides/build.py --looks nord,catppuccin,blueprint --gallery  # dist/gallery.looks.html
+```
+
+One page holds every listed theme, each scoped to `data-look="<name>"` on the
+root, and a slim bar above the stage to switch between them: click a name, or
+`T` for the next look and `Shift+T` for the previous one. Every look opens on
+the palette `deck.toml` asks for (see "Palettes" below); `D` (or the
+Primary/Alternate button) shows the other one. The slide, the step and any visuals stay put.
+Each build also writes a `.fragment.html` for the hosting page. Normal builds
+are unchanged: no bar, one theme. The bar shows each theme's display name (the
+`name:` line in its header comment) and, under 760px wide, its `short:` form.
+`tools/shoot.py check` on a looks page walks every look in both palettes.
+
+The three themes (primary palette, then alternate):
+
+| Theme | Primary | Alternate | Type and shape |
+| --- | --- | --- | --- |
+| `nord` (the default) | Polar Night (dark) | Snow Storm (light) | IBM Plex, blueprint shapes |
+| `catppuccin` | Macchiato (dark) | Latte (light) | Figtree, JetBrains Mono, 12px corners, round pills |
+| `blueprint` | navy on pale blue-grey (light) | night: deep navy, soft outlines, faint drafting grid (dark) | IBM Plex |
+
+Palette sources, licences and every deviation from them are in each theme's
+header comment and in `docs/visuals.md`.
+
+## Palettes
+
+Every theme has two palettes, a primary and an alternate, and says whether each
+is light or dark. A deck is a projected thing, so by default everyone sees the
+**primary** palette, whatever their OS setting or the hosting page's own
+`data-theme` attribute; `D` switches to the alternate and back. The deck uses
+its own attribute for this (`data-palette="alternate"` on the root), so a host
+that sets `data-theme` never flips it. `deck.toml` chooses:
+
+```toml
+palette = "primary"     # default: the theme's primary palette for everyone
+palette = "alternate"   # the other one for everyone
+palette = "system"      # the palette that matches the viewer's light or dark setting
+                        # (a host page's data-theme="light"/"dark" wins over the OS)
+```
+
+In every mode `D` still toggles. The build writes `color-scheme` on each block,
+so form controls and scrollbars match, and `body` always paints `--slide-bg`.
 
 ## Change the look
 
@@ -174,18 +222,43 @@ shape is:
 /* NAME: one line on the look.
    font-link: https://fonts.googleapis.com/css2?family=...
 */
-:root { palette; --font-sans/mono/hand/emoji; colour roles (light); overrides }
-:root[data-theme="dark"] { colour roles (dark) }
+:root { palette; --font-sans/mono/hand/emoji; colour roles; overrides; color-scheme: light | dark; }
+:root[data-palette="alternate"] { the other palette's colour roles; color-scheme: dark | light; }
 ```
 
-Write the dark values once; the build repeats them under
-`prefers-color-scheme: dark` as the hosting page needs. Then
-`build.py --theme NAME` and `build.py --check` (it lists missing tokens and
-reports contrast; text on a principle fill must be at least 4:1).
+Tokens a look can set (all default to blueprint's values, so `deck.html` does
+not change):
 
-`ink.css` (dark, high contrast, Space Grotesk, square) and `paper.css` (warm,
-serif display, soft corners, thin strokes) are **examples** that show the range;
-they are not design proposals.
+- Type per role: `--mega-font/-weight/-tracking`, `--display-weight/-tracking`,
+  `--headline-font/-weight/-tracking`, `--sub-font/-weight/-tracking`,
+  `--label-weight/-tracking/-leading`, `--chip-font/-weight/-tracking`,
+  `--code-weight/-leading`, `--hand-tracking`, plus the sizes (`--mega-size`...),
+  `--font-display`, `--font-label`, `--weight-display` and `--numeric-variant`
+  (tabular figures; `normal` for a face whose tabular set widens punctuation).
+- Lines and surfaces: `--outline` (box outlines, separate from `--text`),
+  `--hairline` (pill, chip and rail strokes, dividers, progress track),
+  `--surface`, `--placeholder-stroke` (dashed boxes), `--rail-idle-stroke`,
+  `--rail-idle-text`, `--connector`, `--connector-style`, `--diagram-stroke`,
+  `--diagram-label`, `--diagram-quiet`, `--hand-text`, `--photo-ring`,
+  `--photo-fill`, `--footnote-text`, `--progress-fill`, `--counter-text`,
+  `--qr-ink`, `--qr-ground`, `--qr-radius`, `--ask-fill`, `--ask-text`,
+  `--ask-pad-x`, `--slide-bg-image` and `--slide-bg-size` (a ground pattern).
+- Principles: `--on-principle-1..5` (text on each fill; default `--on-principle`)
+  and `--principle-N-ink` (the colour as text or a thin line).
+- Charts: `--viz-primary` (single-series charts; default principle 1's ink),
+  `--viz-highlight`, `--viz-up`, `--viz-down`, `--viz-total`, their `-ink`
+  forms for hand-drawn charts, `--viz-series-1..5` (the multi-series order),
+  `--viz-grid`, `--viz-axis`, `--viz-muted`, `--viz-area-opacity`.
+
+`--check` asks for text at 7:1, quiet and muted text and the trust accent at
+4.5:1, inks at 3:1 on the ground and each `--on-principle-N` on its fill at 4:1,
+in both palettes.
+
+Write each palette once; the build adds whatever the `palette` setting needs
+(for "system", the OS and host rules). Do not write `data-theme` or
+`prefers-color-scheme` in a theme: `--check` refuses it, and also asks every
+block for its `color-scheme`. Then `build.py --theme NAME` and `build.py --check`
+(it lists missing tokens and reports contrast in both palettes).
 
 ## Look at it
 
@@ -196,6 +269,7 @@ the address, elements outside the 1920×1080 stage and phone-width scrolling:
 ```
 python workshop/slides/tools/shoot.py shots deck.html dist/shots/blueprint --set review
 python workshop/slides/tools/shoot.py check deck.html --csp     # with the hosting page's CSP
+                                                               # (also: OS dark/light and a host data-theme leave the palette alone; D toggles)
 python workshop/slides/tools/shoot.py frames dist/gallery.blueprint.html dist/shots/frames --at 21:1
 python workshop/slides/tools/shoot.py compare BEFORE_DIR AFTER_DIR
 ```

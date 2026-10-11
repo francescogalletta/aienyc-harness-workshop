@@ -5,6 +5,7 @@
    theme's colour roles.
    ========================================================================== */
 :root {
+  --palette-shown: primary;   /* which palette is on screen; the build sets it in each theme block, D reads it */
   /* ---------- Tier 1: primitives ---------- */
 
   /* The fixed stage everything is laid out on (deck.js assumes 1920x1080). */
@@ -28,8 +29,10 @@
   --fs-7xl: calc(300px * var(--type-scale));
 
   --font-display: var(--font-sans);  /* themes with a separate display face override this */
+  --font-label: var(--font-sans);    /* labels, chips and number-heavy bits */
   --weight-regular: 400;
   --weight-strong: 600;
+  --weight-display: var(--weight-strong);  /* mega, display, headline and big numbers */
   --weight-hand: 500;
   --weight-hand-strong: 700;
   --tracking-tight: -0.02em;
@@ -74,6 +77,7 @@
   /* Fonts by role */
   --body-font: var(--font-sans);
   --display-font: var(--font-display);
+  --label-font: var(--font-label);
   --code-font: var(--font-mono);
   --footnote-font: var(--font-mono);
   --aside-font: var(--font-hand);
@@ -81,7 +85,28 @@
   --diagram-label-font: var(--font-sans);
   --diagram-note-font: var(--font-hand);
 
-  /* Type roles */
+  /* Type roles: size, leading, family, weight and tracking per role, so a face can be tuned */
+  --mega-font: var(--display-font);
+  --mega-weight: var(--weight-display);
+  --mega-tracking: var(--tracking-tight);
+  --display-weight: var(--weight-display);
+  --display-tracking: var(--tracking-tight);
+  --headline-font: var(--display-font);
+  --headline-weight: var(--weight-display);
+  --headline-tracking: var(--tracking-snug);
+  --sub-font: var(--body-font);
+  --sub-weight: var(--weight-regular);
+  --sub-tracking: normal;
+  --label-weight: var(--weight-strong);
+  --label-tracking: var(--tracking-caps);
+  --label-leading: 1.2;
+  --chip-font: var(--label-font);
+  --chip-weight: var(--weight-regular);
+  --chip-tracking: 0;
+  --code-weight: var(--weight-regular);
+  --code-leading: 1.3;
+  --hand-tracking: normal;
+  --numeric-variant: tabular-nums;  /* figures line up; a face whose tabular set also widens punctuation can set normal */
   --mega-size: var(--fs-6xl);
   --mega-leading: 0.95;
   --display-size: var(--fs-4xl);
@@ -100,6 +125,7 @@
   --counter-right: 40px;
   --counter-bottom: 32px;
   --chrome-opacity: 0.6;  /* section label and slide number: clearly secondary */
+  --section-label-text: var(--text-muted);
   --display-measure: 1600px;
   --sub-measure: 1500px;
 
@@ -111,6 +137,22 @@
   --gap-xl: var(--space-xl);
   --gap-tight: 20px;
   --row-gap: var(--space-s);
+
+  /* Role colours a look can tune on their own (defaults are the plain roles) */
+  --outline: var(--text);             /* box outlines: step, track, command */
+  --hairline: var(--line);            /* rules, idle bars, pill and chip outlines */
+  --rail-idle-stroke: var(--framework-idle);
+  --rail-idle-text: var(--text-muted);
+  --photo-ring: var(--placeholder-stroke);
+  --photo-fill: transparent;
+  --counter-text: var(--text-muted);
+  --on-principle-1: var(--on-principle);  /* text on each principle's fill */
+  --on-principle-2: var(--on-principle);
+  --on-principle-3: var(--on-principle);
+  --on-principle-4: var(--on-principle);
+  --on-principle-5: var(--on-principle);
+  --slide-bg-image: none;             /* e.g. a faint grid, drawn on the stage */
+  --slide-bg-size: auto;
 
   /* Slide frame */
   --slide-margin: var(--space-2xl);
@@ -124,10 +166,10 @@
   --step-fill: var(--surface);
   --step-text: var(--text);
   --step-stroke: var(--stroke);
-  --step-stroke-color: var(--text);
+  --step-stroke-color: var(--outline);
   --step-radius: var(--radius-m);
   --from-you-radius: var(--radius-pill);
-  --your-call-stroke: var(--text);
+  --your-call-stroke: var(--outline);
 
   --pill-h: 72px;
   --pill-pad-x: 30px;
@@ -135,7 +177,7 @@
   --pill-text: var(--text-quiet);
   --pill-fill: var(--surface);
   --pill-stroke: var(--stroke-hair);
-  --pill-stroke-color: var(--line);
+  --pill-stroke-color: var(--hairline);
   --pill-radius: var(--radius-pill);
 
   --chip-h: 56px;
@@ -143,7 +185,7 @@
   --chip-size: var(--fs-xs);
   --chip-text: var(--text-muted);
   --chip-stroke: var(--stroke-hair);
-  --chip-stroke-color: var(--line);
+  --chip-stroke-color: var(--hairline);
   --chip-radius: var(--radius-pill);
 
   --placeholder-stroke: var(--text);
@@ -162,6 +204,7 @@
 
   /* Connectors (flow arrows, converging lines) */
   --connector-width: var(--stroke);
+  --connector-style: solid;   /* the lines that drop from pills onto a question; dashed in some looks */
 
   /* Footnote (mono) and aside (handwritten) */
   --footnote-text: var(--text-muted);
@@ -184,8 +227,10 @@
   --stress-underline-offset: 14px;
   --ask-fill: var(--attention);
   --ask-text: var(--text);
+  --hand-text: var(--text);      /* handwritten notes and asides; inside the ask it follows --ask-text */
   --ask-pad-top: 72px;
   --ask-pad-x: 160px;
+  --ask-max: 1200px;
   --ask-pad-bottom: 80px;
   --ask-who-gap: 48px;
   --ask-who-size: var(--fs-2xl);
@@ -193,6 +238,7 @@
   /* Person intro */
   --photo-size: 340px;
   --photo-radius: var(--radius-round);
+  --qr-radius: 2px;    /* in QR modules (about 24px on the slide), not screen pixels */
   --photo-label-size: var(--fs-2xs);
   --reel-spot-size: var(--fs-5xl);
   --reel-out-size: calc(94px * var(--type-scale));
@@ -307,7 +353,7 @@
   --question-size: var(--fs-2xl);
 
   /* Framework stack, dividers, rail */
-  --framework-idle: var(--line);
+  --framework-idle: var(--hairline);
   --goal-size: var(--fs-5xl);
   --bars-gap: 10px;
   --bars-top: 32px;
@@ -333,16 +379,30 @@
   --doubts-gap: var(--space-xs);
   --doubt-pad-x: 26px;
   --doubt-size: var(--fs-xs);
+  --says-compact-said-w: 560px;   /* guesses with compact = true: long quotes, a smaller table */
+  --says-compact-example-size: calc(44px * var(--type-scale));
+  --says-compact-doubt-size: calc(32px * var(--type-scale));
+  --says-compact-row-gap: 32px;
+  --says-compact-doubt-h: 60px;
   --doubt-radius: var(--pill-radius);
 
   /* Chrome and focus */
   --progress-h: var(--stroke);
-  --progress-track: var(--line);
+  --progress-track: var(--hairline);
   --progress-fill: var(--text);
   --focus-ring: var(--text);
   --focus-ring-width: var(--stroke);
   --focus-ring-offset: var(--space-3xs);
   --focus-radius: var(--radius-s);
+
+  /* A principle's colour used as text or a thin stroke on the slide ground (the
+     divider's big number, chart lines). Fills use --principle-N. A look with pale
+     "highlighter" fills sets darker inks here. */
+  --principle-1-ink: var(--principle-1);
+  --principle-2-ink: var(--principle-2);
+  --principle-3-ink: var(--principle-3);
+  --principle-4-ink: var(--principle-4);
+  --principle-5-ink: var(--principle-5);
 
   /* Confetti (canvas): read by js/confetti.js as a comma-separated list */
   --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
@@ -360,11 +420,20 @@
   --viz-series-3: var(--principle-2);
   --viz-series-4: var(--principle-5);
   --viz-series-5: var(--principle-3);
-  --viz-bar: var(--viz-series-1);
+  --viz-series-1-ink: var(--principle-1-ink);   /* lines, points, rough strokes: the ink of each */
+  --viz-series-2-ink: var(--principle-4-ink);
+  --viz-series-3-ink: var(--principle-2-ink);
+  --viz-primary: var(--principle-1-ink);   /* single-series charts */
+  --viz-bar: var(--viz-primary);
+  --viz-bar-ink: var(--viz-primary);
+  --viz-highlight-ink: var(--viz-series-2-ink);
+  --viz-down-ink: var(--viz-series-2-ink);
   --viz-highlight: var(--viz-series-2);
   --viz-up: var(--accent-trust);
   --viz-down: var(--viz-series-2);
   --viz-total: var(--text-muted);
+  --viz-up-ink: var(--viz-up);
+  --viz-total-ink: var(--viz-total);
   --viz-text: var(--text);
   --viz-label: var(--text-quiet);
   --viz-muted: var(--text-muted);
@@ -375,6 +444,7 @@
   --viz-node-stroke: var(--step-stroke-color);
   --viz-on-fill: var(--on-principle);
   --viz-link: var(--connector);
+  --viz-link-dash: none;      /* e.g. 10 8 for dashed arrows */
   --viz-marker: var(--text);
   --viz-annotate: var(--accent-trust);
   --viz-area-opacity: 0.12;

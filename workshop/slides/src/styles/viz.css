@@ -11,8 +11,8 @@ figure.viz { align-self: stretch; }
 
 /* text */
 .viz .viz-label { font-size: var(--viz-label-size); fill: var(--viz-label); }
-.viz .viz-tick { font-size: var(--viz-tick-size); fill: var(--viz-muted); font-variant-numeric: tabular-nums; }
-.viz .viz-value { font-size: var(--viz-value-size); font-weight: var(--weight-strong); fill: var(--viz-text); font-variant-numeric: tabular-nums; }
+.viz .viz-tick { font-family: var(--label-font); font-size: var(--viz-tick-size); fill: var(--viz-muted); font-variant-numeric: var(--numeric-variant); }
+.viz .viz-value { font-family: var(--label-font); font-size: var(--viz-value-size); font-weight: var(--weight-strong); fill: var(--viz-text); font-variant-numeric: var(--numeric-variant); }
 .viz .viz-strong { font-weight: var(--weight-strong); fill: var(--viz-text); }
 .viz .viz-note-text, .viz-marks .viz-mark-note { font-family: var(--viz-hand-font); font-weight: var(--weight-hand-strong); font-size: var(--viz-note-size); fill: var(--viz-text); }
 
@@ -29,9 +29,10 @@ figure.viz { align-self: stretch; }
 .viz .viz-total path:not(.viz-ink) { fill: var(--viz-total); }
 
 /* lines */
-.viz .viz-s1 { --sc: var(--viz-series-1); }
-.viz .viz-s2 { --sc: var(--viz-series-2); }
-.viz .viz-s3 { --sc: var(--viz-series-3); }
+.viz .viz-sp { --sc: var(--viz-primary); }
+.viz .viz-s1 { --sc: var(--viz-series-1-ink); }
+.viz .viz-s2 { --sc: var(--viz-series-2-ink); }
+.viz .viz-s3 { --sc: var(--viz-series-3-ink); }
 .viz .viz-line { fill: none; stroke: var(--sc); stroke-width: var(--viz-line-width); stroke-linejoin: round; stroke-linecap: round; }
 .viz .viz-area { fill: var(--sc); opacity: var(--viz-area-opacity); stroke: none; }
 .viz .viz-point { fill: var(--sc); stroke: var(--viz-surface); stroke-width: var(--viz-ring-width); }
@@ -43,8 +44,8 @@ figure.viz { align-self: stretch; }
 .viz .viz-node.viz-filled rect { fill: var(--c); stroke: none; }
 .viz .viz-node.viz-muted rect { stroke: var(--viz-grid); }
 .viz .viz-node-text { font-size: var(--viz-node-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
-.viz .viz-node-num { font-size: var(--viz-node-num-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
-.viz .viz-filled .viz-node-text, .viz .viz-filled .viz-node-num { fill: var(--viz-on-fill); }
+.viz .viz-node-num { font-family: var(--label-font); font-size: var(--viz-node-num-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
+.viz .viz-filled .viz-node-text, .viz .viz-filled .viz-node-num { fill: var(--oc, var(--viz-on-fill)); }
 .viz .viz-muted .viz-node-text { fill: var(--viz-muted); }
 .viz .viz-arrow-line { fill: none; stroke: var(--viz-link); stroke-width: var(--viz-stroke); stroke-linecap: round; }
 .viz .viz-arrow-head { fill: var(--viz-link); }
@@ -53,7 +54,7 @@ figure.viz { align-self: stretch; }
 .viz .viz-marker { fill: var(--viz-marker); stroke: var(--viz-surface); stroke-width: var(--viz-ring-width); opacity: 0; }
 
 /* count-up */
-.viz-count { font-family: var(--display-font); font-size: var(--viz-count-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viz-count { font-family: var(--display-font); font-size: var(--viz-count-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: var(--numeric-variant); white-space: nowrap; }
 
 /* marks: an overlay on the slide */
 .viz-marks { position: absolute; left: 0; top: 0; width: var(--stage-w); height: var(--stage-h); overflow: visible; pointer-events: none; }

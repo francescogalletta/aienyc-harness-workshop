@@ -6,7 +6,7 @@
     <span class="flow-node pill">{{ start }}</span>
     <div class="nests">
 {% for p in principles_top_down %}
-      <div class="nest" style="--c:var({{ p.color }})"><span class="nest-name"><span class="nest-num">{{ p.n }}</span><span class="nest-emoji" aria-hidden="true">{{ p.emoji }}</span>{{ p.name }}</span>
+      <div class="nest" style="--c:var({{ p.color }}); --ci:var({{ p.ink }})"><span class="nest-name"><span class="nest-num">{{ p.n }}</span><span class="nest-emoji" aria-hidden="true">{{ p.emoji }}</span>{{ p.name }}</span>
 {% endfor %}
 {% for p in principles %}
       </div>

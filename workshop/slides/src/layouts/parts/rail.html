@@ -2,6 +2,6 @@
 <div class="rail" aria-hidden="true">
   <span class="rail-cap"></span>
 {% for p in principles_top_down %}
-  <span class="rail-cell" data-n="{{ p.n }}" style="--c:var({{ p.color }})">{{ p.n }}</span>
+  <span class="rail-cell" data-n="{{ p.n }}" style="--c:var({{ p.color }}); --oc:var({{ p.on }})">{{ p.n }}</span>
 {% endfor %}
 </div>

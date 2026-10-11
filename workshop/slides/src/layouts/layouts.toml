@@ -193,6 +193,7 @@ lead = "lead"           # the strong first word of a soft line
 emo = "emo"             # an emoji inside handwriting
 stress = "ask-us"       # big underlined word
 hook = "hook"           # no look of its own: a handle for marks (target = ".hook")
+lookname = "look-name"  # the current look's name, kept up to date in a --looks build
 
 # ---------------------------------------------------------------------------
 # Visuals: { viz = "<type>", label = "what it shows", … } as a block, or as the

@@ -104,32 +104,65 @@ The research estimate for the kit was about 5 KB gzipped; the hardened kit is
 ## Chart palette
 
 The principle hues double as the series palette, reordered so that neighbours
-stay apart for colour-blind readers: series 1 to 5 are principles 1, 4, 2, 5, 3.
-In the deck's own order, principles 1 and 2 (blue and violet) are nearly the
-same colour under deuteranopia (ΔE 1.0 in blueprint). Results from the dataviz
-validator (`validate_palette.js`, adjacent pairs, against each mode's background):
+stay apart for colour-blind readers (by default series 1 to 5 are principles 1,
+4, 2, 5, 3). In the deck's own order, principles 1 and 2 (blue and violet) are
+nearly the same colour under deuteranopia (ΔE 1.0 in blueprint). Results are
+from the dataviz validator (`validate_palette.js`).
 
-| Theme | Mode | Result |
-| --- | --- | --- |
-| blueprint | light | all checks pass (worst CVD ΔE 11.2) |
-| blueprint | dark | CVD 11.7 and normal vision 23.7 pass; lightness band fails (the dark-mode pastels are L 0.76–0.81, chosen to carry dark text) |
-| ink | both | CVD 19.7 and normal vision 26.4 pass; lightness band fails (bright hues on near-black) |
-| paper | light | chroma fails for ochre (0.094) and CVD fails between clay and moss (ΔE 3.2), which sit next to each other in this order |
-| paper | dark | lightness, chroma, CVD (3.3) and normal vision (14.2) fail |
+Each theme can set its own order (`--viz-series-*` in its theme file). Results,
+adjacent pairs, against each palette's ground (series listed as principles):
 
-Charts in the kit use one or two series and a highlight, which are series 1
-and 2 (principles 1 and 4). That pair passes in every theme and mode (CVD
-ΔE ≥ 19). Values are always labelled or tabled, so identity never rests on
-colour alone. A theme can fix its own order: for paper, setting
-`--viz-series-1..5` to principles 3, 1, 5, 2, 4 passes CVD (ΔE 12.6) in both
-modes. That override is not applied: the example themes are left as they were
-reviewed, to show the kit working with no theme edits.
+| Theme | Palette | Series | Result |
+| --- | --- | --- | --- |
+| nord (default) | Polar Night | 1, 4, 3, 2, 5 | CVD 10.7, normal vision 15.0 pass; lightness and chroma fail (Nord's aurora is deliberately muted); contrast warns for the deep red fill, whose text and lines use nord11 |
+| nord | Snow Storm | 1, 4, 3, 2, 5 | same fills: CVD 10.7, normal 15.0 pass; chroma fails; contrast warns (inks are used for lines and text) |
+| catppuccin | Macchiato | 1, 5, 2, 4, 3 | CVD 12.6 passes; normal vision 13.0, lightness and chroma fail (Catppuccin's pastels are close in lightness by design) |
+| catppuccin | Latte | 1, 5, 2, 4, 3 | CVD 19.9, normal 20.5 pass; contrast warns for pink and peach on base (their inks are used for text) |
+| blueprint | day | 1, 4, 2, 5, 3 | all checks pass (CVD 11.2) |
+| blueprint | night | 1, 4, 2, 5, 3 | CVD 11.7, normal 23.7 pass; lightness band fails (pastels that carry navy text) |
+
+The first two series pass CVD in every theme and palette (ΔE ≥ 11). Charts in
+the kit use one or two series and a highlight. A single-series chart draws in
+`--viz-primary` (principle 1's ink unless a theme says otherwise), the highlight
+in `--viz-highlight` (the attention colour), so the highlight never doubles as a
+series colour. Values are always labelled or tabled, so identity never rests on
+colour alone.
+
+### Palette sources and deviations
+
+The community palettes are taken from their npm packages; a value changes only
+where a contrast check failed, and then by the smallest OKLCH lightness step
+that passes. Every deviation is also listed in the theme's header comment.
+
+- **nord**: `nord` 0.2.1 (Arctic Ice Studio), licence Apache-2.0 AND
+  CC-BY-SA-4.0 as the package declares. Sections are nord9, nord15, nord11,
+  nord12 and nord14; the ask is nord13 with nord0 text (8.0:1). To reach 4.5:1
+  with the text on each fill: nord15 #b48ead → #b690af (+0.005 L, nord0 text
+  4.52:1), nord12 #d08770 → #d38a73 (+0.01, 4.55:1), and nord11 #bf616a →
+  #ab4f59 (−0.06, nord6 text 4.50:1; reaching 4.5:1 with nord0 text would have
+  needed +0.10 and a bright salmon). nord11 itself stays the red's ink for
+  numbers and lines. nord3 is lifted to #687388 for outlines, dashes and
+  connectors and to #909cb2 for muted text (Nord has no mid grey). Snow Storm:
+  nord7 → #497474 as trust (4.5:1); inks nord15 → #a47e9d, nord13 → #a48547,
+  nord14 → #779161, nord12 → #be7660 (3:1 on nord6). The QR tile is nord4 on
+  Polar Night.
+- **catppuccin**: `@catppuccin/palette` 1.8.0, MIT licence, (c) 2021
+  Catppuccin. Macchiato is used unchanged; its QR tile is subtext1, not text,
+  so it does not glare. Latte: subtext0 #6c6f85 → #696c82 (muted text 4.5:1),
+  teal #179299 → #007a81 (trust 4.5:1); text-strength inks pink #ea76cb →
+  #d361b6, peach #fe640b → #f25800, green #40a02b → #3e9e29 and yellow #df8e1d
+  → #c87800 (chart highlight), each for 3:1 on base. Text on Latte's blue and
+  mauve fields is Latte base; on the others, Macchiato crust.
+- **blueprint**: the workshop's own palette. Its alternate ("night", once a
+  separate look) puts the light principle hues on a deep navy ground with a
+  faint drafting grid; the ask there is apricot-200 one step down (#f0c396) so
+  it does not glare.
 
 ## Not tested
 
 - Firefox and Safari: only Chromium was run (Playwright's build).
 - Google Fonts: the sandbox cannot reach them, so screenshots used local
-  woff2 copies of the same families (IBM Plex, Caveat, Space Grotesk,
-  Fraunces) injected as data URIs; the hosted page loads them from Google.
+  woff2 copies of the same families (IBM Plex, Caveat, Figtree and JetBrains
+  Mono, from their npm packages) injected as data URIs; the hosted page loads them from Google.
 - Projectors: sizes were judged on 1920×1080 screenshots (chart labels are 30 px
   and up on the stage).

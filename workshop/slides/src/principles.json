@@ -1,10 +1,10 @@
 {
   "_about": "The five principles: the single source for every slide that shows one (structure flow, framework stack and its repeat, rail, dividers, and the data-principle of each principle's slides). One principle per line. color is the theme token that fills it; builds_on is the line on its divider about the principle before it (empty for the first).",
   "principles": [
-    {"n": 1, "name": "Shared Domain", "emoji": "🤝", "color": "--principle-1", "minutes": 20, "statement": "Agree the plan before any number.", "builds_on": ""},
-    {"n": 2, "name": "Consistency", "emoji": "🧮", "color": "--principle-2", "minutes": 25, "statement": "Numbers come only from tested code.", "builds_on": "The shared plan says which parts never change."},
-    {"n": 3, "name": "Evidence", "emoji": "🧾", "color": "--principle-3", "minutes": 15, "statement": "Every number can be followed back.", "builds_on": "Tested code leaves a trail to follow."},
+    {"n": 1, "name": "Shared Domain", "emoji": "🤝", "color": "--principle-1", "minutes": 18, "statement": "Agree the plan before any number.", "builds_on": ""},
+    {"n": 2, "name": "Consistency", "emoji": "🧮", "color": "--principle-2", "minutes": 20, "statement": "Numbers come only from tested code.", "builds_on": "The shared plan says which parts never change."},
+    {"n": 3, "name": "Evidence", "emoji": "🧾", "color": "--principle-3", "minutes": 17, "statement": "Every number can be followed back.", "builds_on": "Tested code leaves a trail to follow."},
     {"n": 4, "name": "Accountability", "emoji": "🙋", "color": "--principle-4", "minutes": 25, "statement": "Ask only where a person must decide.", "builds_on": "The evidence is what you decide with."},
-    {"n": 5, "name": "Verification", "emoji": "🔍", "color": "--principle-5", "minutes": 15, "statement": "A reviewer challenges the plan.", "builds_on": "Each challenge is yours to use or dismiss."}
+    {"n": 5, "name": "Verification", "emoji": "🔍", "color": "--principle-5", "minutes": 12, "statement": "A reviewer challenges the plan.", "builds_on": "Each challenge is yours to use or dismiss."}
   ]
 }

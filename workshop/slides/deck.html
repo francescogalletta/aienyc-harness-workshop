@@ -17,6 +17,7 @@ img { max-width: 100%; }
    theme's colour roles.
    ========================================================================== */
 :root {
+  --palette-shown: primary;   /* which palette is on screen; the build sets it in each theme block, D reads it */
   /* ---------- Tier 1: primitives ---------- */
 
   /* The fixed stage everything is laid out on (deck.js assumes 1920x1080). */
@@ -40,8 +41,10 @@ img { max-width: 100%; }
   --fs-7xl: calc(300px * var(--type-scale));
 
   --font-display: var(--font-sans);  /* themes with a separate display face override this */
+  --font-label: var(--font-sans);    /* labels, chips and number-heavy bits */
   --weight-regular: 400;
   --weight-strong: 600;
+  --weight-display: var(--weight-strong);  /* mega, display, headline and big numbers */
   --weight-hand: 500;
   --weight-hand-strong: 700;
   --tracking-tight: -0.02em;
@@ -86,6 +89,7 @@ img { max-width: 100%; }
   /* Fonts by role */
   --body-font: var(--font-sans);
   --display-font: var(--font-display);
+  --label-font: var(--font-label);
   --code-font: var(--font-mono);
   --footnote-font: var(--font-mono);
   --aside-font: var(--font-hand);
@@ -93,7 +97,28 @@ img { max-width: 100%; }
   --diagram-label-font: var(--font-sans);
   --diagram-note-font: var(--font-hand);
 
-  /* Type roles */
+  /* Type roles: size, leading, family, weight and tracking per role, so a face can be tuned */
+  --mega-font: var(--display-font);
+  --mega-weight: var(--weight-display);
+  --mega-tracking: var(--tracking-tight);
+  --display-weight: var(--weight-display);
+  --display-tracking: var(--tracking-tight);
+  --headline-font: var(--display-font);
+  --headline-weight: var(--weight-display);
+  --headline-tracking: var(--tracking-snug);
+  --sub-font: var(--body-font);
+  --sub-weight: var(--weight-regular);
+  --sub-tracking: normal;
+  --label-weight: var(--weight-strong);
+  --label-tracking: var(--tracking-caps);
+  --label-leading: 1.2;
+  --chip-font: var(--label-font);
+  --chip-weight: var(--weight-regular);
+  --chip-tracking: 0;
+  --code-weight: var(--weight-regular);
+  --code-leading: 1.3;
+  --hand-tracking: normal;
+  --numeric-variant: tabular-nums;  /* figures line up; a face whose tabular set also widens punctuation can set normal */
   --mega-size: var(--fs-6xl);
   --mega-leading: 0.95;
   --display-size: var(--fs-4xl);
@@ -112,6 +137,7 @@ img { max-width: 100%; }
   --counter-right: 40px;
   --counter-bottom: 32px;
   --chrome-opacity: 0.6;  /* section label and slide number: clearly secondary */
+  --section-label-text: var(--text-muted);
   --display-measure: 1600px;
   --sub-measure: 1500px;
 
@@ -123,6 +149,22 @@ img { max-width: 100%; }
   --gap-xl: var(--space-xl);
   --gap-tight: 20px;
   --row-gap: var(--space-s);
+
+  /* Role colours a look can tune on their own (defaults are the plain roles) */
+  --outline: var(--text);             /* box outlines: step, track, command */
+  --hairline: var(--line);            /* rules, idle bars, pill and chip outlines */
+  --rail-idle-stroke: var(--framework-idle);
+  --rail-idle-text: var(--text-muted);
+  --photo-ring: var(--placeholder-stroke);
+  --photo-fill: transparent;
+  --counter-text: var(--text-muted);
+  --on-principle-1: var(--on-principle);  /* text on each principle's fill */
+  --on-principle-2: var(--on-principle);
+  --on-principle-3: var(--on-principle);
+  --on-principle-4: var(--on-principle);
+  --on-principle-5: var(--on-principle);
+  --slide-bg-image: none;             /* e.g. a faint grid, drawn on the stage */
+  --slide-bg-size: auto;
 
   /* Slide frame */
   --slide-margin: var(--space-2xl);
@@ -136,10 +178,10 @@ img { max-width: 100%; }
   --step-fill: var(--surface);
   --step-text: var(--text);
   --step-stroke: var(--stroke);
-  --step-stroke-color: var(--text);
+  --step-stroke-color: var(--outline);
   --step-radius: var(--radius-m);
   --from-you-radius: var(--radius-pill);
-  --your-call-stroke: var(--text);
+  --your-call-stroke: var(--outline);
 
   --pill-h: 72px;
   --pill-pad-x: 30px;
@@ -147,7 +189,7 @@ img { max-width: 100%; }
   --pill-text: var(--text-quiet);
   --pill-fill: var(--surface);
   --pill-stroke: var(--stroke-hair);
-  --pill-stroke-color: var(--line);
+  --pill-stroke-color: var(--hairline);
   --pill-radius: var(--radius-pill);
 
   --chip-h: 56px;
@@ -155,7 +197,7 @@ img { max-width: 100%; }
   --chip-size: var(--fs-xs);
   --chip-text: var(--text-muted);
   --chip-stroke: var(--stroke-hair);
-  --chip-stroke-color: var(--line);
+  --chip-stroke-color: var(--hairline);
   --chip-radius: var(--radius-pill);
 
   --placeholder-stroke: var(--text);
@@ -174,6 +216,7 @@ img { max-width: 100%; }
 
   /* Connectors (flow arrows, converging lines) */
   --connector-width: var(--stroke);
+  --connector-style: solid;   /* the lines that drop from pills onto a question; dashed in some looks */
 
   /* Footnote (mono) and aside (handwritten) */
   --footnote-text: var(--text-muted);
@@ -196,8 +239,10 @@ img { max-width: 100%; }
   --stress-underline-offset: 14px;
   --ask-fill: var(--attention);
   --ask-text: var(--text);
+  --hand-text: var(--text);      /* handwritten notes and asides; inside the ask it follows --ask-text */
   --ask-pad-top: 72px;
   --ask-pad-x: 160px;
+  --ask-max: 1200px;
   --ask-pad-bottom: 80px;
   --ask-who-gap: 48px;
   --ask-who-size: var(--fs-2xl);
@@ -205,6 +250,7 @@ img { max-width: 100%; }
   /* Person intro */
   --photo-size: 340px;
   --photo-radius: var(--radius-round);
+  --qr-radius: 2px;    /* in QR modules (about 24px on the slide), not screen pixels */
   --photo-label-size: var(--fs-2xs);
   --reel-spot-size: var(--fs-5xl);
   --reel-out-size: calc(94px * var(--type-scale));
@@ -319,7 +365,7 @@ img { max-width: 100%; }
   --question-size: var(--fs-2xl);
 
   /* Framework stack, dividers, rail */
-  --framework-idle: var(--line);
+  --framework-idle: var(--hairline);
   --goal-size: var(--fs-5xl);
   --bars-gap: 10px;
   --bars-top: 32px;
@@ -345,16 +391,30 @@ img { max-width: 100%; }
   --doubts-gap: var(--space-xs);
   --doubt-pad-x: 26px;
   --doubt-size: var(--fs-xs);
+  --says-compact-said-w: 560px;   /* guesses with compact = true: long quotes, a smaller table */
+  --says-compact-example-size: calc(44px * var(--type-scale));
+  --says-compact-doubt-size: calc(32px * var(--type-scale));
+  --says-compact-row-gap: 32px;
+  --says-compact-doubt-h: 60px;
   --doubt-radius: var(--pill-radius);
 
   /* Chrome and focus */
   --progress-h: var(--stroke);
-  --progress-track: var(--line);
+  --progress-track: var(--hairline);
   --progress-fill: var(--text);
   --focus-ring: var(--text);
   --focus-ring-width: var(--stroke);
   --focus-ring-offset: var(--space-3xs);
   --focus-radius: var(--radius-s);
+
+  /* A principle's colour used as text or a thin stroke on the slide ground (the
+     divider's big number, chart lines). Fills use --principle-N. A look with pale
+     "highlighter" fills sets darker inks here. */
+  --principle-1-ink: var(--principle-1);
+  --principle-2-ink: var(--principle-2);
+  --principle-3-ink: var(--principle-3);
+  --principle-4-ink: var(--principle-4);
+  --principle-5-ink: var(--principle-5);
 
   /* Confetti (canvas): read by js/confetti.js as a comma-separated list */
   --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
@@ -372,11 +432,20 @@ img { max-width: 100%; }
   --viz-series-3: var(--principle-2);
   --viz-series-4: var(--principle-5);
   --viz-series-5: var(--principle-3);
-  --viz-bar: var(--viz-series-1);
+  --viz-series-1-ink: var(--principle-1-ink);   /* lines, points, rough strokes: the ink of each */
+  --viz-series-2-ink: var(--principle-4-ink);
+  --viz-series-3-ink: var(--principle-2-ink);
+  --viz-primary: var(--principle-1-ink);   /* single-series charts */
+  --viz-bar: var(--viz-primary);
+  --viz-bar-ink: var(--viz-primary);
+  --viz-highlight-ink: var(--viz-series-2-ink);
+  --viz-down-ink: var(--viz-series-2-ink);
   --viz-highlight: var(--viz-series-2);
   --viz-up: var(--accent-trust);
   --viz-down: var(--viz-series-2);
   --viz-total: var(--text-muted);
+  --viz-up-ink: var(--viz-up);
+  --viz-total-ink: var(--viz-total);
   --viz-text: var(--text);
   --viz-label: var(--text-quiet);
   --viz-muted: var(--text-muted);
@@ -387,6 +456,7 @@ img { max-width: 100%; }
   --viz-node-stroke: var(--step-stroke-color);
   --viz-on-fill: var(--on-principle);
   --viz-link: var(--connector);
+  --viz-link-dash: none;      /* e.g. 10 8 for dashed arrows */
   --viz-marker: var(--text);
   --viz-annotate: var(--accent-trust);
   --viz-area-opacity: 0.12;
@@ -421,41 +491,55 @@ img { max-width: 100%; }
   --viz-ease: var(--ease-out);
 }
 
-/* ---------- Theme: blueprint (src/themes/blueprint.css) ---------- */
-/* Blueprint: the workshop's own look. Navy ink on a pale blue-grey ground,
-   IBM Plex, a teal for trust and five principle hues.
+/* ---------- Theme: nord (src/themes/nord.css) ---------- */
+/* Nord: Polar Night, with Snow Storm as the alternate. Calm and low-glare.
+   Palette values from the nord 0.2.1 package (Arctic Ice Studio), licence
+   Apache-2.0 AND CC-BY-SA-4.0 as the package declares.
+   Roles: ground nord0, boxes nord1, hairlines nord2, text nord6, quiet nord4,
+   trust frost nord7, attention (the ask) aurora nord13 with nord0 text; sections
+   1 nord9 blue, 2 nord15 purple, 3 nord11 red, 4 nord12 orange, 5 nord14 green.
+   IBM Plex and blueprint's shapes.
+   Deviations (smallest OKLCH lightness change to reach 4.5:1 with the text on it):
+   nord15 #b48ead -> #b690af (+0.005, nord0 text 4.52:1); nord12 #d08770 -> #d38a73
+   (+0.01, nord0 text 4.55:1); nord11 #bf616a -> #ab4f59 (-0.06, nord6 text 4.5:1: lifting
+   it for nord0 text would have needed +0.10 and a bright salmon); nord11 itself stays
+   the red's ink (text and lines, 3.05:1 on nord0).
+   muted text: nord3 #4c566a lifted to #909cb2 (4.5:1 on nord0; Nord has no mid grey);
+   box outlines and dashes: nord3 lifted to #687388 (visible as a quiet frame).
+   Snow Storm: nord7 as trust -> #497474 (4.5:1 on nord6); inks (text-strength copies,
+   3:1 on nord6) nord15 -> #a47e9d, nord13 -> #a48547, nord14 -> #779161, nord12 -> #be7660.
+   name: Nord
+   short: Nord
    font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
 */
 :root {
   /* palette */
-  --white: #ffffff;
-  --navy-25: #e8eef7;
-  --navy-50: #eef2f7;
-  --navy-150: #c3cfdf;
-  --navy-200: #bccadb;
-  --navy-300: #9db0c8;
-  --navy-400: #6f84a0;
-  --navy-500: #5f7898;
-  --navy-600: #4f6078;
-  --navy-700: #33465f;
-  --navy-800: #2e4466;
-  --navy-900: #0f2440;
-  --navy-925: #14213a;
-  --navy-950: #0c1524;
-  --apricot-200: #ffd9b0;
-  --apricot-800: #7a4a10;
-  --teal-300: #5fd0c8;
-  --teal-700: #0b6b6a;
-  --blue-300: #7fb0ff;
-  --blue-600: #2563c9;
-  --violet-300: #b3a1f5;
-  --violet-600: #6d4fc4;
-  --magenta-300: #ee8fcb;
-  --magenta-600: #a8387f;
-  --amber-300: #f2b25c;
-  --amber-700: #b96a0c;
-  --green-300: #86d67f;
-  --green-600: #3d8a3a;
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord3: #4c566a;
+  --nord4: #d8dee9;
+  --nord5: #e5e9f0;
+  --nord6: #eceff4;
+  --nord7: #8fbcbb;
+  --nord8: #88c0d0;
+  --nord9: #81a1c1;
+  --nord10: #5e81ac;
+  --nord11: #bf616a;
+  --nord12: #d08770;
+  --nord13: #ebcb8b;
+  --nord14: #a3be8c;
+  --nord15: #b48ead;
+  --nord3-lift: #687388;      /* deviation */
+  --nord3-muted: #909cb2;     /* deviation */
+  --nord11-fill: #ab4f59;     /* deviation: carries nord6 text */
+  --nord12-fill: #d38a73;     /* deviation */
+  --nord15-fill: #b690af;     /* deviation */
+  --nord7-deep: #497474;      /* deviation, Snow Storm */
+  --nord15-ink: #a47e9d;      /* deviation, Snow Storm */
+  --nord13-ink: #a48547;      /* deviation, Snow Storm */
+  --nord14-ink: #779161;      /* deviation, Snow Storm */
+  --nord12-ink: #be7660;    /* deviation: chart highlight on nord6, 3:1 */
 
   /* fonts */
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -463,66 +547,93 @@ img { max-width: 100%; }
   --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
   --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
 
-  /* colour roles (light) */
-  --slide-bg: var(--navy-50);
-  --surface: var(--white);
-  --text: var(--navy-900);
-  --text-quiet: var(--navy-700);
-  --text-muted: var(--navy-600);
-  --line: var(--navy-200);
-  --connector: var(--navy-400);
-  --attention: var(--apricot-200);
-  --accent-trust: var(--teal-700);
-  --principle-1: var(--blue-600);
-  --principle-2: var(--violet-600);
-  --principle-3: var(--magenta-600);
-  --principle-4: var(--amber-700);
-  --principle-5: var(--green-600);
-  --on-principle: var(--white);
-  --qr-ink: var(--navy-900);   /* the QR stays dark on light in both modes */
-  --qr-ground: var(--white);
-  color-scheme: light;
+  /* colour roles (primary: Polar Night) */
+  --slide-bg: var(--nord0);
+  --surface: var(--nord1);
+  --text: var(--nord6);
+  --text-quiet: var(--nord4);
+  --text-muted: var(--nord3-muted);
+  --line: var(--nord2);
+  --connector: var(--nord3-lift);
+  --attention: var(--nord13);
+  --ask-text: var(--nord0);
+  --accent-trust: var(--nord7);
+  --principle-1: var(--nord9);
+  --principle-2: var(--nord15-fill);
+  --principle-3: var(--nord11-fill);
+  --principle-4: var(--nord12-fill);
+  --principle-5: var(--nord14);
+  --on-principle: var(--nord0);
+  --on-principle-3: var(--nord6);
+  --principle-3-ink: var(--nord11);
+  --qr-ink: var(--nord0);
+  --qr-ground: var(--nord4);   /* softer than nord6 on the dark ground; nord0 on it is 10:1 */
+  --outline: var(--nord3-lift);
+  --hairline: var(--nord2);
+  --placeholder-stroke: var(--nord3-lift);
+  --placeholder-text: var(--nord3-muted);
+  --rail-idle-stroke: var(--nord3);
+  --rail-idle-text: var(--nord3-muted);
+  --photo-ring: var(--nord3-lift);
+  --photo-fill: var(--nord1);
+  --diagram-stroke: var(--nord4);
+  --diagram-label: var(--nord6);
+  --diagram-quiet: var(--nord3-muted);
+  --progress-fill: var(--nord9);
+  --strike-color: var(--nord4);
+  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  --viz-series-3: var(--principle-3);
+  --viz-series-4: var(--principle-2);
+  --viz-series-5: var(--principle-5);
+  --viz-series-3-ink: var(--principle-3-ink);
+  --viz-highlight: var(--attention);
+  --viz-up: var(--nord14);
+  --viz-down: var(--nord11-fill);
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+  --stair-tint: 22%;   /* on a dark ground the 14% tint goes grey */
+  --nest-tint: 10%;
+  color-scheme: dark;
+  --palette-shown: primary;
 }
 
-/* Colour roles (dark). Written once: the build repeats this block under
-   prefers-color-scheme: dark (unless the page says data-theme="light"). */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --slide-bg: var(--navy-950);
-    --surface: var(--navy-925);
-    --text: var(--navy-25);
-    --text-quiet: var(--navy-150);
-    --text-muted: var(--navy-300);
-    --line: var(--navy-800);
-    --connector: var(--navy-500);
-    --attention: var(--apricot-800);
-    --accent-trust: var(--teal-300);
-    --principle-1: var(--blue-300);
-    --principle-2: var(--violet-300);
-    --principle-3: var(--magenta-300);
-    --principle-4: var(--amber-300);
-    --principle-5: var(--green-300);
-    --on-principle: var(--navy-950);
-    color-scheme: dark;
-  }
-}
-:root[data-theme="dark"] {
-  --slide-bg: var(--navy-950);
-  --surface: var(--navy-925);
-  --text: var(--navy-25);
-  --text-quiet: var(--navy-150);
-  --text-muted: var(--navy-300);
-  --line: var(--navy-800);
-  --connector: var(--navy-500);
-  --attention: var(--apricot-800);
-  --accent-trust: var(--teal-300);
-  --principle-1: var(--blue-300);
-  --principle-2: var(--violet-300);
-  --principle-3: var(--magenta-300);
-  --principle-4: var(--amber-300);
-  --principle-5: var(--green-300);
-  --on-principle: var(--navy-950);
-  color-scheme: dark;
+/* Alternate: Snow Storm. */
+:root[data-palette="alternate"] {
+  --slide-bg: var(--nord6);
+  --surface: var(--nord5);
+  --text: var(--nord0);
+  --text-quiet: var(--nord1);
+  --text-muted: var(--nord3);
+  --line: var(--nord4);
+  --connector: var(--nord3-lift);
+  --accent-trust: var(--nord7-deep);
+  --principle-1-ink: var(--nord10);
+  --principle-2-ink: var(--nord15-ink);
+  --principle-3-ink: var(--nord11);
+  --principle-4-ink: var(--nord12-ink);
+  --principle-5-ink: var(--nord14-ink);
+  --qr-ink: var(--nord0);
+  --qr-ground: var(--nord5);
+  --outline: var(--nord3);
+  --hairline: var(--nord4);
+  --placeholder-stroke: var(--nord3-lift);
+  --placeholder-text: var(--nord3);
+  --rail-idle-stroke: var(--nord4);
+  --rail-idle-text: var(--nord3);
+  --photo-ring: var(--nord3-lift);
+  --photo-fill: var(--nord5);
+  --diagram-stroke: var(--nord1);
+  --diagram-label: var(--nord0);
+  --diagram-quiet: var(--nord3);
+  --progress-fill: var(--nord10);
+  --strike-color: var(--nord1);
+  --viz-highlight: var(--nord13-ink);
+  --viz-up: var(--nord14-ink);
+  --viz-down: var(--nord11);
+  --stair-tint: 14%;
+  --nest-tint: 6%;
+  color-scheme: light;
+  --palette-shown: alternate;
 }
 
 /* ---------- Base (src/styles/base.css) ---------- */
@@ -533,7 +644,7 @@ body {
   color: var(--text);
   font-family: var(--body-font);
   font-weight: var(--weight-regular);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--numeric-variant);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -550,6 +661,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
   width: var(--stage-w); height: var(--stage-h);
   margin: calc(var(--stage-h) / -2) 0 0 calc(var(--stage-w) / -2);
   transform-origin: 50% 50%;
+  background-image: var(--slide-bg-image); background-size: var(--slide-bg-size);
 }
 
 /* Every slide: left margin, content block vertically centred, nudged up ~3% (optical centre). */
@@ -567,12 +679,12 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 
 /* ---------- Type roles ---------- */
 .mega, .display, .headline, .sub { text-wrap: balance; }
-.mega     { font-family: var(--display-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
-.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); max-width: var(--display-measure); }
-.headline { font-family: var(--display-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); max-width: var(--display-measure); }
-.sub      { font-size: var(--sub-size); line-height: var(--sub-leading); font-weight: var(--weight-regular); color: var(--text-quiet); max-width: var(--sub-measure); }
-.label    { font-size: var(--label-size); line-height: 1.2; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps); color: var(--text-muted); }
-.mono     { font-family: var(--code-font); font-size: var(--code-size); font-weight: var(--weight-regular); line-height: 1.3; }
+.mega     { font-family: var(--mega-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--mega-weight); letter-spacing: var(--mega-tracking); }
+.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--display-weight); letter-spacing: var(--display-tracking); max-width: var(--display-measure); }
+.headline { font-family: var(--headline-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--headline-weight); letter-spacing: var(--headline-tracking); max-width: var(--display-measure); }
+.sub      { font-family: var(--sub-font); font-size: var(--sub-size); line-height: var(--sub-leading); font-weight: var(--sub-weight); letter-spacing: var(--sub-tracking); color: var(--text-quiet); max-width: var(--sub-measure); }
+.label    { font-family: var(--label-font); font-size: var(--label-size); line-height: var(--label-leading); font-weight: var(--label-weight); letter-spacing: var(--label-tracking); color: var(--text-muted); }
+.mono     { font-family: var(--code-font); font-size: var(--code-size); font-weight: var(--code-weight); line-height: var(--code-leading); }
 .quiet    { color: var(--text-quiet); }
 .soft     { font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-regular); color: var(--text-quiet); }
 .soft .lead { font-weight: var(--weight-strong); color: var(--text); }
@@ -601,13 +713,13 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
   position: absolute; right: var(--counter-right); bottom: var(--counter-bottom);
-  font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--text-muted);
-  font-variant-numeric: tabular-nums; opacity: var(--chrome-opacity); pointer-events: none;
+  font-family: var(--label-font); font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--counter-text);
+  font-variant-numeric: var(--numeric-variant); opacity: var(--chrome-opacity); pointer-events: none;
 }
 .section-label {
   position: absolute; left: var(--slide-margin); top: var(--section-label-top);
-  font-size: var(--section-label-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps);
-  text-transform: uppercase; color: var(--text-muted); opacity: var(--chrome-opacity); pointer-events: none;
+  font-family: var(--label-font); font-size: var(--section-label-size); line-height: 1; font-weight: var(--label-weight); letter-spacing: var(--label-tracking);
+  text-transform: uppercase; color: var(--section-label-text); opacity: var(--chrome-opacity); pointer-events: none;
 }
 .stage:has(> .slide.active[data-chrome="off"]) .counter { display: none; }
 
@@ -652,8 +764,8 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .chip {
   display: inline-flex; align-items: center; white-space: nowrap;
   height: var(--chip-h); padding: 0 var(--chip-pad-x);
-  font-size: var(--chip-size); line-height: 1; font-weight: var(--weight-regular);
-  font-variant-numeric: tabular-nums; letter-spacing: 0;
+  font-family: var(--chip-font); font-size: var(--chip-size); line-height: 1; font-weight: var(--chip-weight);
+  font-variant-numeric: var(--numeric-variant); letter-spacing: var(--chip-tracking);
   color: var(--chip-text);
   border-radius: var(--chip-radius); box-shadow: inset 0 0 0 var(--chip-stroke) var(--chip-stroke-color);
 }
@@ -682,6 +794,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
   display: grid; place-items: center;
 }
 .photo > span { font-size: var(--photo-label-size); letter-spacing: var(--tracking-caps); }
+.photo.ph { border-color: var(--photo-ring); background: var(--photo-fill); }
 .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .person-name { position: absolute; left: 0; right: 0; top: 440px; text-align: center; }
 .emoji-reel { position: absolute; inset: 0; pointer-events: none; }
@@ -737,7 +850,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 
 /* ---------- Tally (show of hands) ---------- */
 .hands { display: flex; justify-content: space-between; width: 100%; }
-.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
+.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); font-variant-numeric: tabular-nums; }
 .hands .num.muted { color: var(--text-muted); }
 .hands.grow { align-items: flex-end; }
 .hands.grow .num { line-height: var(--tally-grow-leading); }
@@ -753,10 +866,10 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .swap-left > * { text-wrap: balance; }
 .ask {
   position: relative;
-  background: var(--ask-fill); color: var(--ask-text);
+  background: var(--ask-fill); color: var(--ask-text); --hand-text: var(--ask-text);
   box-shadow: none;
   padding: var(--ask-pad-top) var(--ask-pad-x) var(--ask-pad-bottom);
-  max-width: 1200px;
+  max-width: var(--ask-max);
 }
 
 .dots { letter-spacing: 0.12em; }
@@ -769,10 +882,10 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 /* ---------- Tracks ---------- */
 .tracks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--tracks-gap); width: 100%; }
 .track { padding: var(--track-pad-top) var(--track-pad-x) var(--track-pad-bottom); display: flex; flex-direction: column; }
-.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
+.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); }
 .track-name { margin-top: var(--track-name-gap); }
 .track-line { margin-top: var(--track-line-gap); }
-.hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; color: var(--text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
+.hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; letter-spacing: var(--hand-tracking); color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
 canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: var(--stage-h); pointer-events: none; z-index: 5; }
 .footnote.hand { bottom: var(--aside-bottom); font-family: var(--aside-font); font-weight: var(--weight-hand); font-size: var(--aside-size); transform: rotate(-2deg); transform-origin: left center; }
 .footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
@@ -784,12 +897,12 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 @keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
 @media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
 .big-emoji { font-family: var(--emoji-font); font-size: var(--big-emoji-size); line-height: 1; }
-.hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
+.hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--hand-text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
 
 /* ---------- Setup ---------- */
 .setup { display: grid; grid-template-columns: 560px 1fr; gap: var(--setup-gap); align-items: start; width: 100%; }
 .qr { display: block; width: 500px; height: 500px; shape-rendering: crispEdges; }
-.qr .qr-ground { fill: var(--qr-ground); }
+.qr .qr-ground { fill: var(--qr-ground); rx: var(--qr-radius); ry: var(--qr-radius); }
 .qr .qr-ink { fill: var(--qr-ink); }
 .url { display: inline-block; margin-top: var(--gap-s); text-decoration: none; color: var(--text); max-width: 560px; }
 .url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
@@ -820,21 +933,21 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   justify-content: flex-start;
 }
 .flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
-.node-num { font-size: var(--node-num-size); line-height: 1; }
+.node-num { font-family: var(--label-font); font-size: var(--node-num-size); line-height: 1; }
 .node-name { font-size: var(--node-name-size); line-height: 1.15; }
 .flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
-.flow-node.step.tint { background: var(--c); color: var(--on-principle); box-shadow: none; position: relative; }
+.flow-node.step.tint { background: var(--c); color: var(--oc); box-shadow: none; position: relative; }
 
 /* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
-.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--line); }
+.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--hairline); }
 .stairs-start { margin-right: var(--space-xs); }
 .stairs-end { position: absolute; top: 0; right: 0; }
 .stair {
   flex: 1 1 0; min-width: 0; box-sizing: border-box; margin-left: calc(var(--stroke-hair) * -1);
   height: calc(var(--stair-base) + (var(--n) - 1) * var(--stair-rise));
   padding: var(--stair-pad-y) var(--stair-pad-x); display: flex; flex-direction: column; justify-content: space-between;
-  border: var(--stroke-hair) solid var(--line); border-bottom: 0; border-top: var(--stair-tread) solid var(--c);
-  background: color-mix(in srgb, var(--c) var(--stair-tint), transparent);
+  border: var(--stroke-hair) solid var(--hairline); border-bottom: 0; border-top: var(--stair-tread) solid var(--ci, var(--c));
+  background: color-mix(in srgb, var(--ci, var(--c)) var(--stair-tint), transparent);
 }
 .stair-head { display: flex; align-items: center; justify-content: space-between; }
 .stair-num { font-size: var(--stair-num-size); line-height: 1; font-weight: var(--weight-strong); }
@@ -845,8 +958,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .nests { flex: none; width: var(--nests-w); }
 .nest {
   box-sizing: border-box; display: flex; flex-direction: column; gap: var(--nest-gap);
-  padding: var(--nest-pad-y) var(--nest-pad-x); border: var(--stroke) solid var(--c); border-radius: var(--nest-radius);
-  background: color-mix(in srgb, var(--c) var(--nest-tint), transparent);
+  padding: var(--nest-pad-y) var(--nest-pad-x); border: var(--stroke) solid var(--ci, var(--c)); border-radius: var(--nest-radius);
+  background: color-mix(in srgb, var(--ci, var(--c)) var(--nest-tint), transparent);
 }
 .nest-name { display: flex; align-items: center; gap: var(--nest-name-gap); font-size: var(--nest-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
 .nest-num { font-size: var(--nest-name-size); }
@@ -862,8 +975,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .tl-emoji { font-family: var(--emoji-font); font-size: var(--tl-num-size); line-height: 1; }
 .tl-name { font-size: var(--tl-name-size); line-height: 1.15; font-weight: var(--weight-strong); white-space: nowrap; }
 .tl-dot { position: relative; height: var(--tl-dot); }
-.tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--line); }
-.tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--c); }
+.tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--hairline); }
+.tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--ci, var(--c)); }
 .tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
@@ -875,9 +988,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 /* ---------- Split halves ---------- */
 .split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
-.split .divider { align-self: stretch; background: var(--line); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .divider { align-self: stretch; background: var(--hairline); margin: calc(var(--split-rule-overhang) * -1) 0; }
 .split .examples { display: flex; flex-direction: column; gap: var(--split-example-gap); margin-top: var(--split-example-top); }
-.split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--text); transform: rotate(-2deg); transform-origin: left center; }
+.split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; }
 .split.has-examples .foot { margin-top: var(--split-foot-gap-examples); }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
 
@@ -891,14 +1004,14 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .question {
   position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
   display: grid; place-items: center; text-align: center;
-  font-family: var(--display-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug);
+  font-family: var(--headline-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--headline-weight); letter-spacing: var(--headline-tracking);
 }
 .input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
 .input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: var(--input-pill-size); height: var(--input-pill-h); padding: 0 var(--placeholder-pad-x); }
 .input::before {
-  content: ""; position: absolute; left: calc(var(--connector-width) / -2); top: 92px; width: var(--connector-width);
+  content: ""; position: absolute; left: calc(var(--connector-width) / -2); top: 92px; width: 0;
   height: calc(var(--step-top) - var(--top) - 92px - 24px);
-  background: var(--connector);
+  border-left: var(--connector-width) var(--connector-style) var(--connector);
 }
 .input::after {
   content: ""; position: absolute; left: -10px; top: calc(var(--step-top) - var(--top) - 24px);
@@ -909,17 +1022,17 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 /* ---------- Framework stack ---------- */
 .stack { width: 100%; }
-.stack-goal { font-family: var(--display-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); margin-top: var(--space-2xs); }
+.stack-goal { font-family: var(--mega-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--mega-weight); letter-spacing: var(--mega-tracking); margin-top: var(--space-2xs); }
 .stack-bars { display: flex; flex-direction: column; gap: var(--bars-gap); margin-top: var(--bars-top); }
 .bar {
   height: var(--bar-h); border-radius: var(--bar-radius); padding: 0 var(--bar-pad-x);
   display: flex; align-items: center; gap: var(--row-gap);
   color: var(--framework-idle); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
 }
-.bar-num { font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
+.bar-num { font-family: var(--label-font); font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
 .bar-name { font-size: var(--bar-name-size); font-weight: var(--weight-strong); line-height: 1; }
 .bar-text { margin-left: auto; font-size: var(--bar-text-size); font-weight: var(--weight-regular); line-height: 1.1; text-align: right; visibility: hidden; }
-.bar.filled { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.bar.filled { background: var(--c); color: var(--oc); box-shadow: none; }
 .bar.filled .bar-text { visibility: inherit; }
 
 /* ---------- Principle dividers ---------- */
@@ -930,8 +1043,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .cell {
   flex: none; width: 64px; height: 88px; border-radius: var(--cell-radius);
   display: grid; place-items: center;
-  font-size: var(--cell-size); font-weight: var(--weight-strong);
-  background: var(--c); color: var(--on-principle);
+  font-family: var(--label-font); font-size: var(--cell-size); font-weight: var(--weight-strong);
+  background: var(--c); color: var(--oc);
 }
 .builds-on .arrow { width: 64px; height: 18px; }
 .builds-on .sub { max-width: 1300px; }
@@ -943,8 +1056,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .says .ex { font-size: var(--example-size); line-height: 1.15; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); white-space: nowrap; }
 .doubts { display: flex; gap: var(--doubts-gap); flex-wrap: nowrap; }
 .doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 var(--doubt-pad-x); border: var(--stroke) dashed var(--your-call-stroke); border-radius: var(--doubt-radius); font-size: var(--doubt-size); font-weight: var(--weight-strong); color: var(--text); white-space: nowrap; }
-.says.compact { --says-said-w: 560px; --example-size: calc(44px * var(--type-scale)); --doubt-size: calc(32px * var(--type-scale)); --says-row-gap: 32px; }
-.says.compact .doubt { height: 60px; }
+.says.compact { --says-said-w: var(--says-compact-said-w); --example-size: var(--says-compact-example-size); --doubt-size: var(--says-compact-doubt-size); --says-row-gap: var(--says-compact-row-gap); }
+.says.compact .doubt { height: var(--says-compact-doubt-h); }
 .says .said { font-weight: var(--weight-regular); color: var(--text-quiet); }
 
 /* ---------- Step grid ---------- */
@@ -964,10 +1077,10 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .rail-cell {
   width: 64px; height: 96px; border-radius: var(--cell-radius);
   display: grid; place-items: center;
-  font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
-  color: var(--text-muted); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
+  font-family: var(--label-font); font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
+  color: var(--rail-idle-text); box-shadow: inset 0 0 0 var(--stroke-hair) var(--rail-idle-stroke);
 }
-.rail-cell.done, .rail-cell.now { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.rail-cell.done, .rail-cell.now { background: var(--c); color: var(--oc); box-shadow: none; }
 .rail-cell.now { width: var(--rail-current-w); }
 .stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--accent-trust); }
 
@@ -985,8 +1098,8 @@ figure.viz { align-self: stretch; }
 
 /* text */
 .viz .viz-label { font-size: var(--viz-label-size); fill: var(--viz-label); }
-.viz .viz-tick { font-size: var(--viz-tick-size); fill: var(--viz-muted); font-variant-numeric: tabular-nums; }
-.viz .viz-value { font-size: var(--viz-value-size); font-weight: var(--weight-strong); fill: var(--viz-text); font-variant-numeric: tabular-nums; }
+.viz .viz-tick { font-family: var(--label-font); font-size: var(--viz-tick-size); fill: var(--viz-muted); font-variant-numeric: var(--numeric-variant); }
+.viz .viz-value { font-family: var(--label-font); font-size: var(--viz-value-size); font-weight: var(--weight-strong); fill: var(--viz-text); font-variant-numeric: var(--numeric-variant); }
 .viz .viz-strong { font-weight: var(--weight-strong); fill: var(--viz-text); }
 .viz .viz-note-text, .viz-marks .viz-mark-note { font-family: var(--viz-hand-font); font-weight: var(--weight-hand-strong); font-size: var(--viz-note-size); fill: var(--viz-text); }
 
@@ -1003,9 +1116,10 @@ figure.viz { align-self: stretch; }
 .viz .viz-total path:not(.viz-ink) { fill: var(--viz-total); }
 
 /* lines */
-.viz .viz-s1 { --sc: var(--viz-series-1); }
-.viz .viz-s2 { --sc: var(--viz-series-2); }
-.viz .viz-s3 { --sc: var(--viz-series-3); }
+.viz .viz-sp { --sc: var(--viz-primary); }
+.viz .viz-s1 { --sc: var(--viz-series-1-ink); }
+.viz .viz-s2 { --sc: var(--viz-series-2-ink); }
+.viz .viz-s3 { --sc: var(--viz-series-3-ink); }
 .viz .viz-line { fill: none; stroke: var(--sc); stroke-width: var(--viz-line-width); stroke-linejoin: round; stroke-linecap: round; }
 .viz .viz-area { fill: var(--sc); opacity: var(--viz-area-opacity); stroke: none; }
 .viz .viz-point { fill: var(--sc); stroke: var(--viz-surface); stroke-width: var(--viz-ring-width); }
@@ -1017,8 +1131,8 @@ figure.viz { align-self: stretch; }
 .viz .viz-node.viz-filled rect { fill: var(--c); stroke: none; }
 .viz .viz-node.viz-muted rect { stroke: var(--viz-grid); }
 .viz .viz-node-text { font-size: var(--viz-node-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
-.viz .viz-node-num { font-size: var(--viz-node-num-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
-.viz .viz-filled .viz-node-text, .viz .viz-filled .viz-node-num { fill: var(--viz-on-fill); }
+.viz .viz-node-num { font-family: var(--label-font); font-size: var(--viz-node-num-size); font-weight: var(--weight-strong); fill: var(--viz-text); }
+.viz .viz-filled .viz-node-text, .viz .viz-filled .viz-node-num { fill: var(--oc, var(--viz-on-fill)); }
 .viz .viz-muted .viz-node-text { fill: var(--viz-muted); }
 .viz .viz-arrow-line { fill: none; stroke: var(--viz-link); stroke-width: var(--viz-stroke); stroke-linecap: round; }
 .viz .viz-arrow-head { fill: var(--viz-link); }
@@ -1027,7 +1141,7 @@ figure.viz { align-self: stretch; }
 .viz .viz-marker { fill: var(--viz-marker); stroke: var(--viz-surface); stroke-width: var(--viz-ring-width); opacity: 0; }
 
 /* count-up */
-.viz-count { font-family: var(--display-font); font-size: var(--viz-count-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.viz-count { font-family: var(--display-font); font-size: var(--viz-count-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: var(--numeric-variant); white-space: nowrap; }
 
 /* marks: an overlay on the slide */
 .viz-marks { position: absolute; left: 0; top: 0; width: var(--stage-w); height: var(--stage-h); overflow: visible; pointer-events: none; }
@@ -1243,11 +1357,11 @@ figure.viz { align-self: stretch; }
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
     <ol class="stack-bars">
-      <li class="bar" data-step-fill="5" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
-      <li class="bar" data-step-fill="4" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar" data-step-fill="3" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar" data-step-fill="2" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar" data-step-fill="1" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
+      <li class="bar" data-step-fill="5" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar" data-step-fill="4" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar" data-step-fill="3" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar" data-step-fill="2" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar" data-step-fill="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
     </ol>
   </div>
 </section>
@@ -1369,11 +1483,11 @@ figure.viz { align-self: stretch; }
   <h2 class="headline gap-xs">For each principle, we explain it, show it working, then discuss and play.</h2>
   <div class="stairs gap-l">
     <span class="flow-node pill stairs-start">Setup</span>
-    <div class="stair" style="--c:var(--principle-1); --n:1"><span class="stair-head"><span class="stair-num">1</span><span class="stair-emoji" aria-hidden="true">🤝</span></span><span class="stair-name">Shared Domain</span></div>
-    <div class="stair" style="--c:var(--principle-2); --n:2"><span class="stair-head"><span class="stair-num">2</span><span class="stair-emoji" aria-hidden="true">🧮</span></span><span class="stair-name">Consistency</span></div>
-    <div class="stair" style="--c:var(--principle-3); --n:3"><span class="stair-head"><span class="stair-num">3</span><span class="stair-emoji" aria-hidden="true">🧾</span></span><span class="stair-name">Evidence</span></div>
-    <div class="stair" style="--c:var(--principle-4); --n:4"><span class="stair-head"><span class="stair-num">4</span><span class="stair-emoji" aria-hidden="true">🙋</span></span><span class="stair-name">Accountability</span></div>
-    <div class="stair" style="--c:var(--principle-5); --n:5"><span class="stair-head"><span class="stair-num">5</span><span class="stair-emoji" aria-hidden="true">🔍</span></span><span class="stair-name">Verification</span></div>
+    <div class="stair" style="--c:var(--principle-1); --ci:var(--principle-1-ink); --n:1"><span class="stair-head"><span class="stair-num">1</span><span class="stair-emoji" aria-hidden="true">🤝</span></span><span class="stair-name">Shared Domain</span></div>
+    <div class="stair" style="--c:var(--principle-2); --ci:var(--principle-2-ink); --n:2"><span class="stair-head"><span class="stair-num">2</span><span class="stair-emoji" aria-hidden="true">🧮</span></span><span class="stair-name">Consistency</span></div>
+    <div class="stair" style="--c:var(--principle-3); --ci:var(--principle-3-ink); --n:3"><span class="stair-head"><span class="stair-num">3</span><span class="stair-emoji" aria-hidden="true">🧾</span></span><span class="stair-name">Evidence</span></div>
+    <div class="stair" style="--c:var(--principle-4); --ci:var(--principle-4-ink); --n:4"><span class="stair-head"><span class="stair-num">4</span><span class="stair-emoji" aria-hidden="true">🙋</span></span><span class="stair-name">Accountability</span></div>
+    <div class="stair" style="--c:var(--principle-5); --ci:var(--principle-5-ink); --n:5"><span class="stair-head"><span class="stair-num">5</span><span class="stair-emoji" aria-hidden="true">🔍</span></span><span class="stair-name">Verification</span></div>
     <span class="flow-node pill stairs-end">Wrap</span>
   </div>
 </section>
@@ -1398,7 +1512,7 @@ figure.viz { align-self: stretch; }
 <!-- 29 · Principle 1 · Shared Domain -->
 <section class="slide" id="s-p1" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">20 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1-ink)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">18 min</span></div>
   <p class="sub gap-m">Agree the plan before any number.</p>
 </section>
 
@@ -1449,9 +1563,9 @@ figure.viz { align-self: stretch; }
 <!-- 34 · Principle 2 · Consistency -->
 <section class="slide" id="s-p2" data-principle="2">
   <p class="section-label">2 · Consistency</p>
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">25 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2-ink)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">20 min</span></div>
   <p class="sub gap-m">Numbers come only from tested code.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
 
 <!-- 35 · P2 · Why -->
@@ -1497,9 +1611,9 @@ figure.viz { align-self: stretch; }
 <!-- 39 · Principle 3 · Evidence -->
 <section class="slide" id="s-p3" data-principle="3">
   <p class="section-label">3 · Evidence</p>
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">15 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3-ink)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">17 min</span></div>
   <p class="sub gap-m">Every number can be followed back.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2); --oc:var(--on-principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
 </section>
 
 <!-- 40 · P3 · Why -->
@@ -1557,9 +1671,9 @@ figure.viz { align-self: stretch; }
 <!-- 45 · Principle 4 · Accountability -->
 <section class="slide" id="s-p4" data-principle="4">
   <p class="section-label">4 · Accountability</p>
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4-ink)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Ask only where a person must decide.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3); --oc:var(--on-principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
 
 <!-- 46 · P4 · Why -->
@@ -1609,9 +1723,9 @@ figure.viz { align-self: stretch; }
 <!-- 51 · Principle 5 · Verification -->
 <section class="slide" id="s-p5" data-principle="5">
   <p class="section-label">5 · Verification</p>
-  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">15 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5-ink)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">12 min</span></div>
   <p class="sub gap-m">A reviewer challenges the plan.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4); --oc:var(--on-principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
 
 <!-- 52 · P5 · Why -->
@@ -1676,11 +1790,11 @@ figure.viz { align-self: stretch; }
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
     <ol class="stack-bars">
-      <li class="bar filled" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
-      <li class="bar filled" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar filled" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar filled" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar filled" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
+      <li class="bar filled" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar filled" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar filled" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar filled" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar filled" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
     </ol>
   </div>
 </section>
@@ -1705,17 +1819,17 @@ figure.viz { align-self: stretch; }
 <!-- 60 · Wrap · Questions -->
 <section class="slide" id="s-questions" data-principle="wrap">
   <p class="section-label">Wrap</p>
-  <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">10 min</span></div>
+  <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">8 min</span></div>
 </section>
 
 <!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); deck.js sets its state from that attribute. -->
 <div class="rail" aria-hidden="true">
   <span class="rail-cap"></span>
-  <span class="rail-cell" data-n="5" style="--c:var(--principle-5)">5</span>
-  <span class="rail-cell" data-n="4" style="--c:var(--principle-4)">4</span>
-  <span class="rail-cell" data-n="3" style="--c:var(--principle-3)">3</span>
-  <span class="rail-cell" data-n="2" style="--c:var(--principle-2)">2</span>
-  <span class="rail-cell" data-n="1" style="--c:var(--principle-1)">1</span>
+  <span class="rail-cell" data-n="5" style="--c:var(--principle-5); --oc:var(--on-principle-5)">5</span>
+  <span class="rail-cell" data-n="4" style="--c:var(--principle-4); --oc:var(--on-principle-4)">4</span>
+  <span class="rail-cell" data-n="3" style="--c:var(--principle-3); --oc:var(--on-principle-3)">3</span>
+  <span class="rail-cell" data-n="2" style="--c:var(--principle-2); --oc:var(--on-principle-2)">2</span>
+  <span class="rail-cell" data-n="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span>
 </div>
 
 <div class="counter" id="counter" aria-hidden="true"></div>
@@ -1777,6 +1891,9 @@ figure.viz { align-self: stretch; }
     var STEP_ATTRS = ['data-step', 'data-step-out', 'data-step-fill', 'data-step-strike', 'data-step-mute'];
     var CLASSES = ['shown', 'gone', 'filled', 'struck', 'muted'];
     var KINDS = {};
+    /* fills and the ink (stroke/text strength) used for the same role when drawn as lines */
+    var INK = { '--viz-bar': '--viz-bar-ink', '--viz-highlight': '--viz-highlight-ink', '--viz-up': '--viz-up-ink',
+      '--viz-down': '--viz-down-ink', '--viz-total': '--viz-total-ink' };
 
     /* ---------- helpers ---------- */
     function reduce() { return !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }
@@ -1794,6 +1911,16 @@ figure.viz { align-self: stretch; }
       t.textContent = s; return t;
     }
     function r1(v) { return Math.round(v * 10) / 10; }
+    function fit(t, width) {  /* a label wider than its slot breaks onto two lines at the middle space */
+      var s = t.textContent;
+      if (!t.getComputedTextLength || t.getComputedTextLength() <= width || s.indexOf(' ') < 0) return t;
+      var words = s.split(' '), best = 1, half = s.length / 2, pos = 0;
+      words.forEach(function (w, i) { pos += w.length + 1; if (i < words.length - 1 && Math.abs(pos - half) < Math.abs(words.slice(0, best).join(' ').length - half)) best = i + 1; });
+      var x = t.getAttribute('x'), lines = [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+      t.textContent = '';
+      lines.forEach(function (l, i) { var ts = el('tspan', { x: x, dy: i ? '1.1em' : 0 }, t); ts.textContent = l; });
+      return t;
+    }
     function stepOn(node, n) { if (n) node.setAttribute('data-step', n); return node; }
     function fmt(v, spec) {
       spec = spec || {};
@@ -1864,6 +1991,7 @@ figure.viz { align-self: stretch; }
     }
     function gridY(svg, fig, spec, sc, box, rough) {
       var g = el('g', { 'class': 'viz-frame' }, svg), rc = rough ? window.rough.svg(svg) : null;
+      svg.insertBefore(g, svg.firstChild);  /* gridlines sit behind the data, whatever was drawn first */
       for (var t = sc.lo; t <= sc.hi + 1e-9; t += sc.tick) {
         var y = box.y + box.h - (t - sc.lo) / (sc.hi - sc.lo) * box.h;
         if (spec.axis !== false) {
@@ -1877,7 +2005,7 @@ figure.viz { align-self: stretch; }
     function barShape(parent, x, y, w, h, rad, up, rc, fig, colorTok, seed) {
       if (h < 0.5) h = 0.5;
       if (rc) {
-        var c = tok(colorTok);
+        var c = tok(INK[colorTok]);
         parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed })));
         return;
       }
@@ -1889,7 +2017,7 @@ figure.viz { align-self: stretch; }
     }
     function hbarShape(parent, x, y, w, h, rad, rc, fig, colorTok, seed) {
       if (w < 0.5) w = 0.5;
-      if (rc) { var c = tok(colorTok); parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed }))); return; }
+      if (rc) { var c = tok(INK[colorTok]); parent.appendChild(rc.rectangle(x, y, w, h, roughOpts(fig, { stroke: c, fill: c, fillStyle: 'hachure', hachureAngle: -45, hachureGap: 12, fillWeight: 2.5, seed: seed }))); return; }
       var r = Math.max(0, Math.min(rad, h / 2, w));
       el('path', { d: 'M' + x + ' ' + y + 'H' + r1(x + w - r) + 'Q' + r1(x + w) + ' ' + y + ' ' + r1(x + w) + ' ' + r1(y + r) + 'V' + r1(y + h - r) + 'Q' + r1(x + w) + ' ' + r1(y + h) + ' ' + r1(x + w - r) + ' ' + r1(y + h) + 'H' + x + 'Z' }, parent);
     }
@@ -1921,7 +2049,7 @@ figure.viz { align-self: stretch; }
             var h = stepOn(el('g', { 'class': 'viz-bar viz-hl', style: '--i:' + i }, hl), spec.highlight_step || spec.step);
             barShape(h, x, y, bw, base - y, rad, true, rc, fig, '--viz-highlight', 40 + i);
           }
-          text(svg, cx, base + 48, r[0], 'viz-label' + (r[0] === spec.highlight ? ' viz-strong' : ''));
+          fit(text(svg, cx, base + 48, r[0], 'viz-label' + (r[0] === spec.highlight ? ' viz-strong' : '')), band * 0.96);
           if (wantsValue(spec, r[0], i, n)) stepOn(text(data, cx, y - 16, fmt(r[1], spec), 'viz-value'), spec.step);
         });
       } else {
@@ -1962,7 +2090,7 @@ figure.viz { align-self: stretch; }
           var lvl = yOf(it.to), nx = box.x + band * (i + 1) + band / 2 - bw / 2;
           el('line', { 'class': 'viz-connector', x1: r1(x + bw), x2: r1(nx), y1: r1(lvl), y2: r1(lvl) }, g);
         }
-        text(svg, cx, box.y + box.h + 50, it.label, 'viz-label' + (it.kind === 'total' ? ' viz-strong' : ''));
+        fit(text(svg, cx, box.y + box.h + 50, it.label, 'viz-label' + (it.kind === 'total' ? ' viz-strong' : '')), band * 0.96);
       });
       if (rough) inkable(data);
     };
@@ -1979,11 +2107,11 @@ figure.viz { align-self: stretch; }
       xs.forEach(function (x, i) { if (i % every === 0 || i === n - 1) text(svg, xOf(i), box.y + box.h + 48, x, 'viz-label'); });
       var pr = num('--viz-point-r', 8, fig);
       series.forEach(function (s, k) {
-        var cls = 'viz-s' + (k + 1), pts = s.values.map(function (v, i) { return [xOf(i), yOf(v)]; });
+        var cls = series.length === 1 ? 'viz-sp' : 'viz-s' + (k + 1), pts = s.values.map(function (v, i) { return [xOf(i), yOf(v)]; });
         var g = stepOn(el('g', { 'class': 'viz-series ' + cls }, svg), s.step || spec.step);
         var d = 'M' + pts.map(function (p) { return r1(p[0]) + ' ' + r1(p[1]); }).join('L');
         if (spec.area && !rough && k === 0) el('path', { 'class': 'viz-area', d: d + 'L' + r1(pts[n - 1][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'L' + r1(pts[0][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'Z' }, g);
-        if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok('--viz-series-' + (k + 1)), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
+        if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok(series.length === 1 ? '--viz-primary' : '--viz-series-' + (k + 1) + '-ink'), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
         else el('path', { 'class': 'viz-line', d: d }, g);
         inkable(g);
         if (spec.points !== false) pts.forEach(function (p, i) { el('circle', { 'class': 'viz-point', cx: r1(p[0]), cy: r1(p[1]), r: pr, style: '--i:' + i }, g); });
@@ -2027,8 +2155,8 @@ figure.viz { align-self: stretch; }
         var x = xOf(day(e.date)), up = i % 2 === 0, g = stepOn(el('g', { 'class': 'viz-event', style: '--i:' + i }, svg), each ? (s0 + i || null) : (e.step || spec.step));
         var y2 = up ? mid - 70 : mid + 70;
         el('line', { 'class': 'viz-leader', x1: r1(x), x2: r1(x), y1: mid, y2: y2 }, g);
-        if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-series-1'), fill: tok('--viz-series-1'), fillStyle: 'solid', seed: 90 + i })));
-        else el('circle', { 'class': 'viz-point viz-s1', cx: r1(x), cy: mid, r: pr * 1.5 }, g);
+        if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-primary'), fill: tok('--viz-primary'), fillStyle: 'solid', seed: 90 + i })));
+        else el('circle', { 'class': 'viz-point viz-sp', cx: r1(x), cy: mid, r: pr * 1.5 }, g);
         var anchorPos = x < x0 + 160 ? 'start' : x > x1 - 160 ? 'end' : 'middle';
         var dt = new Date(day(e.date)), when = MONTHS[dt.getUTCMonth()] + ' ' + dt.getUTCDate();
         var lines = [when, e.text]; if (e.value) lines.push(e.value);
@@ -2065,7 +2193,9 @@ figure.viz { align-self: stretch; }
         var h1 = [q[0] - L * Math.cos(ang) + hw * Math.sin(ang), q[1] - L * Math.sin(ang) - hw * Math.cos(ang)], h2 = [q[0] - L * Math.cos(ang) - hw * Math.sin(ang), q[1] - L * Math.sin(ang) + hw * Math.cos(ang)];
         if (rc) { var o = roughOpts(fig, { stroke: tok('--viz-link'), roughness: 1.1, seed: 60 + k }); g.appendChild(rc.line(p[0], p[1], q[0], q[1], o)); g.appendChild(rc.linearPath([h1, q, h2], o)); }
         else { el('path', { 'class': 'viz-arrow-line', d: 'M' + r1(p[0]) + ' ' + r1(p[1]) + 'L' + r1(q[0] - 10 * Math.cos(ang)) + ' ' + r1(q[1] - 10 * Math.sin(ang)) }, g); el('path', { 'class': 'viz-arrow-head', d: 'M' + r1(h1[0]) + ' ' + r1(h1[1]) + 'L' + r1(q[0]) + ' ' + r1(q[1]) + 'L' + r1(h2[0]) + ' ' + r1(h2[1]) + 'Z' }, g); }
-        inkable(g);
+        var dash = tok('--viz-link-dash');
+        if (dash && dash !== 'none') g.querySelectorAll('path').forEach(function (pth) { if (!pth.classList.contains('viz-arrow-head')) pth.style.strokeDasharray = dash; });
+        else inkable(g);
         segs.push({ p: p, q: q, from: lk[0] - 1, to: lk[1] - 1 });
       });
       var nodeG = el('g', { 'class': 'viz-nodes' }, svg), rings = [], bigLine = 0;
@@ -2073,7 +2203,7 @@ figure.viz { align-self: stretch; }
       nodes.forEach(function (n, i) {
         var b = box(n), fillTok = n.principle ? '--principle-' + n.principle : n.role === 'accent' ? '--viz-highlight' : null;
         var cls = 'viz-node' + (fillTok ? ' viz-filled' : n.role === 'muted' ? ' viz-muted' : '');
-        var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' : null }, nodeG), n.step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step));
+        var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' + (n.principle ? '; --oc:var(--on-principle-' + n.principle + ')' : '') : null }, nodeG), n.step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step));
         if (rc) g.appendChild(rc.rectangle(b.x, b.y, nw, nh, roughOpts(fig, { stroke: tok('--viz-node-stroke'), strokeWidth: sw + 1, fill: fillTok ? tok(fillTok) : tok('--viz-node-fill'), fillStyle: 'solid', seed: i + 3 })));
         else el('rect', { x: r1(b.x), y: r1(b.y), width: r1(nw), height: nh, rx: rad, ry: rad }, g);
         var lines = String(n.text).split('\n'), hasNum = n.principle && spec.numbers !== false;
@@ -2255,15 +2385,16 @@ figure.viz { align-self: stretch; }
       restore(fig, step);
     }
     function draw(scope) { (scope || doc).querySelectorAll('[data-viz]').forEach(drawOne); }
-    function retheme() {  /* concrete colours/geometry were read at draw time: redraw those */
+    function retheme() {  /* geometry (radii, strokes, label widths) and rough colours are read at
+                             draw time, and a look can change any of them: redraw every SVG figure */
       doc.querySelectorAll('[data-viz]').forEach(function (f) {
-        var s = f._spec || {};
+        var kind = f.getAttribute('data-viz');
         if (f._retheme) { f._retheme(); return; }
-        if (s.style === 'rough' || f.getAttribute('data-viz') === 'mark') drawOne(f);
+        if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo') drawOne(f);
       });
     }
     function remark() { doc.querySelectorAll('[data-viz="mark"]').forEach(drawOne); }
-    new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-theme', 'class', 'style'] });
+    new MutationObserver(retheme).observe(root, { attributes: true, attributeFilter: ['data-palette', 'data-theme', 'data-look', 'class', 'style'] });
     if (window.matchMedia) { var mq = matchMedia('(prefers-color-scheme: dark)'); if (mq.addEventListener) mq.addEventListener('change', retheme); }
     if (doc.fonts && doc.fonts.ready) doc.fonts.ready.then(remark);
     window.addEventListener('resize', remark);
@@ -2385,10 +2516,11 @@ figure.viz { align-self: stretch; }
       }
     } catch (e) {}
   }
-  function toggleTheme() {
-    var cur = root.getAttribute('data-theme');
-    if (!cur) cur = (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-    root.setAttribute('data-theme', cur === 'dark' ? 'light' : 'dark');
+  /* D: the theme's other palette. The deck has its own attribute, data-palette, so a hosting
+     page's data-theme never flips it; the CSS says which palette is showing (--palette-shown). */
+  function togglePalette() {
+    var shown = getComputedStyle(root).getPropertyValue('--palette-shown').trim() || 'primary';
+    root.setAttribute('data-palette', shown === 'alternate' ? 'primary' : 'alternate');
   }
 
   doc.addEventListener('keydown', function (e) {
@@ -2400,7 +2532,7 @@ figure.viz { align-self: stretch; }
     else if (k === 'Home') { e.preventDefault(); goTo(0); }
     else if (k === 'End') { e.preventDefault(); goTo(N - 1); }
     else if (k === 'f' || k === 'F') { toggleFullscreen(); }
-    else if (k === 'd' || k === 'D') { toggleTheme(); }
+    else if (k === 'd' || k === 'D') { togglePalette(); }
   });
 
   var swipedAt = 0, tx = 0, ty = 0, tracking = false;

@@ -6,7 +6,7 @@
     <span class="flow-node pill timeline-start">{{ start }}</span>
     <div class="timeline-track">
 {% for p in principles %}
-      <div class="tl-seg" style="--c:var({{ p.color }}); flex-grow:{{ p.minutes }}"><span class="tl-above"><span class="tl-head"><span class="tl-num">{{ p.n }}</span><span class="tl-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="tl-name">{{ p.name }}</span></span><span class="tl-dot"></span><span class="tl-min">{{ p.minutes }} min</span></div>
+      <div class="tl-seg" style="--c:var({{ p.color }}); --ci:var({{ p.ink }}); flex-grow:{{ p.minutes }}"><span class="tl-above"><span class="tl-head"><span class="tl-num">{{ p.n }}</span><span class="tl-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="tl-name">{{ p.name }}</span></span><span class="tl-dot"></span><span class="tl-min">{{ p.minutes }} min</span></div>
 {% endfor %}
     </div>
     <span class="flow-node pill timeline-end">{{ end }}</span>

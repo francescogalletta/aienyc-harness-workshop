@@ -104,11 +104,41 @@ def test_tally_grow_adds_a_class_and_who_block_is_outside_the_ask(deck):
 
 
 # ---------- themes ----------
-def test_theme_dark_block_is_written_once_and_emitted_twice():
-    css = build.Theme(SLIDES / "src" / "themes" / "blueprint.css").css()
-    assert css.count("--slide-bg: var(--navy-950);") == 2
-    assert '@media (prefers-color-scheme: dark) {\n  :root:not([data-theme="light"]) {' in css
-    assert css.count("color-scheme: dark;") == 2 and "color-scheme: light;" in css
+def test_theme_palettes_follow_the_deck_setting_not_the_os_or_host():
+    t = build.Theme(SLIDES / "src" / "themes" / "nord.css")
+    assert t.schemes == ("dark", "light")
+    primary = t.css("primary")
+    # primary: no OS or host rule at all; only the deck's own attribute shows the alternate
+    assert "prefers-color-scheme" not in primary and "data-theme" not in primary
+    assert ':root[data-palette="alternate"] {' in primary
+    assert primary.count("--palette-shown: primary;") == 1 and primary.count("--palette-shown: alternate;") == 1
+    assert "color-scheme: dark;" in primary and "color-scheme: light;" in primary
+    alt = t.css("alternate")
+    assert ':root:not([data-palette="primary"]) {' in alt and "prefers-color-scheme" not in alt
+    system = t.css("system")  # primary is dark here, so the light alternate follows a light viewer
+    assert '@media (prefers-color-scheme: light) {\n  :root:not([data-palette]):not([data-theme="dark"]) {' in system
+    assert ':root[data-theme="light"]:not([data-palette]) {' in system
+    with pytest.raises(build.BuildError):
+        t.css("dark")
+
+
+def test_looks_scoping_keeps_both_palettes_on_the_look():
+    css = build.scoped_theme_css(build.Theme(SLIDES / "src" / "themes" / "catppuccin.css"))
+    assert ':root[data-look="catppuccin"] {' in css and ':root[data-look="catppuccin"][data-palette="alternate"] {' in css
+    assert re.search(r"(?m)^:root\s*\{", css) is None
+
+
+def test_check_wants_both_palettes_declared(tmp_path, capsys):
+    src = copy_src(tmp_path)
+    t = src / "themes" / "catppuccin.css"
+    t.write_text(t.read_text(encoding="utf-8").replace("  color-scheme: light;\n", "", 1).replace('[data-palette="alternate"]', '[data-theme="dark"]'), encoding="utf-8")
+    deckfile = src / "deck.toml"
+    deckfile.write_text(deckfile.read_text(encoding="utf-8").replace('palette = "primary"', 'palette = "dark"'), encoding="utf-8")
+    assert build.check(build.Deck(src)) == 1
+    out = capsys.readouterr().out
+    for needle in ("catppuccin.css: write the alternate palette as", "catppuccin.css: no alternate palette",
+                   "the alternate palette must say color-scheme", "deck.toml: palette = 'dark'"):
+        assert needle in out
 
 
 def test_literal_checker_finds_literals():
@@ -181,12 +211,12 @@ def test_check_catches_broken_sources(tmp_path, capsys):
     src = copy_src(tmp_path)
     comp = src / "styles" / "components.css"
     comp.write_text(comp.read_text(encoding="utf-8") + "\n.x { color: #123456; padding: var(--nope); }\n", encoding="utf-8")
-    (src / "themes" / "ink.css").write_text((src / "themes" / "ink.css").read_text(encoding="utf-8").replace("--principle-5: var(--lilac);", ""), encoding="utf-8")
+    (src / "themes" / "nord.css").write_text((src / "themes" / "nord.css").read_text(encoding="utf-8").replace("--principle-5: var(--nord14);", ""), encoding="utf-8")
     sec = src / "slides" / "wrap.toml"
     sec.write_text(sec.read_text(encoding="utf-8").replace('id = "s-better"', 'id = "s-questions"'), encoding="utf-8")
     assert build.check(build.Deck(src)) == 1
     out = capsys.readouterr().out
-    for needle in ("literal colour", "--nope is used but never defined", "ink.css: missing --principle-5", "duplicate slide id 's-questions'"):
+    for needle in ("literal colour", "--nope is used but never defined", "nord.css: missing --principle-5", "duplicate slide id 's-questions'"):
         assert needle in out
 
 
@@ -422,3 +452,55 @@ def test_viz_tokens_are_stripped_but_kept_in_tokens_css(deck):
     assert build.VIZ_TOKENS_MARK in (SLIDES / "src" / "styles" / "tokens.css").read_text(encoding="utf-8")
     assert build.VIZ_TOKENS_MARK not in build.tokens_css(deck, False)
     assert "--viz-bar-radius" in build.tokens_css(deck, True)
+
+
+# ---------- looks: several themes in one page ----------
+LOOKS = ["nord", "catppuccin", "blueprint"]
+
+
+def test_looks_build_scopes_every_theme_and_adds_a_switcher(deck):
+    frag = build.build(deck, LOOKS[0], False, LOOKS)
+    stand = build.build(deck, LOOKS[0], True, LOOKS)
+    assert frag.startswith("<title>Harness You Can Trust · looks: nord, catppuccin, blueprint</title>")
+    assert frag.count("<style>") == frag.count("<script>") == 1 and "<!doctype" not in frag.lower()
+    assert frag.count('<link rel="stylesheet"') == 2  # one per distinct font link: nord and blueprint share IBM Plex
+    for name in LOOKS:
+        assert f':root[data-look="{name}"] {{' in frag
+        assert f':root[data-look="{name}"][data-palette="alternate"] {{' in frag
+        assert f'data-look-btn="{name}"' in frag
+    assert "prefers-color-scheme: dark) {\n  :root" not in frag and '[data-theme="dark"] {' not in frag  # the OS and a host never pick a palette
+    assert '<span class="looks-full">Blueprint</span><span class="looks-short" aria-hidden="true">Blue</span>' in frag  # display names, short form for narrow screens
+    assert '<html lang="en" data-look="nord">' in stand
+    assert '<nav class="looks-bar"' in frag and ".viewport { top: var(--looks-bar-h); }" in frag
+    assert frag.index("Looks switcher (build.py --looks only)") < frag.index("var viewport = doc.getElementById")  # looks.js first
+
+
+def test_normal_builds_carry_no_looks_machinery(deck):
+    for name in deck.themes:
+        page = build.build(deck, name, True)
+        assert "looks-bar" not in page and 'data-look="' not in page and "data-look=\\" not in page and page.count('<link rel="stylesheet"') == 1
+
+
+def test_scoped_theme_css_leaves_no_bare_root():
+    css = build.scoped_theme_css(build.Theme(SLIDES / "src" / "themes" / "catppuccin.css"))
+    assert re.search(r"(?m)^:root\s*\{", css) is None and ':root[data-look="catppuccin"] {' in css
+
+
+def test_looks_cli_rejects_unknown_or_single(capsys):
+    assert build.main(["--looks", "nord,nope"]) == 1
+    assert build.main(["--looks", "nord"]) == 1
+
+
+def test_principle_ink_is_used_for_text_and_checked(deck, tmp_path, capsys):
+    html = build.SlideRenderer(deck).render_all()
+    assert '<span class="mega p-num" style="--c:var(--principle-1-ink)">1</span>' in html
+    src = copy_src(tmp_path)
+    t = src / "themes" / "nord.css"
+    t.write_text(t.read_text(encoding="utf-8").replace("--principle-1-ink: var(--nord10);", "--principle-1-ink: var(--nord5);"), encoding="utf-8")
+    assert build.check(build.Deck(src)) == 1
+    assert "nord alternate: --principle-1-ink on --slide-bg" in capsys.readouterr().out
+
+
+def test_minutes_match_the_facilitator_plan(deck):
+    assert [p["minutes"] for p in deck.principles] == [18, 20, 17, 25, 12]
+    assert '<span class="chip">8 min</span>' in build.SlideRenderer(deck).render_all()

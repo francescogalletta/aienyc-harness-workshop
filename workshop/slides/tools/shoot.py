@@ -31,14 +31,12 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 
-# Slides whose every intermediate step is shot in the regression set.
-STEPPED = [2, 3, 4, 7, 9, 12, 13, 15, 18, 22, 24, 28, 32]
-# Final states shot in dark: (slide, how). "media" emulates prefers-color-scheme,
-# "attr" sets data-theme="dark" (the D key), so both dark blocks are exercised.
-DARK = [(2, "media"), (3, "media"), (7, "attr"), (13, "media"), (19, "media"), (20, "media"),
-        (24, "media"), (28, "attr"), (32, "media"), (35, "media"), (53, "media"), (55, "media")]
-# Representative slides for looking at a theme.
-REVIEW = [1, 3, 7, 18, 19, 20, 28, 32, 35, 33, 34, 53, 55]
+# Representative slides for looking at a theme (by id, so they survive reordering).
+REVIEW = ["s-title", "s-francesco", "s-monzo", "s-trust", "s-evolution", "s-stakes", "s-gap", "s-deal",
+          "s-not-new", "s-framework", "s-ask", "s-hands", "s-tracks", "s-setup", "s-repo", "s-map", "s-check",
+          "s-p1", "s-p2-examples", "s-p3-receipts", "s-p4-ambiguity", "s-p5-thin", "s-takeaways", "s-questions"]
+IDS_JS = "Array.from(document.querySelectorAll('#stage > .slide')).map(s => s.id)"
+ALT_JS = "document.documentElement.setAttribute('data-palette', 'alternate')"
 
 STEPS_JS = """() => Array.from(document.querySelectorAll('#stage > .slide')).map(s => {
   let m = 0;
@@ -151,56 +149,78 @@ def cmd_shots(a):
         page = new_page(b)
         page.goto(url)
         page.evaluate("document.fonts.ready")
+        if a.look:
+            page.evaluate(f"document.documentElement.setAttribute('data-look', '{a.look}')")
+        if a.alt:
+            page.evaluate(ALT_JS)
+        page.wait_for_timeout(100)
         steps = page.evaluate(STEPS_JS)
+        ids = page.evaluate(IDS_JS)
         wanted = [int(x) for x in a.slides.split(",")] if a.slides else None
         count = 0
-        if a.set == "all":
+        if a.set == "all":   # every slide at its final step
             for n in (wanted or range(1, len(steps) + 1)):
                 open_at(page, url, n)
                 forward(page, steps[n - 1])
-                page.screenshot(path=str(outdir / f"{n:02d}.png")); count += 1
-            if a.dark:
-                dark = new_page(b, scheme="dark")
-                for n in (wanted or range(1, len(steps) + 1)):
-                    open_at(dark, url, n)
-                    forward(dark, steps[n - 1])
-                    dark.screenshot(path=str(outdir / f"dark-{n:02d}.png")); count += 1
-        elif a.set == "review":
-            for n in (wanted or REVIEW):
+                page.screenshot(path=str(outdir / f"{a.prefix}{n:02d}.png")); count += 1
+        elif a.set == "review":   # the representative slides, final step
+            for n in (wanted or [ids.index(i) + 1 for i in REVIEW if i in ids]):
                 open_at(page, url, n)
                 forward(page, steps[n - 1])
-                page.screenshot(path=str(outdir / f"{n:02d}.png")); count += 1
-            dark = new_page(b, scheme="dark")
-            for n in (wanted or REVIEW)[:6]:
-                open_at(dark, url, n)
-                forward(dark, steps[n - 1])
-                dark.screenshot(path=str(outdir / f"dark-{n:02d}.png")); count += 1
-        else:
+                page.screenshot(path=str(outdir / f"{a.prefix}{n:02d}-{ids[n - 1]}.png")); count += 1
+        else:   # regression: every step of every slide
             for n in (wanted or range(1, len(steps) + 1)):
-                total = steps[n - 1]
-                keep = set(range(total + 1)) if n in STEPPED else {0, total}
                 open_at(page, url, n)
-                for k in range(total + 1):
+                for k in range(steps[n - 1] + 1):
                     if k:
                         forward(page, 1)
-                    if k in keep:
-                        page.screenshot(path=str(outdir / f"{n:02d}-s{k}.png")); count += 1
-            if not wanted:
-                dark = new_page(b, scheme="dark")
-                for n, how in DARK:
-                    pg = dark if how == "media" else page
-                    open_at(pg, url, n)
-                    if how == "attr":
-                        pg.evaluate("document.documentElement.setAttribute('data-theme','dark')")
-                    forward(pg, steps[n - 1])
-                    pg.screenshot(path=str(outdir / f"dark-{n:02d}.png")); count += 1
-                    if how == "attr":
-                        pg.evaluate("document.documentElement.removeAttribute('data-theme')")
+                    page.screenshot(path=str(outdir / f"{a.prefix}{n:02d}-s{k}.png")); count += 1
+        if a.dark and not a.alt:   # the alternate palette too (the D key), final steps
+            for n in (wanted or ([ids.index(i) + 1 for i in REVIEW if i in ids] if a.set != "all" else range(1, len(steps) + 1))):
+                open_at(page, url, n)
+                page.evaluate(ALT_JS)
+                forward(page, steps[n - 1])
+                page.screenshot(path=str(outdir / f"alt-{n:02d}.png")); count += 1
+                page.evaluate("document.documentElement.removeAttribute('data-palette')")
         errs = page.errors
         b.close()
     print(f"{count} shots in {outdir}; slides={len(steps)} steps={steps}")
     if errs:
         print("console:", *errs, sep="\n  ")
+
+
+PALETTE_JS = "[getComputedStyle(document.body).backgroundColor, getComputedStyle(document.documentElement).getPropertyValue('--palette-shown').trim()]"
+
+
+def palette_problems(browser, url: str) -> list[str]:
+    """With palette = "primary" (the default), the deck shows its primary palette whatever the OS
+    or a hosting page's data-theme says; D shows the alternate and D again comes back."""
+    problems, seen = [], {}
+    for scheme in ("light", "dark"):
+        pg = new_page(browser, scheme=scheme)
+        pg.goto(url + "#1"); pg.evaluate("document.fonts.ready")
+        seen[f"OS {scheme}"] = pg.evaluate(PALETTE_JS)
+        for host in ("dark", "light"):
+            pg.evaluate(f"document.documentElement.setAttribute('data-theme', '{host}')")
+            seen[f"OS {scheme}, host data-theme={host}"] = pg.evaluate(PALETTE_JS)
+        pg.evaluate("document.documentElement.removeAttribute('data-theme')")
+        if scheme == "dark":
+            pg.keyboard.press("d")
+            after_d = pg.evaluate(PALETTE_JS)
+            pg.keyboard.press("d")
+            back = pg.evaluate(PALETTE_JS)
+        pg.context.close()
+    first = seen["OS light"]
+    for k, v in seen.items():
+        if v != first:
+            problems.append(f"palette: {k} shows {v}, not {first}")
+    if first[1] != "primary":
+        problems.append(f"palette: opens on {first[1]!r}, not the primary palette")
+    if after_d[1] != "alternate" or after_d[0] == first[0]:
+        problems.append(f"palette: D did not show the alternate ({after_d})")
+    if back != first:
+        problems.append(f"palette: D twice did not come back to the primary ({back})")
+    return problems
 
 
 def cmd_check(a):
@@ -216,35 +236,70 @@ def cmd_check(a):
         page.evaluate("document.fonts.ready")
         steps = page.evaluate(STEPS_JS)
         n_slides = len(steps)
-        for i, total in enumerate(steps):
-            for k in range(total + 1):
-                h = page.evaluate("location.hash")
-                if h != f"#{i + 1}":
-                    problems.append(f"slide {i + 1} step {k}: hash {h}")
+        looks = page.evaluate("Array.from(document.querySelectorAll('.looks-bar [data-look-btn]')).map(function (b) { return b.getAttribute('data-look-btn'); })")
+        if looks and page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--palette-shown').trim()") != "primary":
+            problems.append("looks build did not open on the primary palette")
+        walks = [(look, pal) for look in looks for pal in ("primary", "alternate")] if looks else [(None, None)]
+        for look, pal in walks:
+            tag = f"[{look} {pal}] " if look else ""
+            if pal == "alternate":  # same look, other palette, through the real key
+                page.keyboard.press("d")
+                if page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--palette-shown').trim()") != "alternate":
+                    problems.append(f"{tag}D did not switch to the alternate palette")
+            if look and pal == "primary":
+                # switching keeps slide and step, and the button does not move the deck
+                open_at(page, url, 28)
+                forward(page, 3)
+                before = page.evaluate("[location.hash, document.querySelectorAll('.slide.active .shown, .slide.active .filled').length]")
+                page.click(f'.looks-bar [data-look-btn="{look}"]')
+                page.keyboard.press(" ")  # a focused button must not take Space as "next" (it was blurred anyway)
+                page.keyboard.press("ArrowLeft")
+                after = page.evaluate("[location.hash, document.querySelectorAll('.slide.active .shown, .slide.active .filled').length, document.documentElement.getAttribute('data-look')]")
+                if after[0] != before[0] or after[2] != look:
+                    problems.append(f"{tag}switching look moved the deck or failed: {before} -> {after}")
+                page.keyboard.press("Home")
+            for i, total in enumerate(steps):
+                for k in range(total + 1):
+                    h = page.evaluate("location.hash")
+                    if h != f"#{i + 1}":
+                        problems.append(f"{tag}slide {i + 1} step {k}: hash {h}")
+                    for issue in page.evaluate(BOUNDS_JS):
+                        problems.append(f"{tag}slide {i + 1} step {k}: {issue}")
+                    if not (i == n_slides - 1 and k == total):
+                        page.keyboard.press("ArrowRight")
+            page.keyboard.press("ArrowRight")  # past the end: must stay put
+            end = page.evaluate("[location.hash, document.querySelectorAll('.slide.active').length]")
+            if end != [f"#{n_slides}", 1]:
+                problems.append(f"{tag}past the end: {end}")
+            for _ in range(sum(steps) + n_slides + 2):
+                page.keyboard.press("ArrowLeft")
                 for issue in page.evaluate(BOUNDS_JS):
-                    problems.append(f"slide {i + 1} step {k}: {issue}")
-                if not (i == n_slides - 1 and k == total):
-                    page.keyboard.press("ArrowRight")
-        page.keyboard.press("ArrowRight")  # past the end: must stay put
-        end = page.evaluate("[location.hash, document.querySelectorAll('.slide.active').length]")
-        if end != [f"#{n_slides}", 1]:
-            problems.append(f"past the end: {end}")
-        for _ in range(sum(steps) + n_slides + 2):
-            page.keyboard.press("ArrowLeft")
-            for issue in page.evaluate(BOUNDS_JS):
-                problems.append(f"going back, {page.evaluate('location.hash')}: {issue}")
-        back = page.evaluate("[location.hash, document.querySelector('.slide.active').id, document.querySelectorAll('.slide.active .shown, .slide.active .gone, .slide.active .filled, .slide.active .struck').length]")
-        if back[0] != "#1" or back[2] != 0:
-            problems.append(f"back to start: {back}")
+                    problems.append(f"{tag}going back, {page.evaluate('location.hash')}: {issue}")
+            back = page.evaluate("[location.hash, document.querySelector('.slide.active').id, document.querySelectorAll('.slide.active .shown, .slide.active .gone, .slide.active .filled, .slide.active .struck').length]")
+            if back[0] != "#1" or back[2] != 0:
+                problems.append(f"{tag}back to start: {back}")
+            if pal == "alternate":
+                page.keyboard.press("d")
+                if page.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--palette-shown').trim()") != "primary":
+                    problems.append(f"{tag}D did not switch back to the primary palette")
+        if looks:
+            page.keyboard.press("t")
+            if page.evaluate("document.documentElement.getAttribute('data-look')") != looks[0]:
+                problems.append("T did not cycle back to the first look")
+            page.keyboard.press("Shift+T")
+            if page.evaluate("document.documentElement.getAttribute('data-look')") != looks[-1]:
+                problems.append("Shift+T did not go back a look")
         open_at(page, url, 18)
         if page.evaluate("document.querySelector('.slide.active').id") != page.evaluate("document.querySelectorAll('#stage > .slide')[17].id"):
             problems.append("loading #18 did not open slide 18")
         page.keyboard.press("d")
-        if page.evaluate("document.documentElement.getAttribute('data-theme')") != "dark":
-            problems.append("D did not switch to dark")
+        if page.evaluate("document.documentElement.getAttribute('data-palette')") != "alternate":
+            problems.append("D did not switch to the alternate palette")
         problems += page.errors
         if a.csp:
             problems += [f"CSP: {v}" for v in page.evaluate("window.__csp || []")]
+        if not looks:
+            problems += palette_problems(b, url)
         mobile = new_page(b, width=400, height=800, device_scale_factor=2, has_touch=True)
         for n in range(1, n_slides + 1):
             open_at(mobile, url, n)
@@ -254,7 +309,7 @@ def cmd_check(a):
                 problems.append(f"400px viewport, slide {n}: horizontal scroll {sw}>{cw}")
         problems += mobile.errors
         b.close()
-    print(f"checked {n_slides} slides, {sum(steps)} steps")
+    print(f"checked {n_slides} slides, {sum(steps)} steps" + (f", in {len(looks)} looks x 2 palettes" if looks else ""))
     for p in problems:
         print("PROBLEM", p)
     print("ok" if not problems else f"{len(problems)} problems")
@@ -322,7 +377,10 @@ def main(argv=None):
     sub = ap.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("shots"); s.add_argument("deck"); s.add_argument("outdir")
     s.add_argument("--set", choices=["regress", "review", "all"], default="regress"); s.add_argument("--slides")
-    s.add_argument("--dark", action="store_true", help="with --set all: dark shots too")
+    s.add_argument("--dark", action="store_true", help="the alternate palette too (alt-NN.png)")
+    s.add_argument("--look", help="in a looks build: switch to this look first")
+    s.add_argument("--alt", action="store_true", help="switch to the alternate palette (data-palette=alternate) first")
+    s.add_argument("--prefix", default="", help="prefix for file names")
     c = sub.add_parser("check"); c.add_argument("deck"); c.add_argument("--outdir")
     f = sub.add_parser("frames"); f.add_argument("deck"); f.add_argument("outdir")
     f.add_argument("--at", required=True, help="slide:step pairs, e.g. 20:1,24:2")

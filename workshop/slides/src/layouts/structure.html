@@ -5,7 +5,7 @@
   <div class="stairs gap-l">
     <span class="flow-node pill stairs-start">{{ start }}</span>
 {% for p in principles %}
-    <div class="stair" style="--c:var({{ p.color }}); --n:{{ p.n }}"><span class="stair-head"><span class="stair-num">{{ p.n }}</span><span class="stair-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="stair-name">{{ p.name }}</span></div>
+    <div class="stair" style="--c:var({{ p.color }}); --ci:var({{ p.ink }}); --n:{{ p.n }}"><span class="stair-head"><span class="stair-num">{{ p.n }}</span><span class="stair-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="stair-name">{{ p.name }}</span></div>
 {% endfor %}
     <span class="flow-node pill stairs-end">{{ end }}</span>
   </div>

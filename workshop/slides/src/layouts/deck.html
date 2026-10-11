@@ -1,13 +1,15 @@
 {# The page shell. standalone: a whole page (deck.html). Otherwise the fragment the hosting page wraps. #}
 {% if standalone %}
 <!doctype html>
-<html lang="{{ lang }}">
+<html lang="{{ lang }}"{% if looks %} data-look="{{ looks.0.id }}"{% endif %}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 {% endif %}
 <title>{{ title }}</title>
-<link rel="stylesheet" href="{{ font_link }}">
+{% for href in font_links %}
+<link rel="stylesheet" href="{{ href }}">
+{% endfor %}
 <style>
 {{ css }}
 </style>
@@ -16,6 +18,16 @@
 <body>
 {% endif %}
 
+{% if looks %}
+<nav class="looks-bar" aria-label="Looks">
+  <span class="looks-title">Look</span>
+{% for look in looks %}
+  <button type="button" class="looks-btn" data-look-btn="{{ look.id }}" title="{{ look.name }}" aria-pressed="false"><span class="looks-full">{{ look.name }}</span><span class="looks-short" aria-hidden="true">{{ look.short }}</span></button>
+{% endfor %}
+  <button type="button" class="looks-mode" data-mode-btn aria-pressed="false">Primary</button>
+  <span class="looks-keys">T next look · Shift+T back · D primary/alternate</span>
+</nav>
+{% endif %}
 <div class="viewport" id="viewport">
 <div class="stage" id="stage" data-motion="{{ motion }}">
 {{ slides }}

@@ -1,5 +1,5 @@
 {
-  "_comment": "Local woff2 files used only by tools/shoot.py, for screenshots where Google Fonts cannot be reached. Paths are relative to --font-dir (or $DECK_FONT_DIR); the folder names match the npm packages ibm-plex-sans, ibm-plex-mono, @fontsource/caveat, @fontsource/space-grotesk and @fontsource/fraunces unpacked side by side. The deck itself never uses these.",
+  "_comment": "Local woff2 files used only by tools/shoot.py, for screenshots where Google Fonts cannot be reached. Paths are relative to --font-dir (or $DECK_FONT_DIR); the folder names match the npm packages ibm-plex-sans, ibm-plex-mono and @fontsource/{caveat,figtree,jetbrains-mono} unpacked side by side. The deck itself never uses these.",
   "IBM Plex Sans": {
     "400": "ibm-plex-sans-1.1.0/package/fonts/complete/woff2/IBMPlexSans-Regular.woff2",
     "600": "ibm-plex-sans-1.1.0/package/fonts/complete/woff2/IBMPlexSans-SemiBold.woff2"
@@ -11,12 +11,12 @@
     "500": "caveat/package/files/caveat-latin-500-normal.woff2",
     "700": "caveat/package/files/caveat-latin-700-normal.woff2"
   },
-  "Space Grotesk": {
-    "400": "space-grotesk/package/files/space-grotesk-latin-400-normal.woff2",
-    "600": "space-grotesk/package/files/space-grotesk-latin-600-normal.woff2"
+  "Figtree": {
+    "400": "figtree/package/files/figtree-latin-400-normal.woff2",
+    "600": "figtree/package/files/figtree-latin-600-normal.woff2",
+    "700": "figtree/package/files/figtree-latin-700-normal.woff2"
   },
-  "Fraunces": {
-    "400": "fraunces/package/files/fraunces-latin-400-normal.woff2",
-    "600": "fraunces/package/files/fraunces-latin-600-normal.woff2"
+  "JetBrains Mono": {
+    "400": "jetbrains-mono/package/files/jetbrains-mono-latin-400-normal.woff2"
   }
 }

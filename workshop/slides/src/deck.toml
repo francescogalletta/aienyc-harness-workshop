@@ -3,7 +3,8 @@
 
 title = "Harness You Can Trust"
 lang = "en"
-theme = "blueprint"   # default theme: built into deck.html; others go to dist/
+theme = "nord"        # default theme: built into deck.html; others go to dist/
+palette = "primary"   # "primary": everyone sees the theme's primary palette (D shows the other); "alternate"; "system": the one matching the viewer's light or dark setting
 motion = "off"        # "on" brings back slide/step transitions (see styles/base.css)
 
 sections = [
