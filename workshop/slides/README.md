@@ -82,6 +82,10 @@ footnote = { text = "* A footnote, at the second click.", step = 2 }
 - **Slide number** (bottom-right, `#counter`, inside the stage): written by
   `deck.js` from the slide's position, never in the sources.
 - `chrome = false` on a slide hides both (the title slide does).
+- **Layouts with a picture to choose**: `layout = "structure"` takes `variant = "stairs"` (default),
+  `"layers"` or `"timeline"`; anything else fails the build. All three read `principles.json`.
+  `layout = "repo"` is a file tree (`items` of `path`, `gloss`, optional `mute = n`, and a `line` with
+  `text`, `command`, `step`). A statement block `{ command = "…" }` is a large shell command.
 - A principle (name, emoji, minutes, statement) is one line in
   `principles.json`; the structure flow, the framework stack and its repeat,
   the rail and the dividers all follow.

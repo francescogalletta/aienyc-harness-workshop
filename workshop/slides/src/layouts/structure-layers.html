@@ -1,0 +1,16 @@
+{# Structure, variant "layers": nested outlines growing outward from principle 1, so each contains the ones before it.
+   Setup and Wrap are small pills before and after. #}
+  <p class="label">{{ label }}</p>
+  <h2 class="headline gap-xs">{{ headline|text }}</h2>
+  <div class="layers gap-m">
+    <span class="flow-node pill">{{ start }}</span>
+    <div class="nests">
+{% for p in principles_top_down %}
+      <div class="nest" style="--c:var({{ p.color }})"><span class="nest-name"><span class="nest-num">{{ p.n }}</span><span class="nest-emoji" aria-hidden="true">{{ p.emoji }}</span>{{ p.name }}</span>
+{% endfor %}
+{% for p in principles %}
+      </div>
+{% endfor %}
+    </div>
+    <span class="flow-node pill">{{ end }}</span>
+  </div>

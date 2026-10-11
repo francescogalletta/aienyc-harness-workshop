@@ -241,6 +241,63 @@ def test_chrome_false_hides_label_and_number(deck, tmp_path):
     assert 'data-chrome="off"' in out and "section-label" not in out
 
 
+def slide_html(src, slide_id):
+    d = build.Deck(src)
+    return build.SlideRenderer(d).render_slide(1, next(x for x in d.slides if x["id"] == slide_id))
+
+
+def set_field(src, slide_id, old, new):
+    sec = src / "slides" / "setup.toml"
+    sec.write_text(sec.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+
+
+def test_structure_variants_render_and_default_to_stairs(deck, tmp_path):
+    assert next(x for x in deck.slides if x["id"] == "s-map")["variant"] == "stairs"
+    marks = {"stairs": 'class="stairs', "layers": 'class="nests', "timeline": 'class="timeline-track'}
+    for v, needle in marks.items():
+        src = copy_src(tmp_path / v)
+        set_field(src, "s-map", 'variant = "stairs"', f'variant = "{v}"')
+        out = slide_html(src, "s-map")
+        assert needle in out and all(n not in out for k, n in marks.items() if k != v)
+        assert all(p["name"] in out for p in deck.principles)  # names come from principles.json
+    src = copy_src(tmp_path / "default")
+    set_field(src, "s-map", 'variant = "stairs"\n', "")
+    assert 'class="stairs' in slide_html(src, "s-map")
+
+
+def test_timeline_spacing_follows_the_minutes(deck):
+    out = build.SlideRenderer(deck).render_slide(1, {**next(x for x in deck.slides if x["id"] == "s-map"), "variant": "timeline"})
+    assert re.findall(r"flex-grow:(\d+)", out) == [str(p["minutes"]) for p in deck.principles]
+
+
+def test_unknown_structure_variant_is_rejected(tmp_path):
+    src = copy_src(tmp_path)
+    set_field(src, "s-map", 'variant = "stairs"', 'variant = "spiral"')
+    with pytest.raises(BuildError, match="no variant 'spiral'"):
+        build.SlideRenderer(build.Deck(src)).render_all()
+
+
+def test_setup_check_fields_are_optional_and_the_note_is_quiet(deck):
+    out = slide_html(deck.src, "s-setup")
+    assert "GET THE REPO" in out and "YOU NEED ONE OF" in out and 'data-placeholder' in out
+    assert "CHECK IT WORKS" not in out and 'class="mono step command"' not in out
+    assert '<p class="setup-note gap-l">Or just ask your agent to guide you.</p>' in out and "hand-note" not in out
+
+
+def test_repo_slide_mutes_the_rest_and_shows_the_catch_up_command(deck):
+    out = slide_html(deck.src, "s-repo")
+    assert out.count('class="tree-row"') == 8 and out.count('data-step-mute="1"') == 4
+    for path in ("harness/", "examples/wedding/", "my/", "workshop/", "tests/", "reference/", "design/", "SPEC.md"):
+        assert f">{path}</code>" in out
+    assert 'data-step="2"' in out and "uv run python -m workshop at N" in out
+
+
+def test_check_slide_is_a_large_command(deck):
+    out = slide_html(deck.src, "s-check")
+    assert re.search(r'<code class="mono step command xl[^"]*">uv run python -m harness check</code>', out)
+    assert [x["id"] for x in deck.slides if x.get("group") == "Setup"] == ["s-setup", "s-repo", "s-map", "s-fine", "s-check"]
+
+
 def test_unknown_top_level_keys_are_still_rejected(tmp_path):
     src = copy_src(tmp_path)
     sec = src / "slides" / "demo.toml"

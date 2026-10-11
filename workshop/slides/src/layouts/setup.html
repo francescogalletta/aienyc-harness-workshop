@@ -1,4 +1,5 @@
-{# Setup: QR code and link on the left; what you need and how to check it on the right.
+{# Setup: QR code and link on the left; what you need on the right, then an optional quiet note.
+   check_label, command and check_result are optional (a check can be its own slide).
    The QR comes from src/assets/qr.json (tools/qr.py); build.py --check says if it is for another URL. #}
   <div class="setup">
     <div>
@@ -16,11 +17,17 @@
         <span class="pill ph" data-placeholder>{{ needs_todo|text }}</span>
 {% endif %}
       </div>
+{% if check_label %}
       <p class="label gap-l">{{ check_label }}</p>
+{% endif %}
+{% if command %}
       <div class="gap-s"><code class="mono step command">{{ command }}</code></div>
+{% endif %}
+{% if check_result %}
       <p class="sub gap-m">{{ check_result|text }}</p>
+{% endif %}
 {% if note %}
-      <p class="hand-note gap-m">{{ note|text }}</p>
+      <p class="setup-note gap-l">{{ note|text }}</p>
 {% endif %}
     </div>
   </div>

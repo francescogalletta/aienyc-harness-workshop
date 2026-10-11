@@ -231,6 +231,17 @@
   --pills-gap: 18px;
   --command-pad-y: 30px;
   --command-pad-x: 40px;
+  --command-xl-size: var(--fs-xl);
+  --setup-note-size: var(--fs-s);
+  --tree-col-gap: var(--space-m);
+  --tree-row-gap: var(--space-xs);
+  --tree-path-size: var(--fs-l);
+  --tree-gloss-size: var(--fs-l);
+  --tree-muted: var(--text-muted);
+  --tree-muted-opacity: 0.7;
+  --tree-line-gap: var(--space-s);
+  --tree-command-pad-y: 14px;
+  --tree-command-pad-x: 28px;
   --link-underline: var(--stroke-hair);
   --link-underline-offset: 6px;
   --grid-gap: 32px;
@@ -250,6 +261,30 @@
   --node-num-size: var(--fs-2xl);
   --node-name-size: calc(34px * var(--type-scale));
   --node-emoji-size: var(--fs-2xl);
+  --stair-base: 128px;
+  --stair-rise: 46px;
+  --stair-tread: var(--stroke-heavy);
+  --stair-tint: 14%;
+  --stair-pad-y: var(--space-xs);
+  --stair-pad-x: var(--space-xs);
+  --stair-num-size: var(--fs-l);
+  --stair-name-size: var(--fs-xs);
+  --nests-w: 1040px;
+  --nest-gap: var(--space-2xs);
+  --nest-pad-y: var(--space-2xs);
+  --nest-pad-x: var(--space-m);
+  --nest-radius: var(--radius-l);
+  --nest-tint: 6%;
+  --nest-name-size: var(--fs-s);
+  --nest-name-gap: var(--space-xs);
+  --tl-above-h: 150px;
+  --tl-gap: var(--space-xs);
+  --tl-name-gap: var(--space-2xs);
+  --tl-dot: 36px;
+  --tl-line: var(--stroke-hair);
+  --tl-num-size: var(--fs-xl);
+  --tl-name-size: calc(34px * var(--type-scale));
+  --tl-min-size: var(--fs-xs);
 
   /* Split halves */
   --split-gap: 100px;
