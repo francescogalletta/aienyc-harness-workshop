@@ -1482,7 +1482,8 @@
       },
       "from": null,
       "outcome": "open",
-      "node": null
+      "node": null,
+      "proposal": null
     },
     {
       "id": "t2",
@@ -1523,7 +1524,8 @@
       },
       "from": null,
       "outcome": "open",
-      "node": null
+      "node": null,
+      "proposal": null
     },
     {
       "id": "t3",
@@ -1559,7 +1561,8 @@
       },
       "from": null,
       "outcome": "open",
-      "node": null
+      "node": null,
+      "proposal": null
     }
   ],
   "review": {

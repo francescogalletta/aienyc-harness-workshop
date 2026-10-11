@@ -1,21 +1,24 @@
-"""Side threads (SPEC 6.4): the person asks something on the side, in a thread inside the chat, at any time
-and in any phase. A sub-agent with its own context answers on the side lane, so the main lane goes on
-working (or waiting) meanwhile. It explains and explores; it cannot run, save, build, decide or change
-anything, and nothing passes back: the main analyst never sees a thread, and a thread never sees the main
-analyst's messages (only the last ten lines of the chat, as text).
+"""Branches (SPEC 6.4): the person opens a branch beside the chat on one subject of the plan (a value, a result,
+an assumption, a step, an input, a decision or the whole plan), at any time and in any phase. A sub-agent with its
+own context answers on the side lane, so the main lane goes on working (or waiting) meanwhile. It explains and
+explores; it cannot run, save, build or decide anything. Once the plan is accepted it may propose a change the
+person asked for (`propose_change`, `join.py`); the harness applies it only on the person's yes.
 
 Its reply is number-checked against what it was given, the thread's own messages and its lookups. A lookup
 sends only a general term out, through the research desk.
 """
 import json
+import sqlite3
 from pathlib import Path
 
-from ..answers.agent import tool_result
+from ..answers.agent import step_of_module, tool_result
+from ..answers.rerun import last_answer_runs
 from ..calc.builder import format_sections
 from ..calc.provenance import unbacked
-from ..core import BadAction, NotNow, add_thread, list_messages, list_threads, number_of
+from ..core import BadAction, NotNow, add_thread, list_messages, list_threads, number_of, set_outcome
 from ..grounding.research import as_lookup, default_desk
 from ..model import ToolSpec
+from . import join
 
 PROMPT = Path(__file__).with_name("side.md")
 TITLE_LENGTH = 45
@@ -59,9 +62,82 @@ def title_of(text: str, step_name: str | None) -> str:
 
 # --- The action ---
 
+SUBJECT_KEYS = {"plan": (), "step": ("step",), "input": ("input", "step"),
+                "value": ("run", "key", "value", "input", "step"), "result": ("run", "step", "value"),
+                "assumption": ("run", "step", "text", "assumption"), "decision": ("node",)}
+
+
+def _run_inputs(conn, conversation: str, run) -> dict | None:
+    """The inputs of a run of this conversation, or None when there is no such run."""
+    try:
+        row = conn.execute("SELECT inputs FROM calc_runs WHERE id = ? AND session_id = ?",
+                           (number_of(run, "r"), conversation)).fetchone()
+    except (ValueError, sqlite3.Error):
+        return None
+    if row is None:
+        return None
+    inputs = json.loads(row["inputs"])
+    return inputs if isinstance(inputs, dict) else {}
+
+
+def check_subject(core, subject, state: dict) -> dict:
+    """A Subject of ARCHITECTURE.md 3.5 whose ids exist (a run of this conversation, a plan step or input, an
+    assumption, a node), with only its own keys. Anything else is a BadAction."""
+    if not isinstance(subject, dict) or subject.get("kind") not in SUBJECT_KEYS:
+        raise BadAction("subject must be an object with a known kind")
+    kind = subject["kind"]
+    found = {"kind": kind, **{key: subject.get(key) for key in SUBJECT_KEYS[kind]}}
+    for key in SUBJECT_KEYS[kind]:
+        if found[key] is not None and not isinstance(found[key], str):
+            raise BadAction(f"subject {key} must be a string or null")
+    steps = {step["id"] for step in state["steps"]}
+    conn = core.conn
+
+    def need(condition: bool, what: str) -> None:
+        if not condition:
+            raise BadAction(f"subject: {what}")
+
+    if kind == "step":
+        need(found["step"] in steps, f"there is no step {found['step']!r}")
+    if kind in ("input", "value", "result", "assumption") and found.get("step") is not None:
+        need(found["step"] in steps, f"there is no step {found['step']!r}")
+    if kind == "input":
+        need(found["input"] in state["inputs"], f"there is no input {found['input']!r}")
+    if kind == "value" and found["input"] is not None:
+        need(found["input"] in state["inputs"], f"there is no input {found['input']!r}")
+    if kind in ("value", "result", "assumption"):
+        inputs = _run_inputs(conn, core.conversation, found["run"])
+        need(inputs is not None, f"there is no run {found['run']!r} in this conversation")
+        if kind == "value":
+            need(bool(found["key"]) and found["key"] in inputs, f"the run takes no {found['key']!r}")
+            need(found["value"] is not None, "a value needs its value")
+        if kind == "result":
+            need(found["value"] is not None, "a result needs its value")
+        if kind == "assumption":
+            need(bool((found["text"] or "").strip()), "an assumption needs its sentence")
+            if found["assumption"] is not None:
+                try:
+                    known = conn.execute("SELECT 1 FROM assumptions WHERE id = ?",
+                                         (number_of(found["assumption"], "a"),)).fetchone()
+                except ValueError:
+                    known = None
+                need(known is not None, f"there is no assumption {found['assumption']!r}")
+    if kind == "decision":
+        try:
+            known = conn.execute("SELECT 1 FROM trunk WHERE id = ? AND conversation = ?",
+                                 (number_of(found["node"], "n"), core.conversation)).fetchone()
+        except ValueError:
+            known = None
+        need(known is not None, f"there is no decision {found['node']!r}")
+    return found
+
+
 def side(core, payload: dict) -> None:
-    """`side {text, step?, thread?}`: start a side thread, or reply in one (side or review)."""
+    """`side {text, step?, thread?, subject?}`: open a branch on a subject (SPEC 6.4), or say something in one (side
+    or review). Opening one makes the person's other side branches that wait on nothing dead (12.5); a message
+    in a dead side branch opens it again."""
     text, step, thread = payload.get("text"), payload.get("step"), payload.get("thread")
+    subject = payload.get("subject")
     if not isinstance(text, str) or not text.strip():
         raise BadAction("text must be a non-empty string")
     if step is not None and not isinstance(step, str):
@@ -70,15 +146,24 @@ def side(core, payload: dict) -> None:
         raise BadAction("thread must be a string or null")
     text, conn = text.strip(), core.conn
     if thread is None:
-        name = None
-        if step:
-            found = next((each for each in core.state()["steps"] if each["id"] == step), None)
-            if found is None:
+        state = core.state()
+        if subject is not None:
+            subject = check_subject(core, subject, state)
+            step = subject.get("step")
+        elif step:
+            if step not in {each["id"] for each in state["steps"]}:
                 raise BadAction(f"there is no step {step!r}")
-            name = found["name"]
-        thread = add_thread(conn, core.conversation, kind="side", title=title_of(text, name), step=step or None)
-        core.record("you.side_opened", {"thread": thread, "step": step or None, "title": title_of(text, name)},
-                    "person")
+            subject = {"kind": "step", "step": step}
+        else:
+            subject = {"kind": "plan"}
+        name = next((each["name"] for each in state["steps"] if each["id"] == step), None) if step else None
+        for other in list_threads(conn, core.conversation):
+            if join.dies(conn, other):
+                join.kill(core, other["id"], "new_branch")
+        thread = add_thread(conn, core.conversation, kind="side", title=title_of(text, name), step=step or None,
+                            origin="you", subject=subject)
+        core.record("you.side_opened", {"thread": thread, "step": step or None, "title": title_of(text, name),
+                                        "subject": subject}, "person")
     else:
         try:
             wanted = number_of(thread, "t")
@@ -92,6 +177,9 @@ def side(core, payload: dict) -> None:
         if said >= MAX_PERSON_MESSAGES:
             raise NotNow(THREAD_FULL.format(limit=MAX_PERSON_MESSAGES))
         step = row["step"]
+        if row["kind"] == "side" and row["outcome"] == "dead":
+            set_outcome(conn, thread, "open")
+            core.record("you.branch_reopened", {"thread": thread}, "person")
     message = core.post(text, who="you", thread=thread)
     core.record("you.side_message", {"thread": thread, "message": message, "text": text}, "person")
     upto = number_of(message, "m")
@@ -161,12 +249,65 @@ def step_section(state: dict, step_id: str | None) -> dict | None:
     return found
 
 
-def sections_of(state: dict, thread: dict) -> dict:
+def run_section(conn, run: str | None, state: dict) -> dict | None:
+    """A run as the side assistant reads it: its module, step, inputs and output."""
+    try:
+        row = conn.execute("SELECT * FROM calc_runs WHERE id = ?", (number_of(run, "r"),)).fetchone()
+    except ValueError:
+        return None
+    if row is None:
+        return None
+    step = step_of_module(conn, row["module"], {each["id"] for each in state["steps"]})
+    return {"run": f"r{row['id']}", "module": row["module"], "step": step,
+            "inputs": json.loads(row["inputs"]), "output": json.loads(row["output"])}
+
+
+def subject_section(conn, conversation: str, state: dict, subject: dict) -> dict:
+    """The branch's subject with what it points at (SPEC 6.4)."""
+    kind = subject.get("kind")
+    found = dict(subject)
+    steps = {each["id"]: each for each in state["steps"]}
+    if subject.get("step") in steps:
+        found["step name"] = steps[subject["step"]]["name"]
+    if kind == "plan":
+        found["about"] = "the whole plan"
+    if subject.get("input") in state["inputs"]:
+        entry = state["inputs"][subject["input"]]
+        found["input name"] = entry["name"]
+        found["saved value"] = entry.get("value")
+    if subject.get("run"):
+        found["the run"] = run_section(conn, subject["run"], state)
+    if kind == "assumption":
+        row = conn.execute("SELECT status, words FROM assumptions WHERE key = ?",
+                           (" ".join(str(subject.get("text") or "").split()).casefold(),)).fetchone()
+        if row is not None:
+            found["status"] = row["status"]
+            if row["words"]:
+                found["their words"] = row["words"]
+    if kind == "decision":
+        node = next((each for each in state["history"]["trunk"] if each["id"] == subject.get("node")), None)
+        if node is not None:
+            found["decided"] = {"who": node["who"], "kind": node["kind"], "text": node["text"],
+                                "change": node["change"]}
+    return found
+
+
+def last_answer_section(conn, conversation: str, state: dict) -> list[dict]:
+    """Each run of the main chat's last answer: module, step, inputs, output."""
+    found = (run_section(conn, f"r{run}", state) for run in last_answer_runs(conn, conversation))
+    return [each for each in found if each is not None]
+
+
+def sections_of(state: dict, thread: dict, conn=None, conversation: str = "") -> dict:
     recent = [{"who": each["who"], "text": each["text"]} for each in state["chat"][-RECENT_CHAT:]]
     challenge = thread.get("challenge") if thread["kind"] == "review" else None
-    return {"plan": plan_section(state), "step": step_section(state, thread["step"]), "recent chat": recent,
-            "challenge": ({"concern": challenge["concern"], "proposal": challenge["proposal"],
-                           "kind": challenge["kind"], "status": challenge["status"]} if challenge else None)}
+    found = {"plan": plan_section(state), "step": step_section(state, thread["step"]), "recent chat": recent,
+             "challenge": ({"concern": challenge["concern"], "proposal": challenge["proposal"],
+                            "kind": challenge["kind"], "status": challenge["status"]} if challenge else None)}
+    if conn is not None:
+        found["subject"] = subject_section(conn, conversation, state, thread.get("subject") or {"kind": "plan"})
+        found["last answer"] = last_answer_section(conn, conversation, state) if state["phase"] == "accepted" else []
+    return found
 
 
 def system_prompt(sections: dict) -> str:
@@ -204,7 +345,13 @@ def reply(work, thread_id: str, upto: int) -> None:
         return
     work.progress("reading the plan", thread=thread_id)
     state = work.session.state()
-    sections = sections_of(state, next((each for each in state["threads"] if each["id"] == thread_id), thread))
+    thread = next((each for each in state["threads"] if each["id"] == thread_id), thread)
+    sections = sections_of(state, thread, conn, conversation)
+    proposing = thread["kind"] == "side" and state["phase"] == "accepted"
+    tools = [LOOK_UP, join.PROPOSE_CHANGE] if proposing else [LOOK_UP]
+    person = [row["text"] for row in list_messages(conn, conversation, thread_id)
+              if row["who"] == "you" and int(row["id"][1:]) <= upto]
+    made = []
     system = system_prompt(sections)
     rows = list_messages(conn, conversation, thread_id)
     messages = model_messages(rows, upto, thread["kind"])
@@ -224,10 +371,15 @@ def reply(work, thread_id: str, upto: int) -> None:
 
     for _ in range(MAX_CALLS):
         work.progress("thinking", thread=thread_id)
-        response = work.model.complete(system=system, messages=messages, tools=[LOOK_UP])
+        response = work.model.complete(system=system, messages=messages, tools=tools)
         if response.tool_calls:
             results = []
             for call in response.tool_calls:
+                if call.name == "propose_change" and proposing:
+                    result = join.propose(work, thread, call, state, person, made)
+                    found.append(result["content"])
+                    results.append(result)
+                    continue
                 if call.name != "look_up":
                     results.append(tool_result(call, NO_SUCH_TOOL.format(name=call.name), True))
                     continue

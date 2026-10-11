@@ -1242,6 +1242,16 @@ For the decision graph (section 12), 11 October:
 - **D5 · Review branches.** `open_thread` passes `origin="reviewer"` and subject `{"kind": "step", "step"}`. `use_challenge` records
   `challenge_used` (after settling the challenge, before the "use this" message) with `branch` the thread; `dismiss_challenge` calls
   `set_outcome(thread, "dead")`. A question branch stays `open` until dismissed.
+- **D4a · Branches and joins.** In `needs_you/join.py` (proposals, checks, the three actions, the join, deaths) and `side.py`
+  (subject, sections, the tool). A `value` proposal's `input` may also be the branch subject's own key (a value chip of an
+  older answer, a plan input's pill); a leading `in:` is dropped; a bad `kind` is refused `unknown_input`. The new value's
+  numbers are checked strictly (small whole numbers too; dates whole). Proposal text `{label}: {from or none} → {to}`, or
+  `Plan[, step N Name]: {words}` cut to 80; the node's text is SPEC 6.6's `{label}: {new} (was {old})`. The join notice is a
+  `harness` message of kind `text` with `figures: []`; a failed run with no step gets `step` "" in the node's `failed`. A value
+  join that raises makes the proposal `failed` (reason posted in the branch) and still sets `error`. The `turn_finished` hook
+  is marks' then the `moved_on` death. A join notice has every value chip of its new runs, as 12.7 says
+  (13 in a live wedding run; the sample state shows only the changed one: the maintainer may want that).
+  `review_challenges.json` gained `"proposal": null`; `workshop/manifest.json` lists `join.py`.
 
 ## 12. Decision history
 

@@ -183,7 +183,7 @@ def test_neither_conversation_sees_the_other(routed):
     sent = session.models.side.calls[0]
     assert [m["content"] for m in sent["messages"]] == ["A purple elephant question"]
     assert "Main one." in sent["system"] and "My first main question" in sent["system"]      # last chat lines, as text
-    assert sent["tools"][0].name == "look_up" and len(sent["tools"]) == 1
+    assert {tool.name for tool in sent["tools"]} == {"look_up", "propose_change"}          # it proposes, never runs
 
 
 def test_what_is_said_in_a_thread_is_not_a_source_for_the_main_analyst(routed):

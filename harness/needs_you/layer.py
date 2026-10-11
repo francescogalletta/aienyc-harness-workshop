@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ..core import BadAction, list_threads
 from ..layers import Expect, Layer
-from . import calls, marks, requests, side
+from . import calls, join, marks, requests, side
 
 PROMPT = Path(__file__).with_name("analyst.md")
 SECTION_LIMIT = 40
@@ -56,9 +56,49 @@ def contribute(view, state: dict) -> None:
         notice = message.setdefault("notice", None)
         if notice:
             message["notice"] = {**notice, "status": marks.notice_status(conn, notice)}
+    proposals = join.newest_proposals(conn, view.conversation)
     state["threads"] = [{**thread, "challenge": None,
-                         "messages": [{"sources": [], **message} for message in thread["messages"]]}
+                         "messages": [{"sources": [], **message} for message in thread["messages"]],
+                         "proposal": (join.proposal_view(proposals[thread["id"]], state)
+                                      if thread["id"] in proposals else None)}
                         for thread in list_threads(conn, view.conversation)]
+    chip_status(view, state)
+
+
+def chip_status(view, state: dict) -> None:
+    """Assumption chips get their `status` and `subject.assumption` from the `assumptions` table; a join notice
+    gets a decision chip first, from its private `_node` (ARCHITECTURE.md 12.7)."""
+    conn = view.conn
+    nodes = {node["id"]: node for node in state["history"]["trunk"]}
+    joined = {}
+    for row in conn.execute("SELECT id, data FROM messages WHERE conversation = ? AND thread IS NULL"
+                            " AND who = 'harness' AND data LIKE '%\"_node\"%'", (view.conversation,)):
+        node = json.loads(row["data"]).get("_node")
+        if node in nodes:
+            joined[f"m{row['id']}"] = nodes[node]
+    known = {}
+    for message in state["chat"]:
+        chips = message.get("chips")
+        if chips is None:
+            continue
+        for chip in chips:
+            subject = chip.get("subject") or {}
+            if chip.get("kind") != "assumption" or not subject.get("run"):
+                continue
+            run = subject["run"]
+            if run not in known:
+                row = conn.execute("SELECT assumptions FROM calc_runs WHERE id = ?", (int(run[1:]),)).fetchone()
+                known[run] = {marks.key_of(each["text"]): each
+                              for each in marks.of_run(conn, int(run[1:]), json.loads(row["assumptions"]))} \
+                    if row else {}
+            found = known[run].get(marks.key_of(chip["text"]))
+            if found is not None:
+                chip["status"] = found["status"]
+                subject["assumption"] = found["id"]
+        node = joined.get(message["id"])
+        if node is not None:
+            message["chips"] = [{"kind": "decision", "label": "Decided", "text": node["text"], "status": None,
+                                 "subject": {"kind": "decision", "node": node["id"]}}, *chips]
 
 
 # --- What the analyst is told ---
@@ -110,6 +150,12 @@ def tools(turn) -> list:
 
 def loaded(core) -> None:
     calls.drop_unanswered(core.conn)
+
+
+def turn_finished(work, turn) -> None:
+    """Marks on the finished turn (SPEC 6.1), then the `moved_on` death of branches (12.5)."""
+    marks.turn_finished(work, turn)
+    join.moved_on(work, turn)
 
 
 # --- Replay expectations (SPEC 6.5) ---
@@ -173,15 +219,43 @@ def _check_added(value, context) -> dict:
             "seen": f"{len(made)} added"}
 
 
+def _validate_branches(value):
+    from ..core.session import NODE_KINDS
+    good = (isinstance(value, dict) and set(value) <= {"joined", "dead", "nodes"}
+            and all(isinstance(value[key], int) and not isinstance(value[key], bool) and value[key] >= 0
+                    for key in ("joined", "dead") if key in value)
+            and (isinstance(value.get("nodes", []), list) and all(each in NODE_KINDS for each in value.get("nodes", []))))
+    return None if good else ("branches must be {joined?, dead?, nodes?}: whole numbers of side branches with that "
+                              "outcome at the end, and the node kinds of joined side branches")
+
+
+def _check_branches(value, context) -> dict:
+    state = context.state()
+    mine = [thread for thread in state["threads"] if thread["kind"] == "side" and thread["origin"] == "you"]
+    counts = {outcome: sum(1 for thread in mine if thread["outcome"] == outcome) for outcome in ("joined", "dead")}
+    nodes = {node["id"]: node["kind"] for node in state["history"]["trunk"]}
+    kinds = [nodes.get(thread["node"]) for thread in mine if thread["outcome"] == "joined"]
+    passed = all(counts[key] == value[key] for key in ("joined", "dead") if key in value) \
+        and all(kind in kinds for kind in value.get("nodes", []))
+    wanted = [f"{value[key]} {key}" for key in ("joined", "dead") if key in value]
+    wanted += [f"joined as {', '.join(value['nodes'])}"] if value.get("nodes") else []
+    return {"what": "side branches: " + ", ".join(wanted), "passed": passed,
+            "seen": f"{counts['joined']} joined ({', '.join(str(each) for each in kinds) or 'no nodes'}), "
+                    f"{counts['dead']} dead, {len(mine) - counts['joined'] - counts['dead']} open"}
+
+
 LAYER = Layer(
     number=4, name="needs you", schema=Path(__file__).with_name("schema.sql"),
     contribute=contribute,
-    actions={"choose": calls.choose, "confirm_assumptions": confirm_assumptions, "side": side.side},
+    actions={"choose": calls.choose, "confirm_assumptions": confirm_assumptions, "side": side.side,
+             "accept_proposal": join.accept_proposal, "decline_proposal": join.decline_proposal,
+             "close_branch": join.close_branch},
     route=marks.route, tools=tools, prompt=PROMPT, context=context,
-    hooks={"loaded": loaded, "turn_finished": marks.turn_finished, "run_ready": marks.run_ready,
+    hooks={"loaded": loaded, "turn_finished": turn_finished, "run_ready": marks.run_ready,
            "reply_ready": calls.reply_ready},
     expects={"decisions": Expect(_validate_decisions, _check_decisions),
              "marks": Expect(_validate_marks, _check_marks),
              "added": Expect(_validate_added, _check_added),
-             "side_threads": Expect(_validate_side_threads, _check_side_threads)},
+             "side_threads": Expect(_validate_side_threads, _check_side_threads),
+             "branches": Expect(_validate_branches, _check_branches)},
 )
