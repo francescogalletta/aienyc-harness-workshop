@@ -1214,6 +1214,18 @@ For the decision graph (section 12), 11 October:
 - **DG · Death is stored.** A branch dies by an action or a hook and records `you.branch_dead`; nothing is derived at
   display time, so a replay can check it and the page draws what it gets.
 - **DG · Events kept.** `you.side_opened` keeps its name and gains `subject`; existing tests of event kinds hold.
+- **D0 · Checks in the core.** `decide` refuses a `who` or `kind` outside 3.5 and a `branch` that is not a thread of the
+  conversation (ValueError); `text` is whitespace-folded and cut to 80 characters ending in `…`; `touched` always has both lists.
+  `set_outcome` takes only `open` or `dead` (`joined` only through `decide`). `plan_state.start(..., trunk=)` puts `history` in
+  the document, `finish` sets `changed_by` (None when no node), and a `finish` on a bare dict without `history` is fine.
+- **D0 · The validator.** `tests/layer0/state_shape.py` requires `history`, `changed_by`, and the branch keys on threads at
+  every layer; `chips` and `proposal` are checked when present and required only once `CHIPS_REQUIRED`/`PROPOSAL_REQUIRED` at
+  its top are set True (do that when D3a and D4a land). The five older sample states gained the new core keys.
+- **D3b · Re-run details.** `rerun` returns `replaced` and `failed[].run` as `"r<id>"` (the `value` Change's form) and
+  `runs` as ints (the `_runs` form); failed runs stay in `runs`. `impact` takes an optional `conversation` (default: the
+  current one from `meta`; the state has none). A value one leaf of a re-run kept and another changed is ambiguous, as one
+  mapped to two values. "Needed its output" is "holds a value it produced" (`_produced`). Only re-run outputs map; the
+  changed input itself maps nowhere but its own top-level key. `RERUN_EXPECTED` lives in `answers/rerun.py` (layer 4 imports it).
 
 ## 12. Decision history
 

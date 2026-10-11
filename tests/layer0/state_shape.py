@@ -16,6 +16,11 @@ ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
 
 LANES = ("idle", "working", "waiting")
 
+# `chips` on messages (layer 3) and `proposal` on threads (layer 4) are checked when present. Set these to True
+# once the packages that write them (D3a, D4a) have landed, and every live state must then carry them.
+CHIPS_REQUIRED = False
+PROPOSAL_REQUIRED = False
+
 
 def check(value, shape, where, out):
     """Compare `value` with `shape`: a type, a dict of keys, ("list", shape), ("opt", ...), a tuple of choices."""
@@ -53,22 +58,50 @@ SOURCE = {"title": STR, "url": STR}
 ORIGIN_SHAPE = {"kind": ("person", "looked_up", "proposed")}
 ITEM = {"text": STR, "origin": ANY}
 ACTIVITY = {"lane": ("main", "side", "review"),
-            "what": ("interview", "build", "answer", "helper", "tests", "side", "review"),
+            "what": ("interview", "build", "answer", "helper", "tests", "side", "review", "join"),
             "step": OPT(STR), "thread": OPT(STR), "text": STR, "since": STR}
 FIGURE = {"start": INT, "end": INT, "text": STR, "step": OPT(STR), "run": OPT(STR), "input": OPT(STR)}
 DECISION = {"id": STR, "step": STR, "question": STR, "options": LIST(STR), "suggested": OPT(INT), "why": STR,
             "status": ("open", "answered"), "choice": OPT(STR)}
 NOTICE = {"assumptions": LIST({"id": STR, "text": STR}), "steps": LIST(STR), "status": ("open", "confirmed", "changed")}
-MESSAGE = {"id": STR, "ts": STR, "who": ("you", "assistant", "harness"), "text": STR, "step": OPT(STR),
+MESSAGE = {"id": STR, "ts": STR, "who": ("you", "assistant", "harness", "reviewer"), "text": STR, "step": OPT(STR),
            "queued": BOOL, "kind": ("text", "plan", "decision", "notice", "withheld")}
 CHALLENGE = {"id": STR, "step": STR, "kind": ("challenge", "question"), "concern": STR, "proposal": STR,
              "change": ("plan", "assumption", "input", "build_step", "replace_step", "none"),
              "impact": ("high", "medium", "low"), "rank": INT, "sources": LIST(SOURCE),
              "status": ("open", "used", "dismissed"), "pass": INT}
-THREAD = {"id": STR, "kind": ("side", "review"), "step": OPT(STR), "after": OPT(STR), "title": STR,
+SUBJECTS = {"plan": {}, "step": {"step": STR}, "input": {"input": STR, "step": OPT(STR)},
+            "value": {"run": STR, "key": STR, "value": STR, "input": OPT(STR), "step": OPT(STR)},
+            "result": {"run": STR, "step": OPT(STR), "value": STR},
+            "assumption": {"run": STR, "step": OPT(STR), "text": STR, "assumption": OPT(STR)},
+            "decision": {"node": STR}}
+IMPACT = {"inputs": LIST(STR), "runs": LIST(STR), "steps": LIST(STR), "downstream": LIST(STR)}
+PROPOSAL_CHANGES = ({"kind": "value", "input": STR, "label": STR, "from": OPT(STR), "to": STR},
+                    {"kind": "plan", "step": OPT(STR), "words": STR})
+PROPOSAL = {"id": STR, "status": ("pending", "accepted", "declined", "replaced", "failed"), "change": dict,
+            "words": STR, "text": STR, "impact": IMPACT, "node": OPT(STR), "reason": STR}
+THREAD = {"id": STR, "kind": ("side", "review", "harness"), "step": OPT(STR), "after": OPT(STR), "title": STR,
           "status": ("open", "used", "dismissed"),
-          "messages": LIST({"who": ("you", "assistant", "reviewer"), "text": STR, "sources": LIST(SOURCE)}),
-          "challenge": OPT(CHALLENGE)}
+          "messages": LIST({"who": ("you", "assistant", "reviewer", "harness"), "text": STR, "sources": LIST(SOURCE)}),
+          "challenge": OPT(CHALLENGE),
+          "origin": ("you", "assistant", "reviewer", "harness"), "subject": dict, "from": OPT(STR),
+          "outcome": ("open", "joined", "dead"), "node": OPT(STR)}
+NODE_KINDS = ("plan_accepted", "plan_revised", "value", "assumption_confirmed", "assumption_corrected", "call",
+              "built", "challenge_used")
+CHANGES = {"plan_accepted": {},
+           "plan_revised": {"step": OPT(STR), "words": STR, "changed": LIST(STR)},
+           "value": {"input": STR, "label": STR, "from": OPT(STR), "to": STR, "runs": dict,
+                     "failed": LIST({"run": STR, "step": STR, "reason": STR})},
+           "assumption_confirmed": {"assumptions": LIST(STR)},
+           "assumption_corrected": {"assumptions": LIST(STR), "words": STR},
+           "call": {"decision": STR, "step": STR, "choice": STR, "words": STR},
+           "built": {"steps": dict, "why": ("build", "step", "new", "replace", "rebuilt", "files_changed")},
+           "challenge_used": {"challenge": STR, "step": STR,
+                              "change": ("plan", "assumption", "input", "build_step", "replace_step", "none")}}
+NODE = {"id": STR, "ts": STR, "who": ("you", "assistant", "harness", "reviewer"), "kind": NODE_KINDS, "text": STR,
+        "change": dict, "touched": {"inputs": LIST(STR), "steps": LIST(STR)}, "branch": OPT(STR), "after": OPT(STR)}
+CHIP = {"kind": ("value", "assumption", "result", "decision"), "label": STR, "text": STR,
+        "status": (None, "unconfirmed", "confirmed", "corrected"), "subject": dict}
 BUILD = {"status": ("none", "building", "built", "not_built", "stale"), "module": OPT(STR), "examples": INT,
          "tests": INT, "passing": INT, "examples_passing": INT, "reason": STR,
          "plan_check": OPT({"departures": LIST(STR), "confirmed": BOOL}),
@@ -89,15 +122,103 @@ STEP = {"id": STR, "number": INT, "name": STR, "kind": ("calculation", "from_you
         "origin": ORIGIN_SHAPE, "particulars": LIST(dict), "open_questions": LIST(ITEM),
         "line": OPT({"text": STR, "kind": (None, "tested", "result", "strong")}),
         "marks": LIST({"symbol": ("●", "▲", "◌", "plan check"), "count": OPT(INT), "title": STR}),
-        "needs_you": BOOL}
+        "needs_you": BOOL, "changed_by": OPT(STR)}
 LAYER_STEP_KEYS = {2: {"build": OPT(BUILD)}, 3: {"last_run": OPT(LAST_RUN), "runs": LIST(RUN)},
                    4: {"unconfirmed": LIST({"id": STR, "text": STR}), "calls": OPT(CALLS)},
                    5: {"challenges": LIST(STR)}}
-INPUT = {"id": STR, "name": STR, "description": STR, "origin": ORIGIN_SHAPE, "steps": LIST(STR)}
+INPUT = {"id": STR, "name": STR, "description": STR, "origin": ORIGIN_SHAPE, "steps": LIST(STR),
+         "changed_by": OPT(STR)}
 CONTEXT = {"scope_in": LIST(ITEM), "scope_out": LIST(ITEM), "assumptions": LIST(dict), "done": LIST(ITEM),
            "open_questions": LIST(ITEM), "glossary": LIST({"term": STR, "definition": STR, "person_says": ANY,
                                                            "origin": ANY}), "revisions": LIST(dict)}
 WAITING = ({"kind": "message"}, {"kind": "plan"}, {"kind": "decision", "decision": STR, "step": STR})
+
+
+def subject_problems(subject, where: str, out: list[str]) -> None:
+    """A Subject (ARCHITECTURE.md 3.5): a kind, and the keys that kind carries."""
+    kind = subject.get("kind") if isinstance(subject, dict) else None
+    if kind not in SUBJECTS:
+        return out.append(f"{where}: unknown subject {subject!r}")
+    check(subject, {"kind": kind, **SUBJECTS[kind]}, where, out)
+
+
+def history_problems(state: dict) -> list[str]:
+    """What the decision history must keep true, beyond its shape (ARCHITECTURE.md 3.5, 4.4)."""
+    out: list[str] = []
+    trunk = state["history"]["trunk"]
+    ids = [node["id"] for node in trunk]
+    numbers = [int(each[1:]) if re.fullmatch(r"n\d+", each) else -1 for each in ids]
+    if len(set(ids)) != len(ids) or -1 in numbers or numbers != sorted(numbers):
+        out.append("history: node ids are not n<number>, distinct and oldest first")
+    if state["history"]["latest"] != (ids[-1] if ids else None):
+        out.append("history: latest is not the newest node")
+    chat = {message["id"] for message in state["chat"]}
+    threads = {thread["id"]: thread for thread in state.get("threads") or []}
+    step_ids = {step["id"] for step in state["steps"]}
+    newest: dict[str, str] = {}
+    for n, node in enumerate(trunk):
+        where = f"history.trunk[{n}] ({node['id']})"
+        if node["kind"] in CHANGES:
+            check(node["change"], CHANGES[node["kind"]], f"{where}.change", out)
+        if len(node["text"]) > 80:
+            out.append(f"{where}: text of {len(node['text'])} characters")
+        if node["after"] is not None and node["after"] not in chat:
+            out.append(f"{where}: follows a message that is not in the chat")
+        out.extend(f"{where}: touches unknown step {each}" for each in node["touched"]["steps"]
+                   if each not in step_ids)
+        out.extend(f"{where}: touches unknown input {each}" for each in node["touched"]["inputs"]
+                   if each not in state["inputs"])
+        if node["branch"] is not None:
+            thread = threads.get(node["branch"])
+            if thread is None:
+                out.append(f"{where}: joined from unknown branch {node['branch']}")
+            elif thread["outcome"] != "joined":
+                out.append(f"{where}: its branch {node['branch']} is {thread['outcome']}, not joined")
+        for name in [*node["touched"]["inputs"], *node["touched"]["steps"]]:
+            newest[name] = node["id"]
+    for thread in threads.values():
+        where = f"{thread['id']}"
+        if not {"outcome", "from", "node", "subject"} <= thread.keys():         # the shape check has said so
+            continue
+        if thread["from"] is not None and thread["from"] not in ids:
+            out.append(f"{where}: leaves from {thread['from']}, which is not on the trunk")
+        if (thread["outcome"] == "joined") != (thread["node"] is not None):
+            out.append(f"{where}: outcome {thread['outcome']} but node {thread['node']}")
+        if thread["node"] is not None and thread["node"] not in ids:
+            out.append(f"{where}: joined as {thread['node']}, which is not on the trunk")
+        if thread["outcome"] == "joined" and thread["node"] in ids and \
+                trunk[ids.index(thread["node"])]["branch"] != thread["id"]:
+            out.append(f"{where}: its node does not name it as the branch")
+        subject_problems(thread["subject"], f"{where}.subject", out)
+        found = thread.get("proposal")
+        if found is None:
+            if PROPOSAL_REQUIRED and 4 in state["layers"] and "proposal" not in thread:
+                out.append(f"{where}: no proposal key (layer 4)")
+        else:
+            check(found, PROPOSAL, f"{where}.proposal", out)
+            if isinstance(found.get("change"), dict):
+                kind = found["change"].get("kind")
+                shape = next((each for each in PROPOSAL_CHANGES if each["kind"] == kind), None)
+                if shape is None:
+                    out.append(f"{where}.proposal: unknown change {found['change']!r}")
+                else:
+                    check(found["change"], shape, f"{where}.proposal.change", out)
+            if found.get("node") is not None and (found.get("status") != "accepted" or found["node"] not in ids):
+                out.append(f"{where}.proposal: node and status disagree")
+    for name, entry in [*[(step["id"], step) for step in state["steps"]], *state["inputs"].items()]:
+        if entry.get("changed_by", "<missing>") != newest.get(name):
+            out.append(f"{name}: changed_by {entry.get("changed_by")!r} is not the newest node that touched it")
+    for n, message in enumerate(state["chat"]):
+        chips = message.get("chips")
+        if chips is None:
+            if CHIPS_REQUIRED and 3 in state["layers"]:
+                out.append(f"chat[{n}]: no chips (layer 3)")
+            continue
+        check(chips, LIST(CHIP), f"chat[{n}].chips", out)
+        for chip in chips if isinstance(chips, list) else []:
+            if isinstance(chip, dict) and isinstance(chip.get("subject"), dict):
+                subject_problems(chip["subject"], f"chat[{n}].chips.subject", out)
+    return out
 
 
 def build_problems(state: dict) -> list[str]:
@@ -273,7 +394,7 @@ def problems(state: dict, strict: bool = False) -> list[str]:
                   "activity": LIST(ACTIVITY), "waiting": ANY, "goal": OPT({"text": STR, "mode": ("ongoing", "one_off"),
                                                                            "origin": ANY}),
                   "context": OPT(CONTEXT), "inputs": dict, "steps": LIST(STEP), "edges": LIST({"from": STR, "to": STR}),
-                  "chat": LIST(MESSAGE)}, "state", out)
+                  "chat": LIST(MESSAGE), "history": {"trunk": LIST(NODE), "latest": OPT(STR)}}, "state", out)
     if out:
         return out
     layers = set(state["layers"])
@@ -365,6 +486,7 @@ def problems(state: dict, strict: bool = False) -> list[str]:
         for entry in state["activity"]:
             if entry["thread"] is not None and entry["thread"] not in thread_ids:
                 out.append(f"activity: unknown thread {entry['thread']}")
+    out.extend(history_problems(state))
     if 5 in layers:
         check(state.get("review"), {"open": INT, "running": BOOL}, "review", out)
         challenges = {t["challenge"]["id"] for t in state.get("threads") or [] if t["challenge"]}

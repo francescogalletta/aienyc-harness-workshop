@@ -101,7 +101,8 @@
         "s1"
       ],
       "used": true,
-      "value": "150"
+      "value": "150",
+      "changed_by": null
     },
     "in:cost_per_guest": {
       "id": "in:cost_per_guest",
@@ -114,7 +115,8 @@
         "s1"
       ],
       "used": true,
-      "value": "230"
+      "value": "230",
+      "changed_by": null
     },
     "in:payment_schedule": {
       "id": "in:payment_schedule",
@@ -128,7 +130,8 @@
         "s2"
       ],
       "used": true,
-      "value": "three payments"
+      "value": "three payments",
+      "changed_by": null
     },
     "in:wedding_date": {
       "id": "in:wedding_date",
@@ -142,7 +145,8 @@
         "s5"
       ],
       "used": true,
-      "value": "2027-06-12"
+      "value": "2027-06-12",
+      "changed_by": null
     },
     "in:net_monthly_income": {
       "id": "in:net_monthly_income",
@@ -156,7 +160,8 @@
         "s3"
       ],
       "used": true,
-      "value": "5800"
+      "value": "5800",
+      "changed_by": null
     },
     "in:monthly_spending": {
       "id": "in:monthly_spending",
@@ -170,7 +175,8 @@
         "s3"
       ],
       "used": true,
-      "value": "5000"
+      "value": "5000",
+      "changed_by": null
     },
     "in:current_wedding_savings": {
       "id": "in:current_wedding_savings",
@@ -183,7 +189,8 @@
         "s5"
       ],
       "used": true,
-      "value": "4000"
+      "value": "4000",
+      "changed_by": null
     },
     "in:family_contribution": {
       "id": "in:family_contribution",
@@ -197,7 +204,8 @@
         "s4"
       ],
       "used": false,
-      "value": "20000"
+      "value": "20000",
+      "changed_by": null
     },
     "in:extras_estimate": {
       "id": "in:extras_estimate",
@@ -210,7 +218,8 @@
         "added_1"
       ],
       "used": false,
-      "value": null
+      "value": null,
+      "changed_by": null
     }
   },
   "steps": [
@@ -378,7 +387,8 @@
             }
           }
         }
-      ]
+      ],
+      "changed_by": null
     },
     {
       "id": "s2",
@@ -572,7 +582,8 @@
             }
           }
         }
-      ]
+      ],
+      "changed_by": null
     },
     {
       "id": "s3",
@@ -719,7 +730,8 @@
             }
           }
         }
-      ]
+      ],
+      "changed_by": null
     },
     {
       "id": "s4",
@@ -758,7 +770,8 @@
       "unconfirmed": [],
       "calls": null,
       "challenges": [],
-      "runs": []
+      "runs": [],
+      "changed_by": null
     },
     {
       "id": "s5",
@@ -960,7 +973,8 @@
             }
           }
         }
-      ]
+      ],
+      "changed_by": null
     },
     {
       "id": "s6",
@@ -1040,7 +1054,8 @@
       "unconfirmed": [],
       "calls": null,
       "challenges": [],
-      "runs": []
+      "runs": [],
+      "changed_by": null
     },
     {
       "id": "s7",
@@ -1074,7 +1089,8 @@
         "records": []
       },
       "challenges": [],
-      "runs": []
+      "runs": [],
+      "changed_by": null
     },
     {
       "id": "added_1",
@@ -1156,7 +1172,8 @@
       "unconfirmed": [],
       "calls": null,
       "challenges": [],
-      "runs": []
+      "runs": [],
+      "changed_by": null
     }
   ],
   "edges": [
@@ -1399,6 +1416,10 @@
       }
     }
   ],
+  "history": {
+    "trunk": [],
+    "latest": null
+  },
   "threads": [],
   "review": {
     "open": 0,

@@ -37,9 +37,9 @@ def test_the_page_loads_nothing_from_outside():
     assert set(re.findall(r"['\"](/[a-z/]*api/[a-z]+)['\"]", page)) == {"/api/state", "/api/act"}
 
 
-def test_there_are_five_sample_states():
+def test_there_are_six_sample_states():
     assert [path.stem for path in SAMPLES] == ["answer_with_mark", "built_one_not_built", "call_waiting",
-                                               "plan_proposed", "review_challenges"]
+                                               "decision_graph", "plan_proposed", "review_challenges"]
 
 
 @pytest.mark.parametrize("path", SAMPLES, ids=lambda path: path.stem)

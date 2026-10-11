@@ -49,7 +49,10 @@ def test_the_message_and_thread_tables_have_the_columns_of_the_contract(tmp_path
                for table in ("meta", "messages", "threads")}
     assert columns["meta"] == {"key", "value"}
     assert columns["messages"] == {"id", "ts", "conversation", "thread", "who", "text", "step", "kind", "data"}
-    assert columns["threads"] == {"id", "ts", "conversation", "kind", "step", "after", "title", "status"}
+    assert columns["threads"] == {"id", "ts", "conversation", "kind", "step", "after", "title", "status",
+                                  "origin", "subject", "from_node", "outcome", "node"}
+    assert {row["name"] for row in conn.execute("PRAGMA table_info(trunk)")} == {
+        "id", "ts", "conversation", "who", "kind", "text", "change", "touched", "thread", "after"}
 
 
 def test_record_and_list_events(tmp_path):
