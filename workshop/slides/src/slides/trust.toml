@@ -30,7 +30,7 @@ name = "How the work changed"
 layout = "statement"
 blocks = [
   { label = "HOW THE WORK CHANGED" },
-  { viz = "flow", label = "The work moved from one-shots to prompt engineering, then RAG and tools, then loops and graphs", reveal = "each", nodes = ["One-shots", "Prompt engineering", "RAG and tools", "Loops and graphs"] },
+  { viz = "flow", label = "The work moved from one-shots to prompt engineering, then RAG and tools, then loops and graphs", reveal = "each", node_size = "l", node_width = 340, node_height = 200, nodes = ["One-shots", "Prompt\nengineering", "RAG and\ntools", "Loops and\ngraphs"] },
   { sub = "Agents now take on far more complex work.", step = 5 },
 ]
 

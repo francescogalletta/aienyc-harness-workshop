@@ -552,7 +552,7 @@ class SlideRenderer:
 # ===========================================================================
 VIZ_COMMON = {"step", "style", "animate"}
 VIZ_TYPES = {  # type: (required keys, optional keys)
-    "flow": (["label", "nodes"], ["direction", "columns", "links", "travel", "reveal", "numbers", "node_width", "node_height", "gap", "width", "height"]),
+    "flow": (["label", "nodes"], ["direction", "columns", "links", "travel", "reveal", "numbers", "node_size", "node_width", "node_height", "gap", "width", "height"]),
     "bars": (["label", "data"], ["orient", "highlight", "highlight_step", "values", "axis", "max", "ticks", "prefix", "suffix", "decimals", "width", "height", "label_width"]),
     "waterfall": (["label", "start", "changes"], ["end", "reveal", "max", "ticks", "prefix", "suffix", "decimals", "axis", "width", "height"]),
     "line": (["label", "x", "series"], ["area", "points", "note", "max", "ticks", "prefix", "suffix", "axis", "width", "height"]),
@@ -672,6 +672,8 @@ def validate_viz(kind: str, spec: dict, deck: "Deck") -> list[str]:
                 later(f"event {e['text']!r} step", e.get("step"))
         if spec.get("reveal", "all") not in ("all", "each"):
             p.append("viz 'timeline': reveal is 'all' or 'each'")
+    if kind == "flow" and "node_size" in spec and spec["node_size"] not in ("xs", "s", "m", "l", "xl", "2xl"):
+        p.append("viz 'flow': node_size is a step of the type scale: xs, s, m, l, xl or 2xl")
     if kind == "flow" and "nodes" in spec:
         nodes = spec["nodes"]
         if not (isinstance(nodes, list) and nodes):

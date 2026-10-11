@@ -103,6 +103,7 @@ still. `--check` rejects unknown keys, malformed data and steps out of order.
 
 ```toml
 { viz = "flow", label = "…", nodes = ["Ask", { text = "Plan", principle = 1 }, { text = "Check", role = "accent", step = 2 }], travel = 3 }
+#   node_size = "l" (a type-scale step, xs..2xl, for node text on one slide; pair with node_width/node_height and \n in a node's text);
 #   direction = "column" | "grid" (+ columns, at = [col, row] per node, links = [[1, 2], [1, 3]]); reveal = "each"
 { viz = "bars", label = "…", data = [["Jan 15", 18200], ["Jun 10", 9800]], highlight = "Jun 10", highlight_step = 2, prefix = "$" }
 #   orient = "horizontal"; values = "all" | "none" | ["Jun 10"]; max, ticks, axis = false

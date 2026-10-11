@@ -187,7 +187,8 @@
   --ask-pad-top: 72px;
   --ask-pad-x: 160px;
   --ask-pad-bottom: 80px;
-  --ask-who-gap: 36px;
+  --ask-who-gap: 48px;
+  --ask-who-size: var(--fs-2xl);
 
   /* Person intro */
   --photo-size: 340px;
@@ -290,12 +291,14 @@
   /* Split halves */
   --split-gap: 100px;
   --split-rule-width: var(--stroke-hair);
-  --split-rule-overhang: var(--space-xl);
+  --split-rule-overhang: var(--space-l);
   --split-foot-gap: 168px;
   --split-foot-gap-examples: 120px;
   --split-example-gap: var(--space-xs);
-  --split-example-size: calc(46px * var(--type-scale));
-  --arrow-down-w: 60px;
+  --split-example-top: var(--space-s);  /* between the headline and its first example */
+  --split-example-size: var(--fs-2xl);
+  --arrow-down-h: 96px;  /* the down arrow between two display lines */
+  --arrow-down-stroke: var(--stroke-heavy);
   --arrow-down-margin: var(--space-s);
 
   /* Converging pills (slide "Caveats") */
