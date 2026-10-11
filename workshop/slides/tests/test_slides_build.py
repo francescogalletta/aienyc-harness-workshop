@@ -141,8 +141,8 @@ def test_committed_deck_html_is_current(deck):
 
 def test_slides_numbered_and_unique(deck):
     html = build.SlideRenderer(deck).render_all()
-    assert html.count("<section ") == 55
-    assert "<!-- 07 · How we got here -->" in html
+    assert html.count("<section ") == 42
+    assert "<!-- 05 · Trust -->" in html
     ids = [s for s in html.split('id="')[1:]]
     assert len({i.split('"')[0] for i in ids}) == len(ids)
 
@@ -168,7 +168,7 @@ def test_principle_is_a_one_line_edit(tmp_path):
     p.write_text(p.read_text(encoding="utf-8").replace('"Evidence", "emoji": "🧾"', '"Provenance", "emoji": "🪪"'), encoding="utf-8")
     html = build.build(build.Deck(src), "blueprint", False)
     assert "Evidence" not in html and "🧾" not in html
-    assert html.count("Provenance") == 5 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment)
+    assert html.count("Provenance") == 8 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 3 section labels
 
 
 def test_check_catches_broken_sources(tmp_path, capsys):
@@ -196,7 +196,58 @@ def test_raw_layout_escape_hatch(tmp_path):
     src = copy_src(tmp_path)
     (src / "slides" / "wrap.toml").open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-raw"\nname = "Raw"\nlayout = "raw"\nhtml = "<p class=\\"sub\\">hi</p>"\n')
     html = build.SlideRenderer(build.Deck(src)).render_all()
-    assert '<!-- 56 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n<p class="sub">hi</p>\n</section>' in html
+    assert '<!-- 43 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
+
+
+# ---------- section label and slide number ----------
+def sections_html(deck):
+    return build.SlideRenderer(deck).render_all()
+
+
+def test_section_label_from_group_and_principle_default(deck):
+    html = sections_html(deck)
+    assert html.count('class="section-label"') == 41  # every slide but the title
+    assert '<p class="section-label">Intro</p>' in html and "<p class=\"section-label\">Today's demo</p>" in html
+    # principle sections have no `group`: "{n} · {name}" from principles.json
+    s = next(x for x in deck.slides if x.get("principle") == 3)
+    assert s["group"] == "3 · Evidence"
+    assert '<p class="section-label">3 · Evidence</p>' in html
+
+
+def test_group_in_the_section_file_overrides_the_default(tmp_path):
+    src = copy_src(tmp_path)
+    sec = src / "slides" / "principle-3.toml"
+    sec.write_text(sec.read_text(encoding="utf-8").replace("principle = 3\n", 'principle = 3\ngroup = "Receipts"\n'), encoding="utf-8")
+    assert '<p class="section-label">Receipts</p>' in sections_html(build.Deck(src))
+
+
+def test_chrome_false_hides_label_and_number(deck, tmp_path):
+    html = sections_html(deck)
+    title = html.split("</section>")[0]
+    assert 'data-chrome="off"' in title and "section-label" not in title
+    assert html.count('data-chrome="off"') == 1
+    src = copy_src(tmp_path)
+    sec = src / "slides" / "demo.toml"
+    sec.write_text(sec.read_text(encoding="utf-8").replace('id = "s-bait"', 'id = "s-bait"\nchrome = false'), encoding="utf-8")
+    d2 = build.Deck(src)
+    bait = next(x for x in d2.slides if x["id"] == "s-bait")
+    out = build.SlideRenderer(d2).render_slide(1, bait)
+    assert 'data-chrome="off"' in out and "section-label" not in out
+
+
+def test_unknown_top_level_keys_are_still_rejected(tmp_path):
+    src = copy_src(tmp_path)
+    sec = src / "slides" / "demo.toml"
+    sec.write_text(sec.read_text(encoding="utf-8").replace('group = ', 'grup = "x"\ngroup = ', 1), encoding="utf-8")
+    with pytest.raises(BuildError, match="unknown top-level keys"):
+        build.Deck(src)
+
+
+def test_slide_number_comes_from_the_script_not_the_sources(deck):
+    html = build.SlideRenderer(deck).render_all()
+    assert 'id="counter"' not in html
+    js = (SLIDES / "src" / "js" / "deck.js").read_text(encoding="utf-8")
+    assert "counter.textContent = String(idx + 1)" in js
 
 
 # ---------- visuals kit ----------
@@ -264,8 +315,9 @@ def test_kit_and_libraries_only_when_used(deck, tmp_path):
 def test_figure_layout_takes_a_viz(tmp_path):
     src = copy_src(tmp_path)
     sec = src / "slides" / "about-us.toml"
-    sec.write_text(sec.read_text(encoding="utf-8").replace('figure = "sketch.svg"', 'figure = { viz = "draw", svg = "sketch.svg", label = "The path" }'), encoding="utf-8")
-    html = build.SlideRenderer(build.Deck(src)).render_slide(7, build.Deck(src).slides[6])
+    sec.open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-path"\nlayout = "figure"\nlabel = "HOW"\nfigure = { viz = "draw", svg = "sketch.svg", label = "The path" }\n')
+    deck = build.Deck(src)
+    html = build.SlideRenderer(deck).render_slide(5, deck.slides[-1] if False else next(x for x in deck.slides if x["id"] == "s-path"))
     assert '<figure class="viz viz-draw" data-viz="draw"' in html and '<svg class="sketch gap-s"' in html
 
 

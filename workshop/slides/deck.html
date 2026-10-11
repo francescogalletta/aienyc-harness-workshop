@@ -106,7 +106,12 @@ img { max-width: 100%; }
   --code-size: var(--fs-m);
   --hero-size: var(--fs-7xl);
   --footnote-size: var(--fs-xs);
-  --counter-size: var(--fs-3xs);
+  --counter-size: 22px;
+  --section-label-size: 22px;
+  --section-label-top: 44px;
+  --counter-right: 40px;
+  --counter-bottom: 32px;
+  --chrome-opacity: 0.6;  /* section label and slide number: clearly secondary */
   --display-measure: 1600px;
   --sub-measure: 1500px;
 
@@ -485,10 +490,16 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .progress { position: fixed; left: 0; right: 0; bottom: 0; height: var(--progress-h); background: var(--progress-track); pointer-events: none; }
 .progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
-  position: fixed; right: 14px; bottom: 10px;
+  position: absolute; right: var(--counter-right); bottom: var(--counter-bottom);
   font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--text-muted);
-  font-variant-numeric: tabular-nums; opacity: 0.7; pointer-events: none;
+  font-variant-numeric: tabular-nums; opacity: var(--chrome-opacity); pointer-events: none;
 }
+.section-label {
+  position: absolute; left: var(--slide-margin); top: var(--section-label-top);
+  font-size: var(--section-label-size); line-height: 1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps);
+  text-transform: uppercase; color: var(--text-muted); opacity: var(--chrome-opacity); pointer-events: none;
+}
+.stage:has(> .slide.active[data-chrome="off"]) .counter { display: none; }
 
 /* ---------- Motion (dormant) ----------
    The author asked for no motion. To turn it back on, set motion = "on" in
@@ -785,7 +796,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <div class="viewport" id="viewport">
 <div class="stage" id="stage" data-motion="off">
 <!-- 01 · Title -->
-<section class="slide" id="s-title">
+<section class="slide" id="s-title" data-chrome="off">
   <h1 class="title-block">
     <span class="headline t-line">Stop Talking to Your Spreadsheets;</span>
     <span class="display t-line">Building a Financial Analyst Harness You Can <span class="trust">Trust</span></span>
@@ -793,18 +804,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
 </section>
 
-<!-- 02 · Striking the title -->
-<section class="slide" id="s-title-struck">
-  <h1 class="title-block">
-    <span class="headline t-line"><span data-step-strike="1">Stop Talking to Your Spreadsheets;</span></span>
-    <span class="display t-line">Building a <span data-step-strike="2">Financial Analyst</span> Harness You Can <span class="trust">Trust</span></span>
-  </h1>
-  <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
-  <p class="footnote" data-step="3">* Sorry, a bit clickbaity. This will not run your private-equity firm. Other companies do that.</p>
-</section>
-
-<!-- 03 · Francesco -->
+<!-- 02 · Francesco -->
 <section class="slide person" id="s-francesco">
+  <p class="section-label">Intro</p>
   <div class="photo ph" data-placeholder><span>photo</span></div>
   <h2 class="mega person-name">Francesco</h2>
   <ul class="emoji-reel">
@@ -819,8 +821,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </ul>
 </section>
 
-<!-- 04 · Felippe -->
+<!-- 03 · Felippe -->
 <section class="slide person" id="s-felippe">
+  <p class="section-label">Intro</p>
   <div class="photo ph" data-placeholder><span>photo</span></div>
   <h2 class="mega person-name">Felippe</h2>
   <ul class="emoji-reel">
@@ -833,8 +836,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </ul>
 </section>
 
-<!-- 05 · Where this comes from -->
+<!-- 04 · Where this comes from -->
 <section class="slide" id="s-origin">
+  <p class="section-label">Intro</p>
   <p class="label">AT WORK</p>
   <h2 class="headline gap-xs">Data teams in financial services</h2>
   <p class="sub gap-xs">Monzo Bank, Nubank, and a few more. Now pushing what AI can do there.</p>
@@ -843,67 +847,85 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="footnote" data-step="2">* Not speaking on behalf of Monzo today.</p>
 </section>
 
-<!-- 06 · Excited -->
-<section class="slide" id="s-excited">
-  <h1 class="display">I got excited about this one.</h1>
-  <p class="sub gap-m" data-step="1">I may have overdone it.</p>
-  <p class="footnote" data-step="2">* Possibly ADHD. Not a doctor.</p>
+<!-- 05 · Trust -->
+<section class="slide centred" id="s-trust">
+  <p class="section-label">Why trust</p>
+  <h1 class="mega xl"><span class="trust">Trust.</span></h1>
+  <p class="sub gap-l" data-step="1">Money is never decided lightly. Not by a company, not by you.</p>
 </section>
 
-<!-- 07 · How we got here -->
-<section class="slide tall" id="s-path">
-  <p class="label">HOW WE GOT HERE</p>
-  <svg class="sketch gap-s" viewBox="0 0 1640 760" role="img" aria-label="How we got here">
-    <g><g transform="rotate(-2 200.0 361.0)"><path class="ln" d="M29.7 300.2 Q221.2 299.6 370.0 300.3 Q388.7 300.0 390.5 321.8 Q385.1 357.9 388.4 403.9 Q390.8 420.2 372.9 423.9 Q207.7 423.4 27.9 420.1 Q10.1 420.2 8.8 400.5 Q4.4 360.4 9.8 322.1 Q10.1 300.6 30.0 304.0 L53.5 304.1"/><text class="nm" x="200.0" y="363.0" text-anchor="middle" dominant-baseline="central">The principles</text></g><text class="note" x="44" y="500" transform="rotate(-4 44 500)">too abstract</text><path class="ln tick" d="M41.0 521.0 Q151.4 528.8 267.6 513.5"/></g>
-    <g data-step="1"><path class="ln" d="M338.0 288.0 C372.0 190.0 440.0 106.0 544.0 100.0"/><path class="ln" d="M520.0 90.1 L544.0 100.0 L525.4 112.0"/><g transform="rotate(2.5 785.0 96.0)"><path class="ln" d="M581.6 39.6 Q802.3 38.6 992.7 41.4 Q1008.0 38.8 1011.6 59.8 Q1015.8 94.4 1008.3 132.8 Q1011.1 151.1 987.5 151.3 Q808.2 155.1 577.7 151.0 Q558.4 150.2 561.2 130.1 Q560.7 95.2 558.8 61.4 Q558.5 40.6 577.7 43.3 L600.6 44.1"/><text class="nm" x="785.0" y="98.0" text-anchor="middle" dominant-baseline="central" data-step-mute="2">A harness builder</text></g></g>
-    <g data-step="2"><path class="ln" d="M578.9 150.6 Q789.2 113.5 999.4 51.8"/><path class="ln" d="M586.7 52.3 Q798.4 98.0 993.4 157.5"/><path class="ln" d="M612.5 159.7 Q719.2 118.3 929.2 40.2"/><text class="note" x="878" y="226" transform="rotate(4 878 226)">too meta</text><path class="ln tick" d="M873.5 248.2 Q939.5 257.8 1032.9 256.0"/></g>
-    <g data-step="3"><path class="ln" d="M400.0 392.0 C474.0 418.0 452.0 586.0 536.0 592.0 C590.0 596.0 606.0 548.0 624.0 512.0"/><path class="ln" d="M603.0 527.3 L624.0 512.0 L623.3 534.1"/><g transform="rotate(-1.5 782.0 495.0)"><path class="ln" d="M650.1 430.6 Q802.4 435.8 910.5 430.8 Q933.0 433.8 930.8 454.7 Q936.6 496.7 931.7 535.6 Q930.2 559.9 910.4 558.8 Q769.8 561.9 652.6 557.2 Q630.7 558.9 630.3 536.4 Q632.7 500.6 632.5 450.7 Q633.7 430.8 649.1 434.8 L675.3 435.2"/><text class="nm" x="782.0" y="497.0" text-anchor="middle" dominant-baseline="central">An example</text></g></g>
-    <g data-step="4"><path class="ln" d="M940.0 528.0 C990.0 566.0 1030.0 610.0 1100.0 606.0"/><path class="ln" d="M1075.9 596.3 L1100.0 606.0 L1081.1 617.4"/><g transform="rotate(3 1273.0 604.0)"><path class="ln" d="M1132.4 546.5 Q1266.1 552.7 1416.9 548.6 Q1434.8 548.3 1432.6 565.2 Q1428.2 610.6 1434.8 642.8 Q1432.1 660.5 1413.9 660.9 Q1263.9 666.0 1129.5 660.2 Q1112.9 661.6 1112.9 641.2 Q1115.5 610.6 1111.4 569.1 Q1113.6 549.5 1131.5 552.4 L1160.4 553.3"/><text class="nm" x="1273.0" y="606.0" text-anchor="middle" dominant-baseline="central">Scaffolding</text></g><text class="note" x="1144" y="728" transform="rotate(-3 1144 728)">just for today</text><path class="ln tick" d="M1142.2 743.8 Q1200.3 734.4 1235.2 752.3"/></g>
-    <g data-step="5"><path class="ln" d="M1362.0 542.0 C1382.0 476.0 1416.0 430.0 1452.0 392.0"/><path class="ln" d="M1427.1 399.4 L1452.0 392.0 L1444.9 412.9"/><g transform="rotate(-3 1483.0 327.0)"><path class="ln" d="M1393.4 267.6 Q1494.8 269.0 1573.6 269.4 Q1592.3 269.0 1592.1 288.6 Q1593.8 322.7 1594.8 366.0 Q1594.5 387.7 1572.5 384.0 Q1473.1 388.1 1390.2 384.7 Q1373.6 386.6 1371.8 368.4 Q1369.9 329.7 1370.8 287.6 Q1373.2 269.7 1394.3 271.2 L1417.0 272.3"/><text class="nm" x="1483.0" y="329.0" text-anchor="middle" dominant-baseline="central" data-step-mute="6">A UI</text></g></g>
-    <g data-step="6"><path class="ln" d="M1387.3 388.0 Q1491.3 337.4 1598.4 272.9"/><path class="ln" d="M1383.6 277.3 Q1487.8 321.1 1593.4 389.8"/><text class="note" x="1176" y="238" transform="rotate(-4 1176 238)">looked like a product</text></g>
-    <g data-step="7"><path class="ln dash" d="M1360.0 340.0 C1306.0 350.0 1262.0 364.0 1242.0 394.0 C1224.0 422.0 1244.0 454.0 1274.0 444.0 C1306.0 432.0 1290.0 384.0 1232.0 384.0 C1150.0 382.0 1060.0 396.0 1006.0 426.0"/><path class="ln" d="M1032.0 425.4 L1006.0 426.0 L1018.3 407.7"/><path class="ln" d="M572.5 457.2 Q591.8 434.2 606.5 423.8 Q621.2 413.3 641.4 405.0 Q661.7 396.7 685.7 390.9 Q709.8 385.1 736.1 382.5 Q762.5 379.8 789.6 379.8 Q816.7 379.9 841.2 385.5 Q865.6 391.1 888.2 397.3 Q910.8 403.4 929.1 412.2 Q947.5 420.9 962.4 430.9 Q977.4 440.8 990.8 451.7 Q1004.2 462.5 1009.3 475.0 Q1014.5 487.5 1015.2 500.5 Q1016.0 513.4 1009.4 526.1 Q1002.8 538.9 987.1 549.5 Q971.4 560.1 953.1 569.4 Q934.9 578.7 911.1 584.2 Q887.4 589.7 863.3 593.6 Q839.2 597.5 814.3 599.6 Q789.3 601.7 763.3 602.6 Q737.2 603.5 711.2 600.7 Q685.2 597.8 660.8 592.1 Q636.4 586.3 616.6 577.2 Q596.9 568.1 583.2 556.7 Q569.5 545.3 562.6 532.8 Q555.6 520.3 548.6 507.6 Q541.5 495.0 546.5 482.1 Q551.5 469.2 558.6 456.5 Q565.7 443.9 578.9 432.2 Q592.2 420.6 610.4 410.3 Q628.6 400.0 651.4 391.6 Q674.1 383.2 701.4 378.6 Q728.6 373.9 757.3 374.2 Q786.1 374.6 813.3 377.5 Q840.6 380.5 865.5 386.0 Q890.4 391.6 913.2 398.7 Q936.0 405.8 955.3 415.1 Q974.6 424.4 991.0 435.2 Q1007.4 446.1 1018.7 458.7 Q1030.0 471.4 1032.6 485.2 Q1035.1 499.0 1031.3 512.8 Q1027.4 526.7 1015.0 539.2 Q1002.6 551.7 982.4 561.4 Q962.2 571.1 942.0 580.0 Q921.8 588.9 897.4 594.9 Q873.0 600.8 846.8 604.3 Q820.6 607.8 793.2 610.2 Q765.8 612.5 737.4 611.5 Q709.0 610.5 681.7 605.9 Q654.3 601.3 632.3 592.2 Q610.4 583.0 593.2 572.1"/><text class="note big" x="590" y="694" transform="rotate(-3 590 694)">here we are</text><path class="ln" d="M586.8 716.6 Q731.8 727.9 884.3 707.4"/></g>
-  </svg>
-</section>
-
-<!-- 08 · Why -->
-<section class="slide" id="s-why">
-  <h1 class="display"><span class="trust">Trust</span> is the ultimate goal in finance.</h1>
-  <p class="sub gap-m" data-step="1">Today's ultimate goal is for you to have a strong perspective.</p>
-  <p class="sub gap-s" data-step="2">This workshop won't be a straight line, but rather an open conversation.</p>
-</section>
-
-<!-- 09 · What you get -->
-<section class="slide" id="s-get">
-  <h1 class="display">Today you build a harness
-    <span class="swap swap-left">
-      <span data-step-out="1">for making decisions over finances.</span>
-      <span data-step="1" data-step-out="2">to analyze financial data.</span>
-      <span data-step="2" data-step-out="3">to reduce complexity when talking about money.</span>
-      <span data-step="3">to build a financial analyst.</span>
-    </span>
-  </h1>
-  <p class="sub gap-m" data-step="4">The principles hold for one person or a bank.</p>
-</section>
-
-<!-- 10 · What this is not -->
-<section class="slide" id="s-not">
-  <h1 class="display">A meta-workshop.</h1>
+<!-- 06 · Tailored -->
+<section class="slide" id="s-tailored">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">Finance is tailored.</h1>
   <div class="stack-tight gap-l">
-    <p class="soft" data-step="1"><span class="lead">No</span> secret sauce from work.</p>
-    <p class="soft" data-step="2"><span class="lead">No</span> solution to your use case.</p>
-    <p class="soft" data-step="3"><span class="lead">Not</span> plug and play.</p>
+    <p class="headline" data-step="1">Your numbers.</p>
+    <p class="headline" data-step="2">Your strategy. <span class="hand-aside" data-step="3">Generally none...</span></p>
+    <p class="headline" data-step="4">Your knowledge. <span class="hand-aside" data-step="5">(or misconceptions)</span></p>
   </div>
-  <p class="sub gap-l" data-step="4">A toy example to land a framework to build harnesses.</p>
-  <p class="footnote hand" data-step="5">There are layers, folks <span class="emo">🧅</span></p>
+</section>
+
+<!-- 07 · The gap -->
+<section class="slide" id="s-gap">
+  <p class="section-label">Why trust</p>
+  <div class="split">
+    <div>
+      <p class="label">YOU</p>
+      <h2 class="headline gap-xs">know your situation</h2>
+    </div>
+    <div class="divider"></div>
+    <div data-step="1">
+      <p class="label">THE MODEL</p>
+      <h2 class="headline gap-xs">knows the field</h2>
+    </div>
+  </div>
+</section>
+
+<!-- 08 · Caveats -->
+<section class="slide converge" id="s-caveats">
+  <p class="section-label">Why trust</p>
+  <div class="input" data-step="1" style="--cx:440px; --top:400px"><span class="pill">guest count not final</span></div>
+  <div class="input" data-step="2" style="--cx:700px; --top:290px"><span class="pill">three payment dates</span></div>
+  <div class="input" data-step="3" style="--cx:960px; --top:180px"><span class="pill">family money, maybe</span></div>
+  <div class="input" data-step="4" style="--cx:1220px; --top:290px"><span class="pill">gross or net?</span></div>
+  <div class="input" data-step="5" style="--cx:1480px; --top:400px"><span class="pill">what we really spend</span></div>
+  <div class="question step">Can we pay for the wedding?</div>
+  <p class="sub" data-step="6">Simple question. Then the caveats.</p>
+</section>
+
+<!-- 09 · The deal -->
+<section class="slide" id="s-deal">
+  <p class="section-label">Why trust</p>
+  <h1 class="display">Earn the <span class="trust">trust</span>.</h1>
+  <p class="display quiet gap-m" data-step="1">Delegate the boring work.</p>
+</section>
+
+<!-- 10 · The framework (builds bottom-up) -->
+<section class="slide tall" id="s-framework">
+  <p class="section-label">Why trust</p>
+  <span data-step="6" data-confetti hidden></span>
+  <div class="stack">
+    <p class="label">THE GOAL</p>
+    <p class="stack-goal"><span class="trust">Trust</span></p>
+    <ol class="stack-bars">
+      <li class="bar" data-step-fill="5" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar" data-step-fill="4" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar" data-step-fill="3" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar" data-step-fill="2" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar" data-step-fill="1" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
+    </ol>
+  </div>
 </section>
 
 <!-- 11 · The real ask -->
 <section class="slide centred" id="s-bait">
+  <p class="section-label">Today's demo</p>
   <h1 class="display">Speaking of <span class="trust">trust</span>, this is another bait.</h1>
 </section>
 
 <!-- 12 · The value question -->
 <section class="slide centred" id="s-value">
+  <p class="section-label">Today's demo</p>
   <div class="swap">
     <h1 class="display" data-step-out="1">You thought you would get all the value today?</h1>
     <p class="mega dots" data-step="1" aria-label="pause">…</p>
@@ -912,11 +934,13 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 13 · The real ask -->
 <section class="slide centred" id="s-ask">
+  <p class="section-label">Today's demo</p>
   <p class="display step from-you ask">You are here to help <span class="ask-us">me</span>. <span class="hand-aside ask-who" data-step="1">(Francesco)</span></p>
 </section>
 
 <!-- 14 · The demo -->
 <section class="slide" id="s-demo">
+  <p class="section-label">Today's demo</p>
   <p class="label">TODAY'S DEMO</p>
   <div class="mega-row gap-s">
     <h1 class="mega">My wedding.</h1>
@@ -927,6 +951,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 15 · Show of hands -->
 <section class="slide" id="s-hands">
+  <p class="section-label">Today's demo</p>
   <p class="label">SHOW OF HANDS</p>
   <h1 class="display gap-s">Who has had a wedding?</h1>
   <p class="label gap-l">GUESTS</p>
@@ -941,20 +966,14 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 <!-- 16 · Looks simple -->
 <section class="slide" id="s-simple">
+  <p class="section-label">Today's demo</p>
   <h1 class="display">Looks simple. It is not.</h1>
   <p class="big-emoji gap-m" data-step="1" aria-label="sweating">😅</p>
 </section>
 
-<!-- 17 · Fine print -->
-<section class="slide" id="s-fine">
-  <p class="label">DISCLAIMER, FIRST OF ALL</p>
-  <h1 class="display gap-s">Something will break.</h1>
-  <p class="sub gap-m" data-step="1">Some of this is over-engineered.</p>
-  <p class="sub gap-s" data-step="2">When it breaks, we fix it with you.</p>
-</section>
-
-<!-- 18 · Two tracks -->
+<!-- 17 · Two tracks -->
 <section class="slide" id="s-tracks">
+  <p class="section-label">Today's demo</p>
   <p class="label">PICK A TRACK</p>
   <div class="tracks gap-m">
     <div class="track step">
@@ -970,8 +989,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 19 · Setup -->
+<!-- 18 · Setup -->
 <section class="slide" id="s-setup">
+  <p class="section-label">Setup</p>
   <div class="setup">
     <div>
       <div class="row"><p class="label">SETUP</p><span class="chip">10 min</span></div>
@@ -995,8 +1015,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 20 · The two hours -->
+<!-- 19 · The two hours -->
 <section class="slide" id="s-map">
+  <p class="section-label">Setup</p>
   <p class="label">TODAY'S STRUCTURE</p>
   <h2 class="headline gap-xs">For each principle, we explain it, show it working, then discuss and play.</h2>
   <div class="flow gap-xl">
@@ -1016,109 +1037,33 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 21 · Trust -->
-<section class="slide centred" id="s-trust">
-  <h1 class="mega xl"><span class="trust">Trust.</span></h1>
-  <p class="sub gap-l" data-step="1">Money is never decided lightly. Not by a company, not by you.</p>
+<!-- 20 · Fine print -->
+<section class="slide" id="s-fine">
+  <p class="section-label">Setup</p>
+  <p class="label">DISCLAIMER, FIRST OF ALL</p>
+  <h1 class="display gap-s">Something will break.</h1>
+  <p class="sub gap-m" data-step="1">Some of this is over-engineered.</p>
+  <p class="sub gap-s" data-step="2">When it breaks, we fix it with you.</p>
 </section>
 
-<!-- 22 · Tailored -->
-<section class="slide" id="s-tailored">
-  <h1 class="display">Finance is tailored.</h1>
-  <div class="stack-tight gap-l">
-    <p class="headline" data-step="1">Your numbers.</p>
-    <p class="headline" data-step="2">Your strategy. <span class="hand-aside" data-step="3">Generally none...</span></p>
-    <p class="headline" data-step="4">Your knowledge. <span class="hand-aside" data-step="5">(or misconceptions)</span></p>
-  </div>
-</section>
-
-<!-- 23 · The gap -->
-<section class="slide" id="s-gap">
-  <div class="split">
-    <div>
-      <p class="label">YOU</p>
-      <h2 class="headline gap-xs">know your situation</h2>
-    </div>
-    <div class="divider"></div>
-    <div data-step="1">
-      <p class="label">THE MODEL</p>
-      <h2 class="headline gap-xs">knows the field</h2>
-    </div>
-  </div>
-</section>
-
-<!-- 24 · Caveats -->
-<section class="slide converge" id="s-caveats">
-  <div class="input" data-step="1" style="--cx:440px; --top:400px"><span class="pill">guest count not final</span></div>
-  <div class="input" data-step="2" style="--cx:700px; --top:290px"><span class="pill">three payment dates</span></div>
-  <div class="input" data-step="3" style="--cx:960px; --top:180px"><span class="pill">family money, maybe</span></div>
-  <div class="input" data-step="4" style="--cx:1220px; --top:290px"><span class="pill">gross or net?</span></div>
-  <div class="input" data-step="5" style="--cx:1480px; --top:400px"><span class="pill">what we really spend</span></div>
-  <div class="question step">Can we pay for the wedding?</div>
-  <p class="sub" data-step="6">Simple question. Then the caveats.</p>
-</section>
-
-<!-- 25 · The deal -->
-<section class="slide" id="s-deal">
-  <h1 class="display">Earn the <span class="trust">trust</span>.</h1>
-  <p class="display quiet gap-m" data-step="1">Delegate the boring work.</p>
-</section>
-
-<!-- 26 · Why “analyst” -->
-<section class="slide" id="s-analyst">
-  <p class="label">WHY “ANALYST”</p>
-  <h1 class="display gap-s">Treat the agent like a new hire.</h1>
-  <p class="sub gap-m" data-step="1">Nobody hands a new analyst the money on day one.</p>
-  <p class="sub gap-s" data-step="2">A good manager builds that <span class="trust">trust</span> on purpose.</p>
-</section>
-
-<!-- 27 · Code and model -->
-<section class="slide" id="s-code-model">
-  <div class="split">
-    <div>
-      <p class="label">CODE</p>
-      <h2 class="headline gap-xs">repeats exactly</h2>
-    </div>
-    <div class="divider"></div>
-    <div data-step="1">
-      <p class="label">THE MODEL</p>
-      <h2 class="headline gap-xs">uses judgement</h2>
-    </div>
-    <p class="sub foot" data-step="2">The harness decides which does what.</p>
-  </div>
-</section>
-
-<!-- 28 · The framework (builds bottom-up) -->
-<section class="slide tall" id="s-framework">
-  <span data-step="6" data-confetti hidden></span>
-  <div class="stack">
-    <p class="label">THE GOAL</p>
-    <p class="stack-goal"><span class="trust">Trust</span></p>
-    <ol class="stack-bars">
-      <li class="bar" data-step-fill="5" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
-      <li class="bar" data-step-fill="4" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar" data-step-fill="3" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar" data-step-fill="2" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar" data-step-fill="1" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
-    </ol>
-  </div>
-</section>
-
-<!-- 29 · Principle 1 · Shared Domain -->
+<!-- 21 · Principle 1 · Shared Domain -->
 <section class="slide" id="s-p1" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">20 min</span></div>
   <p class="sub gap-m">Agree the plan before any number.</p>
 </section>
 
-<!-- 30 · P1 · Why -->
+<!-- 22 · P1 · Why -->
 <section class="slide" id="s-p1-why" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <p class="label">WHY</p>
   <h1 class="display gap-s">What is obvious to you is not what the model learned.</h1>
   <p class="sub gap-m" data-step="1">Start from the goal. Work backwards, together.</p>
 </section>
 
-<!-- 31 · P1 · Without it -->
+<!-- 23 · P1 · Without it -->
 <section class="slide" id="s-p1-without" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <p class="label">WITHOUT IT</p>
   <div class="stack-tight gap-m">
     <p class="headline" data-step="1">One shot.</p>
@@ -1127,8 +1072,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 32 · P1 · Examples -->
+<!-- 24 · P1 · Examples -->
 <section class="slide" id="s-p1-examples" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <p class="label">EXAMPLES</p>
   <div class="says gap-m">
     <p class="label">YOU SAY</p><span></span><p class="label">THE MODEL HAS TO GUESS</p>
@@ -1145,32 +1091,31 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="sub gap-l" data-step="3">So it guesses, or it keeps asking.</p>
 </section>
 
-<!-- 33 · P1 · Demo -->
+<!-- 25 · P1 · Demo -->
 <section class="slide" id="s-p1-demo" data-principle="1">
+  <p class="section-label">1 · Shared Domain</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 34 · P1 · Your turn -->
-<section class="slide" id="s-p1-turn" data-principle="1">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 35 · Principle 2 · Consistency -->
+<!-- 26 · Principle 2 · Consistency -->
 <section class="slide" id="s-p2" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Numbers come only from tested code.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
 
-<!-- 36 · P2 · Why -->
+<!-- 27 · P2 · Why -->
 <section class="slide" id="s-p2-why" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <p class="label">WHY</p>
   <h1 class="display gap-s">Write the calculation once. Run it the same way every time.</h1>
   <p class="sub gap-m" data-step="1">The model picks the tool. It never does the arithmetic.</p>
 </section>
 
-<!-- 37 · P2 · Without it -->
+<!-- 28 · P2 · Without it -->
 <section class="slide" id="s-p2-without" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <p class="label">WITHOUT IT</p>
   <div class="stack-tight gap-m">
     <p class="headline" data-step="1">Arithmetic in the model's head.</p>
@@ -1179,8 +1124,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 38 · P2 · Examples -->
+<!-- 29 · P2 · Examples -->
 <section class="slide" id="s-p2-examples" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <p class="label">EXAMPLES</p>
   <div class="steps-grid gap-m">
     <div class="step">Total cost</div>
@@ -1193,84 +1139,75 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <p class="sub gap-m">Each one is code, with tests.</p>
 </section>
 
-<!-- 39 · P2 · Demo -->
+<!-- 30 · P2 · Demo -->
 <section class="slide" id="s-p2-demo" data-principle="2">
+  <p class="section-label">2 · Consistency</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 40 · P2 · Your turn -->
-<section class="slide" id="s-p2-turn" data-principle="2">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 41 · Principle 3 · Evidence -->
+<!-- 31 · Principle 3 · Evidence -->
 <section class="slide" id="s-p3" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">15 min</span></div>
   <p class="sub gap-m">Every number can be followed back.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
 </section>
 
-<!-- 42 · P3 · Why / without it / examples -->
+<!-- 32 · P3 · Why / without it / examples -->
 <section class="slide" id="s-p3-content" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
   <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
 </section>
 
-<!-- 43 · P3 · Demo -->
+<!-- 33 · P3 · Demo -->
 <section class="slide" id="s-p3-demo" data-principle="3">
+  <p class="section-label">3 · Evidence</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 44 · P3 · Your turn -->
-<section class="slide" id="s-p3-turn" data-principle="3">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 45 · Principle 4 · Accountability -->
+<!-- 34 · Principle 4 · Accountability -->
 <section class="slide" id="s-p4" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Ask only where a person must decide.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
 
-<!-- 46 · P4 · Why / without it / examples -->
+<!-- 35 · P4 · Why / without it / examples -->
 <section class="slide" id="s-p4-content" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
   <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
 </section>
 
-<!-- 47 · P4 · Demo -->
+<!-- 36 · P4 · Demo -->
 <section class="slide" id="s-p4-demo" data-principle="4">
+  <p class="section-label">4 · Accountability</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 48 · P4 · Your turn -->
-<section class="slide" id="s-p4-turn" data-principle="4">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 49 · Principle 5 · Verification -->
+<!-- 37 · Principle 5 · Verification -->
 <section class="slide" id="s-p5" data-principle="5">
+  <p class="section-label">5 · Verification</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">15 min</span></div>
   <p class="sub gap-m">A reviewer challenges the plan.</p>
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
 
-<!-- 50 · P5 · Why / without it / examples -->
+<!-- 38 · P5 · Why / without it / examples -->
 <section class="slide" id="s-p5-content" data-principle="5">
+  <p class="section-label">5 · Verification</p>
   <div class="panel ph" data-placeholder><p class="label">WHY · WITHOUT IT · EXAMPLES</p></div>
 </section>
 
-<!-- 51 · P5 · Demo -->
+<!-- 39 · P5 · Demo -->
 <section class="slide" id="s-p5-demo" data-principle="5">
+  <p class="section-label">5 · Verification</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 52 · P5 · Your turn -->
-<section class="slide" id="s-p5-turn" data-principle="5">
-  <div class="panel ph from-you" data-placeholder><p class="label">YOUR TURN</p></div>
-</section>
-
-<!-- 53 · Wrap · The framework again -->
+<!-- 40 · Wrap · The framework again -->
 <section class="slide tall" id="s-framework-again" data-principle="wrap" data-rail="off">
+  <p class="section-label">Wrap</p>
   <div class="stack">
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
@@ -1284,13 +1221,15 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   </div>
 </section>
 
-<!-- 54 · Wrap · Better models -->
+<!-- 41 · Wrap · Better models -->
 <section class="slide" id="s-better" data-principle="wrap">
+  <p class="section-label">Wrap</p>
   <h1 class="display">Better models still have to earn <span class="trust">trust</span>.</h1>
 </section>
 
-<!-- 55 · Wrap · Questions -->
+<!-- 42 · Wrap · Questions -->
 <section class="slide" id="s-questions" data-principle="wrap">
+  <p class="section-label">Wrap</p>
   <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">10 min</span></div>
 </section>
 
@@ -1304,10 +1243,10 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <span class="rail-cell" data-n="1" style="--c:var(--principle-1)">1</span>
 </div>
 
+<div class="counter" id="counter" aria-hidden="true"></div>
 </div>
 </div>
 <div class="progress" aria-hidden="true"><i id="progress"></i></div>
-<div class="counter" id="counter" aria-live="polite"></div>
 
 <script>
 (function () {
@@ -1423,7 +1362,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
     }
     markRail(s);
     bar.style.width = ((idx + 1) / N * 100) + '%';
-    counter.textContent = (idx + 1) + ' / ' + N;
+    counter.textContent = String(idx + 1);
     setHash(idx + 1);
   }
 

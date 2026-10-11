@@ -321,7 +321,7 @@ class Deck:
             if not path.exists():
                 raise BuildError(f"the manifest lists section {section!r} but there is no {rel}/{section}.toml")
             data = read_toml(path)
-            extra = set(data) - {"principle", "rail", "slide"}
+            extra = set(data) - {"principle", "rail", "group", "slide"}
             if extra:
                 raise BuildError(f"{rel}/{section}.toml: unknown top-level keys {sorted(extra)}")
             for i, slide in enumerate(data.get("slide", []), 1):
@@ -329,6 +329,11 @@ class Deck:
                 slide["_where"] = f"{rel}/{section}.toml, slide {i}"
                 slide.setdefault("principle", data.get("principle"))
                 slide.setdefault("rail", data.get("rail", True))
+                group = data.get("group")
+                if group is None and isinstance(data.get("principle"), int) and data["principle"] in self.by_n:
+                    pr = self.by_n[data["principle"]]
+                    group = f"{pr['n']} · {pr['name']}"
+                slide.setdefault("group", group)
                 slides.append(slide)
         return slides
 
@@ -466,7 +471,7 @@ class SlideRenderer:
         if name not in self.layouts:
             raise BuildError(f"{where}: unknown layout {name!r} (known: {', '.join(self.layouts)})")
         layout = self.layouts[name]
-        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "marks", "choreo", "_where"}
+        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "group", "chrome", "marks", "choreo", "_where"}
         unknown = set(slide) - allowed
         if unknown:
             raise BuildError(f"{where}: layout {name!r} has no fields {sorted(unknown)}")
@@ -516,12 +521,17 @@ class SlideRenderer:
         except BuildError as e:
             raise BuildError(f"{s['_where']} ({s['id']}): {e}") from None
         inner = "\n".join(line.rstrip() for line in inner.split("\n") if line.strip())
+        chrome = s.get("chrome", True) is not False
+        if chrome and s.get("group"):
+            inner = f'  <p class="section-label">{escape(s["group"])}</p>\n' + inner
         classes = " ".join(c for c in ["slide", layout.get("class"), s.get("class") if s["layout"] == "raw" else None] if c)
         attrs = f' id="{escape(s["id"])}"'
         if s.get("principle") is not None:
             attrs += f' data-principle="{s["principle"]}"'
         if s.get("rail") is False:
             attrs += ' data-rail="off"'
+        if not chrome:
+            attrs += ' data-chrome="off"'
         return f"<!-- {number:02d} · {s['name']} -->\n<section class=\"{classes}\"{attrs}>\n{inner}\n</section>"
 
     def render_all(self) -> str:

@@ -94,7 +94,12 @@
   --code-size: var(--fs-m);
   --hero-size: var(--fs-7xl);
   --footnote-size: var(--fs-xs);
-  --counter-size: var(--fs-3xs);
+  --counter-size: 22px;
+  --section-label-size: 22px;
+  --section-label-top: 44px;
+  --counter-right: 40px;
+  --counter-bottom: 32px;
+  --chrome-opacity: 0.6;  /* section label and slide number: clearly secondary */
   --display-measure: 1600px;
   --sub-measure: 1500px;
 

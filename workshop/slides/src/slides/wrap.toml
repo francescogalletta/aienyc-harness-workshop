@@ -1,5 +1,6 @@
 # Wrap. The rail shows every principle done.
 principle = "wrap"
+group = "Wrap"
 
 [[slide]]
 id = "s-framework-again"

@@ -11,7 +11,3 @@ kind = "content"
 [[slide]]
 layout = "placeholder"
 kind = "demo"
-
-[[slide]]
-layout = "placeholder"
-kind = "turn"

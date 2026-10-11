@@ -72,7 +72,7 @@ function render(entering) {
   }
   markRail(s);
   bar.style.width = ((idx + 1) / N * 100) + '%';
-  counter.textContent = (idx + 1) + ' / ' + N;
+  counter.textContent = String(idx + 1);
   setHash(idx + 1);
 }
 

@@ -32,6 +32,7 @@ also says when `deck.html` is out of date. The build's own tests:
 
 ```
 src/deck.toml          title, default theme, motion switch, section order
+                       (opening, about-us, trust, demo, setup, principle-1..5, wrap)
 src/principles.json    the five principles, one per line: name, emoji, colour token,
                        minutes, statement, "builds on" line
 src/slides/*.toml      the words: one file per section, slides in order
@@ -56,14 +57,14 @@ and that layout's fields. A statement slide is a list of blocks, top to bottom:
 
 ```toml
 [[slide]]
-id = "s-excited"
-name = "Excited"
+id = "s-example"
+name = "Example"
 layout = "statement"
 blocks = [
-  { display = "I got excited about this one." },
-  { sub = "I may have overdone it.", step = 1 },
+  { display = "A line shown at once." },
+  { sub = "A second one, at the first click.", step = 1 },
 ]
-footnote = { text = "* Possibly ADHD. Not a doctor.", step = 2 }
+footnote = { text = "* A footnote, at the second click.", step = 2 }
 ```
 
 - `step = n` shows a thing at click n (`out`, `mute`, `strike`, `fill` likewise).
@@ -74,10 +75,16 @@ footnote = { text = "* Possibly ADHD. Not a doctor.", step = 2 }
 - Layouts, block roles and inline roles are all listed, with their fields, in
   `src/layouts/layouts.toml`. `raw` takes bespoke HTML when nothing fits.
 - Slides are numbered by position; move one by moving its `[[slide]]`.
+- **Section label** (top-left, quiet, uppercase): a section file may set a
+  top-level `group = "…"`; every slide in it shows that label. Principle files
+  with no `group` get "{n} · {name}" from `principles.json`; the opening has none.
+- **Slide number** (bottom-right, `#counter`, inside the stage): written by
+  `deck.js` from the slide's position, never in the sources.
+- `chrome = false` on a slide hides both (the title slide does).
 - A principle (name, emoji, minutes, statement) is one line in
   `principles.json`; the structure flow, the framework stack and its repeat,
   the rail and the dividers all follow.
-- The sketch on "How we got here" is drawn by `tools/sketch.py`; the QR by
+- `tools/sketch.py` draws `src/assets/sketch.svg` (not used by a slide now); the QR by
   `tools/qr.py` (needs `segno`; `--check` says when the QR is for another URL).
 
 ## Add a chart, diagram or animation

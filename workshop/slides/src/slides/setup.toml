@@ -1,0 +1,37 @@
+# Setup and the shape of the session.
+group = "Setup"
+
+[[slide]]
+id = "s-setup"
+name = "Setup"
+layout = "setup"
+label = "SETUP"
+minutes = 10
+url = "https://github.com/francescogalletta/aienyc-harness-workshop"
+needs_label = "YOU NEED ONE OF"
+needs = ["Claude Code", "Codex", "Claude Desktop", "an API key"]
+needs_todo = "others to confirm"
+check_label = "CHECK IT WORKS"
+command = "uv run python -m harness check"
+check_result = "It should end with “Setup works”."
+note = "Please be lazy and ask your agent to set it up for you."
+
+[[slide]]
+id = "s-map"
+name = "The two hours"
+layout = "structure"
+label = "TODAY'S STRUCTURE"
+headline = "For each principle, we explain it, show it working, then discuss and play."
+start = "Setup"
+end = "Wrap"
+
+[[slide]]
+id = "s-fine"
+name = "Fine print"
+layout = "statement"
+blocks = [
+  { label = "DISCLAIMER, FIRST OF ALL" },
+  { display = "Something will break." },
+  { sub = "Some of this is over-engineered.", step = 1 },
+  { sub = "When it breaks, we fix it with you.", step = 2 },
+]

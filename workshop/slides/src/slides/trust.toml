@@ -1,4 +1,5 @@
 # Why trust, and the framework that earns it.
+group = "Why trust"
 
 [[slide]]
 id = "s-trust"
@@ -51,25 +52,6 @@ blocks = [
   { display = "Earn the ==trust==." },
   { display = "Delegate the boring work.", quiet = true, step = 1 },
 ]
-
-[[slide]]
-id = "s-analyst"
-name = "Why “analyst”"
-layout = "statement"
-blocks = [
-  { label = "WHY “ANALYST”" },
-  { display = "Treat the agent like a new hire." },
-  { sub = "Nobody hands a new analyst the money on day one.", step = 1 },
-  { sub = "A good manager builds that ==trust== on purpose.", step = 2 },
-]
-
-[[slide]]
-id = "s-code-model"
-name = "Code and model"
-layout = "split"
-left = { label = "CODE", headline = "repeats exactly" }
-right = { label = "THE MODEL", headline = "uses judgement", step = 1 }
-foot = { text = "The harness decides which does what.", step = 2 }
 
 [[slide]]
 id = "s-framework"

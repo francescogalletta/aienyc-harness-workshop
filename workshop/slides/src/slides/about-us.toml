@@ -1,4 +1,5 @@
 # Who we are and how this workshop came about.
+group = "Intro"
 
 [[slide]]
 id = "s-francesco"
@@ -42,20 +43,3 @@ blocks = [
   { headline = "Applied AI to make our life easier", step = 1 },
 ]
 footnote = { text = "* Not speaking on behalf of Monzo today.", step = 2 }
-
-[[slide]]
-id = "s-excited"
-name = "Excited"
-layout = "statement"
-blocks = [
-  { display = "I got excited about this one." },
-  { sub = "I may have overdone it.", step = 1 },
-]
-footnote = { text = "* Possibly ADHD. Not a doctor.", step = 2 }
-
-[[slide]]
-id = "s-path"
-name = "How we got here"
-layout = "figure"
-label = "HOW WE GOT HERE"
-figure = "sketch.svg"   # drawn by tools/sketch.py; its clicks are in the drawing
