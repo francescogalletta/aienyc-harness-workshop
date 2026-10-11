@@ -295,6 +295,7 @@ var viz = (function () {
     var svg = svgFor(fig, W, H), rough = isRough(spec), rc = rough ? window.rough.svg(svg) : null;
     var rad = num('--viz-node-radius', 6, fig), sw = num('--viz-stroke', 3, fig);
     var box = function (n) { var x = (n.at[0] - 1) * sx, y = 20 + (n.at[1] - 1) * sy; return { x: x, y: y, cx: x + nw / 2, cy: y + nh / 2 }; };
+    var nstep = function (i) { return nodes[i].step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step); };   /* an arrow shows with the later of its two nodes */
     var links = spec.links || nodes.slice(1).map(function (_, i) { return [i + 1, i + 2]; });
     var linkG = el('g', { 'class': 'viz-links' }, svg), segs = [];
     links.forEach(function (lk, k) {
@@ -302,7 +303,7 @@ var viz = (function () {
       if (Math.abs(a.cy - b.cy) < 1) { var s = b.cx > a.cx ? 1 : -1; p = [a.cx + s * (nw / 2 + 14), a.cy]; q = [b.cx - s * (nw / 2 + 18), b.cy]; }
       else if (Math.abs(a.cx - b.cx) < 1) { var t = b.cy > a.cy ? 1 : -1; p = [a.cx, a.cy + t * (nh / 2 + 12)]; q = [b.cx, b.cy - t * (nh / 2 + 16)]; }
       else { var dx = b.cx - a.cx, dy = b.cy - a.cy, f = Math.min(Math.abs((nw / 2 + 14) / dx), Math.abs((nh / 2 + 12) / dy)); p = [a.cx + dx * f, a.cy + dy * f]; q = [b.cx - dx * f * 1.08, b.cy - dy * f * 1.08]; }
-      var lstep = Math.max(nodes[lk[0] - 1].step || 0, nodes[lk[1] - 1].step || 0) || spec.step;
+      var lstep = Math.max(nstep(lk[0] - 1) || 0, nstep(lk[1] - 1) || 0) || spec.step;
       var g = stepOn(el('g', { 'class': 'viz-link' }, linkG), lstep);
       var ang = Math.atan2(q[1] - p[1], q[0] - p[0]), L = 18, hw = 12;
       var h1 = [q[0] - L * Math.cos(ang) + hw * Math.sin(ang), q[1] - L * Math.sin(ang) - hw * Math.cos(ang)], h2 = [q[0] - L * Math.cos(ang) - hw * Math.sin(ang), q[1] - L * Math.sin(ang) + hw * Math.cos(ang)];
@@ -318,7 +319,7 @@ var viz = (function () {
     nodes.forEach(function (n, i) {
       var b = box(n), fillTok = n.principle ? '--principle-' + n.principle : n.role === 'accent' ? '--viz-highlight' : null;
       var cls = 'viz-node' + (fillTok ? ' viz-filled' : n.role === 'muted' ? ' viz-muted' : '');
-      var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' + (n.principle ? '; --oc:var(--on-principle-' + n.principle + ')' : '') : null }, nodeG), n.step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step));
+      var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' + (n.principle ? '; --oc:var(--on-principle-' + n.principle + ')' : '') : null }, nodeG), nstep(i));
       if (rc) g.appendChild(rc.rectangle(b.x, b.y, nw, nh, roughOpts(fig, { stroke: tok('--viz-node-stroke'), strokeWidth: sw + 1, fill: fillTok ? tok(fillTok) : tok('--viz-node-fill'), fillStyle: 'solid', seed: i + 3 })));
       else el('rect', { x: r1(b.x), y: r1(b.y), width: r1(nw), height: nh, rx: rad, ry: rad }, g);
       var lines = String(n.text).split('\n'), hasNum = n.principle && spec.numbers !== false;
