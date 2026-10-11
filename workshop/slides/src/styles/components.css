@@ -183,7 +183,14 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 /* ---------- Split halves ---------- */
 .split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
 .split .divider { align-self: stretch; background: var(--line); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .examples { display: flex; flex-direction: column; gap: var(--split-example-gap); margin-top: var(--split-example-gap); }
+.split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--text); transform: rotate(-2deg); transform-origin: left center; }
+.split.has-examples .foot { margin-top: var(--split-foot-gap-examples); }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
+
+/* ---------- Down arrow between blocks (the arrow part, turned) ---------- */
+.arrow-down { display: flex; justify-content: center; }
+.arrow-down .arrow { width: var(--arrow-down-w); height: var(--flow-arrow-h); transform: rotate(90deg); margin: var(--arrow-down-margin) 0; }
 
 /* ---------- Converging pills (inputs drop onto a question) ---------- */
 .converge { padding: 0; --step-top: 550px; }

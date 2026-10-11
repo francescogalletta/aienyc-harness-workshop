@@ -48,7 +48,7 @@ required = ["label", "headline", "start", "end"]
 
 [layouts.split]
 template = "split"
-fields = ["left", "right", "foot"]
+fields = ["left", "right", "foot"]   # left/right: label, headline, step, and optional examples = [ { text, step } ] (handwritten, under the headline)
 required = ["left", "right"]
 
 [layouts.converge]
@@ -136,12 +136,14 @@ tally    = { class = "hands", template = "tally" }                        # numb
 tracks   = { class = "tracks", template = "tracks" }
 guesses  = { class = "says", template = "guesses" }                       # + heads = ["YOU SAY", "…"]
 grid     = { class = "steps-grid", template = "grid" }
+arrow    = { class = "arrow-down", template = "arrow" }                   # a small down arrow between two blocks: arrow = "down"
 viz      = { class = "viz" }                                              # a chart, diagram or animation: see "Visuals" below
 
 # Roles allowed inside `lines`.
 [line_roles]
 headline = "headline"
 soft = "soft"
+sub = "sub"          # smaller: five lines under a display
 
 # Modifiers: a block key that adds a class.
 [modifiers]

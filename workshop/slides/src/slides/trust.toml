@@ -6,8 +6,9 @@ id = "s-trust"
 name = "Trust"
 layout = "centred"
 blocks = [
-  { hero = "==Trust.==" },
-  { sub = "Money is never decided lightly. Not by a company, not by you.", step = 1 },
+  { label = "THE GOAL IS" },
+  { hero = "==Trust.==", step = 1 },
+  { sub = "Money is never decided lightly. Not by a company, not by you.", step = 2 },
 ]
 
 [[slide]]
@@ -24,11 +25,51 @@ blocks = [
 ]
 
 [[slide]]
+id = "s-evolution"
+name = "How the work changed"
+layout = "statement"
+blocks = [
+  { label = "HOW THE WORK CHANGED" },
+  { viz = "flow", label = "The work moved from one-shots to prompt engineering, then RAG and tools, then loops and graphs", reveal = "each", nodes = ["One-shots", "Prompt engineering", "RAG and tools", "Loops and graphs"] },
+  { sub = "Agents now take on far more complex work.", step = 5 },
+]
+
+[[slide]]
+id = "s-interface"
+name = "The interface"
+layout = "statement"
+blocks = [
+  { display = "The gap is no longer speed." },
+  { sub = "It is how the work meets us.", step = 1 },
+  { sub = "So we can ==trust== agents with the highest stakes we have: money.", step = 2 },
+]
+
+[[slide]]
+id = "s-stakes"
+name = "The stakes"
+layout = "centred"
+blocks = [
+  { sub = "Money is not high stakes for you? A one-shot is enough?" },
+  { display = "Find me after the workshop.", step = 1 },
+  { sub = "[I have some great investment ideas for you.]{aside step=2}" },
+]
+
+[[slide]]
 id = "s-gap"
 name = "The gap"
 layout = "split"
-left = { label = "YOU", headline = "know your situation" }
-right = { label = "THE MODEL", headline = "knows the field", step = 1 }
+left = { label = "YOU", headline = "know your situation", examples = [
+  { text = "the venue wants 30% up front", step = 1 },
+  { text = "my bonus lands in March", step = 2 },
+  { text = "her parents may chip in", step = 3 },
+  { text = "we never stick to a budget", step = 4 },
+] }
+right = { label = "THE MODEL", headline = "knows the field", step = 5, examples = [
+  { text = "the average wedding", step = 6 },
+  { text = "the average couple", step = 6 },
+  { text = "the average budget", step = 6 },
+] }
+foot = { text = "Second nature to you. Averaged out in the training data.", step = 7 }
 
 [[slide]]
 id = "s-caveats"
@@ -50,7 +91,33 @@ name = "The deal"
 layout = "statement"
 blocks = [
   { display = "Earn the ==trust==." },
-  { display = "Delegate the boring work.", quiet = true, step = 1 },
+  { arrow = "down", step = 1, gap = "s" },
+  { display = "Then you can truly delegate the boring work.", step = 1 },
+]
+
+[[slide]]
+id = "s-not-new"
+name = "Not new"
+layout = "statement"
+blocks = [
+  { display = "None of this is new." },
+  { lines = [
+      { sub = "Unit tests [decades old]{aside step=1}", step = 1 },
+      { sub = "Evals [everyone knows]{aside step=2}", step = 2 },
+      { sub = "Traces and observability [not new either]{aside step=3}", step = 3 },
+      { sub = "Loops and graphs [this season's fashion]{aside step=4}", step = 4 },
+      { sub = "Planning with your agent [the most obvious one]{aside step=5}", step = 5 },
+  ] },
+]
+
+[[slide]]
+id = "s-not-tools"
+name = "Not tools"
+layout = "statement"
+blocks = [
+  { display = "Not which tools to use." },
+  { display = "The design framework that makes them work.", step = 1 },
+  { sub = "Closing the distance between knowing it should be done, and knowing WHY.", step = 2 },
 ]
 
 [[slide]]

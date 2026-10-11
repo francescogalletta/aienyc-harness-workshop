@@ -67,6 +67,7 @@ blocks = [
 footnote = { text = "* A footnote, at the second click.", step = 2 }
 ```
 
+- `arrow = "down"` is a small down arrow block; a split half takes `examples = [ { text, step } ]` (handwritten, under its headline); `lines` accept `sub` lines.
 - `step = n` shows a thing at click n (`out`, `mute`, `strike`, `fill` likewise).
 - In any text: `==trust==` is the trust accent; `[words]{aside step=3}` is a
   handwritten aside at click 3; `[words]{strike=2}` strikes them at click 2.

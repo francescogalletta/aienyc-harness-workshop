@@ -141,7 +141,7 @@ def test_committed_deck_html_is_current(deck):
 
 def test_slides_numbered_and_unique(deck):
     html = build.SlideRenderer(deck).render_all()
-    assert html.count("<section ") == 42
+    assert html.count("<section ") == len(deck.slides)
     assert "<!-- 05 · Trust -->" in html
     ids = [s for s in html.split('id="')[1:]]
     assert len({i.split('"')[0] for i in ids}) == len(ids)
@@ -196,7 +196,7 @@ def test_raw_layout_escape_hatch(tmp_path):
     src = copy_src(tmp_path)
     (src / "slides" / "wrap.toml").open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-raw"\nname = "Raw"\nlayout = "raw"\nhtml = "<p class=\\"sub\\">hi</p>"\n')
     html = build.SlideRenderer(build.Deck(src)).render_all()
-    assert '<!-- 43 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
+    assert f'<!-- {len(build.Deck(src).slides):02d} · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
 
 
 # ---------- section label and slide number ----------
@@ -206,7 +206,7 @@ def sections_html(deck):
 
 def test_section_label_from_group_and_principle_default(deck):
     html = sections_html(deck)
-    assert html.count('class="section-label"') == 41  # every slide but the title
+    assert html.count('class="section-label"') == len(deck.slides) - 1  # every slide but the title
     assert '<p class="section-label">Intro</p>' in html and "<p class=\"section-label\">Today's demo</p>" in html
     # principle sections have no `group`: "{n} · {name}" from principles.json
     s = next(x for x in deck.slides if x.get("principle") == 3)
@@ -241,6 +241,15 @@ def test_unknown_top_level_keys_are_still_rejected(tmp_path):
     sec.write_text(sec.read_text(encoding="utf-8").replace('group = ', 'grup = "x"\ngroup = ', 1), encoding="utf-8")
     with pytest.raises(BuildError, match="unknown top-level keys"):
         build.Deck(src)
+
+
+def test_split_examples_and_the_down_arrow_block(deck):
+    html = sections_html(deck)
+    gap = html.split('id="s-gap"')[1].split("</section>")[0]
+    assert 'class="split has-examples"' in gap and gap.count('class="example"') == 7
+    assert 'class="example" data-step="6">the average wedding' in gap and 'data-step="7">Second nature' in gap
+    deal = html.split('id="s-deal"')[1].split("</section>")[0]
+    assert '<div class="arrow-down gap-s" data-step="1">' in deal and '<svg class="arrow"' in deal
 
 
 def test_slide_number_comes_from_the_script_not_the_sources(deck):
@@ -298,7 +307,10 @@ def test_marks_and_choreo_overlays(deck):
 
 
 def test_kit_and_libraries_only_when_used(deck, tmp_path):
-    plain = build.build(deck, "blueprint", False)
+    src0 = copy_src(tmp_path / "plain")  # the deck itself draws a flow; take its visuals out
+    trust = src0 / "slides" / "trust.toml"
+    trust.write_text("\n".join(l for l in trust.read_text(encoding="utf-8").split("\n") if "viz = " not in l), encoding="utf-8")
+    plain = build.build(build.Deck(src0), "blueprint", False)
     assert "var viz = (function" not in plain and "--viz-series-1" not in plain and "vendor:" not in plain
     src = copy_src(tmp_path)
     sec = src / "slides" / "wrap.toml"

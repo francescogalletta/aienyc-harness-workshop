@@ -251,6 +251,11 @@
   --split-rule-width: var(--stroke-hair);
   --split-rule-overhang: var(--space-xl);
   --split-foot-gap: 168px;
+  --split-foot-gap-examples: 120px;
+  --split-example-gap: var(--space-xs);
+  --split-example-size: calc(46px * var(--type-scale));
+  --arrow-down-w: 60px;
+  --arrow-down-margin: var(--space-s);
 
   /* Converging pills (slide "Caveats") */
   --input-pill-h: 80px;

@@ -1,13 +1,27 @@
-{# Split: two halves with a rule between, each a label and a headline; an optional line under both. #}
-  <div class="split">
+{# Split: two halves with a rule between, each a label and a headline (and optional handwritten examples); an optional line under both. #}
+  <div class="split{% if left.examples %} has-examples{% endif %}">
     <div{{ left|reveal }}>
       <p class="label">{{ left.label }}</p>
       <h2 class="headline gap-xs">{{ left.headline|text }}</h2>
+{% if left.examples %}
+      <div class="examples">
+{% for e in left.examples %}
+        <p class="example"{{ e|reveal }}>{{ e.text|text }}</p>
+{% endfor %}
+      </div>
+{% endif %}
     </div>
     <div class="divider"></div>
     <div{{ right|reveal }}>
       <p class="label">{{ right.label }}</p>
       <h2 class="headline gap-xs">{{ right.headline|text }}</h2>
+{% if right.examples %}
+      <div class="examples">
+{% for e in right.examples %}
+        <p class="example"{{ e|reveal }}>{{ e.text|text }}</p>
+{% endfor %}
+      </div>
+{% endif %}
     </div>
 {% if foot %}
     <p class="sub foot"{{ foot|reveal }}>{{ foot.text|text }}</p>
