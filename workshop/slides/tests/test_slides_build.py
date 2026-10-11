@@ -141,7 +141,7 @@ def test_committed_deck_html_is_current(deck):
 
 def test_slides_numbered_and_unique(deck):
     html = build.SlideRenderer(deck).render_all()
-    assert html.count("<section ") == 42
+    assert html.count("<section ") == 52
     assert "<!-- 05 · Trust -->" in html
     ids = [s for s in html.split('id="')[1:]]
     assert len({i.split('"')[0] for i in ids}) == len(ids)
@@ -168,7 +168,7 @@ def test_principle_is_a_one_line_edit(tmp_path):
     p.write_text(p.read_text(encoding="utf-8").replace('"Evidence", "emoji": "🧾"', '"Provenance", "emoji": "🪪"'), encoding="utf-8")
     html = build.build(build.Deck(src), "blueprint", False)
     assert "Evidence" not in html and "🧾" not in html
-    assert html.count("Provenance") == 8 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 3 section labels
+    assert html.count("Provenance") == 11 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 6 section labels
 
 
 def test_check_catches_broken_sources(tmp_path, capsys):
@@ -196,7 +196,7 @@ def test_raw_layout_escape_hatch(tmp_path):
     src = copy_src(tmp_path)
     (src / "slides" / "wrap.toml").open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-raw"\nname = "Raw"\nlayout = "raw"\nhtml = "<p class=\\"sub\\">hi</p>"\n')
     html = build.SlideRenderer(build.Deck(src)).render_all()
-    assert '<!-- 43 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
+    assert '<!-- 53 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
 
 
 # ---------- section label and slide number ----------
@@ -206,7 +206,7 @@ def sections_html(deck):
 
 def test_section_label_from_group_and_principle_default(deck):
     html = sections_html(deck)
-    assert html.count('class="section-label"') == 41  # every slide but the title
+    assert html.count('class="section-label"') == 51  # every slide but the title
     assert '<p class="section-label">Intro</p>' in html and "<p class=\"section-label\">Today's demo</p>" in html
     # principle sections have no `group`: "{n} · {name}" from principles.json
     s = next(x for x in deck.slides if x.get("principle") == 3)

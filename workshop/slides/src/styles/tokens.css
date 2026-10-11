@@ -172,6 +172,7 @@
   --aside-emoji-scale: 0.8em;
   --aside-scale: 1.4em;  /* inline handwritten aside, relative to its line */
   --aside-indent: 10px;
+  --aside-stack-scale: 0.9em;  /* the same aside on its own line under a stacked line */
   --hand-note-size: calc(60px * var(--type-scale));
 
   /* Title block, strike, stress */

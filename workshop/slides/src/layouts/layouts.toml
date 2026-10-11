@@ -146,6 +146,7 @@ soft = "soft"
 # Modifiers: a block key that adds a class.
 [modifiers]
 quiet = "quiet"
+compact = "compact"   # on guesses: a smaller table for long quotes
 
 # Gap before a block, by "previous-role role". Anything not listed gets default.
 [rhythm]
