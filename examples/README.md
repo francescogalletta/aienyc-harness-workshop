@@ -1,11 +1,11 @@
 # Examples
 
-Two seeded examples. Each is one folder with a confirmed version 2 brief,
-built and tested modules, and scenarios (SPEC sections 2.6 and 3.1):
+Two seeded examples. Each is one folder with a confirmed brief, built and
+tested modules, and scenarios (SPEC sections 2.6 and 3.1):
 
 ```
 examples/<name>/
-  brief/domain_brief.json     the confirmed brief, version 2 (an origin on every item)
+  brief/domain_brief.json     the confirmed brief (an origin on every item)
   modules/<module>/           spec.json, golden.json, module.py, tests.py
   scenarios/<scenario>.json   a scripted person and what the harness must see
 ```
@@ -22,14 +22,15 @@ Nothing under `harness/` names an example. They are data.
 
 ## How they were made, and how far to trust them
 
-The briefs were converted by hand from the version 1 briefs, without changing
-their substance. Every item has an origin. Where the old brief quoted the
-person, the origin is that quote; a source the old brief cited is `looked_up`;
-everything else is `proposed` by the assistant. Particulars and open questions
+The briefs were brought to the current shape by hand from an earlier format,
+without changing their substance. Every item has an origin. Where the earlier
+brief quoted the person, the origin is that quote; a source it cited is
+`looked_up`; everything else is `proposed` by the assistant. Particulars and open questions
 name the step they concern, or none for the whole plan. The wedding brief
 is the one the first real interview wrote; the moving brief was written by hand.
 
-The modules were built by the version 1 pipeline with a real model. Every
+The modules were built by an earlier version of the build pipeline, with a
+real model. Every
 worked example (24 and 13) was recomputed by an AI agent in a separate
 throwaway script that does not import the module's code, and every example
 matched. So each `golden.json` entry says `"checked_by": "second_pass"`.

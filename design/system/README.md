@@ -17,7 +17,7 @@ This system holds the tokens, the component styles and a small script for motion
 | `components.md` | Markup and rules for each component, and a full demo |
 | `motion.md` | Timings, the moments that move, and the rules |
 
-The same system is published as the design system artifact "Financial Advisor Harness", where each component has a live preview. The agreed product behaviour is in `claude/ui-design-decisions.md`.
+The agreed product behaviour is in `design/ui-design-decisions.md`.
 
 ## How to use it
 

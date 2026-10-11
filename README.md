@@ -65,7 +65,7 @@ flowchart TB
     gate --> db
 ```
 
-The model talks, asks and explains. Everything that produces or admits a number is fixed code: the tested modules, the test gate and the number check. The five layers are what the workshop adds, in order. There are no account files and no verifier in version 2.
+The model talks, asks and explains. Everything that produces or admits a number is fixed code: the tested modules, the test gate and the number check. The five layers are what the workshop adds, in order.
 
 ## What is here
 
