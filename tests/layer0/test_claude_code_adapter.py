@@ -97,6 +97,21 @@ def test_tool_calls_come_back_through_the_reply_shape():
     assert "tool_calls" in call["system"]
 
 
+def test_a_list_of_events_is_read_for_its_result():
+    # Newer Claude Code versions print every event of the run, not only the result.
+    events = [{"type": "system", "subtype": "init"},
+              {"type": "assistant", "message": {"content": [{"type": "text", "text": "Hello there"}]}},
+              cli_result(result="Hello there")]
+    runner = FakeRunner(stdout=json.dumps(events))
+    response = ClaudeCodeModel("m", runner=runner).complete(system="", messages=[])
+    assert response.text == "Hello there"
+    assert response.usage == {"input_tokens": 132, "output_tokens": 7}
+
+    no_result = FakeRunner(stdout=json.dumps(events[:2]))
+    with pytest.raises(RuntimeError, match="did not return a result"):
+        ClaudeCodeModel("m", runner=no_result).complete(system="", messages=[])
+
+
 def test_history_is_written_out_for_the_model():
     runner = FakeRunner(cli_result(result="ok"))
     ClaudeCodeModel("m", runner=runner).complete(system="", messages=[
