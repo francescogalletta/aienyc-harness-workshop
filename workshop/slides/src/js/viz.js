@@ -1,9 +1,8 @@
 /* viz.js: the visuals kit. Draws <figure class="viz" data-viz="…" data-spec="{json}"> as inline SVG.
-   No dependencies. Optional shelf libraries, inlined by the build only when a slide asks:
-   window.rough (style = "rough"), window.echarts (viz = "echarts"), window.anime (choreo).
+   No dependencies. Rough.js (window.rough, style = "rough") is inlined by the build only when a slide asks.
 
    - Colours are written as CSS classes reading --viz-* tokens, so light/dark/theme switches repaint
-     with no JS. Rough.js and ECharts need concrete colours: they redraw on a theme change.
+     with no JS. Rough.js needs concrete colours: rough figures redraw on a theme change.
    - Build steps: drawn parts carry data-step, so the deck's own engine shows them (.shown) and
      counts them. Motion is CSS keyed on .shown; JS (Web Animations / rAF) only for the travel
      marker and count-up. Entering a slide (.instant) or prefers-reduced-motion shows end states. */
@@ -51,11 +50,6 @@ var viz = (function () {
   }
   function compact(v) { return Math.abs(v) >= 1000 ? (v / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'k' : String(v); }
   function niceMax(v) { var p = Math.pow(10, Math.floor(Math.log10(v || 1))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
-  /* resolve a CSS value (e.g. a size token holding calc()) by measuring a probe inside the figure */
-  function cssPx(fig, prop, value) {
-    var p = doc.createElement('span'); p.style.position = 'absolute'; p.style.visibility = 'hidden'; p.style[prop] = value;
-    fig.appendChild(p); var v = parseFloat(getComputedStyle(p)[prop]); p.remove(); return v;
-  }
   function svgFor(fig, w, h) {
     return el('svg', { 'class': 'viz-svg', viewBox: '0 0 ' + w + ' ' + h, width: w, height: h, 'aria-hidden': 'true', focusable: 'false' }, fig);
   }
@@ -421,85 +415,13 @@ var viz = (function () {
     });
   };
 
-  /* ---------- ECharts adapter (window.echarts, SVG renderer) ---------- */
-  function merge(a, b) {
-    if (Array.isArray(b) || typeof b !== 'object' || b === null) return b;
-    var out = {}; var k;
-    for (k in a) out[k] = a[k];
-    for (k in b) out[k] = (k in out && typeof out[k] === 'object' && !Array.isArray(out[k])) ? merge(out[k], b[k]) : b[k];
-    return out;
-  }
-  function echartsDefaults(fig) {
-    var size = cssPx(fig, 'fontSize', 'var(--viz-label-size)'), fam = getComputedStyle(fig).fontFamily;
-    var text = tok('--viz-text'), muted = tok('--viz-muted'), grid = tok('--viz-grid'), axis = tok('--viz-axis');
-    var axisDef = { axisLine: { lineStyle: { color: axis, width: num('--viz-stroke', 3) } }, axisTick: { show: false }, axisLabel: { color: muted, fontSize: size, fontFamily: fam, margin: 18 },
-      splitLine: { lineStyle: { color: grid, width: num('--viz-hair', 2) } }, nameTextStyle: { color: muted, fontSize: size, fontFamily: fam } };
-    return {
-      backgroundColor: 'transparent', animation: !reduce() && fig._spec.animate !== false, animationDuration: ms('--viz-dur-draw', 500) * 1.6,
-      color: [1, 2, 3, 4, 5].map(function (i) { return tok('--viz-series-' + i); }),
-      textStyle: { fontFamily: fam, fontSize: size, color: text },
-      grid: { left: 130, right: 40, top: 70, bottom: 80 },
-      legend: { textStyle: { color: text, fontSize: size, fontFamily: fam }, itemWidth: 44, itemHeight: 10, top: 0 },
-      tooltip: { show: false },
-      xAxis: axisDef, yAxis: merge(axisDef, { axisLine: { show: false } }),
-      _axis: axisDef
-    };
-  }
-  KINDS.echarts = function (fig, spec) {
-    if (!window.echarts) return;
-    var host = fig.querySelector('.viz-echarts-host');
-    if (!host) { host = doc.createElement('div'); host.className = 'viz-echarts-host'; fig.appendChild(host); }
-    var W = spec.width || 1640, H = spec.height || 560;
-    host.style.width = W + 'px'; host.style.height = H + 'px';
-    if (fig._chart) { fig._chart.dispose(); }
-    var chart = window.echarts.init(host, null, { renderer: 'svg', width: W, height: H });
-    fig._chart = chart;
-    function option(shown, animate) {
-      var d = echartsDefaults(fig), o = spec.option, axisDef = d._axis; delete d._axis;
-      var m = merge(d, o);
-      ['xAxis', 'yAxis'].forEach(function (ax) { if (Array.isArray(o[ax])) m[ax] = o[ax].map(function (a) { return merge(axisDef, a); }); });
-      if (!animate) m.animation = false;
-      if (!shown) m.series = (m.series || []).map(function (s) { return merge(s, { data: (s.data || []).map(function () { return null; }) }); });
-      return m;
-    }
-    var state = { shown: !spec.step };
-    chart.setOption(option(state.shown, false), true);
-    fig._retheme = function () { chart.setOption(option(state.shown, false), true); };
-    if (spec.step) anchor(fig, spec.step, function (on, animate) { state.shown = on; chart.setOption(option(on, animate), true); });
-  };
-
-  /* ---------- choreography (window.anime): run a timeline on a step, undo it stepping back ---------- */
-  KINDS.choreo = function (node, spec) {
-    var A = window.anime; if (!A) return;
-    var slide = slideOf(node) || doc, parts = spec.parts || [spec], running = null;
-    var targets = function (p) { return slide.querySelectorAll(p.targets); };
-    function setAll(which) { parts.forEach(function (p) { var t = targets(p); if (t.length && p[which]) A.utils.set(t, p[which]); }); }
-    setAll('from');
-    node._play = function (on, animate) {
-      if (running) { running.pause(); running = null; }
-      if (!on) { setAll('from'); return; }
-      if (!animate) { setAll('to'); return; }
-      var tl = A.createTimeline({ defaults: { ease: spec.ease || 'outExpo' } });
-      parts.forEach(function (p) {
-        var props = {}, k;
-        for (k in p.to) props[k] = [p.from && k in p.from ? p.from[k] : p.to[k], p.to[k]];
-        props.duration = p.duration || spec.duration || ms('--viz-dur-draw', 500) * 1.4;
-        if (p.stagger || spec.stagger) props.delay = A.stagger(p.stagger || spec.stagger);
-        if (p.ease) props.ease = p.ease;
-        tl.add(targets(p), props, p.at == null ? undefined : p.at);
-      });
-      running = tl;
-    };
-    if (!node._watched) { node._watched = true; node._on = false; node._animate = spec.animate !== false; observer.observe(node, { attributes: true, attributeFilter: ['class'] }); }
-  };
-
   /* ---------- drawing everything ---------- */
   function drawOne(fig) {
     var kind = fig.getAttribute('data-viz'), fn = KINDS[kind]; if (!fn) return;
     var spec = fig._spec || (fig._spec = JSON.parse(fig.getAttribute('data-spec') || '{}'));
     var slide = slideOf(fig), step = slide && slide.classList.contains('active') ? currentStep(slide) : null;  /* before old parts go */
     if (spec.animate === false) fig.classList.add('viz-still');
-    if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo' && kind !== 'mark') {
+    if (kind !== 'count' && kind !== 'draw' && kind !== 'mark') {
       fig.querySelectorAll('.viz-svg, .viz-anchor').forEach(function (n) { n.remove(); });
     }
     fn(fig, spec);
@@ -510,8 +432,7 @@ var viz = (function () {
                            draw time, and a look can change any of them: redraw every SVG figure */
     doc.querySelectorAll('[data-viz]').forEach(function (f) {
       var kind = f.getAttribute('data-viz');
-      if (f._retheme) { f._retheme(); return; }
-      if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo') drawOne(f);
+      if (kind !== 'count' && kind !== 'draw') drawOne(f);
     });
   }
   function remark() { doc.querySelectorAll('[data-viz="mark"]').forEach(drawOne); }

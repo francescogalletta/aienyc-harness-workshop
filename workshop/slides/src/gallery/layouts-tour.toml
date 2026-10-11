@@ -26,8 +26,8 @@ reel = [
 id = "g-figure"
 name = "Figure"
 layout = "figure"
-label = "LAYOUT · FIGURE (the hand-drawn sketch asset)"
-figure = "sketch.svg"
+label = "LAYOUT · FIGURE · AN SVG ASSET FROM SRC/ASSETS"
+figure = "sample-draw.svg"
 
 [[slide]]
 id = "g-setup"

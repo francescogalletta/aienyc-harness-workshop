@@ -475,7 +475,7 @@ class SlideRenderer:
         if name not in self.layouts:
             raise BuildError(f"{where}: unknown layout {name!r} (known: {', '.join(self.layouts)})")
         layout = self.layouts[name]
-        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "group", "chrome", "marks", "choreo", "_where"}
+        allowed = set(layout.get("fields", [])) | {"id", "name", "layout", "principle", "rail", "group", "chrome", "marks", "_where"}
         unknown = set(slide) - allowed
         if unknown:
             raise BuildError(f"{where}: layout {name!r} has no fields {sorted(unknown)}")
@@ -552,7 +552,7 @@ class SlideRenderer:
 
 
 # ===========================================================================
-# Visuals kit: viz blocks, marks and choreography (drawn at runtime by src/js/viz.js)
+# Visuals kit: viz blocks and marks (drawn at runtime by src/js/viz.js)
 # ===========================================================================
 VIZ_COMMON = {"step", "style", "animate"}
 VIZ_TYPES = {  # type: (required keys, optional keys)
@@ -563,10 +563,8 @@ VIZ_TYPES = {  # type: (required keys, optional keys)
     "timeline": (["label", "events"], ["start", "end", "reveal", "every", "months", "width", "height"]),
     "count": (["label", "to"], ["from", "prefix", "suffix", "decimals", "duration"]),
     "draw": (["label", "svg"], []),
-    "echarts": (["label", "option"], ["width", "height"]),
 }
 MARK_KEYS = ({"target"}, {"kind", "step", "style", "note", "pad"})
-CHOREO_KEYS = ({"step"}, {"targets", "from", "to", "parts", "duration", "stagger", "ease", "animate"})
 
 
 def is_num(v) -> bool:
@@ -714,16 +712,6 @@ def validate_viz(kind: str, spec: dict, deck: "Deck") -> list[str]:
         p.append("viz 'count': to must be a number")
     if kind == "draw" and "svg" in spec and not (deck.src / "assets" / str(spec["svg"])).is_file():
         p.append(f"viz 'draw': no asset {spec['svg']!r} in src/assets")
-    if kind == "echarts" and "option" in spec:
-        o = spec["option"]
-        if isinstance(o, str):
-            try:
-                o = json.loads(o)
-            except json.JSONDecodeError as e:
-                p.append(f"viz 'echarts': option is not valid JSON ({e})")
-                o = None
-        if o is not None and not (isinstance(o, dict) and isinstance(o.get("series"), list) and o["series"]):
-            p.append("viz 'echarts': option needs a series list")
     return p
 
 
@@ -744,8 +732,6 @@ def check_overlay_items(name: str, items, keys, deck) -> list[str]:
             p.append(f"{name} {i}: step must be a whole number >= 1")
         if name == "mark" and m.get("kind", "circle") not in ("circle", "underline", "bracket", "box"):
             p.append(f"mark {i}: kind is circle, underline, bracket or box")
-        if name == "choreo" and not (m.get("targets") or m.get("parts")):
-            p.append(f"choreo {i} needs targets (or parts)")
     return p
 
 
@@ -780,15 +766,6 @@ def viz_table(kind: str, spec: dict) -> str:
         names = [n if isinstance(n, str) else n["text"] for n in spec["nodes"]]
         links = spec.get("links") or [[i, i + 1] for i in range(1, len(names))]
         head, rows = ["From", "To"], [[names[a - 1].replace("\n", " "), names[b - 1].replace("\n", " ")] for a, b in links]
-    elif kind == "echarts":
-        o = spec["option"]
-        xa = o.get("xAxis", {})
-        xa = xa[0] if isinstance(xa, list) else xa
-        cats = xa.get("data") if isinstance(xa, dict) else None
-        series = [s for s in o.get("series", []) if isinstance(s.get("data"), list)]
-        if cats and series:
-            head = [""] + [s.get("name", f"Series {i}") for i, s in enumerate(series, 1)]
-            rows = [[c] + [str(s["data"][i]) if i < len(s["data"]) else "" for s in series] for i, c in enumerate(cats)]
     if not head:
         return f'<figcaption class="viz-sr">{escape(spec["label"])}</figcaption>'
     th = "".join(f"<th>{escape(h)}</th>" for h in head)
@@ -805,9 +782,7 @@ def viz_markup(block: dict, deck: "Deck", gap_cls: str = "") -> Markup:
     problems = validate_viz(kind, spec, deck)
     if problems:
         raise BuildError("; ".join(problems))
-    if kind == "echarts" and isinstance(spec["option"], str):
-        spec["option"] = json.loads(spec["option"])
-    lib = ' data-lib="rough"' if spec.get("style") == "rough" else ' data-lib="echarts"' if kind == "echarts" else ""
+    lib = ' data-lib="rough"' if spec.get("style") == "rough" else ""
     data = _json_attr(spec)
     if kind == "count":
         step = f' data-step="{spec["step"]}"' if "step" in spec else ""
@@ -820,7 +795,7 @@ def viz_markup(block: dict, deck: "Deck", gap_cls: str = "") -> Markup:
 
 
 def overlays(slide: dict, deck: "Deck") -> str:
-    """Slide-level marks (annotations) and choreo (anime.js timelines), appended inside the section."""
+    """Slide-level marks (annotations), appended inside the section."""
     out = ""
     if "marks" in slide:
         problems = check_overlay_items("mark", slide["marks"], MARK_KEYS, deck)
@@ -828,12 +803,6 @@ def overlays(slide: dict, deck: "Deck") -> str:
             raise BuildError("; ".join(problems))
         lib = ' data-lib="rough"' if any(m.get("style") == "rough" for m in slide["marks"]) else ""
         out += f'\n  <svg class="viz-marks" data-viz="mark"{lib} data-spec="{_json_attr({"marks": slide["marks"]})}" aria-hidden="true"></svg>'
-    if "choreo" in slide:
-        problems = check_overlay_items("choreo", slide["choreo"], CHOREO_KEYS, deck)
-        if problems:
-            raise BuildError("; ".join(problems))
-        for c in slide["choreo"]:
-            out += f'\n  <i class="viz-choreo" data-viz="choreo" data-lib="anime" data-spec="{_json_attr(c)}" data-step="{c["step"]}" hidden></i>'
     return out
 
 
@@ -852,8 +821,6 @@ def substitute(value, mapping: dict):
 
 VENDOR = {  # data-lib name: file under src/vendor/
     "rough": "rough/rough.js",
-    "anime": "anime/anime.umd.min.js",
-    "echarts": "echarts/echarts.common.min.js",
 }
 
 
@@ -1227,7 +1194,7 @@ def check(deck: Deck) -> int:
             problems.append("markup: literal hex colour in slide markup")
         for m in re.finditer(r'data-viz="(\w+)"(?:[^>]*?data-spec="([^"]*)")?', part):
             kind, raw = m.group(1), m.group(2)
-            if kind in ("mark", "choreo"):
+            if kind == "mark":
                 continue
             if kind not in VIZ_TYPES:
                 problems.append(f"markup: unknown viz type {kind!r}")

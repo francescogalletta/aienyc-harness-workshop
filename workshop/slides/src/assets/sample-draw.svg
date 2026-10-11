@@ -1,0 +1,22 @@
+<svg class="sketch gap-s" viewBox="0 0 1640 360" role="img" aria-label="Three boxes joined by two arrows: input, process, output">
+  <g data-step="1">
+    <path class="ln" d="M62 102 Q240 93 418 101 Q442 101 442 122 Q446 180 442 238 Q440 261 418 261 Q240 262 62 262 Q38 260 41 238 Q35 180 41 122 Q40 101 66 105 L88 107"/>
+    <text class="nm" x="240" y="182" text-anchor="middle" dominant-baseline="central">Input</text>
+  </g>
+  <g data-step="2">
+    <path class="ln" d="M470 180 C520 172 570 188 630 180"/>
+    <path class="ln" d="M604 164 L630 180 L606 197"/>
+  </g>
+  <g data-step="3">
+    <path class="ln" d="M642 98 Q820 98 998 99 Q1022 99 1018 122 Q1026 180 1018 238 Q1020 262 998 262 Q820 267 642 258 Q618 260 619 238 Q615 180 619 122 Q620 102 646 105 L668 107"/>
+    <text class="nm" x="820" y="182" text-anchor="middle" dominant-baseline="central">Process</text>
+  </g>
+  <g data-step="4">
+    <path class="ln" d="M1050 180 C1100 188 1150 172 1210 180"/>
+    <path class="ln" d="M1184 164 L1210 180 L1186 197"/>
+  </g>
+  <g data-step="5">
+    <path class="ln" d="M1222 101 Q1400 94 1578 102 Q1602 102 1601 122 Q1606 180 1601 238 Q1600 259 1578 259 Q1400 263 1222 261 Q1198 260 1202 238 Q1195 180 1202 122 Q1200 99 1226 105 L1248 107"/>
+    <text class="nm" x="1400" y="182" text-anchor="middle" dominant-baseline="central">Output</text>
+  </g>
+</svg>
