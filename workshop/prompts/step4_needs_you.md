@@ -13,7 +13,7 @@ Nothing blocks unless the call is the person's. An assumption is run and marked;
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 6 (when the harness needs the person, 6.1 to 6.5). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 and 3.4 (`unconfirmed`, `calls`, decisions, threads), 4 and the notes marked A4a, A4b and B2 in section 11.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 and 3.4 (`unconfirmed`, `calls`, decisions, threads), 4 and the notes marked A4a, A4b and B2 in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer4/`. These tests are the definition of done.
 

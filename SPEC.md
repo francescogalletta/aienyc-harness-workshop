@@ -1,4 +1,4 @@
-# Contract: Financial Advisor Harness, version 2
+# Contract: Financial Advisor Harness
 
 This is the contract. `ARCHITECTURE.md` sections 3 (the plan state document),
 4 (the core and its extension points) and 5 (actions) are part of it. The
@@ -229,7 +229,7 @@ HTML. A feature whose keys are absent is not drawn.
 ### 3.1 The brief
 
 `domain_brief.json` and `domain_brief.md` in `brief_dir`, written by
-`save_brief`. Version 2 shape:
+`save_brief`. Its shape:
 
 ```
 {"goal": Item, "mode": "ongoing" | "one_off",
@@ -249,21 +249,30 @@ HTML. A feature whose keys are absent is not drawn.
 `looked_up` origin holds `"source": url`. A glossary entry's origin is derived:
 `looked_up` with a source, else `proposed`.
 
-`validate_brief(brief, lookups, words)` keeps every version 1 check and adds:
-every origin has a known kind; a `person` quote is at least three characters
-and appears in `words` (the person's messages of this interview or revision),
+`validate_brief(brief, lookups, words)` returns what is wrong; an empty list
+accepts the brief. It checks: every key is present; the goal has text; `mode` is
+known; `scope.in` and `definition_of_done` have at least one item; process step
+ids and input names are unique; a glossary entry has a term and a definition,
+and its source, if any, came from a lookup; a particular has `what` and
+`handling`; an input has a name and a description; the process has at least one
+step, each with an id, a name, what it produces and a known kind, and no step
+needs itself; a calculation has a formula and a method that is `arithmetic` or a
+glossary term with a source. Then: every origin has a known kind; a `person`
+quote is at least three characters and appears in `words` (the person's messages of this interview or revision),
 compared case-folded with runs of white space as one space; a `looked_up`
 source came from a lookup; every `step` of a particular or open question is a
 process id; every entry of a step's `needs` is the exact name of an input or the id of an earlier step;
 every input is named in the `needs` of at least one step (an input no step uses is drawn nowhere).
-Errors go back to the interviewer, as before.
+Errors go back to the interviewer.
 
 ### 3.2 The interview
 
-The version 1 interview is kept (one question per message, the research plan
-before the first question, `look_up` through the research desk with its limits,
-`write_brief`, three rejections then a draft, `/wrap`, the question limit). It
-runs as a main-lane job: its questions are posted as assistant messages and it
+The interview asks one question per message, plans its research before the
+first question, looks terms up with `look_up` through the research desk (at
+most twelve different terms, one lookup each), and ends with `write_brief`.
+A third rejected brief in a row is saved as a draft and the interviewer asks
+the person one question. `/wrap` asks it to propose the plan now; after twelve
+answers it is told to write the brief. It runs as a main-lane job: its questions are posted as assistant messages and it
 waits with `{"kind": "message"}`; its progress lines set `activity`. The state
 `grounding_state.json` is kept for resuming, and `loaded` resumes it.
 
@@ -360,19 +369,24 @@ its inputs. The tables `test_runs`, `modules`, `step_modules`, `calc_runs`,
 whose status is `none`, `not_built` or `stale`, with progress text for each
 phase:
 
-1. **Spec.** As in version 1, with the notes and the registered modules, and
-   `[current spec]` when the step has a stored spec; `reuse_module` still maps
-   the step. No person check. `plan_check` in the state is null when
-   `departures` is empty.
+1. **Spec.** One conversation with `spec_writer.md`, given the step, the
+   brief, the registered modules with unchanged files and the notes, and
+   `[current spec]` when the step has a stored spec; up to three attempts. It
+   proposes a spec (`propose_spec`, checked by `validate_spec`; a new module
+   may not take a registered name) or maps the step to a registered module
+   with unchanged files (`reuse_module`). No person check. `plan_check` in
+   the state is null when `departures` is empty.
 2. **Examples.** The example writer proposes three to five.
 3. **Second pass** (4.5). Examples it agrees with are `checked_by:
    "second_pass"`. Examples the person confirmed earlier for this step are
    kept as `you`, with their answer. Fewer than two checked: the writer is
    asked once more for new examples, which are checked the same way. Still
    fewer than two: the step is not built.
-4. **Code.** As in version 1, up to three attempts, with the checked examples
-   as `golden.json`. When the code still fails an example, the step is not
-   built and `disagreement` lists each failing example: `n`, `expected`,
+4. **Code.** One conversation with `module_writer.md`, given only the spec,
+   up to three attempts. The code is checked, then tested in a staging folder
+   with the checked examples as `golden.json`, and moved into place and
+   registered when it passes. When the code still fails an example, the step
+   is not built and `disagreement` lists each failing example: `n`, `expected`,
    `code_gives`.
 
 Reasons for not built, stored in `reason`: `no acceptable spec`, `no acceptable
@@ -424,9 +438,9 @@ One model call per step with `checker.md` and the tool `answer_examples`
 
 `loaded` adopts, without asking: each folder in `modules_dir` that is not
 registered with unchanged files, whose spec's `step_id` is a calculation step of
-the plan (an `added_` step is re-created as in version 1), has its tests run and
-is registered on a pass, with a `build_steps` row from its files. A folder
-that fails gets status `not_built`, reason `its tests do not pass here`.
+the plan or an `added_<n>` step, has its tests run and is registered on a
+pass (an `added_<n>` step the database lacks is re-created from the spec),
+with a `build_steps` row from its files. A folder that fails gets status `not_built`, reason `its tests do not pass here`.
 
 ### 4.7 The person on a step: the step helper
 
@@ -488,8 +502,9 @@ on the main lane.
   - `run_module {module, inputs, assumptions: [str], expected: str}`: inputs
     number-checked, then `gate.call`. Never held for the person. Result:
     `{"module", "run_id", "output"}` or the refusal.
-  - `save_input {name, value, note}`: as in version 1; a different value
-    replaces the saved one.
+  - `save_input {name, value, note}`: `name` in snake_case, a non-empty
+    value, number-checked, then saved; a different value replaces the saved
+    one.
   - `change_plan {step, words}`: `words` must appear in a message the person
     typed in this conversation (compared as in 3.1). Calls `revise_plan`
     (`by: "person"`). Result: the changed steps or the error.
@@ -534,9 +549,12 @@ input an earlier run of another step produced is an edge from that step); and
 
 ### 5.3 What it registers
 
-Table `inputs` (as version 1). Tools above. Prompt `analyst.md`. Command
+Table `inputs (name PRIMARY KEY, value, note, ts, session_id)`, kept across
+conversations. Tools above. Prompt `analyst.md`. Command
 `ask`. Expects `runs`, `shown`, `not_shown`, `max_withheld`,
-`max_corrections`, as in version 1. Events: `ask.message`, `ask.reply`,
+`max_corrections` (a list of module runs with inputs, numbers shown or not in
+the assistant's messages, at most that many withheld replies or corrections).
+Events: `ask.message`, `ask.reply`,
 `ask.correction`, `ask.withheld`, `ask.stopped`, `ask.input_saved`,
 `ask.plan_changed`, and the gate's `calc.run`, `calc.refused`.
 
@@ -595,16 +613,21 @@ why, choice, words, runs, message, status)`; `status` is `open`, `answered` or
 answered with no choice).
 
 - Tool `ask_decision {step, question, options, suggested?, why?, runs}`. `step`
-  is required and must be a plan step. The version 1 checks are kept (two to
-  four distinct options, a reason with a suggestion, known runs, the number
-  check, one per reply, two per person message).
+  is required and must be a plan step. Checks: a question in plain words;
+  two to four distinct options; `suggested`, when given, is an option's number
+  and comes with a reason; `runs` are runs of this conversation; the question,
+  options and reason pass the number check. At most two per person message, and
+  a second only after the first is answered.
 - The harness posts a `decision` message and waits with `{"kind": "decision"}`.
   The step is `needs_you`. `choose {decision, option}` picks an option. A
   message answers it in the person's words: a number or an option's words
   pick that option; `yes` picks the suggestion; anything else is `something
   else` with the words.
 - The record is a `decisions` row and the step's `calls.records`. The tool
-  result is as in version 1.
+  result is `{"outcome": "decided", "decision", "choice", "option", "said",
+  "judgment_steps"}`: `option` is the chosen option's text (null for something
+  else), `said` the person's words, and `judgment_steps` each judgment step
+  with whether it is decided.
 - **A call left in prose** (hook `reply_ready`). It looks only at a turn
   where the person's message asks to decide or choose (a word such as
   `decide`, `decision`, `choose`, `choice`), or is attached to a `judgment`
@@ -630,9 +653,11 @@ DECISION_SEND_BACK = "[harness] Your reply was not shown. It leaves to the perso
 
 Tool `request_module {case: step | new | replace, target, name?, works_out,
 from_what, gives, formula, why}` (`name`: a short name for a new step; else it is
-cut from `works_out`) with the version 1 checks and limits. It does
-not ask. `step` builds that step; `new` adds a step (`added_<n>`, `in_plan`
-false) and builds it; `replace` keeps the words as a note and rebuilds the
+cut from `works_out`). Every field in words is required and number-checked;
+`step` must name a calculation step that is not built; `replace` must name a
+registered module whose step is in the plan. At most two per person message,
+counted whatever the outcome. It does not ask. `step` builds that step; `new`
+adds a step (`added_<n>`, `in_plan` false) and builds it; `replace` keeps the words as a note and rebuilds the
 module. The harness posts `BUILT_NOT_IN_PLAN` (for `new`) or `BUILT_STEP` and
 the result goes to the analyst (`built`, `reused` or `not_built` with the
 spec or the reason). `you.module_requested` records `near`: the step attached

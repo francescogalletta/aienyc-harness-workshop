@@ -13,7 +13,7 @@ After the plan is accepted, the person's messages go to an analyst that can run 
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 5 (answers with evidence, 5.1 to 5.3). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 and 3.4 (`last_run`, chat messages and their figures), 4 and the notes marked A3 in section 11.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 and 3.4 (`last_run`, chat messages and their figures), 4 and the notes marked A3 in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer3/`. These tests are the definition of done.
 
