@@ -107,6 +107,12 @@
 .hands { display: flex; justify-content: space-between; width: 100%; }
 .hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
 .hands .num.muted { color: var(--text-muted); }
+.hands.grow { align-items: flex-end; }
+.hands.grow .num { line-height: var(--tally-grow-leading); }
+.hands.grow .num:nth-child(1) { font-size: calc(var(--tally-size) * var(--tally-grow-1)); }
+.hands.grow .num:nth-child(2) { font-size: calc(var(--tally-size) * var(--tally-grow-2)); }
+.hands.grow .num:nth-child(3) { font-size: calc(var(--tally-size) * var(--tally-grow-3)); }
+.hands.grow .num:nth-child(4) { font-size: calc(var(--tally-size) * var(--tally-grow-4)); }
 
 /* ---------- Swap (one line replaces another) and the big ask ---------- */
 .swap { display: grid; place-items: center; }

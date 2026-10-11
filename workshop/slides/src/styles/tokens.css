@@ -210,6 +210,11 @@
 
   /* Big numbers and emoji */
   --tally-size: calc(200px * var(--type-scale));
+  --tally-grow-1: 0.6;
+  --tally-grow-2: 0.8;
+  --tally-grow-3: 1.05;
+  --tally-grow-4: 1.4;
+  --tally-grow-leading: 0.72;
   --mega-row-gap: 48px;
   --mega-emoji-size: calc(160px * var(--type-scale));
   --big-emoji-size: var(--fs-7xl);

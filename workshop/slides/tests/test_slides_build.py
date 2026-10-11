@@ -97,6 +97,12 @@ def test_sequences_for_swap_and_tally():
     assert build.SlideRenderer.sequence(2, 1, "mute") == [{"step": 1, "mute": 2}, {"step": 2, "mute": None}]
 
 
+def test_tally_grow_adds_a_class_and_who_block_is_outside_the_ask(deck):
+    html = build.build(deck, "blueprint", True)
+    assert 'class="hands grow' in html
+    assert '<p class="hand-aside ask-who' in html and "(Francesco)</p>" in html
+
+
 # ---------- themes ----------
 def test_theme_dark_block_is_written_once_and_emitted_twice():
     css = build.Theme(SLIDES / "src" / "themes" / "blueprint.css").css()
@@ -141,8 +147,8 @@ def test_committed_deck_html_is_current(deck):
 
 def test_slides_numbered_and_unique(deck):
     html = build.SlideRenderer(deck).render_all()
-    assert html.count("<section ") == 42
-    assert "<!-- 05 · Trust -->" in html
+    assert html.count("<section ") == 43
+    assert "<!-- 06 · Trust -->" in html
     ids = [s for s in html.split('id="')[1:]]
     assert len({i.split('"')[0] for i in ids}) == len(ids)
 
@@ -196,7 +202,7 @@ def test_raw_layout_escape_hatch(tmp_path):
     src = copy_src(tmp_path)
     (src / "slides" / "wrap.toml").open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-raw"\nname = "Raw"\nlayout = "raw"\nhtml = "<p class=\\"sub\\">hi</p>"\n')
     html = build.SlideRenderer(build.Deck(src)).render_all()
-    assert '<!-- 43 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
+    assert '<!-- 44 · Raw -->\n<section class="slide" id="s-raw" data-principle="wrap">\n  <p class="section-label">Wrap</p>\n<p class="sub">hi</p>\n</section>' in html
 
 
 # ---------- section label and slide number ----------
@@ -206,7 +212,7 @@ def sections_html(deck):
 
 def test_section_label_from_group_and_principle_default(deck):
     html = sections_html(deck)
-    assert html.count('class="section-label"') == 41  # every slide but the title
+    assert html.count('class="section-label"') == 42  # every slide but the title
     assert '<p class="section-label">Intro</p>' in html and "<p class=\"section-label\">Today's demo</p>" in html
     # principle sections have no `group`: "{n} · {name}" from principles.json
     s = next(x for x in deck.slides if x.get("principle") == 3)

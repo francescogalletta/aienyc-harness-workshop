@@ -40,6 +40,14 @@ blocks = [
   { headline = "Data teams in financial services" },
   { sub = "Monzo Bank, Nubank, and a few more. Now pushing what AI can do there." },
   { label = "AT HOME", step = 1 },
-  { headline = "Applied AI to make our life easier", step = 1 },
+  { headline = "Applied AI to make our lives easier", step = 1 },
 ]
-footnote = { text = "* Not speaking on behalf of Monzo today.", step = 2 }
+
+[[slide]]
+id = "s-monzo"
+name = "Not Monzo"
+layout = "statement"
+blocks = [
+  { display = "We are not representing Monzo today." },
+  { sub = "We do have a breakout session tomorrow: 11:55, McCarthy Room (L3).", step = 1 },
+]
