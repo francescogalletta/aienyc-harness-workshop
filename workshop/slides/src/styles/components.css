@@ -251,6 +251,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .split .divider { align-self: stretch; background: var(--hairline); margin: calc(var(--split-rule-overhang) * -1) 0; }
 .split .examples { display: flex; flex-direction: column; gap: var(--split-example-gap); margin-top: var(--split-example-top); }
 .split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; }
+.split.has-examples .divider { margin: 0; }
 .split.has-examples .foot { margin-top: var(--split-foot-gap-examples); }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
 
