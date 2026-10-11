@@ -479,6 +479,10 @@ class SlideRenderer:
         if missing:
             raise BuildError(f"{where}: layout {name!r} needs {missing}")
         s = dict(slide)
+        if layout.get("variants"):   # a layout with variants: one template each, a default, unknown values rejected
+            s.setdefault("variant", layout["default_variant"])
+            if s["variant"] not in layout["variants"]:
+                raise BuildError(f"{where}: layout {name!r} has no variant {s['variant']!r} (known: {', '.join(layout['variants'])})")
         pn = s.get("principle")
         if pn is not None and pn != "wrap" and pn not in self.deck.by_n:
             raise BuildError(f"{where}: principle {pn!r} is not in principles.json")
@@ -513,7 +517,8 @@ class SlideRenderer:
                "qr": self.deck.qr or Undefined("qr (src/assets/qr.json: run tools/qr.py)")}
         self.h1_used = False
         try:
-            inner = self.deck.loader.get(f"{layout['template']}.html").render(ctx, self.filters())
+            template = layout["variants"][s["variant"]] if layout.get("variants") else layout["template"]
+            inner = self.deck.loader.get(f"{template}.html").render(ctx, self.filters())
         except BuildError as e:
             raise BuildError(f"{s['_where']} ({s['id']}): {e}") from None
         try:

@@ -155,6 +155,18 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
 .pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
 .command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); }
+.command.xl { font-size: var(--command-xl-size); }
+.setup-note { font-size: var(--setup-note-size); line-height: 1.25; color: var(--text-muted); max-width: var(--sub-measure); }
+
+/* ---------- Repo tree (the "what you cloned" slide) ---------- */
+.tree { list-style: none; margin-left: 0; padding: 0; display: grid; grid-template-columns: max-content 1fr; column-gap: var(--tree-col-gap); row-gap: var(--tree-row-gap); align-items: baseline; }
+.tree-row { display: contents; color: var(--text); }
+.tree-path { font-size: var(--tree-path-size); font-weight: var(--weight-strong); }
+.tree-gloss { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
+.tree-row.muted .tree-path, .tree-row.muted .tree-gloss { color: var(--tree-muted); font-weight: var(--weight-regular); opacity: var(--tree-muted-opacity); }
+.tree-line { display: flex; align-items: center; gap: var(--tree-line-gap); }
+.tree-line-text { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
+.tree-line .command { padding: var(--tree-command-pad-y) var(--tree-command-pad-x); }
 
 /* ---------- Flow (the structure slide) ---------- */
 .flow { display: flex; align-items: flex-start; width: 100%; }
@@ -172,6 +184,47 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .node-name { font-size: var(--node-name-size); line-height: 1.15; }
 .flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
 .flow-node.step.tint { background: var(--c); color: var(--on-principle); box-shadow: none; position: relative; }
+
+/* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
+.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--line); }
+.stairs-start { margin-right: var(--space-xs); }
+.stairs-end { position: absolute; top: 0; right: 0; }
+.stair {
+  flex: 1 1 0; min-width: 0; box-sizing: border-box; margin-left: calc(var(--stroke-hair) * -1);
+  height: calc(var(--stair-base) + (var(--n) - 1) * var(--stair-rise));
+  padding: var(--stair-pad-y) var(--stair-pad-x); display: flex; flex-direction: column; justify-content: space-between;
+  border: var(--stroke-hair) solid var(--line); border-bottom: 0; border-top: var(--stair-tread) solid var(--c);
+  background: color-mix(in srgb, var(--c) var(--stair-tint), transparent);
+}
+.stair-head { display: flex; align-items: center; justify-content: space-between; }
+.stair-num { font-size: var(--stair-num-size); line-height: 1; font-weight: var(--weight-strong); }
+.stair-emoji { font-family: var(--emoji-font); font-size: var(--stair-num-size); line-height: 1; }
+.stair-name { font-size: var(--stair-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+
+.layers { display: flex; align-items: center; justify-content: center; gap: var(--space-s); width: 100%; }
+.nests { flex: none; width: var(--nests-w); }
+.nest {
+  box-sizing: border-box; display: flex; flex-direction: column; gap: var(--nest-gap);
+  padding: var(--nest-pad-y) var(--nest-pad-x); border: var(--stroke) solid var(--c); border-radius: var(--nest-radius);
+  background: color-mix(in srgb, var(--c) var(--nest-tint), transparent);
+}
+.nest-name { display: flex; align-items: center; gap: var(--nest-name-gap); font-size: var(--nest-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+.nest-num { font-size: var(--nest-name-size); }
+.nest-emoji { font-family: var(--emoji-font); }
+
+.timeline { display: flex; align-items: flex-start; width: 100%; gap: var(--space-s); }
+.timeline .pill { margin-top: calc(var(--tl-above-h) + var(--tl-gap) + (var(--tl-dot) - var(--pill-h)) / 2); }
+.timeline-track { flex: 1 1 0; display: flex; min-width: 0; }
+.tl-seg { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; }
+.tl-above { height: var(--tl-above-h); margin-bottom: var(--tl-gap); display: flex; flex-direction: column; justify-content: flex-end; gap: var(--tl-name-gap); }
+.tl-head { display: flex; align-items: center; gap: var(--tl-name-gap); }
+.tl-num { font-size: var(--tl-num-size); line-height: 1; font-weight: var(--weight-strong); }
+.tl-emoji { font-family: var(--emoji-font); font-size: var(--tl-num-size); line-height: 1; }
+.tl-name { font-size: var(--tl-name-size); line-height: 1.15; font-weight: var(--weight-strong); white-space: nowrap; }
+.tl-dot { position: relative; height: var(--tl-dot); }
+.tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--line); }
+.tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--c); }
+.tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }

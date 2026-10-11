@@ -1,0 +1,10 @@
+{# Repo: the top level of the repository as a file tree. items: path, gloss, optional mute = n; line: text, command, step. #}
+  <p class="label">{{ label }}</p>
+  <ul class="tree gap-m">
+{% for it in items %}
+    <li class="tree-row"{{ it|reveal }}><code class="mono tree-path">{{ it.path }}</code><span class="tree-gloss">{{ it.gloss|text }}</span></li>
+{% endfor %}
+  </ul>
+{% if line %}
+  <p class="tree-line gap-m"{{ line|reveal }}><span class="tree-line-text">{{ line.text|text }}</span><code class="mono step command">{{ line.command }}</code></p>
+{% endif %}

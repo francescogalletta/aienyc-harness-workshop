@@ -39,11 +39,18 @@ required = ["figure"]
 [layouts.setup]
 template = "setup"
 fields = ["label", "minutes", "url", "needs_label", "needs", "needs_todo", "check_label", "command", "check_result", "note"]
-required = ["label", "minutes", "url", "needs_label", "needs", "check_label", "command", "check_result"]
+required = ["label", "minutes", "url", "needs_label", "needs"]   # check_label, command, check_result: optional; note is small and quiet
 
-[layouts.structure]
+[layouts.repo]   # the top level of the repository as a file tree: path, gloss, mute = n; then one line (text + command) at its step
+template = "repo"
+fields = ["label", "items", "line"]
+required = ["label", "items"]
+
+[layouts.structure]   # the five modules, each building on the one before; variant picks the picture (one template each)
 template = "structure"
-fields = ["label", "headline", "start", "end"]
+variants = { stairs = "structure", layers = "structure-layers", timeline = "structure-timeline" }
+default_variant = "stairs"
+fields = ["label", "headline", "start", "end", "variant"]
 required = ["label", "headline", "start", "end"]
 
 [layouts.split]
@@ -125,6 +132,7 @@ label    = { tag = "p", class = "label" }
 display  = { tag = "heading", class = "display", template = "display" }   # + cycle = [...] to swap the end of the line, + quiet = true
 headline = { tag = "h2", class = "headline" }
 sub      = { tag = "p", class = "sub" }
+command  = { tag = "code", class = "mono step command xl" }               # a shell command, large
 mega     = { tag = "heading", class = "mega", template = "mega" }         # + emoji = "…" or chip = "…" beside it
 hero     = { tag = "heading", class = "mega xl" }                         # one huge word
 pause    = { tag = "p", class = "mega dots", aria = "pause" }
