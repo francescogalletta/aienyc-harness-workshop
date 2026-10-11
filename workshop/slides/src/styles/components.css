@@ -146,6 +146,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
 /* Who is speaking, under the ask. The rest of its look comes from .hand-aside. */
 .ask-who { margin-top: var(--ask-who-gap); }
+/* The same aside under a line in a stack: on its own line, smaller. */
+.stack-tight .hand-aside.ask-who { display: block; width: fit-content; margin-top: var(--space-xs); font-size: var(--aside-stack-scale); }
 /* Handwritten asides pop in even while deck motion is off (author's request). */
 @keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
 @media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
@@ -308,6 +310,8 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .says .ex { font-size: var(--example-size); line-height: 1.15; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); white-space: nowrap; }
 .doubts { display: flex; gap: var(--doubts-gap); flex-wrap: nowrap; }
 .doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 var(--doubt-pad-x); border: var(--stroke) dashed var(--your-call-stroke); border-radius: var(--doubt-radius); font-size: var(--doubt-size); font-weight: var(--weight-strong); color: var(--text); white-space: nowrap; }
+.says.compact { --says-said-w: 560px; --example-size: calc(44px * var(--type-scale)); --doubt-size: calc(32px * var(--type-scale)); --says-row-gap: 32px; }
+.says.compact .doubt { height: 60px; }
 .says .said { font-weight: var(--weight-regular); color: var(--text-quiet); }
 
 /* ---------- Step grid ---------- */

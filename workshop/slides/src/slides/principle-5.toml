@@ -5,8 +5,50 @@ principle = 5
 layout = "divider"
 
 [[slide]]
-layout = "placeholder"
-kind = "content"
+id = "s-p5-why"
+name = "P5 · Why"
+layout = "statement"
+blocks = [
+  { label = "WHY" },
+  { display = "Experts do not check every cell." },
+  { sub = "They know where it usually goes wrong.", step = 1 },
+  { sub = "And roughly what the answer should look like.", step = 2 },
+]
+
+[[slide]]
+id = "s-p5-thin"
+name = "P5 · Thin slices"
+layout = "split"
+left = { label = "YOU", headline = "thin slices of your own experience" }
+right = { label = "THE MODEL", headline = "everyone's experience, averaged", step = 1 }
+foot = { text = "Its “probably fine” may look nothing like yours.", step = 2 }
+
+[[slide]]
+id = "s-p5-without"
+name = "P5 · Without it"
+layout = "statement"
+blocks = [
+  { label = "WITHOUT IT" },
+  { lines = [
+      { headline = "Checking everything, line by line.", step = 1 },
+      { headline = "Or checking nothing.", step = 2 },
+      { headline = "No sense of what “about right” looks like.", step = 3 },
+  ] },
+]
+
+[[slide]]
+id = "s-p5-examples"
+name = "P5 · Examples"
+layout = "statement"
+blocks = [
+  { label = "EXAMPLES" },
+  { lines = [
+      { headline = "Is the guest count really settled?", step = 1 },
+      { headline = "Is the price per guest all in?", step = 2 },
+      { headline = "Will each payment be covered by its date?", step = 3 },
+  ] },
+  { sub = "Each challenge is yours to use or dismiss.", step = 3 },
+]
 
 [[slide]]
 layout = "placeholder"

@@ -5,8 +5,51 @@ principle = 3
 layout = "divider"
 
 [[slide]]
-layout = "placeholder"
-kind = "content"
+id = "s-p3-why"
+name = "P3 · Why"
+layout = "statement"
+blocks = [
+  { label = "WHY" },
+  { display = "Not all information is the same." },
+  { sub = "Keep the trail: where each thing came from, and how far to trust it.", step = 1 },
+]
+
+[[slide]]
+id = "s-p3-without"
+name = "P3 · Without it"
+layout = "statement"
+blocks = [
+  { label = "WITHOUT IT" },
+  { lines = [
+      { headline = "Everything treated as fact.", step = 1 },
+      { headline = "A rough guess used as the truth.", step = 2 },
+      { headline = "“I ran the numbers.” No receipts.", step = 3 },
+  ] },
+]
+
+[[slide]]
+id = "s-p3-examples"
+name = "P3 · Examples"
+layout = "statement"
+blocks = [
+  { label = "EXAMPLES" },
+  { compact = true, heads = ["“I MAKE 10K NET”, FROM", "SO IT IS"], guesses = [
+      { said = "A payslip or bank statement", doubts = ["a fact"] },
+      { said = "Your answer to a question", doubts = ["stated", "people forget, or round"], step = 1 },
+      { said = "“About 10k”, said in passing", doubts = ["an estimate"], step = 2 },
+  ] },
+  { sub = "Same number. Three levels of trust.", step = 3 },
+]
+
+[[slide]]
+id = "s-p3-receipts"
+name = "P3 · Receipts"
+layout = "statement"
+blocks = [
+  { display = "“I ran the numbers, but the template changed recently.”" },
+  { sub = "You would ask for a closer look.", step = 1 },
+  { sub = "Show the receipts for what matters, not everything.", step = 2 },
+]
 
 [[slide]]
 layout = "placeholder"

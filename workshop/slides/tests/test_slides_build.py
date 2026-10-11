@@ -148,7 +148,7 @@ def test_committed_deck_html_is_current(deck):
 def test_slides_numbered_and_unique(deck):
     html = build.SlideRenderer(deck).render_all()
     assert html.count("<section ") == len(deck.slides)
-    assert "<!-- 05 · Trust -->" in html
+    assert re.search(r"<!-- \d\d · Trust -->", html)
     ids = [s for s in html.split('id="')[1:]]
     assert len({i.split('"')[0] for i in ids}) == len(ids)
 
@@ -174,7 +174,7 @@ def test_principle_is_a_one_line_edit(tmp_path):
     p.write_text(p.read_text(encoding="utf-8").replace('"Evidence", "emoji": "🧾"', '"Provenance", "emoji": "🪪"'), encoding="utf-8")
     html = build.build(build.Deck(src), "blueprint", False)
     assert "Evidence" not in html and "🧾" not in html
-    assert html.count("Provenance") == 8 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 3 section labels
+    assert html.count("Provenance") == 11 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 6 section labels
 
 
 def test_check_catches_broken_sources(tmp_path, capsys):

@@ -158,6 +158,7 @@ sub = "sub"          # smaller: five lines under a display
 [modifiers]
 quiet = "quiet"
 grow = "grow"
+compact = "compact"   # on guesses: a smaller table for long quotes
 
 # Gap before a block, by "previous-role role". Anything not listed gets default.
 [rhythm]
