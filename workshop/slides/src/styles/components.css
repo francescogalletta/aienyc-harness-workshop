@@ -182,20 +182,24 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
 
 /* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
-.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--hairline); }
+.stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: var(--stair-top-room); padding-right: var(--stair-landing-w); box-sizing: border-box; border-bottom: var(--stroke-hair) solid var(--hairline); }
 .stairs-start { margin-right: var(--space-xs); }
-.stairs-end { position: absolute; top: 0; right: 0; }
+/* The top landing: a platform after the last step, level with its tread; the pill stands on it. */
+.stairs::after { content: ""; position: absolute; right: 0; width: var(--stair-landing-w); bottom: calc(var(--stair-base) + 4 * var(--stair-rise) - var(--stair-tread)); height: var(--stair-tread); background: var(--hairline); }
+.stairs-end { position: absolute; left: calc(100% - var(--stair-landing-w) + var(--space-xs)); bottom: calc(var(--stair-base) + 4 * var(--stair-rise) + var(--space-2xs)); }
+.headline-wide { max-width: var(--stair-headline-w); font-size: var(--stair-headline-size); }
 .stair {
   flex: 1 1 0; min-width: 0; box-sizing: border-box; margin-left: calc(var(--stroke-hair) * -1);
   height: calc(var(--stair-base) + (var(--n) - 1) * var(--stair-rise));
-  padding: var(--stair-pad-y) var(--stair-pad-x); display: flex; flex-direction: column; justify-content: space-between;
+  padding: var(--stair-pad-y) var(--stair-pad-x); display: flex; flex-direction: column; justify-content: flex-end;
   border: var(--stroke-hair) solid var(--hairline); border-bottom: 0; border-top: var(--stair-tread) solid var(--ci, var(--c));
   background: color-mix(in srgb, var(--ci, var(--c)) var(--stair-tint), transparent);
 }
-.stair-head { display: flex; align-items: center; justify-content: space-between; }
+.stair-body { display: flex; flex-direction: column; gap: var(--stair-body-gap); }
+.stair-head { display: flex; align-items: center; gap: var(--space-xs); }
 .stair-num { font-size: var(--stair-num-size); line-height: 1; font-weight: var(--weight-strong); }
 .stair-emoji { font-family: var(--emoji-font); font-size: var(--stair-num-size); line-height: 1; }
-.stair-name { font-size: var(--stair-name-size); line-height: 1.15; font-weight: var(--weight-strong); }
+.stair-name { font-size: var(--stair-name-size); line-height: 1.15; font-weight: var(--weight-strong); overflow-wrap: anywhere; }
 
 .layers { display: flex; align-items: center; justify-content: center; gap: var(--space-s); width: 100%; }
 .nests { flex: none; width: var(--nests-w); }
@@ -233,6 +237,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .split .divider { align-self: stretch; background: var(--hairline); margin: calc(var(--split-rule-overhang) * -1) 0; }
 .split .examples { display: flex; flex-direction: column; gap: var(--split-example-gap); margin-top: var(--split-example-top); }
 .split .example { margin: 0; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--split-example-size); line-height: 1; color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; }
+.split.has-examples .divider { margin: 0; }
 .split.has-examples .foot { margin-top: var(--split-foot-gap-examples); }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
 

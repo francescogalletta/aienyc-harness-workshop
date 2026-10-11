@@ -297,12 +297,17 @@
 
   /* Pills at the ends of the structure slide */
   --flow-pill-pad-x: 20px;
-  --stair-base: 128px;
-  --stair-rise: 46px;
+  --stair-base: 200px;
+  --stair-rise: 92px;
+  --stair-top-room: var(--space-xs);
+  --stair-landing-w: 260px;
+  --stair-headline-w: 1640px;
+  --stair-headline-size: var(--fs-2xl);
+  --stair-body-gap: var(--space-2xs);
   --stair-tread: var(--stroke-heavy);
   --stair-tint: 14%;
   --stair-pad-y: var(--space-xs);
-  --stair-pad-x: var(--space-xs);
+  --stair-pad-x: var(--space-2xs);
   --stair-num-size: var(--fs-l);
   --stair-name-size: var(--fs-xs);
   --nests-w: 1040px;

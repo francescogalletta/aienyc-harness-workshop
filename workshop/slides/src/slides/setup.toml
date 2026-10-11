@@ -38,7 +38,7 @@ label = "TODAY'S STRUCTURE"
 headline = "For each principle, we explain it, show it working, then discuss and play."
 variant = "stairs"
 start = "Setup"
-end = "Wrap"
+end = "Wrap-up"
 
 [[slide]]
 id = "s-fine"

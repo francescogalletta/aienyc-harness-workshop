@@ -1,11 +1,11 @@
 {# Structure, variant "stairs": five steps rising left to right, each standing on the one before (from principles.json).
-   Setup on the ground at the left, Wrap above the top step. #}
+   Setup on the ground at the left, Wrap-up on the top landing, after the last step. #}
   <p class="label">{{ label }}</p>
-  <h2 class="headline gap-xs">{{ headline|text }}</h2>
+  <h2 class="headline headline-wide gap-xs">{{ headline|text }}</h2>
   <div class="stairs gap-l">
     <span class="flow-node pill stairs-start">{{ start }}</span>
 {% for p in principles %}
-    <div class="stair" style="--c:var({{ p.color }}); --ci:var({{ p.ink }}); --n:{{ p.n }}"><span class="stair-head"><span class="stair-num">{{ p.n }}</span><span class="stair-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="stair-name">{{ p.name }}</span></div>
+    <div class="stair" style="--c:var({{ p.color }}); --ci:var({{ p.ink }}); --n:{{ p.n }}"><span class="stair-body"><span class="stair-head"><span class="stair-num">{{ p.n }}</span><span class="stair-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="stair-name">{{ p.name }}</span></span></div>
 {% endfor %}
     <span class="flow-node pill stairs-end">{{ end }}</span>
   </div>

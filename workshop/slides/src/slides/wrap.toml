@@ -18,9 +18,9 @@ blocks = [
   { label = "WHEN TRUST IS PARAMOUNT" },
   { lines = [
       { headline = "Show how the numbers ran.", step = 1 },
-      { headline = "Nothing generic. Finance is an ocean of nuance.", step = 2 },
+      { headline = "Nothing generic. Finance is an ocean of nuance. [ask any accountant]{aside step=3}", step = 2 },
   ] },
-  { display = "Design to increase ==trust==. Never assume it.", step = 3 },
+  { display = "Design to increase ==trust==. Never assume it.", step = 4 },
 ]
 
 [[slide]]

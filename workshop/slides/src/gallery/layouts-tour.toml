@@ -72,7 +72,7 @@ variant = "stairs"
 label = "LAYOUT · STRUCTURE · STAIRS"
 headline = "Each module stands on the one before."
 start = "Setup"
-end = "Wrap"
+end = "Wrap-up"
 
 [[slide]]
 id = "g-structure-layers"
