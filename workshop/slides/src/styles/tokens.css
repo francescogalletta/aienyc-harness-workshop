@@ -1,0 +1,356 @@
+/* ==========================================================================
+   Default tokens: what every theme starts from. A theme may override any of
+   them. Colours are not here: a theme sets its palette and colour roles (see
+   themes/blueprint.css). Components read only the tier-2 tokens below and a
+   theme's colour roles.
+   ========================================================================== */
+:root {
+  /* ---------- Tier 1: primitives ---------- */
+
+  /* The fixed stage everything is laid out on (deck.js assumes 1920x1080). */
+  --stage-w: 1920px;
+  --stage-h: 1080px;
+
+  /* Type scale. Every size multiplies by --type-scale: one knob for all type. */
+  --type-scale: 1;
+  --fs-3xs: calc(12px * var(--type-scale));
+  --fs-2xs: calc(30px * var(--type-scale));
+  --fs-xs: calc(32px * var(--type-scale));
+  --fs-s: calc(36px * var(--type-scale));
+  --fs-m: calc(40px * var(--type-scale));
+  --fs-l: calc(48px * var(--type-scale));
+  --fs-xl: calc(58px * var(--type-scale));
+  --fs-2xl: calc(64px * var(--type-scale));
+  --fs-3xl: calc(92px * var(--type-scale));
+  --fs-4xl: calc(140px * var(--type-scale));
+  --fs-5xl: calc(170px * var(--type-scale));
+  --fs-6xl: calc(240px * var(--type-scale));
+  --fs-7xl: calc(300px * var(--type-scale));
+
+  --font-display: var(--font-sans);  /* themes with a separate display face override this */
+  --weight-regular: 400;
+  --weight-strong: 600;
+  --weight-hand: 500;
+  --weight-hand-strong: 700;
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.01em;
+  --tracking-caps: 0.04em;
+
+  /* Spacing scale (the vertical rhythm uses these directly). */
+  --space-3xs: 4px;
+  --space-2xs: 8px;
+  --space-xs: 16px;
+  --space-s: 28px;
+  --space-m: 56px;
+  --space-l: 88px;
+  --space-xl: 120px;
+  --space-2xl: 140px;
+
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 60px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
+
+  --stroke-hair: 2px;
+  --stroke: 3px;
+  --stroke-sketch: 3.5px;
+  --stroke-strike: 5px;
+  --stroke-heavy: 10px;
+
+  /* Motion. Deck motion is OFF (data-motion on #stage); these still drive the
+     handwritten-aside pop and anything switched back on. */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 360ms;
+  --dur-draw: 500ms;
+  --dur-pop: 320ms;
+  --dur-ring: 900ms;
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------- Tier 2: semantic and component tokens ---------- */
+
+  /* Fonts by role */
+  --body-font: var(--font-sans);
+  --display-font: var(--font-display);
+  --code-font: var(--font-mono);
+  --footnote-font: var(--font-mono);
+  --aside-font: var(--font-hand);
+  --emoji-font: var(--font-emoji);
+  --diagram-label-font: var(--font-sans);
+  --diagram-note-font: var(--font-hand);
+
+  /* Type roles */
+  --mega-size: var(--fs-6xl);
+  --mega-leading: 0.95;
+  --display-size: var(--fs-4xl);
+  --display-leading: 1.02;
+  --headline-size: var(--fs-3xl);
+  --headline-leading: 1.1;
+  --sub-size: var(--fs-xl);
+  --sub-leading: 1.25;
+  --label-size: var(--fs-xs);
+  --code-size: var(--fs-m);
+  --hero-size: var(--fs-7xl);
+  --footnote-size: var(--fs-xs);
+  --counter-size: var(--fs-3xs);
+  --display-measure: 1600px;
+  --sub-measure: 1500px;
+
+  /* Vertical rhythm */
+  --gap-xs: var(--space-xs);
+  --gap-s: var(--space-s);
+  --gap-m: var(--space-m);
+  --gap-l: var(--space-l);
+  --gap-xl: var(--space-xl);
+  --gap-tight: 20px;
+  --row-gap: var(--space-s);
+
+  /* Slide frame */
+  --slide-margin: var(--space-2xl);
+  --slide-pad-top: 108px;
+  --slide-pad-bottom: 172px;
+  --slide-tall-pad-top: 96px;
+  --slide-tall-pad-bottom: var(--space-xl);
+  --rail-clear: 240px;  /* right padding on slides that show the framework rail */
+
+  /* Shapes: step (a box), pill, chip; dashed = "your call" / placeholder */
+  --step-fill: var(--surface);
+  --step-text: var(--text);
+  --step-stroke: var(--stroke);
+  --step-stroke-color: var(--text);
+  --step-radius: var(--radius-m);
+  --from-you-radius: var(--radius-pill);
+  --your-call-stroke: var(--text);
+
+  --pill-h: 72px;
+  --pill-pad-x: 30px;
+  --pill-size: var(--fs-xs);
+  --pill-text: var(--text-quiet);
+  --pill-fill: var(--surface);
+  --pill-stroke: var(--stroke-hair);
+  --pill-stroke-color: var(--line);
+  --pill-radius: var(--radius-pill);
+
+  --chip-h: 56px;
+  --chip-pad-x: 22px;
+  --chip-size: var(--fs-xs);
+  --chip-text: var(--text-muted);
+  --chip-stroke: var(--stroke-hair);
+  --chip-stroke-color: var(--line);
+  --chip-radius: var(--radius-pill);
+
+  --placeholder-stroke: var(--text);
+  --placeholder-stroke-width: var(--stroke);
+  --placeholder-text: var(--text-muted);
+  --placeholder-size: var(--fs-s);
+  --placeholder-pill-h: 76px;
+  --placeholder-pad-x: 32px;
+
+  --panel-radius: var(--step-radius);
+  --panel-pad-y: 48px;
+  --panel-pad-x: var(--space-m);
+  --panel-open-radius: var(--radius-l);
+  --panel-open-pad-y: 52px;
+  --panel-open-pad-x: 64px;
+
+  /* Connectors (flow arrows, converging lines) */
+  --connector-width: var(--stroke);
+
+  /* Footnote (mono) and aside (handwritten) */
+  --footnote-text: var(--text-muted);
+  --footnote-bottom: 110px;
+  --footnote-bottom-low: 48px;  /* under a title block */
+  --aside-bottom: 64px;
+  --aside-size: calc(44px * var(--type-scale));
+  --aside-emoji-scale: 0.8em;
+  --aside-scale: 1.4em;  /* inline handwritten aside, relative to its line */
+  --aside-indent: 10px;
+  --hand-note-size: calc(60px * var(--type-scale));
+
+  /* Title block, strike, stress */
+  --title-line-gap: 24px;
+  --strike-width: var(--stroke-strike);
+  --strike-color: var(--text);
+  --stress-scale: 1.5em;
+  --stress-underline: var(--stroke-heavy);
+  --stress-underline-offset: 14px;
+  --ask-fill: var(--attention);
+  --ask-text: var(--text);
+  --ask-pad-top: 72px;
+  --ask-pad-x: 160px;
+  --ask-pad-bottom: 80px;
+  --ask-who-gap: 36px;
+
+  /* Person intro */
+  --photo-size: 340px;
+  --photo-radius: var(--radius-round);
+  --photo-label-size: var(--fs-2xs);
+  --reel-spot-size: var(--fs-5xl);
+  --reel-out-size: calc(94px * var(--type-scale));
+  --reel-q-radius: var(--radius-round);
+  --reel-q-glyph: 0.47em;
+
+  /* Hand-drawn diagram (slide "How we got here") */
+  --diagram-stroke: var(--text);
+  --diagram-stroke-width: var(--stroke-sketch);
+  --diagram-tick-width: var(--stroke);
+  --diagram-dash: 16 14;
+  --diagram-label: var(--text);
+  --diagram-quiet: var(--text-muted);
+  --diagram-label-size: calc(46px * var(--type-scale));
+  --diagram-note-size: calc(50px * var(--type-scale));
+  --diagram-note-big-size: var(--fs-2xl);
+
+  /* Big numbers and emoji */
+  --tally-size: calc(200px * var(--type-scale));
+  --mega-row-gap: 48px;
+  --mega-emoji-size: calc(160px * var(--type-scale));
+  --big-emoji-size: var(--fs-7xl);
+
+  /* Tracks, setup, grid */
+  --tracks-gap: 64px;
+  --track-pad-top: 48px;
+  --track-pad-x: 64px;
+  --track-pad-bottom: 60px;
+  --track-num-size: calc(190px * var(--type-scale));
+  --track-name-gap: 32px;
+  --track-line-gap: 20px;
+  --setup-gap: 100px;
+  --pills-gap: 18px;
+  --command-pad-y: 30px;
+  --command-pad-x: 40px;
+  --link-underline: var(--stroke-hair);
+  --link-underline-offset: 6px;
+  --grid-gap: 32px;
+  --grid-pad-y: 32px;
+  --grid-pad-x: 36px;
+  --grid-size: calc(44px * var(--type-scale));
+
+  /* Flow (the structure slide) */
+  --flow-slot-h: 200px;
+  --flow-tint-h: 260px;
+  --flow-arrow-h: 16px;
+  --flow-item-gap: var(--space-s);
+  --flow-node-pad-y: 24px;
+  --flow-node-pad-x: 18px;
+  --flow-node-gap: 10px;
+  --flow-pill-pad-x: 20px;
+  --node-num-size: var(--fs-2xl);
+  --node-name-size: calc(34px * var(--type-scale));
+  --node-emoji-size: var(--fs-2xl);
+
+  /* Split halves */
+  --split-gap: 100px;
+  --split-rule-width: var(--stroke-hair);
+  --split-rule-overhang: var(--space-xl);
+  --split-foot-gap: 168px;
+
+  /* Converging pills (slide "Caveats") */
+  --input-pill-h: 80px;
+  --input-pill-size: var(--fs-s);
+  --question-size: var(--fs-2xl);
+
+  /* Framework stack, dividers, rail */
+  --framework-idle: var(--line);
+  --goal-size: var(--fs-5xl);
+  --bars-gap: 10px;
+  --bars-top: 32px;
+  --bar-h: 106px;
+  --bar-pad-x: 44px;
+  --bar-radius: var(--radius-m);
+  --bar-num-size: calc(56px * var(--type-scale));
+  --bar-name-size: var(--fs-l);
+  --bar-text-size: var(--fs-m);
+  --bar-emoji-size: var(--fs-l);
+  --title-row-gap: 48px;
+  --divider-emoji-size: calc(120px * var(--type-scale));
+  --cell-size: var(--fs-xs);
+  --cell-radius: var(--radius-m);
+  --rail-gap: var(--space-2xs);
+  --rail-current-w: 96px;
+
+  /* "You say / the model has to guess" table */
+  --says-said-w: 620px;  /* the quote column; wider faces may need more */
+  --says-col-gap: 24px;
+  --says-row-gap: 40px;
+  --example-size: calc(66px * var(--type-scale));
+  --doubts-gap: var(--space-xs);
+  --doubt-pad-x: 26px;
+  --doubt-size: var(--fs-xs);
+  --doubt-radius: var(--pill-radius);
+
+  /* Chrome and focus */
+  --progress-h: var(--stroke);
+  --progress-track: var(--line);
+  --progress-fill: var(--text);
+  --focus-ring: var(--text);
+  --focus-ring-width: var(--stroke);
+  --focus-ring-offset: var(--space-3xs);
+  --focus-radius: var(--radius-s);
+
+  /* Confetti (canvas): read by js/confetti.js as a comma-separated list */
+  --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
+}
+
+/* ---------- Visuals kit tokens ----------
+   Only in builds that use the visuals kit: build.py drops everything from the
+   line above to the end of this file otherwise, so a deck without charts is
+   unchanged. All derived from the roles above; a theme may override any. */
+:root {
+  /* series: the principle hues, reordered so neighbours stay apart for colour-blind
+     readers (docs/visuals.md has the validator results) */
+  --viz-series-1: var(--principle-1);
+  --viz-series-2: var(--principle-4);
+  --viz-series-3: var(--principle-2);
+  --viz-series-4: var(--principle-5);
+  --viz-series-5: var(--principle-3);
+  --viz-bar: var(--viz-series-1);
+  --viz-highlight: var(--viz-series-2);
+  --viz-up: var(--accent-trust);
+  --viz-down: var(--viz-series-2);
+  --viz-total: var(--text-muted);
+  --viz-text: var(--text);
+  --viz-label: var(--text-quiet);
+  --viz-muted: var(--text-muted);
+  --viz-grid: var(--line);
+  --viz-axis: var(--text-muted);
+  --viz-surface: var(--slide-bg);
+  --viz-node-fill: var(--surface);
+  --viz-node-stroke: var(--step-stroke-color);
+  --viz-on-fill: var(--on-principle);
+  --viz-link: var(--connector);
+  --viz-marker: var(--text);
+  --viz-annotate: var(--accent-trust);
+  --viz-area-opacity: 0.12;
+
+  --viz-font: var(--body-font);
+  --viz-hand-font: var(--aside-font);
+  --viz-label-size: var(--fs-2xs);
+  --viz-tick-size: var(--fs-2xs);
+  --viz-value-size: var(--fs-xs);
+  --viz-node-size: var(--fs-xs);
+  --viz-node-num-size: var(--fs-l);
+  --viz-note-size: var(--fs-m);
+  --viz-count-size: var(--fs-5xl);
+
+  --viz-stroke: var(--stroke);
+  --viz-line-width: var(--stroke);
+  --viz-hair: var(--stroke-hair);
+  --viz-annotate-width: var(--stroke-strike);
+  --viz-bar-radius: var(--radius-m);
+  --viz-node-radius: var(--step-radius);
+  --viz-bar-fill: 0.56;      /* share of each band a bar takes */
+  --viz-point-r: 8px;
+  --viz-marker-r: 16px;
+  --viz-ring-width: var(--stroke);
+
+  --viz-dur: var(--dur-slow);
+  --viz-dur-draw: var(--dur-draw);
+  --viz-dur-line: 900ms;
+  --viz-dur-travel: 2400ms;
+  --viz-dur-count: 1200ms;
+  --viz-stagger: 110ms;
+  --viz-ease: var(--ease-out);
+}

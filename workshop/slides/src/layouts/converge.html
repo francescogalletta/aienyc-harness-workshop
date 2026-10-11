@@ -1,0 +1,8 @@
+{# Converge: pills that drop lines onto a question. x is the pill's centre and y its top, in stage px. #}
+{% for i in inputs %}
+  <div class="input"{{ i|reveal }} style="--cx:{{ i.x|num }}px; --top:{{ i.y|num }}px"><span class="pill">{{ i.text|text }}</span></div>
+{% endfor %}
+  <div class="question step">{{ question|text }}</div>
+{% if sub %}
+  <p class="sub"{{ sub|reveal }}>{{ sub.text|text }}</p>
+{% endif %}

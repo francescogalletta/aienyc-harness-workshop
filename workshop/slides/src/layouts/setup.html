@@ -1,0 +1,26 @@
+{# Setup: QR code and link on the left; what you need and how to check it on the right.
+   The QR comes from src/assets/qr.json (tools/qr.py); build.py --check says if it is for another URL. #}
+  <div class="setup">
+    <div>
+      <div class="row"><p class="label">{{ label }}</p><span class="chip">{{ minutes }} min</span></div>
+      <svg class="qr gap-m" viewBox="-4 -4 {{ qr.box }} {{ qr.box }}" role="img" aria-label="QR code for {{ url|bare_url }}"><rect class="qr-ground" x="-4" y="-4" width="{{ qr.box }}" height="{{ qr.box }}" rx="2"/><path class="qr-ink" d="{{ qr.path }}"/></svg>
+      <a class="mono url" href="{{ url }}" target="_blank" rel="noopener">{{ url|url_lines }}</a>
+    </div>
+    <div>
+      <p class="label">{{ needs_label }}</p>
+      <div class="pills gap-s">
+{% for n in needs %}
+        <span class="pill">{{ n|text }}</span>
+{% endfor %}
+{% if needs_todo %}
+        <span class="pill ph" data-placeholder>{{ needs_todo|text }}</span>
+{% endif %}
+      </div>
+      <p class="label gap-l">{{ check_label }}</p>
+      <div class="gap-s"><code class="mono step command">{{ command }}</code></div>
+      <p class="sub gap-m">{{ check_result|text }}</p>
+{% if note %}
+      <p class="hand-note gap-m">{{ note|text }}</p>
+{% endif %}
+    </div>
+  </div>

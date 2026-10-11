@@ -1,0 +1,37 @@
+{# The page shell. standalone: a whole page (deck.html). Otherwise the fragment the hosting page wraps. #}
+{% if standalone %}
+<!doctype html>
+<html lang="{{ lang }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+{% endif %}
+<title>{{ title }}</title>
+<link rel="stylesheet" href="{{ font_link }}">
+<style>
+{{ css }}
+</style>
+{% if standalone %}
+</head>
+<body>
+{% endif %}
+
+<div class="viewport" id="viewport">
+<div class="stage" id="stage" data-motion="{{ motion }}">
+{{ slides }}
+
+{{ rail }}
+
+</div>
+</div>
+<div class="progress" aria-hidden="true"><i id="progress"></i></div>
+<div class="counter" id="counter" aria-live="polite"></div>
+
+<script>
+{{ js }}
+</script>
+{% if standalone %}
+
+</body>
+</html>
+{% endif %}

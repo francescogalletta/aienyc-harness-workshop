@@ -1,0 +1,11 @@
+{# Type scale (gallery): a specimen per size token (or type role), with its live size (filled in by gallery.js). #}
+  <p class="label">{{ label }}</p>
+  <div class="gal-type{% if row %} gal-type-row{% endif %} gap-m">
+{% for r in rows %}
+{% if r.class %}
+    <div class="gal-spec"><span class="gal-sample {{ r.class }}">{{ r.sample|text }}</span><code class="gal-name">.{{ r.class }} · {{ r.token }} <span data-size="{{ r.token }}"></span></code></div>
+{% else %}
+    <div class="gal-spec"><span class="gal-sample" style="--ts:var({{ r.token }})">{{ r.sample|text }}</span><code class="gal-name">{{ r.token }} <span data-size="{{ r.token }}"></span></code></div>
+{% endif %}
+{% endfor %}
+  </div>

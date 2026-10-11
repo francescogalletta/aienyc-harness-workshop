@@ -1,0 +1,56 @@
+# Tokens, read live from the theme: press D to see the dark values.
+
+[[slide]]
+id = "g-roles"
+name = "Colour roles"
+layout = "swatches"
+label = "COLOUR ROLES · {theme}"
+tokens = ["--slide-bg", "--surface", "--text", "--text-quiet", "--text-muted", "--line", "--connector", "--attention", "--accent-trust", "--on-principle", "--qr-ink", "--qr-ground"]
+
+[[slide]]
+id = "g-hues"
+name = "Principle and chart colours"
+layout = "swatches"
+label = "PRINCIPLES · CHART SERIES · {theme}"
+tokens = ["--principle-1", "--principle-2", "--principle-3", "--principle-4", "--principle-5", "--viz-up", "--viz-series-1", "--viz-series-2", "--viz-series-3", "--viz-series-4", "--viz-series-5", "--viz-down"]
+
+[[slide]]
+id = "g-type-small"
+name = "Type scale, small steps"
+layout = "typescale"
+label = "TYPE SCALE · SMALL STEPS"
+rows = [
+  { token = "--fs-2xs", sample = "Axis labels and chart ticks: 30" },
+  { token = "--fs-xs", sample = "Labels, chips, footnotes: 32" },
+  { token = "--fs-s", sample = "Placeholder pills: 36" },
+  { token = "--fs-m", sample = "Code and bar text: 40" },
+  { token = "--fs-l", sample = "Principle names in the stack: 48" },
+  { token = "--fs-xl", sample = "Sub lines: 58" },
+]
+
+[[slide]]
+id = "g-type-large"
+name = "Type scale, large steps"
+layout = "typescale"
+label = "TYPE SCALE · LARGE STEPS"
+row = true
+rows = [
+  { token = "--fs-2xl", sample = "Ag" },
+  { token = "--fs-3xl", sample = "Ag" },
+  { token = "--fs-4xl", sample = "Ag" },
+  { token = "--fs-5xl", sample = "Ag" },
+  { token = "--fs-6xl", sample = "Ag" },
+  { token = "--fs-7xl", sample = "Ag" },
+]
+
+[[slide]]
+id = "g-type-roles"
+name = "Type roles"
+layout = "typescale"
+label = "TYPE ROLES"
+rows = [
+  { class = "label", token = "--label-size", sample = "LABEL IN CAPITALS" },
+  { class = "sub", token = "--sub-size", sample = "A sub line says the second thing." },
+  { class = "headline", token = "--headline-size", sample = "Headline: one idea" },
+  { class = "display", token = "--display-size", sample = "Display: ==Trust==" },
+]

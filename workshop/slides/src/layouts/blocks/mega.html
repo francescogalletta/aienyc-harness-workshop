@@ -1,0 +1,10 @@
+{% if b.emoji %}
+<div class="mega-row{{ gap_cls }}"{{ attrs }}>
+  <{{ tag }} class="mega">{{ text|text }}</{{ tag }}>
+  <span class="ring-emoji" aria-hidden="true">{{ b.emoji }}</span>
+</div>
+{% elif b.chip %}
+<div class="p-title{{ gap_cls }}"{{ attrs }}><{{ tag }} class="mega">{{ text|text }}</{{ tag }}><span class="chip">{{ b.chip }}</span></div>
+{% else %}
+<{{ tag }} class="{{ cls }}"{{ attrs }}>{{ text|text }}</{{ tag }}>
+{% endif %}

@@ -1,0 +1,65 @@
+/* Ink (example theme, a demonstration, not a design proposal): dark first and
+   high contrast. Off-white on near-black in both modes, bright principle hues
+   with dark text on them, Space Grotesk, square corners.
+   font-link: https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --black: #000000;
+  --ink-950: #0b0b0d;
+  --ink-900: #17171b;
+  --ink-700: #3a3a42;
+  --ink-500: #7d7d88;
+  --ink-300: #a8a39a;
+  --ink-200: #d4cfc5;
+  --paper: #f4f1ea;
+  --white: #ffffff;
+  --coral: #ff6b6b;
+  --tangerine: #ffa94d;
+  --lemon: #ffe14d;
+  --sky: #5fd3ff;
+  --lilac: #b79cff;
+  --mint: #4dffb8;
+  --rose: #ff9ec7;
+
+  /* fonts */
+  --font-sans: "Space Grotesk", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+
+  /* shape: square */
+  --radius-s: 0px;
+  --radius-m: 0px;
+  --radius-l: 2px;
+  --radius-pill: 2px;
+  --photo-radius: 0px;
+  --says-said-w: 700px;  /* Space Grotesk is wider than Plex */
+
+  /* colour roles: dark even without a dark preference */
+  --slide-bg: var(--ink-950);
+  --surface: var(--ink-900);
+  --text: var(--paper);
+  --text-quiet: var(--ink-200);
+  --text-muted: var(--ink-300);
+  --line: var(--ink-700);
+  --connector: var(--ink-500);
+  --attention: var(--rose);
+  --ask-text: var(--ink-950);
+  --accent-trust: var(--mint);
+  --principle-1: var(--coral);
+  --principle-2: var(--tangerine);
+  --principle-3: var(--lemon);
+  --principle-4: var(--sky);
+  --principle-5: var(--lilac);
+  --on-principle: var(--ink-950);
+  --qr-ink: var(--ink-950);
+  --qr-ground: var(--white);
+  color-scheme: dark;
+}
+
+/* Dark: the same look on true black. */
+:root[data-theme="dark"] {
+  --slide-bg: var(--black);
+  --surface: var(--ink-950);
+}

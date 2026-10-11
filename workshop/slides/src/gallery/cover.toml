@@ -1,0 +1,7 @@
+[[slide]]
+id = "g-cover"
+name = "Gallery"
+layout = "title"
+kicker = "DESIGN SYSTEM GALLERY"
+headline = "Theme: =={theme}=="
+byline = "Tokens, layouts, components and visuals, rendered from src/. Figures use sample data."

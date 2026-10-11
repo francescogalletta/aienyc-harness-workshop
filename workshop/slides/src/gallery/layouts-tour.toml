@@ -1,0 +1,83 @@
+# Every deck layout with sample content.
+
+[[slide]]
+id = "g-statement-centred"
+name = "Centred"
+layout = "centred"
+blocks = [
+  { label = "LAYOUT · CENTRED" },
+  { display = "Speaking of ==trust==, a centred statement." },
+]
+aside = { text = "A handwritten aside [✍️]{emo}", step = 1 }
+
+[[slide]]
+id = "g-person"
+name = "Person"
+layout = "person"
+person = "Sam Sample"
+reel = [
+  { emoji = "💍", x = 14, y = 22, rot = -8 },
+  { emoji = "📊", x = 86, y = 22, rot = 7 },
+  { placeholder = "?", x = 14, y = 70, rot = 5 },
+  { emoji = "🧮", x = 86, y = 70, rot = -6 },
+]
+
+[[slide]]
+id = "g-figure"
+name = "Figure"
+layout = "figure"
+label = "LAYOUT · FIGURE (the hand-drawn sketch asset)"
+figure = "sketch.svg"
+
+[[slide]]
+id = "g-setup"
+name = "Setup"
+layout = "setup"
+label = "SETUP"
+minutes = 10
+url = "https://github.com/francescogalletta/aienyc-harness-workshop"
+needs_label = "YOU NEED ONE OF"
+needs = ["Claude Code", "Codex", "an API key"]
+needs_todo = "others to confirm"
+check_label = "CHECK IT WORKS"
+command = "uv run python -m harness check"
+check_result = "It should end with “Setup works”."
+note = "Sample setup slide."
+
+[[slide]]
+id = "g-structure"
+name = "Structure (flow strip)"
+layout = "structure"
+label = "LAYOUT · STRUCTURE"
+headline = "The flow strip comes from principles.json."
+start = "Setup"
+end = "Wrap"
+
+[[slide]]
+id = "g-split"
+name = "Split"
+layout = "split"
+left = { label = "CODE", headline = "repeats exactly" }
+right = { label = "THE MODEL", headline = "uses judgement", step = 1 }
+foot = { text = "A line under both halves.", step = 2 }
+
+[[slide]]
+id = "g-converge"
+name = "Converge"
+layout = "converge"
+inputs = [
+  { text = "guest count", x = 600, y = 330, step = 1 },
+  { text = "payment dates", x = 960, y = 200, step = 2 },
+  { text = "family money", x = 1320, y = 330, step = 3 },
+]
+question = "Can we pay for the wedding?"
+sub = { text = "Inputs converge on one question.", step = 4 }
+
+[[slide]]
+id = "g-framework"
+name = "Framework stack"
+layout = "framework"
+label = "THE GOAL"
+goal = "==Trust=="
+reveal = true
+confetti = true

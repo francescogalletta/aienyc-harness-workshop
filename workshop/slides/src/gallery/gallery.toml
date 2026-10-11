@@ -1,0 +1,16 @@
+# The design-system gallery: build.py --gallery [--theme NAME | --all] → dist/gallery.<theme>.html
+# Same engine, layouts and tokens as the deck. All figures use SAMPLE data (a wedding fund).
+
+title = "Design system gallery"
+lang = "en"
+motion = "off"
+
+sections = [
+  "cover",
+  "tokens",
+  "components",
+  "layouts-tour",
+  "principle",
+  "visuals",
+  "shelf",
+]

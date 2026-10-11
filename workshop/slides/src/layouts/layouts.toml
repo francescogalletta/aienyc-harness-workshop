@@ -1,0 +1,188 @@
+# The vocabulary slides are written in: layouts, the blocks a statement slide is
+# made of, the rhythm between blocks, and inline markup. build.py reads this;
+# templates live next to it (layouts/<template>.html, layouts/blocks/<template>.html).
+
+# ---------------------------------------------------------------------------
+# Layouts. `class` is added to the <section>; `fields` are the keys a slide of
+# this layout may use (besides id, name, layout, principle, rail); `required`
+# must be present. Layouts marked `principle = true` need a principle (set by the
+# section file) and get a default id and name from it.
+# ---------------------------------------------------------------------------
+[layouts.statement]
+template = "statement"
+fields = ["blocks", "footnote", "aside"]
+required = ["blocks"]
+
+[layouts.centred]
+template = "statement"
+class = "centred"
+fields = ["blocks", "footnote", "aside"]
+required = ["blocks"]
+
+[layouts.title]
+template = "title"
+fields = ["kicker", "headline", "byline", "footnote", "aside"]
+required = ["kicker", "headline", "byline"]
+
+[layouts.person]
+template = "person"
+class = "person"
+fields = ["person", "photo", "reel"]
+required = ["person", "reel"]
+
+[layouts.figure]
+template = "figure"
+class = "tall"
+fields = ["label", "figure"]
+required = ["figure"]
+
+[layouts.setup]
+template = "setup"
+fields = ["label", "minutes", "url", "needs_label", "needs", "needs_todo", "check_label", "command", "check_result", "note"]
+required = ["label", "minutes", "url", "needs_label", "needs", "check_label", "command", "check_result"]
+
+[layouts.structure]
+template = "structure"
+fields = ["label", "headline", "start", "end"]
+required = ["label", "headline", "start", "end"]
+
+[layouts.split]
+template = "split"
+fields = ["left", "right", "foot"]
+required = ["left", "right"]
+
+[layouts.converge]
+template = "converge"
+class = "converge"
+fields = ["inputs", "question", "sub"]
+required = ["inputs", "question"]
+
+[layouts.framework]
+template = "framework"
+class = "tall"
+fields = ["label", "goal", "reveal", "confetti"]
+required = ["label", "goal"]
+
+[layouts.divider]
+template = "divider"
+principle = true
+id = "s-p{n}"
+name = "Principle {n} · {name}"
+fields = []
+
+[layouts.placeholder]
+template = "placeholder"
+principle = true
+id = "s-p{n}-{kind}"
+name = "P{n} · {kind_name}"
+fields = ["kind", "label"]
+required = ["kind"]
+
+[layouts.raw]   # escape hatch: bespoke markup, used as is (a hand-written <figure class="viz" …> works here too)
+template = "raw"
+fields = ["html", "class"]
+required = ["html"]
+
+# Used by the gallery (src/gallery/): colour swatches and type specimens read live from the theme.
+[layouts.swatches]
+template = "swatches"
+fields = ["label", "headline", "tokens"]
+required = ["label", "tokens"]
+
+[layouts.typescale]
+template = "typescale"
+fields = ["label", "rows", "row"]
+required = ["label", "rows"]
+
+# Every layout also takes two optional slide-level lists, drawn by the visuals kit:
+#   marks  = [ { target = ".hands .num:last-child", kind = "circle", step = 5 } ]   underline, circle, bracket, box
+#   choreo = [ { step = 2, targets = ".chip", from = { opacity = 0 }, to = { opacity = 1 }, stagger = 80 } ]   anime.js
+
+# Placeholder kinds: what the dashed panel says, and whether it has the rounded
+# "from you" shape.
+[kinds.demo]
+label = "DEMO"
+kind_name = "Demo"
+
+[kinds.turn]
+label = "YOUR TURN"
+kind_name = "Your turn"
+from_you = true
+
+[kinds.content]
+label = "WHY · WITHOUT IT · EXAMPLES"
+kind_name = "Why / without it / examples"
+
+# ---------------------------------------------------------------------------
+# Blocks: statement slides list them in `blocks = [ ... ]`, top to bottom, e.g.
+#   { label = "WHY" }, { display = "…" }, { sub = "…", step = 1 }
+# The first key that names a role decides the block. `tag = "heading"` means
+# <h1> for the first heading on the slide and <p> after it. Optional keys on any
+# block: step, out, mute (build steps), gap (override the rhythm: xs s m l xl).
+# ---------------------------------------------------------------------------
+[roles]
+label    = { tag = "p", class = "label" }
+display  = { tag = "heading", class = "display", template = "display" }   # + cycle = [...] to swap the end of the line, + quiet = true
+headline = { tag = "h2", class = "headline" }
+sub      = { tag = "p", class = "sub" }
+mega     = { tag = "heading", class = "mega", template = "mega" }         # + emoji = "…" or chip = "…" beside it
+hero     = { tag = "heading", class = "mega xl" }                         # one huge word
+pause    = { tag = "p", class = "mega dots", aria = "pause" }
+big_emoji = { tag = "p", class = "big-emoji" }                            # + say = "aria label"
+ask      = { tag = "p", class = "display step from-you ask" }
+lines    = { class = "stack-tight", template = "lines" }                  # [ { headline = "…", step = 1 }, … ]; or soft
+swap     = { class = "swap", template = "swap" }                          # blocks shown one after another in one place
+tally    = { class = "hands", template = "tally" }                        # numbers that appear one by one, the previous one muting
+tracks   = { class = "tracks", template = "tracks" }
+guesses  = { class = "says", template = "guesses" }                       # + heads = ["YOU SAY", "…"]
+grid     = { class = "steps-grid", template = "grid" }
+viz      = { class = "viz" }                                              # a chart, diagram or animation: see "Visuals" below
+
+# Roles allowed inside `lines`.
+[line_roles]
+headline = "headline"
+soft = "soft"
+
+# Modifiers: a block key that adds a class.
+[modifiers]
+quiet = "quiet"
+
+# Gap before a block, by "previous-role role". Anything not listed gets default.
+[rhythm]
+default = "m"
+"label headline" = "xs"
+"label display" = "s"
+"label mega" = "s"
+"label tally" = "xs"
+"headline sub" = "xs"
+"sub sub" = "s"
+"sub label" = "xl"
+"display lines" = "l"
+"display label" = "l"
+"hero sub" = "l"
+"lines sub" = "l"
+"tally sub" = "l"
+"guesses sub" = "l"
+"headline viz" = "l"
+
+# ---------------------------------------------------------------------------
+# Inline markup inside any text:
+#   ==Trust==                      the trust accent
+#   [text]{aside step=1}           a span with roles and build steps
+# Roles below map to classes; keys step/out/mute/strike/fill become data-step-*.
+# ---------------------------------------------------------------------------
+[inline]
+accent = "trust"       # also what ==text== means
+aside = "hand-aside"    # handwritten aside that pops in
+who = "ask-who"         # with aside: the speaker, on its own line
+lead = "lead"           # the strong first word of a soft line
+emo = "emo"             # an emoji inside handwriting
+stress = "ask-us"       # big underlined word
+hook = "hook"           # no look of its own: a handle for marks (target = ".hook")
+
+# ---------------------------------------------------------------------------
+# Visuals: { viz = "<type>", label = "what it shows", … } as a block, or as the
+# figure of a figure slide. Types: flow, bars, waterfall, line, timeline, count,
+# draw, echarts. Any of them: step (when the data appears), style = "rough",
+# animate = false. build.py checks the keys; README "Add a chart" has examples.
+# ---------------------------------------------------------------------------

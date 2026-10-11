@@ -1,0 +1,34 @@
+# Components: every reusable shape, with its class.
+
+[[slide]]
+id = "g-components"
+name = "Components"
+layout = "raw"
+html = '''
+  <p class="label">COMPONENTS</p>
+  <div class="gal-grid gap-m">
+    <div class="gal-cell"><div class="step gal-box">Step box</div><code class="gal-name">.step</code></div>
+    <div class="gal-cell"><div class="step from-you gal-box">From you</div><code class="gal-name">.step.from-you</code></div>
+    <div class="gal-cell"><div class="step your-call gal-box">Your call</div><code class="gal-name">.your-call</code></div>
+    <div class="gal-cell"><div class="panel ph gal-box" data-placeholder><p class="label">PLACEHOLDER</p></div><code class="gal-name">.panel.ph</code></div>
+    <div class="gal-cell"><span class="pill">Claude Code</span><code class="gal-name">.pill</code></div>
+    <div class="gal-cell"><span class="pill ph" data-placeholder>to confirm</span><code class="gal-name">.pill.ph</code></div>
+    <div class="gal-cell"><span class="chip">10 min</span><code class="gal-name">.chip</code></div>
+    <div class="gal-cell"><span class="doubt">net or gross?</span><code class="gal-name">.doubt</code></div>
+  </div>
+  <div class="row gap-l"><code class="mono step command">uv run python -m harness check</code><p class="hand-note">Handwritten note (.hand-note)</p></div>
+'''
+
+[[slide]]
+id = "g-text"
+name = "Text in use"
+layout = "statement"
+blocks = [
+  { label = "TEXT IN USE" },
+  { display = "Earn the ==trust==, [one click]{strike=2} at a time." },
+  { lines = [
+      { headline = "A headline line, revealed.", step = 1 },
+      { soft = "[Soft]{lead} line with a lead word. [an aside]{aside step=3}", step = 1 },
+  ] },
+]
+footnote = { text = "* A footnote sits bottom left, in the mono face.", step = 4 }

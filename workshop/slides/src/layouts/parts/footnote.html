@@ -1,0 +1,6 @@
+{% if footnote %}
+  <p class="footnote"{{ footnote|reveal }}>{{ footnote.text|text }}</p>
+{% endif %}
+{% if aside %}
+  <p class="footnote hand"{{ aside|reveal }}>{{ aside.text|text }}</p>
+{% endif %}

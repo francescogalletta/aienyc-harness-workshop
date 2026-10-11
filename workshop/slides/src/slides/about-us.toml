@@ -1,0 +1,61 @@
+# Who we are and how this workshop came about.
+
+[[slide]]
+id = "s-francesco"
+name = "Francesco"
+layout = "person"
+person = "Francesco"
+reel = [
+  { emoji = "🇻🇪", x = 11.5, y = 18.5, rot = -8 },
+  { emoji = "🇬🇧", x = 88.5, y = 18.5, rot = 7 },
+  { emoji = "🇪🇸", x = 28.5, y = 24, rot = 6 },
+  { emoji = "📊", x = 71.5, y = 24, rot = -6 },
+  { emoji = "🏦", x = 8.5, y = 55.6, rot = 5 },
+  { emoji = "🍜", x = 91.5, y = 55.6, rot = -7 },
+  { emoji = "🧭", x = 22.9, y = 81, rot = -5 },
+  { emoji = "🛠️", x = 77.1, y = 81, rot = 8 },
+]
+
+[[slide]]
+id = "s-felippe"
+name = "Felippe"
+layout = "person"
+person = "Felippe"
+reel = [
+  { placeholder = "?", x = 11.5, y = 18.5, rot = -8 },
+  { placeholder = "?", x = 88.5, y = 18.5, rot = 7 },
+  { placeholder = "?", x = 8.5, y = 55.6, rot = 5 },
+  { placeholder = "?", x = 91.5, y = 55.6, rot = -7 },
+  { placeholder = "?", x = 22.9, y = 81, rot = -5 },
+  { placeholder = "?", x = 77.1, y = 81, rot = 8 },
+]
+
+[[slide]]
+id = "s-origin"
+name = "Where this comes from"
+layout = "statement"
+blocks = [
+  { label = "AT WORK" },
+  { headline = "Data teams in financial services" },
+  { sub = "Monzo Bank, Nubank, and a few more. Now pushing what AI can do there." },
+  { label = "AT HOME", step = 1 },
+  { headline = "Applied AI to make our life easier", step = 1 },
+]
+footnote = { text = "* Not speaking on behalf of Monzo today.", step = 2 }
+
+[[slide]]
+id = "s-excited"
+name = "Excited"
+layout = "statement"
+blocks = [
+  { display = "I got excited about this one." },
+  { sub = "I may have overdone it.", step = 1 },
+]
+footnote = { text = "* Possibly ADHD. Not a doctor.", step = 2 }
+
+[[slide]]
+id = "s-path"
+name = "How we got here"
+layout = "figure"
+label = "HOW WE GOT HERE"
+figure = "sketch.svg"   # drawn by tools/sketch.py; its clicks are in the drawing

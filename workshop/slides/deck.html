@@ -4,111 +4,420 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Harness You Can Trust</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&amp;family=IBM+Plex+Mono:wght@400&amp;family=Caveat:wght@500;700&amp;display=swap">
 <style>
 [hidden] { display: none !important; }
 img { max-width: 100%; }
 
-/* ---------- Tokens: Financial Advisor Harness, Blueprint (+ principle colours) ---------- */
+/* ---------- Tokens: defaults (src/styles/tokens.css) ---------- */
+/* ==========================================================================
+   Default tokens: what every theme starts from. A theme may override any of
+   them. Colours are not here: a theme sets its palette and colour roles (see
+   themes/blueprint.css). Components read only the tier-2 tokens below and a
+   theme's colour roles.
+   ========================================================================== */
 :root {
-  --ground: #eef2f7;
-  --surface: #ffffff;
-  --ink: #0f2440;
-  --ink-2: #33465f;
-  --muted: #4f6078;
-  --line: #bccadb;
-  --flow: #6f84a0;
-  --needs-you: #ffd9b0;
-  --tested: #0b6b6a;
-  --on-ink: #ffffff;
-  --p1: #2563c9;
-  --p2: #6d4fc4;
-  --p3: #a8387f;
-  --p4: #b96a0c;
-  --p5: #3d8a3a;
-  --on-p: #ffffff;
-  --trust: var(--tested);
-  --idle: var(--line);
-  color-scheme: light;
+  /* ---------- Tier 1: primitives ---------- */
 
-  /* Motion tokens. Motion is OFF: see the data-motion switch on #stage. */
+  /* The fixed stage everything is laid out on (deck.js assumes 1920x1080). */
+  --stage-w: 1920px;
+  --stage-h: 1080px;
+
+  /* Type scale. Every size multiplies by --type-scale: one knob for all type. */
+  --type-scale: 1;
+  --fs-3xs: calc(12px * var(--type-scale));
+  --fs-2xs: calc(30px * var(--type-scale));
+  --fs-xs: calc(32px * var(--type-scale));
+  --fs-s: calc(36px * var(--type-scale));
+  --fs-m: calc(40px * var(--type-scale));
+  --fs-l: calc(48px * var(--type-scale));
+  --fs-xl: calc(58px * var(--type-scale));
+  --fs-2xl: calc(64px * var(--type-scale));
+  --fs-3xl: calc(92px * var(--type-scale));
+  --fs-4xl: calc(140px * var(--type-scale));
+  --fs-5xl: calc(170px * var(--type-scale));
+  --fs-6xl: calc(240px * var(--type-scale));
+  --fs-7xl: calc(300px * var(--type-scale));
+
+  --font-display: var(--font-sans);  /* themes with a separate display face override this */
+  --weight-regular: 400;
+  --weight-strong: 600;
+  --weight-hand: 500;
+  --weight-hand-strong: 700;
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.01em;
+  --tracking-caps: 0.04em;
+
+  /* Spacing scale (the vertical rhythm uses these directly). */
+  --space-3xs: 4px;
+  --space-2xs: 8px;
+  --space-xs: 16px;
+  --space-s: 28px;
+  --space-m: 56px;
+  --space-l: 88px;
+  --space-xl: 120px;
+  --space-2xl: 140px;
+
+  --radius-s: 4px;
+  --radius-m: 6px;
+  --radius-l: 60px;
+  --radius-pill: 999px;
+  --radius-round: 50%;
+
+  --stroke-hair: 2px;
+  --stroke: 3px;
+  --stroke-sketch: 3.5px;
+  --stroke-strike: 5px;
+  --stroke-heavy: 10px;
+
+  /* Motion. Deck motion is OFF (data-motion on #stage); these still drive the
+     handwritten-aside pop and anything switched back on. */
   --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 360ms;
   --dur-draw: 500ms;
+  --dur-pop: 320ms;
+  --dur-ring: 900ms;
   --ease-out: cubic-bezier(0.2, 0, 0, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
-  --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
-  --emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  /* ---------- Tier 2: semantic and component tokens ---------- */
 
-  /* type scale on the 1920x1080 stage */
-  --fs-mega: 240px;     --lh-mega: 0.95;
-  --fs-display: 140px;  --lh-display: 1.02;
-  --fs-headline: 92px;  --lh-headline: 1.1;
-  --fs-sub: 58px;       --lh-sub: 1.25;
-  --fs-label: 32px;
-  --fs-chip: 32px;
-  --fs-mono: 40px;
-  --fs-ph: 36px;
+  /* Fonts by role */
+  --body-font: var(--font-sans);
+  --display-font: var(--font-display);
+  --code-font: var(--font-mono);
+  --footnote-font: var(--font-mono);
+  --aside-font: var(--font-hand);
+  --emoji-font: var(--font-emoji);
+  --diagram-label-font: var(--font-sans);
+  --diagram-note-font: var(--font-hand);
 
-  /* stage geometry */
-  --margin: 140px;
+  /* Type roles */
+  --mega-size: var(--fs-6xl);
+  --mega-leading: 0.95;
+  --display-size: var(--fs-4xl);
+  --display-leading: 1.02;
+  --headline-size: var(--fs-3xl);
+  --headline-leading: 1.1;
+  --sub-size: var(--fs-xl);
+  --sub-leading: 1.25;
+  --label-size: var(--fs-xs);
+  --code-size: var(--fs-m);
+  --hero-size: var(--fs-7xl);
+  --footnote-size: var(--fs-xs);
+  --counter-size: var(--fs-3xs);
+  --display-measure: 1600px;
+  --sub-measure: 1500px;
+
+  /* Vertical rhythm */
+  --gap-xs: var(--space-xs);
+  --gap-s: var(--space-s);
+  --gap-m: var(--space-m);
+  --gap-l: var(--space-l);
+  --gap-xl: var(--space-xl);
+  --gap-tight: 20px;
+  --row-gap: var(--space-s);
+
+  /* Slide frame */
+  --slide-margin: var(--space-2xl);
+  --slide-pad-top: 108px;
+  --slide-pad-bottom: 172px;
+  --slide-tall-pad-top: 96px;
+  --slide-tall-pad-bottom: var(--space-xl);
   --rail-clear: 240px;  /* right padding on slides that show the framework rail */
-  --stroke: 3px;
-  --hair: 2px;
-  --r-step: 6px;
+
+  /* Shapes: step (a box), pill, chip; dashed = "your call" / placeholder */
+  --step-fill: var(--surface);
+  --step-text: var(--text);
+  --step-stroke: var(--stroke);
+  --step-stroke-color: var(--text);
+  --step-radius: var(--radius-m);
+  --from-you-radius: var(--radius-pill);
+  --your-call-stroke: var(--text);
+
+  --pill-h: 72px;
+  --pill-pad-x: 30px;
+  --pill-size: var(--fs-xs);
+  --pill-text: var(--text-quiet);
+  --pill-fill: var(--surface);
+  --pill-stroke: var(--stroke-hair);
+  --pill-stroke-color: var(--line);
+  --pill-radius: var(--radius-pill);
+
+  --chip-h: 56px;
+  --chip-pad-x: 22px;
+  --chip-size: var(--fs-xs);
+  --chip-text: var(--text-muted);
+  --chip-stroke: var(--stroke-hair);
+  --chip-stroke-color: var(--line);
+  --chip-radius: var(--radius-pill);
+
+  --placeholder-stroke: var(--text);
+  --placeholder-stroke-width: var(--stroke);
+  --placeholder-text: var(--text-muted);
+  --placeholder-size: var(--fs-s);
+  --placeholder-pill-h: 76px;
+  --placeholder-pad-x: 32px;
+
+  --panel-radius: var(--step-radius);
+  --panel-pad-y: 48px;
+  --panel-pad-x: var(--space-m);
+  --panel-open-radius: var(--radius-l);
+  --panel-open-pad-y: 52px;
+  --panel-open-pad-x: 64px;
+
+  /* Connectors (flow arrows, converging lines) */
+  --connector-width: var(--stroke);
+
+  /* Footnote (mono) and aside (handwritten) */
+  --footnote-text: var(--text-muted);
+  --footnote-bottom: 110px;
+  --footnote-bottom-low: 48px;  /* under a title block */
+  --aside-bottom: 64px;
+  --aside-size: calc(44px * var(--type-scale));
+  --aside-emoji-scale: 0.8em;
+  --aside-scale: 1.4em;  /* inline handwritten aside, relative to its line */
+  --aside-indent: 10px;
+  --hand-note-size: calc(60px * var(--type-scale));
+
+  /* Title block, strike, stress */
+  --title-line-gap: 24px;
+  --strike-width: var(--stroke-strike);
+  --strike-color: var(--text);
+  --stress-scale: 1.5em;
+  --stress-underline: var(--stroke-heavy);
+  --stress-underline-offset: 14px;
+  --ask-fill: var(--attention);
+  --ask-text: var(--text);
+  --ask-pad-top: 72px;
+  --ask-pad-x: 160px;
+  --ask-pad-bottom: 80px;
+  --ask-who-gap: 36px;
+
+  /* Person intro */
+  --photo-size: 340px;
+  --photo-radius: var(--radius-round);
+  --photo-label-size: var(--fs-2xs);
+  --reel-spot-size: var(--fs-5xl);
+  --reel-out-size: calc(94px * var(--type-scale));
+  --reel-q-radius: var(--radius-round);
+  --reel-q-glyph: 0.47em;
+
+  /* Hand-drawn diagram (slide "How we got here") */
+  --diagram-stroke: var(--text);
+  --diagram-stroke-width: var(--stroke-sketch);
+  --diagram-tick-width: var(--stroke);
+  --diagram-dash: 16 14;
+  --diagram-label: var(--text);
+  --diagram-quiet: var(--text-muted);
+  --diagram-label-size: calc(46px * var(--type-scale));
+  --diagram-note-size: calc(50px * var(--type-scale));
+  --diagram-note-big-size: var(--fs-2xl);
+
+  /* Big numbers and emoji */
+  --tally-size: calc(200px * var(--type-scale));
+  --mega-row-gap: 48px;
+  --mega-emoji-size: calc(160px * var(--type-scale));
+  --big-emoji-size: var(--fs-7xl);
+
+  /* Tracks, setup, grid */
+  --tracks-gap: 64px;
+  --track-pad-top: 48px;
+  --track-pad-x: 64px;
+  --track-pad-bottom: 60px;
+  --track-num-size: calc(190px * var(--type-scale));
+  --track-name-gap: 32px;
+  --track-line-gap: 20px;
+  --setup-gap: 100px;
+  --pills-gap: 18px;
+  --command-pad-y: 30px;
+  --command-pad-x: 40px;
+  --link-underline: var(--stroke-hair);
+  --link-underline-offset: 6px;
+  --grid-gap: 32px;
+  --grid-pad-y: 32px;
+  --grid-pad-x: 36px;
+  --grid-size: calc(44px * var(--type-scale));
+
+  /* Flow (the structure slide) */
+  --flow-slot-h: 200px;
+  --flow-tint-h: 260px;
+  --flow-arrow-h: 16px;
+  --flow-item-gap: var(--space-s);
+  --flow-node-pad-y: 24px;
+  --flow-node-pad-x: 18px;
+  --flow-node-gap: 10px;
+  --flow-pill-pad-x: 20px;
+  --node-num-size: var(--fs-2xl);
+  --node-name-size: calc(34px * var(--type-scale));
+  --node-emoji-size: var(--fs-2xl);
+
+  /* Split halves */
+  --split-gap: 100px;
+  --split-rule-width: var(--stroke-hair);
+  --split-rule-overhang: var(--space-xl);
+  --split-foot-gap: 168px;
+
+  /* Converging pills (slide "Caveats") */
+  --input-pill-h: 80px;
+  --input-pill-size: var(--fs-s);
+  --question-size: var(--fs-2xl);
+
+  /* Framework stack, dividers, rail */
+  --framework-idle: var(--line);
+  --goal-size: var(--fs-5xl);
+  --bars-gap: 10px;
+  --bars-top: 32px;
+  --bar-h: 106px;
+  --bar-pad-x: 44px;
+  --bar-radius: var(--radius-m);
+  --bar-num-size: calc(56px * var(--type-scale));
+  --bar-name-size: var(--fs-l);
+  --bar-text-size: var(--fs-m);
+  --bar-emoji-size: var(--fs-l);
+  --title-row-gap: 48px;
+  --divider-emoji-size: calc(120px * var(--type-scale));
+  --cell-size: var(--fs-xs);
+  --cell-radius: var(--radius-m);
+  --rail-gap: var(--space-2xs);
+  --rail-current-w: 96px;
+
+  /* "You say / the model has to guess" table */
+  --says-said-w: 620px;  /* the quote column; wider faces may need more */
+  --says-col-gap: 24px;
+  --says-row-gap: 40px;
+  --example-size: calc(66px * var(--type-scale));
+  --doubts-gap: var(--space-xs);
+  --doubt-pad-x: 26px;
+  --doubt-size: var(--fs-xs);
+  --doubt-radius: var(--pill-radius);
+
+  /* Chrome and focus */
+  --progress-h: var(--stroke);
+  --progress-track: var(--line);
+  --progress-fill: var(--text);
+  --focus-ring: var(--text);
+  --focus-ring-width: var(--stroke);
+  --focus-ring-offset: var(--space-3xs);
+  --focus-radius: var(--radius-s);
+
+  /* Confetti (canvas): read by js/confetti.js as a comma-separated list */
+  --confetti-colors: var(--principle-1), var(--principle-2), var(--principle-3), var(--principle-4), var(--principle-5), var(--accent-trust);
 }
+
+/* ---------- Theme: blueprint (src/themes/blueprint.css) ---------- */
+/* Blueprint: the workshop's own look. Navy ink on a pale blue-grey ground,
+   IBM Plex, a teal for trust and five principle hues.
+   font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --white: #ffffff;
+  --navy-25: #e8eef7;
+  --navy-50: #eef2f7;
+  --navy-150: #c3cfdf;
+  --navy-200: #bccadb;
+  --navy-300: #9db0c8;
+  --navy-400: #6f84a0;
+  --navy-500: #5f7898;
+  --navy-600: #4f6078;
+  --navy-700: #33465f;
+  --navy-800: #2e4466;
+  --navy-900: #0f2440;
+  --navy-925: #14213a;
+  --navy-950: #0c1524;
+  --apricot-200: #ffd9b0;
+  --apricot-800: #7a4a10;
+  --teal-300: #5fd0c8;
+  --teal-700: #0b6b6a;
+  --blue-300: #7fb0ff;
+  --blue-600: #2563c9;
+  --violet-300: #b3a1f5;
+  --violet-600: #6d4fc4;
+  --magenta-300: #ee8fcb;
+  --magenta-600: #a8387f;
+  --amber-300: #f2b25c;
+  --amber-700: #b96a0c;
+  --green-300: #86d67f;
+  --green-600: #3d8a3a;
+
+  /* fonts */
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+
+  /* colour roles (light) */
+  --slide-bg: var(--navy-50);
+  --surface: var(--white);
+  --text: var(--navy-900);
+  --text-quiet: var(--navy-700);
+  --text-muted: var(--navy-600);
+  --line: var(--navy-200);
+  --connector: var(--navy-400);
+  --attention: var(--apricot-200);
+  --accent-trust: var(--teal-700);
+  --principle-1: var(--blue-600);
+  --principle-2: var(--violet-600);
+  --principle-3: var(--magenta-600);
+  --principle-4: var(--amber-700);
+  --principle-5: var(--green-600);
+  --on-principle: var(--white);
+  --qr-ink: var(--navy-900);   /* the QR stays dark on light in both modes */
+  --qr-ground: var(--white);
+  color-scheme: light;
+}
+
+/* Colour roles (dark). Written once: the build repeats this block under
+   prefers-color-scheme: dark (unless the page says data-theme="light"). */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --ground: #0c1524;
-    --surface: #14213a;
-    --ink: #e8eef7;
-    --ink-2: #c3cfdf;
-    --muted: #9db0c8;
-    --line: #2e4466;
-    --flow: #5f7898;
-    --needs-you: #7a4a10;
-    --tested: #5fd0c8;
-    --on-ink: #0c1524;
-    --p1: #7fb0ff;
-    --p2: #b3a1f5;
-    --p3: #ee8fcb;
-    --p4: #f2b25c;
-    --p5: #86d67f;
-    --on-p: #0c1524;
+    --slide-bg: var(--navy-950);
+    --surface: var(--navy-925);
+    --text: var(--navy-25);
+    --text-quiet: var(--navy-150);
+    --text-muted: var(--navy-300);
+    --line: var(--navy-800);
+    --connector: var(--navy-500);
+    --attention: var(--apricot-800);
+    --accent-trust: var(--teal-300);
+    --principle-1: var(--blue-300);
+    --principle-2: var(--violet-300);
+    --principle-3: var(--magenta-300);
+    --principle-4: var(--amber-300);
+    --principle-5: var(--green-300);
+    --on-principle: var(--navy-950);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --ground: #0c1524;
-  --surface: #14213a;
-  --ink: #e8eef7;
-  --ink-2: #c3cfdf;
-  --muted: #9db0c8;
-  --line: #2e4466;
-  --flow: #5f7898;
-  --needs-you: #7a4a10;
-  --tested: #5fd0c8;
-  --on-ink: #0c1524;
-  --p1: #7fb0ff;
-  --p2: #b3a1f5;
-  --p3: #ee8fcb;
-  --p4: #f2b25c;
-  --p5: #86d67f;
-  --on-p: #0c1524;
+  --slide-bg: var(--navy-950);
+  --surface: var(--navy-925);
+  --text: var(--navy-25);
+  --text-quiet: var(--navy-150);
+  --text-muted: var(--navy-300);
+  --line: var(--navy-800);
+  --connector: var(--navy-500);
+  --attention: var(--apricot-800);
+  --accent-trust: var(--teal-300);
+  --principle-1: var(--blue-300);
+  --principle-2: var(--violet-300);
+  --principle-3: var(--magenta-300);
+  --principle-4: var(--amber-300);
+  --principle-5: var(--green-300);
+  --on-principle: var(--navy-950);
   color-scheme: dark;
 }
 
+/* ---------- Base (src/styles/base.css) ---------- */
 /* ---------- Page and stage ---------- */
 html, body { height: 100%; margin: 0; }
 body {
-  background: var(--ground);
-  color: var(--ink);
-  font-family: var(--sans);
-  font-weight: 400;
+  background: var(--slide-bg);
+  color: var(--text);
+  font-family: var(--body-font);
+  font-weight: var(--weight-regular);
   font-variant-numeric: tabular-nums;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
@@ -117,353 +426,73 @@ body {
 *, *::before, *::after { box-sizing: border-box; }
 h1, h2, h3, p, ul, ol { margin: 0; padding: 0; font-weight: inherit; font-size: inherit; }
 ul, ol { list-style: none; }
-a { color: var(--ink); }
-a:focus-visible, button:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; border-radius: 4px; }
+a { color: var(--text); }
+a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring); outline-offset: var(--focus-ring-offset); border-radius: var(--focus-radius); }
 
 .viewport { position: fixed; inset: 0; overflow: hidden; touch-action: pan-y; }
 .stage {
   position: absolute; left: 50%; top: 50%;
-  width: 1920px; height: 1080px;
-  margin: -540px 0 0 -960px;
+  width: var(--stage-w); height: var(--stage-h);
+  margin: calc(var(--stage-h) / -2) 0 0 calc(var(--stage-w) / -2);
   transform-origin: 50% 50%;
 }
 
-/* Every slide: left margin 140px, content block vertically centred, nudged up ~3% (optical centre). */
+/* Every slide: left margin, content block vertically centred, nudged up ~3% (optical centre). */
 .slide {
   position: absolute; inset: 0;
-  padding: 108px var(--margin) 172px;
+  padding: var(--slide-pad-top) var(--slide-margin) var(--slide-pad-bottom);
   display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
   visibility: hidden;
 }
 .slide.active { visibility: visible; }
 .slide[data-principle] { padding-right: var(--rail-clear); }
-.slide[data-rail="off"] { padding-right: var(--margin); }
+.slide[data-rail="off"] { padding-right: var(--slide-margin); }
 .slide.centred { align-items: center; text-align: center; }
+.slide.tall { padding-top: var(--slide-tall-pad-top); padding-bottom: var(--slide-tall-pad-bottom); }
 
-/* ---------- Type ---------- */
+/* ---------- Type roles ---------- */
 .mega, .display, .headline, .sub { text-wrap: balance; }
-.mega     { font-size: var(--fs-mega); line-height: var(--lh-mega); font-weight: 600; letter-spacing: -0.02em; }
-.display  { font-size: var(--fs-display); line-height: var(--lh-display); font-weight: 600; letter-spacing: -0.02em; max-width: 1600px; }
-.headline { font-size: var(--fs-headline); line-height: var(--lh-headline); font-weight: 600; letter-spacing: -0.01em; max-width: 1600px; }
-.sub      { font-size: var(--fs-sub); line-height: var(--lh-sub); font-weight: 400; color: var(--ink-2); max-width: 1500px; }
-.label    { font-size: var(--fs-label); line-height: 1.2; font-weight: 600; letter-spacing: 0.04em; color: var(--muted); }
-.mono     { font-family: var(--mono); font-size: var(--fs-mono); font-weight: 400; line-height: 1.3; }
-.small    { font-size: 32px; line-height: 1.3; color: var(--muted); }
-.quiet    { color: var(--ink-2); }
-.soft     { font-weight: 400; color: var(--ink-2); }
-.soft .lead { font-weight: 600; color: var(--ink); }
-.trust    { color: var(--trust); }
+.mega     { font-family: var(--display-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
+.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); max-width: var(--display-measure); }
+.headline { font-family: var(--display-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); max-width: var(--display-measure); }
+.sub      { font-size: var(--sub-size); line-height: var(--sub-leading); font-weight: var(--weight-regular); color: var(--text-quiet); max-width: var(--sub-measure); }
+.label    { font-size: var(--label-size); line-height: 1.2; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps); color: var(--text-muted); }
+.mono     { font-family: var(--code-font); font-size: var(--code-size); font-weight: var(--weight-regular); line-height: 1.3; }
+.quiet    { color: var(--text-quiet); }
+.soft     { font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-regular); color: var(--text-quiet); }
+.soft .lead { font-weight: var(--weight-strong); color: var(--text); }
+.trust    { color: var(--accent-trust); }
 
 /* vertical rhythm */
-.gap-xs { margin-top: 16px; }
-.gap-s  { margin-top: 28px; }
-.gap-m  { margin-top: 56px; }
-.gap-l  { margin-top: 88px; }
-.gap-xl { margin-top: 120px; }
-.stack-tight > * + * { margin-top: 20px; }
+.gap-xs { margin-top: var(--gap-xs); }
+.gap-s  { margin-top: var(--gap-s); }
+.gap-m  { margin-top: var(--gap-m); }
+.gap-l  { margin-top: var(--gap-l); }
+.gap-xl { margin-top: var(--gap-xl); }
+.stack-tight > * + * { margin-top: var(--gap-tight); }
 
-/* ---------- Build steps (fragments): they snap ---------- */
+/* ---------- Build steps (fragments): they snap ----------
+   data-step="n"        hidden until step n            (.shown)
+   data-step-out="n"    hidden from step n             (.gone)
+   data-step-fill="n"   filled from step n             (.filled)
+   data-step-strike="n" struck through from step n     (.struck)
+   data-step-mute="n"   muted from step n              (.muted)
+   .emoji-reel          one step per item, then one to settle */
 [data-step]:not(.shown) { visibility: hidden; }
 [data-step-out].gone { visibility: hidden; }
 
-/* ---------- Shape vocabulary ---------- */
-.step {
-  background: var(--surface); color: var(--ink);
-  border-radius: var(--r-step);
-  box-shadow: inset 0 0 0 var(--stroke) var(--ink);
-}
-.step.from-you { border-radius: 999px; }
-.step.your-call, .your-call { box-shadow: none; border: var(--stroke) dashed var(--ink); }
-.pill {
-  display: inline-flex; align-items: center; white-space: nowrap;
-  height: 72px; padding: 0 30px;
-  font-size: var(--fs-chip); line-height: 1;
-  color: var(--ink-2); background: var(--surface);
-  border-radius: 999px; box-shadow: inset 0 0 0 var(--hair) var(--line);
-}
-.chip {
-  display: inline-flex; align-items: center; white-space: nowrap;
-  height: 56px; padding: 0 22px;
-  font-size: var(--fs-chip); line-height: 1; font-weight: 400;
-  font-variant-numeric: tabular-nums; letter-spacing: 0;
-  color: var(--muted);
-  border-radius: 999px; box-shadow: inset 0 0 0 var(--hair) var(--line);
-}
-/* placeholders: dashed "your call" outline, muted text */
-.ph { border: 3px dashed var(--ink); box-shadow: none; color: var(--muted); background: transparent; }
-.pill.ph, .chip.ph { font-size: var(--fs-ph); height: 76px; padding: 0 32px; }
-.panel {
-  width: 100%; min-height: 520px;
-  border-radius: var(--r-step);
-  padding: 48px 56px;
-}
-.panel.from-you { border-radius: 60px; padding: 52px 64px; }
-.row { display: flex; align-items: center; gap: 28px; }
-
-/* flow arrow */
-.arrow { flex: none; overflow: visible; fill: none; stroke: var(--flow); stroke-width: 3; stroke-linecap: round; }
-.arrow .h { fill: var(--flow); stroke: none; }
-.arrow .l { stroke-dasharray: 100; stroke-dashoffset: 0; }
-
-/* ---------- 02/03 person ---------- */
-.person { padding: 0; }
-.photo {
-  position: absolute; left: 50%; top: 70px;
-  width: 340px; height: 340px; margin-left: -170px;
-  border-radius: 50%; overflow: hidden;
-  display: grid; place-items: center;
-}
-.photo > span { font-size: 30px; letter-spacing: 0.04em; }
-.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.person-name { position: absolute; left: 0; right: 0; top: 440px; text-align: center; }
-.emoji-reel { position: absolute; inset: 0; pointer-events: none; }
-.emoji-reel li {
-  position: absolute; left: 50%; top: 850px;
-  width: 1.18em; height: 1.18em;
-  display: grid; place-items: center;
-  font-family: var(--emoji); font-size: 170px; line-height: 1;
-  transform: translate(-50%, -50%);
-  visibility: hidden;
-}
-.emoji-reel li.spot { visibility: inherit; }
-.emoji-reel li.out {
-  visibility: inherit;
-  left: var(--x); top: var(--y);
-  font-size: 94px;
-  transform: translate(-50%, -50%) rotate(var(--r));
-}
-.emoji-reel .q {
-  width: 1.06em; height: 1.06em; border-radius: 50%;
-  display: grid; place-items: center;
-  font-family: var(--sans); font-size: 1em; font-weight: 400;
-}
-.emoji-reel .q > span { font-size: 0.47em; line-height: 1; }
-
-/* ---------- Footnote: a casual aside, bottom-left of the content area ---------- */
-.footnote {
-  position: absolute; left: var(--margin); bottom: 110px; max-width: 1640px;
-  font-family: var(--mono); font-size: 32px; line-height: 1.35; font-weight: 400; color: var(--muted);
-}
-.keep-space { visibility: hidden; }
-
-/* ---------- 01/02 · Title (same block on both slides) ---------- */
-.title-block .t-line { display: block; }
-.title-block .t-line + .t-line { margin-top: 24px; }
-.title-block .headline { max-width: 1640px; }
-.struck {
-  color: var(--muted);
-  text-decoration-line: line-through; text-decoration-thickness: 5px; text-decoration-color: var(--ink);
-  text-decoration-skip-ink: none;
-}
-.muted { color: var(--muted); }
-
-/* ---------- 10 ---------- */
-#s-not .soft { font-size: var(--fs-headline); line-height: var(--lh-headline); }
-
-/* ---------- 07 · How we got here: a hand-drawn whiteboard sketch (inline SVG) ---------- */
-.sketch { display: block; width: 100%; height: auto; overflow: visible; }
-.sketch .ln { fill: none; stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
-.sketch .ln.tick { stroke: var(--muted); stroke-width: 3; }
-.sketch .ln.dash { stroke-dasharray: 16 14; }
-.sketch .nm { font-family: var(--sans); font-weight: 600; font-size: 46px; fill: var(--ink); }
-.sketch .nm.muted { fill: var(--muted); }
-.sketch .note { font-family: var(--hand); font-weight: 500; font-size: 50px; fill: var(--muted); }
-.sketch .note.big { font-weight: 700; font-size: 64px; fill: var(--ink); }
-
-/* ---------- 13 · Show of hands ---------- */
-.hands { display: flex; justify-content: space-between; width: 100%; }
-.hands .num { font-size: 200px; line-height: 0.95; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
-.hands .num.muted { color: var(--muted); }
-
-/* ---------- 08 ---------- */
-.swap { display: grid; place-items: center; }
-.swap > * { grid-area: 1 / 1; }
-.swap-left { place-items: start; text-align: left; }
-.swap-left > * { text-wrap: balance; }
-.ask {
-  position: relative;
-  background: var(--needs-you); color: var(--ink);
-  box-shadow: none;
-  padding: 72px 160px 80px;
-  max-width: 1200px;
-}
-
-.dots { letter-spacing: 0.12em; }
-.ask-us { font-size: 1.5em; line-height: 0.8; text-decoration: underline; text-decoration-thickness: 10px; text-underline-offset: 14px; }
-
-/* ---------- 09 ---------- */
-.mega-row { display: flex; align-items: center; gap: 48px; }
-.ring-emoji { font-family: var(--emoji); font-size: 160px; line-height: 1; }
-
-/* ---------- 11 ---------- */
-.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; width: 100%; }
-.track { padding: 48px 64px 60px; display: flex; flex-direction: column; }
-.track-num { font-size: 190px; line-height: 0.9; font-weight: 600; letter-spacing: -0.02em; }
-.track-name { margin-top: 32px; }
-.track-line { margin-top: 20px; }
-.hand-note { font-family: var(--hand); font-weight: 700; font-size: 60px; line-height: 1.05; color: var(--ink); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
-#s-title-struck .footnote { bottom: 48px; }
-canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; pointer-events: none; z-index: 5; }
-.footnote.hand { bottom: 64px; font-family: var(--hand); font-weight: 500; font-size: 44px; transform: rotate(-2deg); transform-origin: left center; }
-.footnote.hand .emo { font-family: var(--emoji); font-size: 0.8em; }
-.ask-who { display: block; font-size: 0.72em; line-height: 1; margin: 36px 0 0; }
-/* Handwritten asides pop in even while deck motion is off (author's request). */
-@keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
-@media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop 320ms var(--ease-out) both; } }
-.big-emoji { font-family: var(--emoji); font-size: 300px; line-height: 1; }
-.hand-aside { display: inline-block; font-family: var(--hand); font-weight: 700; font-size: 1.4em; line-height: 0.8; color: var(--ink); transform: rotate(-4deg); margin-left: 10px; }
-
-/* ---------- 12 ---------- */
-.setup { display: grid; grid-template-columns: 560px 1fr; gap: 100px; align-items: start; width: 100%; }
-.qr { display: block; width: 500px; height: 500px; shape-rendering: crispEdges; }
-.url { display: inline-block; margin-top: 28px; text-decoration: none; color: var(--ink); max-width: 560px; }
-.url:hover { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 6px; }
-.pills { display: flex; flex-wrap: wrap; gap: 18px; }
-.command { display: inline-block; padding: 30px 40px; }
-
-/* ---------- Flow (13) ---------- */
-.flow { display: flex; align-items: flex-start; width: 100%; }
-.flow-item { display: flex; flex-direction: column; align-items: center; gap: 28px; }
-.flow-item { flex: none; }
-.flow-item.grow { flex: 1 1 0; min-width: min-content; }
-.flow-slot { height: 200px; display: flex; align-items: center; width: 100%; justify-content: center; }
-.flow-node { display: flex; flex-direction: column; font-weight: 600; }
-.flow-node.step {
-  width: 100%; height: 200px; padding: 24px 18px; gap: 10px;
-  justify-content: flex-start;
-}
-.flow-node.pill { font-weight: 400; padding: 0 20px; flex-direction: row; align-items: center; }
-.node-num { font-size: 64px; line-height: 1; }
-.node-name { font-size: 34px; line-height: 1.15; }
-.flow .arrow { width: 30px; height: 16px; margin: 92px 4px 0; }
-
-.flow-node.step.tint { background: var(--c); color: var(--on-p); box-shadow: none; height: 260px; position: relative; }
-.flow:has(.tint) .flow-slot { height: 260px; }
-.flow:has(.tint) .arrow { margin-top: 122px; }
-.node-emoji { font-family: var(--emoji); font-size: 64px; line-height: 1; position: absolute; top: 22px; right: 18px; }
-.bar-emoji { font-family: var(--emoji); font-size: 48px; line-height: 1; visibility: hidden; }
-.bar.filled .bar-emoji { visibility: inherit; }
-.p-emoji { font-family: var(--emoji); font-size: 120px; line-height: 1; align-self: center; }
-
-/* ---------- 14 ---------- */
-.mega.xl { font-size: 300px; }
-
-/* ---------- Halves (16, 20) ---------- */
-.split { display: grid; grid-template-columns: 1fr var(--hair) 1fr; column-gap: 100px; width: 100%; align-items: start; }
-.split .divider { align-self: stretch; background: var(--line); margin: -120px 0; }
-.split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: 168px; }
-
-/* ---------- 17 ---------- */
-.caveats { padding: 0; --step-top: 550px; }
-.question {
-  position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
-  display: grid; place-items: center; text-align: center;
-  font-size: 64px; line-height: 1.1; font-weight: 600; letter-spacing: -0.01em;
-}
-.input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
-.input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: 36px; height: 80px; padding: 0 32px; }
-.input::before {
-  content: ""; position: absolute; left: -1.5px; top: 92px; width: 3px;
-  height: calc(var(--step-top) - var(--top) - 92px - 24px);
-  background: var(--flow);
-}
-.input::after {
-  content: ""; position: absolute; left: -10px; top: calc(var(--step-top) - var(--top) - 24px);
-  width: 20px; height: 16px; background: var(--flow);
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-}
-.caveats .sub { position: absolute; left: 0; right: 0; top: 790px; margin: 0 auto; text-align: center; }
-
-/* ---------- Framework stack (21, 46) ---------- */
-.slide.tall { padding-top: 96px; padding-bottom: 120px; }
-.stack { width: 100%; }
-.stack-goal { font-size: 170px; line-height: 0.92; font-weight: 600; letter-spacing: -0.02em; margin-top: 8px; }
-.stack-bars { display: flex; flex-direction: column; gap: 10px; margin-top: 32px; }
-.bar {
-  height: 106px; border-radius: 6px; padding: 0 44px;
-  display: flex; align-items: center; gap: 28px;
-  color: var(--idle); box-shadow: inset 0 0 0 var(--hair) var(--idle);
-}
-.bar-num { font-size: 56px; font-weight: 600; line-height: 1; width: 44px; }
-.bar-name { font-size: 48px; font-weight: 600; line-height: 1; }
-.bar-text { margin-left: auto; font-size: 40px; font-weight: 400; line-height: 1.1; text-align: right; visibility: hidden; }
-.bar.filled { background: var(--c); color: var(--on-p); box-shadow: none; }
-.bar.filled .bar-text { visibility: inherit; }
-
-/* ---------- Principle dividers ---------- */
-.p-title { display: flex; align-items: baseline; gap: 48px; }
-.p-title .chip { align-self: center; }
-.p-num { color: var(--c); }
-.builds-on { display: flex; align-items: center; gap: 28px; }
-.cell {
-  flex: none; width: 64px; height: 88px; border-radius: 6px;
-  display: grid; place-items: center;
-  font-size: 32px; font-weight: 600;
-  background: var(--c); color: var(--on-p);
-}
-.builds-on .arrow { width: 64px; height: 18px; }
-.builds-on .sub { max-width: 1300px; }
-
-/* ---------- 25 · You say / it means ---------- */
-.says { display: grid; grid-template-columns: 790px 96px 600px; column-gap: 24px; row-gap: 40px; align-items: center; }
-.says .label { margin-bottom: -8px; }
-.says .arrow { width: 88px; height: 20px; justify-self: center; }
-.says .ex { font-size: 66px; line-height: 1.15; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-.says.guess { grid-template-columns: 620px 88px 1fr; width: 100%; }
-.doubts { display: flex; gap: 16px; flex-wrap: nowrap; }
-.doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 26px; border: 3px dashed var(--ink); border-radius: 38px; font-size: 32px; font-weight: 600; color: var(--ink); white-space: nowrap; }
-.says .said { font-weight: 400; color: var(--ink-2); }
-
-/* ---------- 31 · step grid ---------- */
-.steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; width: 100%; }
-.steps-grid .step { min-height: 170px; padding: 32px 36px; display: flex; align-items: center; font-size: 44px; line-height: 1.15; font-weight: 600; }
-
-/* ---------- Framework rail (CSS only: driven by the active slide's data-principle) ---------- */
-.rail {
-  display: none; position: absolute; right: 70px; top: 50%; transform: translateY(-50%);
-  flex-direction: column; align-items: flex-end; gap: 8px;
-}
-.stage:has(> .slide.active[data-principle]:not([data-rail="off"])) .rail { display: flex; }
-.rail-cap { width: 64px; height: 64px; border-radius: 50%; box-shadow: inset 0 0 0 3px var(--trust); }
-.rail-cell {
-  width: 64px; height: 96px; border-radius: 6px;
-  display: grid; place-items: center;
-  font-size: 32px; font-weight: 600; line-height: 1;
-  color: var(--muted); box-shadow: inset 0 0 0 2px var(--idle);
-}
-/* covered = an earlier principle */
-.stage:has(> .slide.active[data-principle="2"]) .rail-cell[data-n="1"],
-.stage:has(> .slide.active[data-principle="3"]) .rail-cell:is([data-n="1"], [data-n="2"]),
-.stage:has(> .slide.active[data-principle="4"]) .rail-cell:is([data-n="1"], [data-n="2"], [data-n="3"]),
-.stage:has(> .slide.active[data-principle="5"]) .rail-cell:not([data-n="5"]),
-.stage:has(> .slide.active[data-principle="wrap"]) .rail-cell,
-/* current = this principle: filled and wider, growing leftwards */
-.stage:has(> .slide.active[data-principle="1"]) .rail-cell[data-n="1"],
-.stage:has(> .slide.active[data-principle="2"]) .rail-cell[data-n="2"],
-.stage:has(> .slide.active[data-principle="3"]) .rail-cell[data-n="3"],
-.stage:has(> .slide.active[data-principle="4"]) .rail-cell[data-n="4"],
-.stage:has(> .slide.active[data-principle="5"]) .rail-cell[data-n="5"] {
-  background: var(--c); color: var(--on-p); box-shadow: none;
-}
-.stage:has(> .slide.active[data-principle="1"]) .rail-cell[data-n="1"],
-.stage:has(> .slide.active[data-principle="2"]) .rail-cell[data-n="2"],
-.stage:has(> .slide.active[data-principle="3"]) .rail-cell[data-n="3"],
-.stage:has(> .slide.active[data-principle="4"]) .rail-cell[data-n="4"],
-.stage:has(> .slide.active[data-principle="5"]) .rail-cell[data-n="5"] { width: 96px; }
-.stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--trust); }
-
 /* ---------- Chrome ---------- */
-.progress { position: fixed; left: 0; right: 0; bottom: 0; height: 3px; background: var(--line); pointer-events: none; }
-.progress > i { display: block; height: 100%; width: 0; background: var(--ink); }
+.progress { position: fixed; left: 0; right: 0; bottom: 0; height: var(--progress-h); background: var(--progress-track); pointer-events: none; }
+.progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
   position: fixed; right: 14px; bottom: 10px;
-  font-size: 12px; line-height: 1; font-weight: 600; color: var(--muted);
+  font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--text-muted);
   font-variant-numeric: tabular-nums; opacity: 0.7; pointer-events: none;
 }
 
 /* ---------- Motion (dormant) ----------
-   The author asked for no motion. To turn it back on, change data-motion="off"
-   to data-motion="on" on #stage. Everything below then applies. */
+   The author asked for no motion. To turn it back on, set motion = "on" in
+   src/deck.toml (data-motion on #stage). Everything below then applies. */
 .stage[data-motion="on"] .slide { opacity: 0; transition: opacity var(--dur-base) var(--ease-out), visibility 0s linear var(--dur-base); }
 .stage[data-motion="on"] .slide.active { opacity: 1; transition: opacity var(--dur-base) var(--ease-out), visibility 0s; }
 .stage[data-motion="on"] [data-step] { transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out), visibility 0s; }
@@ -471,13 +500,284 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 .stage[data-motion="on"] .emoji-reel li { transition: left var(--dur-draw) var(--ease-in-out), top var(--dur-draw) var(--ease-in-out), font-size var(--dur-draw) var(--ease-in-out), transform var(--dur-draw) var(--ease-in-out); }
 .stage[data-motion="on"] .ask.shown::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  animation: ring 900ms var(--ease-out) 200ms 1 both;
+  animation: ring var(--dur-ring) var(--ease-out) var(--dur-base) 1 both;
 }
 .stage[data-motion="on"] .slide.instant * { transition: none !important; }
-@keyframes ring { from { box-shadow: 0 0 0 0 var(--needs-you); } to { box-shadow: 0 0 0 56px transparent; } }
+@keyframes ring { from { box-shadow: 0 0 0 0 var(--ask-fill); } to { box-shadow: 0 0 0 var(--space-m) transparent; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
 }
+
+/* ---------- Components (src/styles/components.css) ---------- */
+/* Components. Styled only through tokens (styles/tokens.css + the theme).
+   Box sizes and positions that belong to one layout's geometry stay here as
+   plain numbers; colours, type, radii, strokes, paddings and gaps never do. */
+
+/* ---------- Shape vocabulary ---------- */
+.step {
+  background: var(--step-fill); color: var(--step-text);
+  border-radius: var(--step-radius);
+  box-shadow: inset 0 0 0 var(--step-stroke) var(--step-stroke-color);
+}
+.step.from-you { border-radius: var(--from-you-radius); }
+.step.your-call, .your-call { box-shadow: none; border: var(--step-stroke) dashed var(--your-call-stroke); }
+.pill {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  height: var(--pill-h); padding: 0 var(--pill-pad-x);
+  font-size: var(--pill-size); line-height: 1;
+  color: var(--pill-text); background: var(--pill-fill);
+  border-radius: var(--pill-radius); box-shadow: inset 0 0 0 var(--pill-stroke) var(--pill-stroke-color);
+}
+.chip {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  height: var(--chip-h); padding: 0 var(--chip-pad-x);
+  font-size: var(--chip-size); line-height: 1; font-weight: var(--weight-regular);
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+  color: var(--chip-text);
+  border-radius: var(--chip-radius); box-shadow: inset 0 0 0 var(--chip-stroke) var(--chip-stroke-color);
+}
+/* placeholders: dashed "your call" outline, muted text */
+.ph { border: var(--placeholder-stroke-width) dashed var(--placeholder-stroke); box-shadow: none; color: var(--placeholder-text); background: transparent; }
+.pill.ph, .chip.ph { font-size: var(--placeholder-size); height: var(--placeholder-pill-h); padding: 0 var(--placeholder-pad-x); }
+.panel {
+  width: 100%; min-height: 520px;
+  border-radius: var(--panel-radius);
+  padding: var(--panel-pad-y) var(--panel-pad-x);
+}
+.panel.from-you { border-radius: var(--panel-open-radius); padding: var(--panel-open-pad-y) var(--panel-open-pad-x); }
+.row { display: flex; align-items: center; gap: var(--row-gap); }
+
+/* flow arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
+.arrow { flex: none; overflow: visible; fill: none; stroke: var(--connector); stroke-width: var(--connector-width); stroke-linecap: round; }
+.arrow .h { fill: var(--connector); stroke: none; }
+.arrow .l { stroke-dasharray: 100; stroke-dashoffset: 0; }
+
+/* ---------- Person intro ---------- */
+.person { padding: 0; }
+.photo {
+  position: absolute; left: 50%; top: 70px;
+  width: var(--photo-size); height: var(--photo-size); margin-left: calc(var(--photo-size) / -2);
+  border-radius: var(--photo-radius); overflow: hidden;
+  display: grid; place-items: center;
+}
+.photo > span { font-size: var(--photo-label-size); letter-spacing: var(--tracking-caps); }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.person-name { position: absolute; left: 0; right: 0; top: 440px; text-align: center; }
+.emoji-reel { position: absolute; inset: 0; pointer-events: none; }
+.emoji-reel li {
+  position: absolute; left: 50%; top: 850px;
+  width: 1.18em; height: 1.18em;
+  display: grid; place-items: center;
+  font-family: var(--emoji-font); font-size: var(--reel-spot-size); line-height: 1;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+}
+.emoji-reel li.spot { visibility: inherit; }
+.emoji-reel li.out {
+  visibility: inherit;
+  left: var(--x); top: var(--y);
+  font-size: var(--reel-out-size);
+  transform: translate(-50%, -50%) rotate(var(--r));
+}
+.emoji-reel .q {
+  width: 1.06em; height: 1.06em; border-radius: var(--reel-q-radius);
+  display: grid; place-items: center;
+  font-family: var(--body-font); font-size: inherit; font-weight: var(--weight-regular);
+}
+.emoji-reel .q > span { font-size: var(--reel-q-glyph); line-height: 1; }
+
+/* ---------- Footnote: a casual aside, bottom-left of the content area ---------- */
+.footnote {
+  position: absolute; left: var(--slide-margin); bottom: var(--footnote-bottom); max-width: 1640px;
+  font-family: var(--footnote-font); font-size: var(--footnote-size); line-height: 1.35; font-weight: var(--weight-regular); color: var(--footnote-text);
+}
+
+/* ---------- Title block ---------- */
+.title-block .t-line { display: block; }
+.title-block .t-line + .t-line { margin-top: var(--title-line-gap); }
+.title-block .headline { max-width: 1640px; }
+.title-block ~ .footnote { bottom: var(--footnote-bottom-low); }
+.struck {
+  color: var(--text-muted);
+  text-decoration-line: line-through; text-decoration-thickness: var(--strike-width); text-decoration-color: var(--strike-color);
+  text-decoration-skip-ink: none;
+}
+.muted { color: var(--text-muted); }
+
+/* ---------- Hand-drawn diagram (inline SVG from src/assets/sketch.svg) ---------- */
+.sketch { display: block; width: 100%; height: auto; overflow: visible; }
+.sketch .ln { fill: none; stroke: var(--diagram-stroke); stroke-width: var(--diagram-stroke-width); stroke-linecap: round; stroke-linejoin: round; }
+.sketch .ln.tick { stroke: var(--diagram-quiet); stroke-width: var(--diagram-tick-width); }
+.sketch .ln.dash { stroke-dasharray: var(--diagram-dash); }
+.sketch .nm { font-family: var(--diagram-label-font); font-weight: var(--weight-strong); font-size: var(--diagram-label-size); fill: var(--diagram-label); }
+.sketch .nm.muted { fill: var(--diagram-quiet); }
+.sketch .note { font-family: var(--diagram-note-font); font-weight: var(--weight-hand); font-size: var(--diagram-note-size); fill: var(--diagram-quiet); }
+.sketch .note.big { font-weight: var(--weight-hand-strong); font-size: var(--diagram-note-big-size); fill: var(--diagram-label); }
+
+/* ---------- Tally (show of hands) ---------- */
+.hands { display: flex; justify-content: space-between; width: 100%; }
+.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
+.hands .num.muted { color: var(--text-muted); }
+
+/* ---------- Swap (one line replaces another) and the big ask ---------- */
+.swap { display: grid; place-items: center; }
+.swap > * { grid-area: 1 / 1; }
+.swap-left { place-items: start; text-align: left; }
+.swap-left > * { text-wrap: balance; }
+.ask {
+  position: relative;
+  background: var(--ask-fill); color: var(--ask-text);
+  box-shadow: none;
+  padding: var(--ask-pad-top) var(--ask-pad-x) var(--ask-pad-bottom);
+  max-width: 1200px;
+}
+
+.dots { letter-spacing: 0.12em; }
+.ask-us { font-size: var(--stress-scale); line-height: 0.8; text-decoration: underline; text-decoration-thickness: var(--stress-underline); text-underline-offset: var(--stress-underline-offset); }
+
+/* ---------- Mega with an emoji ---------- */
+.mega-row { display: flex; align-items: center; gap: var(--mega-row-gap); }
+.ring-emoji { font-family: var(--emoji-font); font-size: var(--mega-emoji-size); line-height: 1; }
+
+/* ---------- Tracks ---------- */
+.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--tracks-gap); width: 100%; }
+.track { padding: var(--track-pad-top) var(--track-pad-x) var(--track-pad-bottom); display: flex; flex-direction: column; }
+.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
+.track-name { margin-top: var(--track-name-gap); }
+.track-line { margin-top: var(--track-line-gap); }
+.hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; color: var(--text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
+canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: var(--stage-h); pointer-events: none; z-index: 5; }
+.footnote.hand { bottom: var(--aside-bottom); font-family: var(--aside-font); font-weight: var(--weight-hand); font-size: var(--aside-size); transform: rotate(-2deg); transform-origin: left center; }
+.footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
+/* Who is speaking, under the ask. The rest of its look comes from .hand-aside. */
+.ask-who { margin-top: var(--ask-who-gap); }
+/* Handwritten asides pop in even while deck motion is off (author's request). */
+@keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
+@media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
+.big-emoji { font-family: var(--emoji-font); font-size: var(--big-emoji-size); line-height: 1; }
+.hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
+
+/* ---------- Setup ---------- */
+.setup { display: grid; grid-template-columns: 560px 1fr; gap: var(--setup-gap); align-items: start; width: 100%; }
+.qr { display: block; width: 500px; height: 500px; shape-rendering: crispEdges; }
+.qr .qr-ground { fill: var(--qr-ground); }
+.qr .qr-ink { fill: var(--qr-ink); }
+.url { display: inline-block; margin-top: var(--gap-s); text-decoration: none; color: var(--text); max-width: 560px; }
+.url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
+.pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
+.command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); }
+
+/* ---------- Flow (the structure slide) ---------- */
+.flow { display: flex; align-items: flex-start; width: 100%; }
+.flow:has(.tint) { --flow-slot-h: var(--flow-tint-h); }
+.flow-item { display: flex; flex-direction: column; align-items: center; gap: var(--flow-item-gap); flex: none; }
+.flow-item.grow { flex: 1 1 0; min-width: min-content; }
+.flow-slot { height: var(--flow-slot-h); display: flex; align-items: center; width: 100%; justify-content: center; }
+.flow-node { display: flex; flex-direction: column; font-weight: var(--weight-strong); }
+.flow-node.step {
+  width: 100%; height: var(--flow-slot-h); padding: var(--flow-node-pad-y) var(--flow-node-pad-x); gap: var(--flow-node-gap);
+  justify-content: flex-start;
+}
+.flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
+.node-num { font-size: var(--node-num-size); line-height: 1; }
+.node-name { font-size: var(--node-name-size); line-height: 1.15; }
+.flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
+.flow-node.step.tint { background: var(--c); color: var(--on-principle); box-shadow: none; position: relative; }
+.node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
+.bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
+.bar.filled .bar-emoji { visibility: inherit; }
+.p-emoji { font-family: var(--emoji-font); font-size: var(--divider-emoji-size); line-height: 1; align-self: center; }
+
+/* ---------- Hero word ---------- */
+.mega.xl { font-size: var(--hero-size); }
+
+/* ---------- Split halves ---------- */
+.split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
+.split .divider { align-self: stretch; background: var(--line); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
+
+/* ---------- Converging pills (inputs drop onto a question) ---------- */
+.converge { padding: 0; --step-top: 550px; }
+.question {
+  position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
+  display: grid; place-items: center; text-align: center;
+  font-family: var(--display-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug);
+}
+.input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
+.input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: var(--input-pill-size); height: var(--input-pill-h); padding: 0 var(--placeholder-pad-x); }
+.input::before {
+  content: ""; position: absolute; left: calc(var(--connector-width) / -2); top: 92px; width: var(--connector-width);
+  height: calc(var(--step-top) - var(--top) - 92px - 24px);
+  background: var(--connector);
+}
+.input::after {
+  content: ""; position: absolute; left: -10px; top: calc(var(--step-top) - var(--top) - 24px);
+  width: 20px; height: 16px; background: var(--connector);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.converge .sub { position: absolute; left: 0; right: 0; top: 790px; margin: 0 auto; text-align: center; }
+
+/* ---------- Framework stack ---------- */
+.stack { width: 100%; }
+.stack-goal { font-family: var(--display-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); margin-top: var(--space-2xs); }
+.stack-bars { display: flex; flex-direction: column; gap: var(--bars-gap); margin-top: var(--bars-top); }
+.bar {
+  height: var(--bar-h); border-radius: var(--bar-radius); padding: 0 var(--bar-pad-x);
+  display: flex; align-items: center; gap: var(--row-gap);
+  color: var(--framework-idle); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
+}
+.bar-num { font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
+.bar-name { font-size: var(--bar-name-size); font-weight: var(--weight-strong); line-height: 1; }
+.bar-text { margin-left: auto; font-size: var(--bar-text-size); font-weight: var(--weight-regular); line-height: 1.1; text-align: right; visibility: hidden; }
+.bar.filled { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.bar.filled .bar-text { visibility: inherit; }
+
+/* ---------- Principle dividers ---------- */
+.p-title { display: flex; align-items: baseline; gap: var(--title-row-gap); }
+.p-title .chip { align-self: center; }
+.p-num { color: var(--c); }
+.builds-on { display: flex; align-items: center; gap: var(--row-gap); }
+.cell {
+  flex: none; width: 64px; height: 88px; border-radius: var(--cell-radius);
+  display: grid; place-items: center;
+  font-size: var(--cell-size); font-weight: var(--weight-strong);
+  background: var(--c); color: var(--on-principle);
+}
+.builds-on .arrow { width: 64px; height: 18px; }
+.builds-on .sub { max-width: 1300px; }
+
+/* ---------- You say / the model has to guess ---------- */
+.says { display: grid; grid-template-columns: var(--says-said-w) 88px 1fr; width: 100%; column-gap: var(--says-col-gap); row-gap: var(--says-row-gap); align-items: center; }
+.says .label { margin-bottom: calc(var(--space-2xs) * -1); }
+.says .arrow { width: 88px; height: 20px; justify-self: center; }
+.says .ex { font-size: var(--example-size); line-height: 1.15; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); white-space: nowrap; }
+.doubts { display: flex; gap: var(--doubts-gap); flex-wrap: nowrap; }
+.doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 var(--doubt-pad-x); border: var(--stroke) dashed var(--your-call-stroke); border-radius: var(--doubt-radius); font-size: var(--doubt-size); font-weight: var(--weight-strong); color: var(--text); white-space: nowrap; }
+.says .said { font-weight: var(--weight-regular); color: var(--text-quiet); }
+
+/* ---------- Step grid ---------- */
+.steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--grid-gap); width: 100%; }
+.steps-grid .step { min-height: 170px; padding: var(--grid-pad-y) var(--grid-pad-x); display: flex; align-items: center; font-size: var(--grid-size); line-height: 1.15; font-weight: var(--weight-strong); }
+
+/* ---------- Framework rail ----------
+   Shown on slides with data-principle (unless data-rail="off"). deck.js marks
+   each cell .done (an earlier principle) or .now (this one) from the active
+   slide's data-principle; "wrap" marks them all done. */
+.rail {
+  display: none; position: absolute; right: 70px; top: 50%; transform: translateY(-50%);
+  flex-direction: column; align-items: flex-end; gap: var(--rail-gap);
+}
+.stage:has(> .slide.active[data-principle]:not([data-rail="off"])) .rail { display: flex; }
+.rail-cap { width: 64px; height: 64px; border-radius: var(--radius-round); box-shadow: inset 0 0 0 var(--stroke) var(--accent-trust); }
+.rail-cell {
+  width: 64px; height: 96px; border-radius: var(--cell-radius);
+  display: grid; place-items: center;
+  font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
+  color: var(--text-muted); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
+}
+.rail-cell.done, .rail-cell.now { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.rail-cell.now { width: var(--rail-current-w); }
+.stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--accent-trust); }
 </style>
 </head>
 <body>
@@ -487,8 +787,8 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 <!-- 01 · Title -->
 <section class="slide" id="s-title">
   <h1 class="title-block">
-    <span class="headline t-line"><span class="t1">Stop Talking to Your Spreadsheets;</span></span>
-    <span class="display t-line"><span class="t2">Building a Financial Analyst</span> <span class="t3">Harness You Can <span class="trust">Trust</span></span></span>
+    <span class="headline t-line">Stop Talking to Your Spreadsheets;</span>
+    <span class="display t-line">Building a Financial Analyst Harness You Can <span class="trust">Trust</span></span>
   </h1>
   <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
 </section>
@@ -496,8 +796,8 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 <!-- 02 · Striking the title -->
 <section class="slide" id="s-title-struck">
   <h1 class="title-block">
-    <span class="headline t-line"><span class="t1" data-step-strike="1">Stop Talking to Your Spreadsheets;</span></span>
-    <span class="display t-line"><span class="t2">Building a <span data-step-strike="2">Financial Analyst</span></span> <span class="t3">Harness You Can <span class="trust">Trust</span></span></span>
+    <span class="headline t-line"><span data-step-strike="1">Stop Talking to Your Spreadsheets;</span></span>
+    <span class="display t-line">Building a <span data-step-strike="2">Financial Analyst</span> Harness You Can <span class="trust">Trust</span></span>
   </h1>
   <p class="sub gap-m">Francesco Galletta · Felippe Caso</p>
   <p class="footnote" data-step="3">* Sorry, a bit clickbaity. This will not run your private-equity firm. Other companies do that.</p>
@@ -538,10 +838,8 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
   <p class="label">AT WORK</p>
   <h2 class="headline gap-xs">Data teams in financial services</h2>
   <p class="sub gap-xs">Monzo Bank, Nubank, and a few more. Now pushing what AI can do there.</p>
-  <div data-step="1" class="gap-xl">
-    <p class="label">AT HOME</p>
-    <h2 class="headline gap-xs">Applied AI to make our life easier</h2>
-  </div>
+  <p class="label gap-xl" data-step="1">AT HOME</p>
+  <h2 class="headline gap-xs" data-step="1">Applied AI to make our life easier</h2>
   <p class="footnote" data-step="2">* Not speaking on behalf of Monzo today.</p>
 </section>
 
@@ -677,7 +975,7 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
   <div class="setup">
     <div>
       <div class="row"><p class="label">SETUP</p><span class="chip">10 min</span></div>
-      <svg class="qr gap-m" viewBox="-4 -4 41 41" role="img" aria-label="QR code for github.com/francescogalletta/aienyc-harness-workshop"><rect x="-4" y="-4" width="41" height="41" rx="2" fill="#ffffff"/><path fill="#0f2440" d="M0 0h7v1h-7zM8 0h2v1h-2zM12 0h5v1h-5zM18 0h1v1h-1zM21 0h1v1h-1zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM13 1h2v1h-2zM16 1h2v1h-2zM19 1h2v1h-2zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h1v1h-1zM12 2h1v1h-1zM17 2h3v1h-3zM21 2h4v1h-4zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h1v1h-1zM10 3h2v1h-2zM15 3h2v1h-2zM18 3h1v1h-1zM20 3h1v1h-1zM23 3h1v1h-1zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM13 4h2v1h-2zM18 4h1v1h-1zM23 4h1v1h-1zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h7v1h-7zM18 5h2v1h-2zM21 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM14 7h5v1h-5zM20 7h5v1h-5zM0 8h1v1h-1zM4 8h1v1h-1zM6 8h6v1h-6zM17 8h1v1h-1zM21 8h1v1h-1zM23 8h1v1h-1zM25 8h5v1h-5zM32 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM8 9h1v1h-1zM10 9h2v1h-2zM14 9h5v1h-5zM23 9h1v1h-1zM25 9h1v1h-1zM29 9h2v1h-2zM0 10h1v1h-1zM2 10h2v1h-2zM5 10h4v1h-4zM10 10h1v1h-1zM13 10h3v1h-3zM18 10h1v1h-1zM21 10h3v1h-3zM26 10h1v1h-1zM29 10h1v1h-1zM31 10h1v1h-1zM0 11h2v1h-2zM3 11h3v1h-3zM7 11h1v1h-1zM10 11h1v1h-1zM12 11h2v1h-2zM17 11h5v1h-5zM23 11h1v1h-1zM25 11h1v1h-1zM31 11h1v1h-1zM2 12h1v1h-1zM4 12h3v1h-3zM9 12h5v1h-5zM15 12h3v1h-3zM19 12h6v1h-6zM26 12h1v1h-1zM28 12h2v1h-2zM32 12h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM8 13h2v1h-2zM11 13h7v1h-7zM20 13h6v1h-6zM27 13h1v1h-1zM29 13h2v1h-2zM2 14h5v1h-5zM9 14h1v1h-1zM13 14h3v1h-3zM18 14h1v1h-1zM20 14h1v1h-1zM23 14h4v1h-4zM28 14h2v1h-2zM31 14h1v1h-1zM0 15h1v1h-1zM2 15h4v1h-4zM8 15h2v1h-2zM13 15h2v1h-2zM17 15h1v1h-1zM19 15h1v1h-1zM21 15h2v1h-2zM25 15h4v1h-4zM0 16h2v1h-2zM6 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM19 16h4v1h-4zM24 16h1v1h-1zM26 16h1v1h-1zM28 16h2v1h-2zM31 16h1v1h-1zM0 17h4v1h-4zM5 17h1v1h-1zM7 17h2v1h-2zM10 17h1v1h-1zM12 17h1v1h-1zM15 17h2v1h-2zM18 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM29 17h3v1h-3zM2 18h1v1h-1zM6 18h1v1h-1zM9 18h1v1h-1zM11 18h1v1h-1zM13 18h1v1h-1zM15 18h1v1h-1zM20 18h1v1h-1zM22 18h2v1h-2zM25 18h1v1h-1zM27 18h1v1h-1zM29 18h1v1h-1zM31 18h1v1h-1zM1 19h1v1h-1zM3 19h3v1h-3zM8 19h1v1h-1zM11 19h1v1h-1zM13 19h2v1h-2zM16 19h2v1h-2zM19 19h7v1h-7zM27 19h1v1h-1zM2 20h1v1h-1zM6 20h2v1h-2zM9 20h1v1h-1zM14 20h1v1h-1zM17 20h1v1h-1zM21 20h2v1h-2zM24 20h1v1h-1zM26 20h1v1h-1zM28 20h2v1h-2zM0 21h1v1h-1zM2 21h1v1h-1zM5 21h1v1h-1zM7 21h1v1h-1zM13 21h4v1h-4zM18 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM29 21h3v1h-3zM2 22h5v1h-5zM8 22h3v1h-3zM15 22h2v1h-2zM20 22h1v1h-1zM22 22h4v1h-4zM29 22h1v1h-1zM31 22h1v1h-1zM5 23h1v1h-1zM7 23h1v1h-1zM9 23h1v1h-1zM12 23h8v1h-8zM21 23h1v1h-1zM23 23h1v1h-1zM25 23h2v1h-2zM0 24h4v1h-4zM6 24h2v1h-2zM9 24h1v1h-1zM11 24h5v1h-5zM17 24h1v1h-1zM19 24h10v1h-10zM8 25h1v1h-1zM10 25h3v1h-3zM15 25h4v1h-4zM20 25h2v1h-2zM23 25h2v1h-2zM28 25h1v1h-1zM30 25h2v1h-2zM0 26h7v1h-7zM8 26h2v1h-2zM14 26h2v1h-2zM20 26h1v1h-1zM24 26h1v1h-1zM26 26h1v1h-1zM28 26h2v1h-2zM31 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h2v1h-2zM14 27h1v1h-1zM16 27h3v1h-3zM20 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h2v1h-2zM14 28h1v1h-1zM17 28h1v1h-1zM21 28h2v1h-2zM24 28h6v1h-6zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM9 29h1v1h-1zM12 29h2v1h-2zM15 29h2v1h-2zM21 29h1v1h-1zM23 29h2v1h-2zM26 29h3v1h-3zM30 29h1v1h-1zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM10 30h1v1h-1zM12 30h2v1h-2zM15 30h1v1h-1zM17 30h2v1h-2zM20 30h1v1h-1zM23 30h2v1h-2zM26 30h3v1h-3zM0 31h1v1h-1zM6 31h1v1h-1zM11 31h3v1h-3zM16 31h3v1h-3zM20 31h2v1h-2zM24 31h3v1h-3zM29 31h1v1h-1zM0 32h7v1h-7zM8 32h1v1h-1zM10 32h1v1h-1zM12 32h1v1h-1zM14 32h1v1h-1zM16 32h2v1h-2zM19 32h7v1h-7zM32 32h1v1h-1z"/></svg>
+      <svg class="qr gap-m" viewBox="-4 -4 41 41" role="img" aria-label="QR code for github.com/francescogalletta/aienyc-harness-workshop"><rect class="qr-ground" x="-4" y="-4" width="41" height="41" rx="2"/><path class="qr-ink" d="M0 0h7v1h-7zM8 0h2v1h-2zM12 0h5v1h-5zM18 0h1v1h-1zM21 0h1v1h-1zM23 0h1v1h-1zM26 0h7v1h-7zM0 1h1v1h-1zM6 1h1v1h-1zM9 1h1v1h-1zM13 1h2v1h-2zM16 1h2v1h-2zM19 1h2v1h-2zM26 1h1v1h-1zM32 1h1v1h-1zM0 2h1v1h-1zM2 2h3v1h-3zM6 2h1v1h-1zM10 2h1v1h-1zM12 2h1v1h-1zM17 2h3v1h-3zM21 2h4v1h-4zM26 2h1v1h-1zM28 2h3v1h-3zM32 2h1v1h-1zM0 3h1v1h-1zM2 3h3v1h-3zM6 3h1v1h-1zM8 3h1v1h-1zM10 3h2v1h-2zM15 3h2v1h-2zM18 3h1v1h-1zM20 3h1v1h-1zM23 3h1v1h-1zM26 3h1v1h-1zM28 3h3v1h-3zM32 3h1v1h-1zM0 4h1v1h-1zM2 4h3v1h-3zM6 4h1v1h-1zM8 4h2v1h-2zM13 4h2v1h-2zM18 4h1v1h-1zM23 4h1v1h-1zM26 4h1v1h-1zM28 4h3v1h-3zM32 4h1v1h-1zM0 5h1v1h-1zM6 5h1v1h-1zM8 5h7v1h-7zM18 5h2v1h-2zM21 5h1v1h-1zM26 5h1v1h-1zM32 5h1v1h-1zM0 6h7v1h-7zM8 6h1v1h-1zM10 6h1v1h-1zM12 6h1v1h-1zM14 6h1v1h-1zM16 6h1v1h-1zM18 6h1v1h-1zM20 6h1v1h-1zM22 6h1v1h-1zM24 6h1v1h-1zM26 6h7v1h-7zM8 7h1v1h-1zM10 7h2v1h-2zM14 7h5v1h-5zM20 7h5v1h-5zM0 8h1v1h-1zM4 8h1v1h-1zM6 8h6v1h-6zM17 8h1v1h-1zM21 8h1v1h-1zM23 8h1v1h-1zM25 8h5v1h-5zM32 8h1v1h-1zM0 9h1v1h-1zM3 9h1v1h-1zM8 9h1v1h-1zM10 9h2v1h-2zM14 9h5v1h-5zM23 9h1v1h-1zM25 9h1v1h-1zM29 9h2v1h-2zM0 10h1v1h-1zM2 10h2v1h-2zM5 10h4v1h-4zM10 10h1v1h-1zM13 10h3v1h-3zM18 10h1v1h-1zM21 10h3v1h-3zM26 10h1v1h-1zM29 10h1v1h-1zM31 10h1v1h-1zM0 11h2v1h-2zM3 11h3v1h-3zM7 11h1v1h-1zM10 11h1v1h-1zM12 11h2v1h-2zM17 11h5v1h-5zM23 11h1v1h-1zM25 11h1v1h-1zM31 11h1v1h-1zM2 12h1v1h-1zM4 12h3v1h-3zM9 12h5v1h-5zM15 12h3v1h-3zM19 12h6v1h-6zM26 12h1v1h-1zM28 12h2v1h-2zM32 12h1v1h-1zM2 13h1v1h-1zM4 13h1v1h-1zM8 13h2v1h-2zM11 13h7v1h-7zM20 13h6v1h-6zM27 13h1v1h-1zM29 13h2v1h-2zM2 14h5v1h-5zM9 14h1v1h-1zM13 14h3v1h-3zM18 14h1v1h-1zM20 14h1v1h-1zM23 14h4v1h-4zM28 14h2v1h-2zM31 14h1v1h-1zM0 15h1v1h-1zM2 15h4v1h-4zM8 15h2v1h-2zM13 15h2v1h-2zM17 15h1v1h-1zM19 15h1v1h-1zM21 15h2v1h-2zM25 15h4v1h-4zM0 16h2v1h-2zM6 16h1v1h-1zM15 16h1v1h-1zM17 16h1v1h-1zM19 16h4v1h-4zM24 16h1v1h-1zM26 16h1v1h-1zM28 16h2v1h-2zM31 16h1v1h-1zM0 17h4v1h-4zM5 17h1v1h-1zM7 17h2v1h-2zM10 17h1v1h-1zM12 17h1v1h-1zM15 17h2v1h-2zM18 17h1v1h-1zM23 17h1v1h-1zM25 17h1v1h-1zM29 17h3v1h-3zM2 18h1v1h-1zM6 18h1v1h-1zM9 18h1v1h-1zM11 18h1v1h-1zM13 18h1v1h-1zM15 18h1v1h-1zM20 18h1v1h-1zM22 18h2v1h-2zM25 18h1v1h-1zM27 18h1v1h-1zM29 18h1v1h-1zM31 18h1v1h-1zM1 19h1v1h-1zM3 19h3v1h-3zM8 19h1v1h-1zM11 19h1v1h-1zM13 19h2v1h-2zM16 19h2v1h-2zM19 19h7v1h-7zM27 19h1v1h-1zM2 20h1v1h-1zM6 20h2v1h-2zM9 20h1v1h-1zM14 20h1v1h-1zM17 20h1v1h-1zM21 20h2v1h-2zM24 20h1v1h-1zM26 20h1v1h-1zM28 20h2v1h-2zM0 21h1v1h-1zM2 21h1v1h-1zM5 21h1v1h-1zM7 21h1v1h-1zM13 21h4v1h-4zM18 21h1v1h-1zM23 21h1v1h-1zM25 21h1v1h-1zM27 21h1v1h-1zM29 21h3v1h-3zM2 22h5v1h-5zM8 22h3v1h-3zM15 22h2v1h-2zM20 22h1v1h-1zM22 22h4v1h-4zM29 22h1v1h-1zM31 22h1v1h-1zM5 23h1v1h-1zM7 23h1v1h-1zM9 23h1v1h-1zM12 23h8v1h-8zM21 23h1v1h-1zM23 23h1v1h-1zM25 23h2v1h-2zM0 24h4v1h-4zM6 24h2v1h-2zM9 24h1v1h-1zM11 24h5v1h-5zM17 24h1v1h-1zM19 24h10v1h-10zM8 25h1v1h-1zM10 25h3v1h-3zM15 25h4v1h-4zM20 25h2v1h-2zM23 25h2v1h-2zM28 25h1v1h-1zM30 25h2v1h-2zM0 26h7v1h-7zM8 26h2v1h-2zM14 26h2v1h-2zM20 26h1v1h-1zM24 26h1v1h-1zM26 26h1v1h-1zM28 26h2v1h-2zM31 26h1v1h-1zM0 27h1v1h-1zM6 27h1v1h-1zM9 27h2v1h-2zM14 27h1v1h-1zM16 27h3v1h-3zM20 27h3v1h-3zM24 27h1v1h-1zM28 27h1v1h-1zM0 28h1v1h-1zM2 28h3v1h-3zM6 28h1v1h-1zM8 28h2v1h-2zM14 28h1v1h-1zM17 28h1v1h-1zM21 28h2v1h-2zM24 28h6v1h-6zM0 29h1v1h-1zM2 29h3v1h-3zM6 29h1v1h-1zM9 29h1v1h-1zM12 29h2v1h-2zM15 29h2v1h-2zM21 29h1v1h-1zM23 29h2v1h-2zM26 29h3v1h-3zM30 29h1v1h-1zM0 30h1v1h-1zM2 30h3v1h-3zM6 30h1v1h-1zM10 30h1v1h-1zM12 30h2v1h-2zM15 30h1v1h-1zM17 30h2v1h-2zM20 30h1v1h-1zM23 30h2v1h-2zM26 30h3v1h-3zM0 31h1v1h-1zM6 31h1v1h-1zM11 31h3v1h-3zM16 31h3v1h-3zM20 31h2v1h-2zM24 31h3v1h-3zM29 31h1v1h-1zM0 32h7v1h-7zM8 32h1v1h-1zM10 32h1v1h-1zM12 32h1v1h-1zM14 32h1v1h-1zM16 32h2v1h-2zM19 32h7v1h-7zM32 32h1v1h-1z"/></svg>
       <a class="mono url" href="https://github.com/francescogalletta/aienyc-harness-workshop" target="_blank" rel="noopener">github.com/<wbr>francescogalletta/<wbr>aienyc-harness-workshop</a>
     </div>
     <div>
@@ -704,15 +1002,15 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
   <div class="flow gap-xl">
     <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Setup</span></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p1)"><span class="node-emoji" aria-hidden="true">🤝</span><span class="node-num">1</span><span class="node-name">Shared Domain</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-1)"><span class="node-emoji" aria-hidden="true">🤝</span><span class="node-num">1</span><span class="node-name">Shared Domain</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p2)"><span class="node-emoji" aria-hidden="true">🧮</span><span class="node-num">2</span><span class="node-name">Consistency</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-2)"><span class="node-emoji" aria-hidden="true">🧮</span><span class="node-num">2</span><span class="node-name">Consistency</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p3)"><span class="node-emoji" aria-hidden="true">🧾</span><span class="node-num">3</span><span class="node-name">Evidence</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-3)"><span class="node-emoji" aria-hidden="true">🧾</span><span class="node-num">3</span><span class="node-name">Evidence</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p4)"><span class="node-emoji" aria-hidden="true">🙋</span><span class="node-num">4</span><span class="node-name">Accountability</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-4)"><span class="node-emoji" aria-hidden="true">🙋</span><span class="node-num">4</span><span class="node-name">Accountability</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--p5)"><span class="node-emoji" aria-hidden="true">🔍</span><span class="node-num">5</span><span class="node-name">Verification</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-5)"><span class="node-emoji" aria-hidden="true">🔍</span><span class="node-num">5</span><span class="node-name">Verification</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
     <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Wrap</span></div></div>
   </div>
@@ -750,7 +1048,7 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 </section>
 
 <!-- 24 · Caveats -->
-<section class="slide caveats" id="s-caveats">
+<section class="slide converge" id="s-caveats">
   <div class="input" data-step="1" style="--cx:440px; --top:400px"><span class="pill">guest count not final</span></div>
   <div class="input" data-step="2" style="--cx:700px; --top:290px"><span class="pill">three payment dates</span></div>
   <div class="input" data-step="3" style="--cx:960px; --top:180px"><span class="pill">family money, maybe</span></div>
@@ -766,7 +1064,7 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
   <p class="display quiet gap-m" data-step="1">Delegate the boring work.</p>
 </section>
 
-<!-- 26 · Why "analyst" -->
+<!-- 26 · Why “analyst” -->
 <section class="slide" id="s-analyst">
   <p class="label">WHY “ANALYST”</p>
   <h1 class="display gap-s">Treat the agent like a new hire.</h1>
@@ -797,19 +1095,19 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
     <ol class="stack-bars">
-      <li class="bar" data-step-fill="5" style="--c:var(--p5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">Check what you say against your own files.</span></li>
-      <li class="bar" data-step-fill="4" style="--c:var(--p4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar" data-step-fill="3" style="--c:var(--p3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar" data-step-fill="2" style="--c:var(--p2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar" data-step-fill="1" style="--c:var(--p1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the words before any number.</span></li>
+      <li class="bar" data-step-fill="5" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar" data-step-fill="4" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar" data-step-fill="3" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar" data-step-fill="2" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar" data-step-fill="1" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
     </ol>
   </div>
 </section>
 
 <!-- 29 · Principle 1 · Shared Domain -->
 <section class="slide" id="s-p1" data-principle="1">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--p1)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">20 min</span></div>
-  <p class="sub gap-m">Agree the words before any number.</p>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span><span class="chip">20 min</span></div>
+  <p class="sub gap-m">Agree the plan before any number.</p>
 </section>
 
 <!-- 30 · P1 · Why -->
@@ -832,7 +1130,7 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 <!-- 32 · P1 · Examples -->
 <section class="slide" id="s-p1-examples" data-principle="1">
   <p class="label">EXAMPLES</p>
-  <div class="says guess gap-m">
+  <div class="says gap-m">
     <p class="label">YOU SAY</p><span></span><p class="label">THE MODEL HAS TO GUESS</p>
     <p class="ex said">“I make 10k”</p>
     <svg class="arrow" viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
@@ -859,9 +1157,9 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 
 <!-- 35 · Principle 2 · Consistency -->
 <section class="slide" id="s-p2" data-principle="2">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--p2)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">25 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Numbers come only from tested code.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
 
 <!-- 36 · P2 · Why -->
@@ -907,9 +1205,9 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 
 <!-- 41 · Principle 3 · Evidence -->
 <section class="slide" id="s-p3" data-principle="3">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--p3)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">15 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">15 min</span></div>
   <p class="sub gap-m">Every number can be followed back.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
 </section>
 
 <!-- 42 · P3 · Why / without it / examples -->
@@ -929,9 +1227,9 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 
 <!-- 45 · Principle 4 · Accountability -->
 <section class="slide" id="s-p4" data-principle="4">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--p4)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">20 min</span></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Ask only where a person must decide.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
 
 <!-- 46 · P4 · Why / without it / examples -->
@@ -951,9 +1249,9 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 
 <!-- 49 · Principle 5 · Verification -->
 <section class="slide" id="s-p5" data-principle="5">
-  <div class="p-title"><span class="mega p-num" style="--c:var(--p5)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">20 min</span></div>
-  <p class="sub gap-m">Check what you say against your own files.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--p4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Your own figures get checked too.</p></div>
+  <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">15 min</span></div>
+  <p class="sub gap-m">A reviewer challenges the plan.</p>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
 
 <!-- 50 · P5 · Why / without it / examples -->
@@ -977,11 +1275,11 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
     <ol class="stack-bars">
-      <li class="bar filled" style="--c:var(--p5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">Check what you say against your own files.</span></li>
-      <li class="bar filled" style="--c:var(--p4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar filled" style="--c:var(--p3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar filled" style="--c:var(--p2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar filled" style="--c:var(--p1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the words before any number.</span></li>
+      <li class="bar filled" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar filled" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar filled" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar filled" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar filled" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
     </ol>
   </div>
 </section>
@@ -996,14 +1294,14 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
   <div class="p-title"><h1 class="mega">Questions</h1><span class="chip">10 min</span></div>
 </section>
 
-<!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); state comes from that attribute. -->
+<!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); deck.js sets its state from that attribute. -->
 <div class="rail" aria-hidden="true">
   <span class="rail-cap"></span>
-  <span class="rail-cell" data-n="5" style="--c:var(--p5)">5</span>
-  <span class="rail-cell" data-n="4" style="--c:var(--p4)">4</span>
-  <span class="rail-cell" data-n="3" style="--c:var(--p3)">3</span>
-  <span class="rail-cell" data-n="2" style="--c:var(--p2)">2</span>
-  <span class="rail-cell" data-n="1" style="--c:var(--p1)">1</span>
+  <span class="rail-cell" data-n="5" style="--c:var(--principle-5)">5</span>
+  <span class="rail-cell" data-n="4" style="--c:var(--principle-4)">4</span>
+  <span class="rail-cell" data-n="3" style="--c:var(--principle-3)">3</span>
+  <span class="rail-cell" data-n="2" style="--c:var(--principle-2)">2</span>
+  <span class="rail-cell" data-n="1" style="--c:var(--principle-1)">1</span>
 </div>
 
 </div>
@@ -1013,12 +1311,54 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
 
 <script>
 (function () {
+  /* Confetti burst from an element (used when the framework reaches Trust).
+     Colours come from the --confetti-colors token. Respects reduced motion.
+     stillHere() says whether the slide that fired it is still the current one. */
+  function confetti(el, stage, stillHere) {
+    if (!el || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    var W = 1920, H = 1080;
+    var old = stage.querySelector('canvas.confetti'); if (old) old.remove();
+    var c = document.createElement('canvas'); c.className = 'confetti'; c.width = W; c.height = H;
+    stage.appendChild(c);
+    var ctx = c.getContext('2d'), cs = getComputedStyle(document.documentElement);
+    var cols = cs.getPropertyValue('--confetti-colors').split(',').map(function (v) { return v.trim(); }).filter(Boolean);
+    if (!cols.length) cols = [cs.color];
+    var sr = stage.getBoundingClientRect(), r = el.getBoundingClientRect(), k = W / sr.width;
+    var ox = (r.left + r.width / 2 - sr.left) * k, oy = (r.top + r.height / 2 - sr.top) * k;
+    var parts = [], i;
+    for (i = 0; i < 220; i++) {
+      var ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5, sp = 9 + Math.random() * 24;
+      parts.push({ x: ox + (Math.random() - 0.5) * r.width * k * 0.8, y: oy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 4,
+        w: 12 + Math.random() * 16, h: 8 + Math.random() * 10, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.5,
+        col: cols[i % cols.length], round: Math.random() < 0.25 });
+    }
+    var t0 = performance.now();
+    (function frame(now) {
+      var t = (now - t0) / 2600;
+      ctx.clearRect(0, 0, W, H);
+      if (t >= 1 || !stillHere() || !c.isConnected) { c.remove(); return; }
+      parts.forEach(function (q) {
+        q.vy += 0.55; q.vx *= 0.99; q.x += q.vx; q.y += q.vy; q.rot += q.vr;
+        ctx.save(); ctx.globalAlpha = t < 0.7 ? 1 : (1 - t) / 0.3; ctx.translate(q.x, q.y); ctx.rotate(q.rot);
+        ctx.fillStyle = q.col;
+        if (q.round) { ctx.beginPath(); ctx.arc(0, 0, q.h * 0.7, 0, 6.3); ctx.fill(); }
+        else ctx.fillRect(-q.w / 2, -q.h / 2 * Math.cos(q.rot * 2), q.w, q.h * Math.cos(q.rot * 2));
+        ctx.restore();
+      });
+      requestAnimationFrame(frame);
+    })(t0);
+  }
+
+  /* Navigation and build steps. Keys: arrows/Space/Enter/PageUp/PageDown/Home/End,
+     F fullscreen, D light/dark. Click right two-thirds = next, left third = back.
+     Swipe on touch. #n in the address opens slide n and is kept up to date. */
   var doc = document, root = doc.documentElement;
   var viewport = doc.getElementById('viewport');
   var stage = doc.getElementById('stage');
   var bar = doc.getElementById('progress');
   var counter = doc.getElementById('counter');
   var slides = Array.prototype.slice.call(stage.querySelectorAll('.slide'));
+  var railCells = Array.prototype.slice.call(stage.querySelectorAll('.rail-cell'));
   var N = slides.length;
   var idx = 0, step = 0;
   var STEP_ATTRS = ['data-step', 'data-step-out', 'data-step-fill', 'data-step-strike', 'data-step-mute'];
@@ -1052,6 +1392,16 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
     });
   }
 
+  /* Rail: cells before the active slide's principle are done, its own is now. */
+  function markRail(s) {
+    var p = s.getAttribute('data-principle'), at = +p;
+    railCells.forEach(function (c) {
+      var n = +c.getAttribute('data-n');
+      c.classList.toggle('done', p === 'wrap' || n < at);
+      c.classList.toggle('now', n === at);
+    });
+  }
+
   function render(entering) {
     var s = slides[idx];
     if (entering) {
@@ -1071,48 +1421,21 @@ canvas.confetti { position: absolute; inset: 0; width: 1920px; height: 1080px; p
         li.classList.toggle('out', i < step - 1);
       });
     }
+    markRail(s);
     bar.style.width = ((idx + 1) / N * 100) + '%';
     counter.textContent = (idx + 1) + ' / ' + N;
     setHash(idx + 1);
   }
 
   function next() {
-    if (step < steps[idx]) { step++; render(false); if (slides[idx].querySelector('[data-confetti][data-step="' + step + '"]')) confetti(slides[idx].querySelector('.trust')); }
-    else if (idx < N - 1) { idx++; step = 0; render(true); }
-  }
-
-  /* Confetti burst from an element (used when the framework reaches Trust). Plays on a forward click only. */
-  function confetti(el) {
-    if (!el || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
-    var old = stage.querySelector('canvas.confetti'); if (old) old.remove();
-    var c = doc.createElement('canvas'); c.className = 'confetti'; c.width = 1920; c.height = 1080;
-    stage.appendChild(c);
-    var ctx = c.getContext('2d'), cs = getComputedStyle(root);
-    var cols = ['--p1', '--p2', '--p3', '--p4', '--p5', '--trust'].map(function (v) { return cs.getPropertyValue(v).trim() || '#0b6b6a'; });
-    var sr = stage.getBoundingClientRect(), r = el.getBoundingClientRect(), k = 1920 / sr.width;
-    var ox = (r.left + r.width / 2 - sr.left) * k, oy = (r.top + r.height / 2 - sr.top) * k;
-    var parts = [], i;
-    for (i = 0; i < 220; i++) {
-      var ang = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.5, sp = 9 + Math.random() * 24;
-      parts.push({ x: ox + (Math.random() - 0.5) * r.width * k * 0.8, y: oy, vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp - 4,
-        w: 12 + Math.random() * 16, h: 8 + Math.random() * 10, rot: Math.random() * 6.28, vr: (Math.random() - 0.5) * 0.5,
-        col: cols[i % cols.length], round: Math.random() < 0.25 });
+    if (step < steps[idx]) {
+      step++; render(false);
+      var s = slides[idx];
+      if (s.querySelector('[data-confetti][data-step="' + step + '"]')) {
+        confetti(s.querySelector('.trust'), stage, function () { return slides[idx] === s; });
+      }
     }
-    var t0 = performance.now(), slide = slides[idx];
-    (function frame(now) {
-      var t = (now - t0) / 2600;
-      ctx.clearRect(0, 0, 1920, 1080);
-      if (t >= 1 || slides[idx] !== slide || !c.isConnected) { c.remove(); return; }
-      parts.forEach(function (q) {
-        q.vy += 0.55; q.vx *= 0.99; q.x += q.vx; q.y += q.vy; q.rot += q.vr;
-        ctx.save(); ctx.globalAlpha = t < 0.7 ? 1 : (1 - t) / 0.3; ctx.translate(q.x, q.y); ctx.rotate(q.rot);
-        ctx.fillStyle = q.col;
-        if (q.round) { ctx.beginPath(); ctx.arc(0, 0, q.h * 0.7, 0, 6.3); ctx.fill(); }
-        else ctx.fillRect(-q.w / 2, -q.h / 2 * Math.cos(q.rot * 2), q.w, q.h * Math.cos(q.rot * 2));
-        ctx.restore();
-      });
-      requestAnimationFrame(frame);
-    })(t0);
+    else if (idx < N - 1) { idx++; step = 0; render(true); }
   }
 
   function prev() {

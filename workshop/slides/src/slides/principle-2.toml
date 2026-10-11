@@ -1,0 +1,46 @@
+# Principle 2. Its name, emoji, minutes and statement are in principles.json.
+principle = 2
+
+[[slide]]
+layout = "divider"
+
+[[slide]]
+id = "s-p2-why"
+name = "P2 · Why"
+layout = "statement"
+blocks = [
+  { label = "WHY" },
+  { display = "Write the calculation once. Run it the same way every time." },
+  { sub = "The model picks the tool. It never does the arithmetic.", step = 1 },
+]
+
+[[slide]]
+id = "s-p2-without"
+name = "P2 · Without it"
+layout = "statement"
+blocks = [
+  { label = "WITHOUT IT" },
+  { lines = [
+      { headline = "Arithmetic in the model's head.", step = 1 },
+      { headline = "New code for every question.", step = 2 },
+      { headline = "Same question, different answer.", step = 3 },
+  ] },
+]
+
+[[slide]]
+id = "s-p2-examples"
+name = "P2 · Examples"
+layout = "statement"
+blocks = [
+  { label = "EXAMPLES" },
+  { grid = ["Total cost", "Payment schedule", "Monthly surplus", "Monthly saving needed", "Fund balance forecast", "Cost per guest"] },
+  { sub = "Each one is code, with tests." },
+]
+
+[[slide]]
+layout = "placeholder"
+kind = "demo"
+
+[[slide]]
+layout = "placeholder"
+kind = "turn"

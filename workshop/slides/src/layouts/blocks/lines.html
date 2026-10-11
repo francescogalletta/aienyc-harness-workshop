@@ -1,0 +1,5 @@
+<div class="{{ cls }}"{{ attrs }}>
+{% for l in lines %}
+  <p class="{{ l.cls }}"{{ l.attrs }}>{{ l.text|text }}</p>
+{% endfor %}
+</div>

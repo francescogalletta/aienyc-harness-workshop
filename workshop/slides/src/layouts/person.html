@@ -1,0 +1,13 @@
+{# Person intro: photo (dashed placeholder until there is one), name, and an emoji reel:
+   each click brings the next emoji to the middle, then sends it to its spot (x, y in % of the stage, rot in degrees). #}
+{% if photo %}
+  <div class="photo"><img src="{{ photo|asset_uri }}" alt="{{ person }}"></div>
+{% else %}
+  <div class="photo ph" data-placeholder><span>photo</span></div>
+{% endif %}
+  <h2 class="mega person-name">{{ person|text }}</h2>
+  <ul class="emoji-reel">
+{% for e in reel %}
+    <li style="--x:{{ e.x|num }}%; --y:{{ e.y|num }}%; --r:{{ e.rot|num }}deg">{% if e.placeholder %}<span class="q ph" data-placeholder><span>{{ e.placeholder }}</span></span>{% else %}{{ e.emoji }}{% endif %}</li>
+{% endfor %}
+  </ul>

@@ -1,0 +1,7 @@
+<!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); deck.js sets its state from that attribute. -->
+<div class="rail" aria-hidden="true">
+  <span class="rail-cap"></span>
+{% for p in principles_top_down %}
+  <span class="rail-cell" data-n="{{ p.n }}" style="--c:var({{ p.color }})">{{ p.n }}</span>
+{% endfor %}
+</div>

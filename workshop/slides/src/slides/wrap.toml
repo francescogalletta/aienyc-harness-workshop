@@ -1,0 +1,26 @@
+# Wrap. The rail shows every principle done.
+principle = "wrap"
+
+[[slide]]
+id = "s-framework-again"
+name = "Wrap · The framework again"
+layout = "framework"
+rail = false
+label = "THE GOAL"
+goal = "==Trust=="
+
+[[slide]]
+id = "s-better"
+name = "Wrap · Better models"
+layout = "statement"
+blocks = [
+  { display = "Better models still have to earn ==trust==." },
+]
+
+[[slide]]
+id = "s-questions"
+name = "Wrap · Questions"
+layout = "statement"
+blocks = [
+  { mega = "Questions", chip = "10 min" },
+]

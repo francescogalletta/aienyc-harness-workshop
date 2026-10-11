@@ -1,0 +1,15 @@
+{# Split: two halves with a rule between, each a label and a headline; an optional line under both. #}
+  <div class="split">
+    <div{{ left|reveal }}>
+      <p class="label">{{ left.label }}</p>
+      <h2 class="headline gap-xs">{{ left.headline|text }}</h2>
+    </div>
+    <div class="divider"></div>
+    <div{{ right|reveal }}>
+      <p class="label">{{ right.label }}</p>
+      <h2 class="headline gap-xs">{{ right.headline|text }}</h2>
+    </div>
+{% if foot %}
+    <p class="sub foot"{{ foot|reveal }}>{{ foot.text|text }}</p>
+{% endif %}
+  </div>

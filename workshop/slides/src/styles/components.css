@@ -1,0 +1,269 @@
+/* Components. Styled only through tokens (styles/tokens.css + the theme).
+   Box sizes and positions that belong to one layout's geometry stay here as
+   plain numbers; colours, type, radii, strokes, paddings and gaps never do. */
+
+/* ---------- Shape vocabulary ---------- */
+.step {
+  background: var(--step-fill); color: var(--step-text);
+  border-radius: var(--step-radius);
+  box-shadow: inset 0 0 0 var(--step-stroke) var(--step-stroke-color);
+}
+.step.from-you { border-radius: var(--from-you-radius); }
+.step.your-call, .your-call { box-shadow: none; border: var(--step-stroke) dashed var(--your-call-stroke); }
+.pill {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  height: var(--pill-h); padding: 0 var(--pill-pad-x);
+  font-size: var(--pill-size); line-height: 1;
+  color: var(--pill-text); background: var(--pill-fill);
+  border-radius: var(--pill-radius); box-shadow: inset 0 0 0 var(--pill-stroke) var(--pill-stroke-color);
+}
+.chip {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  height: var(--chip-h); padding: 0 var(--chip-pad-x);
+  font-size: var(--chip-size); line-height: 1; font-weight: var(--weight-regular);
+  font-variant-numeric: tabular-nums; letter-spacing: 0;
+  color: var(--chip-text);
+  border-radius: var(--chip-radius); box-shadow: inset 0 0 0 var(--chip-stroke) var(--chip-stroke-color);
+}
+/* placeholders: dashed "your call" outline, muted text */
+.ph { border: var(--placeholder-stroke-width) dashed var(--placeholder-stroke); box-shadow: none; color: var(--placeholder-text); background: transparent; }
+.pill.ph, .chip.ph { font-size: var(--placeholder-size); height: var(--placeholder-pill-h); padding: 0 var(--placeholder-pad-x); }
+.panel {
+  width: 100%; min-height: 520px;
+  border-radius: var(--panel-radius);
+  padding: var(--panel-pad-y) var(--panel-pad-x);
+}
+.panel.from-you { border-radius: var(--panel-open-radius); padding: var(--panel-open-pad-y) var(--panel-open-pad-x); }
+.row { display: flex; align-items: center; gap: var(--row-gap); }
+
+/* flow arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
+.arrow { flex: none; overflow: visible; fill: none; stroke: var(--connector); stroke-width: var(--connector-width); stroke-linecap: round; }
+.arrow .h { fill: var(--connector); stroke: none; }
+.arrow .l { stroke-dasharray: 100; stroke-dashoffset: 0; }
+
+/* ---------- Person intro ---------- */
+.person { padding: 0; }
+.photo {
+  position: absolute; left: 50%; top: 70px;
+  width: var(--photo-size); height: var(--photo-size); margin-left: calc(var(--photo-size) / -2);
+  border-radius: var(--photo-radius); overflow: hidden;
+  display: grid; place-items: center;
+}
+.photo > span { font-size: var(--photo-label-size); letter-spacing: var(--tracking-caps); }
+.photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.person-name { position: absolute; left: 0; right: 0; top: 440px; text-align: center; }
+.emoji-reel { position: absolute; inset: 0; pointer-events: none; }
+.emoji-reel li {
+  position: absolute; left: 50%; top: 850px;
+  width: 1.18em; height: 1.18em;
+  display: grid; place-items: center;
+  font-family: var(--emoji-font); font-size: var(--reel-spot-size); line-height: 1;
+  transform: translate(-50%, -50%);
+  visibility: hidden;
+}
+.emoji-reel li.spot { visibility: inherit; }
+.emoji-reel li.out {
+  visibility: inherit;
+  left: var(--x); top: var(--y);
+  font-size: var(--reel-out-size);
+  transform: translate(-50%, -50%) rotate(var(--r));
+}
+.emoji-reel .q {
+  width: 1.06em; height: 1.06em; border-radius: var(--reel-q-radius);
+  display: grid; place-items: center;
+  font-family: var(--body-font); font-size: inherit; font-weight: var(--weight-regular);
+}
+.emoji-reel .q > span { font-size: var(--reel-q-glyph); line-height: 1; }
+
+/* ---------- Footnote: a casual aside, bottom-left of the content area ---------- */
+.footnote {
+  position: absolute; left: var(--slide-margin); bottom: var(--footnote-bottom); max-width: 1640px;
+  font-family: var(--footnote-font); font-size: var(--footnote-size); line-height: 1.35; font-weight: var(--weight-regular); color: var(--footnote-text);
+}
+
+/* ---------- Title block ---------- */
+.title-block .t-line { display: block; }
+.title-block .t-line + .t-line { margin-top: var(--title-line-gap); }
+.title-block .headline { max-width: 1640px; }
+.title-block ~ .footnote { bottom: var(--footnote-bottom-low); }
+.struck {
+  color: var(--text-muted);
+  text-decoration-line: line-through; text-decoration-thickness: var(--strike-width); text-decoration-color: var(--strike-color);
+  text-decoration-skip-ink: none;
+}
+.muted { color: var(--text-muted); }
+
+/* ---------- Hand-drawn diagram (inline SVG from src/assets/sketch.svg) ---------- */
+.sketch { display: block; width: 100%; height: auto; overflow: visible; }
+.sketch .ln { fill: none; stroke: var(--diagram-stroke); stroke-width: var(--diagram-stroke-width); stroke-linecap: round; stroke-linejoin: round; }
+.sketch .ln.tick { stroke: var(--diagram-quiet); stroke-width: var(--diagram-tick-width); }
+.sketch .ln.dash { stroke-dasharray: var(--diagram-dash); }
+.sketch .nm { font-family: var(--diagram-label-font); font-weight: var(--weight-strong); font-size: var(--diagram-label-size); fill: var(--diagram-label); }
+.sketch .nm.muted { fill: var(--diagram-quiet); }
+.sketch .note { font-family: var(--diagram-note-font); font-weight: var(--weight-hand); font-size: var(--diagram-note-size); fill: var(--diagram-quiet); }
+.sketch .note.big { font-weight: var(--weight-hand-strong); font-size: var(--diagram-note-big-size); fill: var(--diagram-label); }
+
+/* ---------- Tally (show of hands) ---------- */
+.hands { display: flex; justify-content: space-between; width: 100%; }
+.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
+.hands .num.muted { color: var(--text-muted); }
+
+/* ---------- Swap (one line replaces another) and the big ask ---------- */
+.swap { display: grid; place-items: center; }
+.swap > * { grid-area: 1 / 1; }
+.swap-left { place-items: start; text-align: left; }
+.swap-left > * { text-wrap: balance; }
+.ask {
+  position: relative;
+  background: var(--ask-fill); color: var(--ask-text);
+  box-shadow: none;
+  padding: var(--ask-pad-top) var(--ask-pad-x) var(--ask-pad-bottom);
+  max-width: 1200px;
+}
+
+.dots { letter-spacing: 0.12em; }
+.ask-us { font-size: var(--stress-scale); line-height: 0.8; text-decoration: underline; text-decoration-thickness: var(--stress-underline); text-underline-offset: var(--stress-underline-offset); }
+
+/* ---------- Mega with an emoji ---------- */
+.mega-row { display: flex; align-items: center; gap: var(--mega-row-gap); }
+.ring-emoji { font-family: var(--emoji-font); font-size: var(--mega-emoji-size); line-height: 1; }
+
+/* ---------- Tracks ---------- */
+.tracks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--tracks-gap); width: 100%; }
+.track { padding: var(--track-pad-top) var(--track-pad-x) var(--track-pad-bottom); display: flex; flex-direction: column; }
+.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); }
+.track-name { margin-top: var(--track-name-gap); }
+.track-line { margin-top: var(--track-line-gap); }
+.hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; color: var(--text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
+canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: var(--stage-h); pointer-events: none; z-index: 5; }
+.footnote.hand { bottom: var(--aside-bottom); font-family: var(--aside-font); font-weight: var(--weight-hand); font-size: var(--aside-size); transform: rotate(-2deg); transform-origin: left center; }
+.footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
+/* Who is speaking, under the ask. The rest of its look comes from .hand-aside. */
+.ask-who { margin-top: var(--ask-who-gap); }
+/* Handwritten asides pop in even while deck motion is off (author's request). */
+@keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
+@media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
+.big-emoji { font-family: var(--emoji-font); font-size: var(--big-emoji-size); line-height: 1; }
+.hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
+
+/* ---------- Setup ---------- */
+.setup { display: grid; grid-template-columns: 560px 1fr; gap: var(--setup-gap); align-items: start; width: 100%; }
+.qr { display: block; width: 500px; height: 500px; shape-rendering: crispEdges; }
+.qr .qr-ground { fill: var(--qr-ground); }
+.qr .qr-ink { fill: var(--qr-ink); }
+.url { display: inline-block; margin-top: var(--gap-s); text-decoration: none; color: var(--text); max-width: 560px; }
+.url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
+.pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
+.command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); }
+
+/* ---------- Flow (the structure slide) ---------- */
+.flow { display: flex; align-items: flex-start; width: 100%; }
+.flow:has(.tint) { --flow-slot-h: var(--flow-tint-h); }
+.flow-item { display: flex; flex-direction: column; align-items: center; gap: var(--flow-item-gap); flex: none; }
+.flow-item.grow { flex: 1 1 0; min-width: min-content; }
+.flow-slot { height: var(--flow-slot-h); display: flex; align-items: center; width: 100%; justify-content: center; }
+.flow-node { display: flex; flex-direction: column; font-weight: var(--weight-strong); }
+.flow-node.step {
+  width: 100%; height: var(--flow-slot-h); padding: var(--flow-node-pad-y) var(--flow-node-pad-x); gap: var(--flow-node-gap);
+  justify-content: flex-start;
+}
+.flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
+.node-num { font-size: var(--node-num-size); line-height: 1; }
+.node-name { font-size: var(--node-name-size); line-height: 1.15; }
+.flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
+.flow-node.step.tint { background: var(--c); color: var(--on-principle); box-shadow: none; position: relative; }
+.node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
+.bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
+.bar.filled .bar-emoji { visibility: inherit; }
+.p-emoji { font-family: var(--emoji-font); font-size: var(--divider-emoji-size); line-height: 1; align-self: center; }
+
+/* ---------- Hero word ---------- */
+.mega.xl { font-size: var(--hero-size); }
+
+/* ---------- Split halves ---------- */
+.split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
+.split .divider { align-self: stretch; background: var(--line); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
+
+/* ---------- Converging pills (inputs drop onto a question) ---------- */
+.converge { padding: 0; --step-top: 550px; }
+.question {
+  position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
+  display: grid; place-items: center; text-align: center;
+  font-family: var(--display-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug);
+}
+.input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
+.input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: var(--input-pill-size); height: var(--input-pill-h); padding: 0 var(--placeholder-pad-x); }
+.input::before {
+  content: ""; position: absolute; left: calc(var(--connector-width) / -2); top: 92px; width: var(--connector-width);
+  height: calc(var(--step-top) - var(--top) - 92px - 24px);
+  background: var(--connector);
+}
+.input::after {
+  content: ""; position: absolute; left: -10px; top: calc(var(--step-top) - var(--top) - 24px);
+  width: 20px; height: 16px; background: var(--connector);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.converge .sub { position: absolute; left: 0; right: 0; top: 790px; margin: 0 auto; text-align: center; }
+
+/* ---------- Framework stack ---------- */
+.stack { width: 100%; }
+.stack-goal { font-family: var(--display-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); margin-top: var(--space-2xs); }
+.stack-bars { display: flex; flex-direction: column; gap: var(--bars-gap); margin-top: var(--bars-top); }
+.bar {
+  height: var(--bar-h); border-radius: var(--bar-radius); padding: 0 var(--bar-pad-x);
+  display: flex; align-items: center; gap: var(--row-gap);
+  color: var(--framework-idle); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
+}
+.bar-num { font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
+.bar-name { font-size: var(--bar-name-size); font-weight: var(--weight-strong); line-height: 1; }
+.bar-text { margin-left: auto; font-size: var(--bar-text-size); font-weight: var(--weight-regular); line-height: 1.1; text-align: right; visibility: hidden; }
+.bar.filled { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.bar.filled .bar-text { visibility: inherit; }
+
+/* ---------- Principle dividers ---------- */
+.p-title { display: flex; align-items: baseline; gap: var(--title-row-gap); }
+.p-title .chip { align-self: center; }
+.p-num { color: var(--c); }
+.builds-on { display: flex; align-items: center; gap: var(--row-gap); }
+.cell {
+  flex: none; width: 64px; height: 88px; border-radius: var(--cell-radius);
+  display: grid; place-items: center;
+  font-size: var(--cell-size); font-weight: var(--weight-strong);
+  background: var(--c); color: var(--on-principle);
+}
+.builds-on .arrow { width: 64px; height: 18px; }
+.builds-on .sub { max-width: 1300px; }
+
+/* ---------- You say / the model has to guess ---------- */
+.says { display: grid; grid-template-columns: var(--says-said-w) 88px 1fr; width: 100%; column-gap: var(--says-col-gap); row-gap: var(--says-row-gap); align-items: center; }
+.says .label { margin-bottom: calc(var(--space-2xs) * -1); }
+.says .arrow { width: 88px; height: 20px; justify-self: center; }
+.says .ex { font-size: var(--example-size); line-height: 1.15; font-weight: var(--weight-strong); letter-spacing: var(--tracking-snug); white-space: nowrap; }
+.doubts { display: flex; gap: var(--doubts-gap); flex-wrap: nowrap; }
+.doubt { display: inline-flex; align-items: center; height: 76px; padding: 0 var(--doubt-pad-x); border: var(--stroke) dashed var(--your-call-stroke); border-radius: var(--doubt-radius); font-size: var(--doubt-size); font-weight: var(--weight-strong); color: var(--text); white-space: nowrap; }
+.says .said { font-weight: var(--weight-regular); color: var(--text-quiet); }
+
+/* ---------- Step grid ---------- */
+.steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--grid-gap); width: 100%; }
+.steps-grid .step { min-height: 170px; padding: var(--grid-pad-y) var(--grid-pad-x); display: flex; align-items: center; font-size: var(--grid-size); line-height: 1.15; font-weight: var(--weight-strong); }
+
+/* ---------- Framework rail ----------
+   Shown on slides with data-principle (unless data-rail="off"). deck.js marks
+   each cell .done (an earlier principle) or .now (this one) from the active
+   slide's data-principle; "wrap" marks them all done. */
+.rail {
+  display: none; position: absolute; right: 70px; top: 50%; transform: translateY(-50%);
+  flex-direction: column; align-items: flex-end; gap: var(--rail-gap);
+}
+.stage:has(> .slide.active[data-principle]:not([data-rail="off"])) .rail { display: flex; }
+.rail-cap { width: 64px; height: 64px; border-radius: var(--radius-round); box-shadow: inset 0 0 0 var(--stroke) var(--accent-trust); }
+.rail-cell {
+  width: 64px; height: 96px; border-radius: var(--cell-radius);
+  display: grid; place-items: center;
+  font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
+  color: var(--text-muted); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
+}
+.rail-cell.done, .rail-cell.now { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.rail-cell.now { width: var(--rail-current-w); }
+.stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--accent-trust); }
