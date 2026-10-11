@@ -16,7 +16,7 @@ only, no network). The harness never uses this folder.
 
 ```
 python workshop/slides/build.py              # deck.html + dist/deck.fragment.html
-python workshop/slides/build.py --theme ink  # dist/deck.ink.html + dist/deck.ink.fragment.html
+python workshop/slides/build.py --theme nord # dist/deck.nord.html + dist/deck.nord.fragment.html
 python workshop/slides/build.py --all        # every theme
 python workshop/slides/build.py --check      # validate; exits 1 on problems
 python workshop/slides/build.py --gallery --all   # dist/gallery.<theme>.html for every theme
@@ -145,8 +145,8 @@ rebuild, look. Screenshots for a side-by-side:
 ## Compare looks side by side
 
 ```
-python workshop/slides/build.py --looks dusk,mist,chalkboard,ledger,receipt            # dist/deck.looks.html
-python workshop/slides/build.py --looks dusk,mist,chalkboard,ledger,receipt --gallery  # dist/gallery.looks.html
+python workshop/slides/build.py --looks blueprint-night,catppuccin,nord,swiss,prospectus            # dist/deck.looks.html
+python workshop/slides/build.py --looks blueprint-night,catppuccin,nord,swiss,prospectus --gallery  # dist/gallery.looks.html
 ```
 
 One page holds every listed theme, each scoped to `data-look="<name>"` on the
@@ -155,13 +155,22 @@ root, and a slim bar above the stage to switch between them: click a name, or
 its primary palette whatever your OS prefers; `D` (or the Primary/Alternate
 button) shows its alternate. The slide, the step and any visuals stay put.
 Each build also writes a `.fragment.html` for the hosting page. Normal builds
-are unchanged: no bar, one theme.
+are unchanged: no bar, one theme. The bar shows each theme's display name (the
+`name:` line in its header comment) and, under 760px wide, its `short:` form.
+`tools/shoot.py check` on a looks page walks every look in both palettes.
 
-The candidate looks are `dusk` (dark slate, luminous fills), `mist` (calm
-light, solid saturated sections), `chalkboard` (green board, chalk pastels;
-alternate: whiteboard), `ledger` (accounting paper, serif) and `receipt`
-(monospace, highlighter fills). `blueprint` stays the default; `ink` and
-`paper` stay as examples.
+The candidate looks (primary palette, then alternate):
+
+| Look | Primary | Alternate | Type and shape |
+| --- | --- | --- | --- |
+| `blueprint-night` | deep navy, soft blue-grey outlines, faint drafting grid | blueprint light, unchanged | IBM Plex, blueprint shapes |
+| `catppuccin` | Macchiato | Latte | Figtree, JetBrains Mono, 12px corners, round pills |
+| `nord` | Polar Night | Snow Storm | IBM Plex, blueprint shapes |
+| `swiss` | warm white, near-black ink, solid OKLCH section fields | graphite | Schibsted Grotesk 800 set tight, square, heavier rules |
+| `prospectus` | warm white, deep blue-green ink, muted deep sections | ink-dark | Instrument Serif display, Instrument Sans, 3px corners |
+
+`blueprint` stays the default. Palette sources, licences and every deviation
+from them are in each theme's header comment and in `docs/visuals.md`.
 
 ## Change the look
 
@@ -187,21 +196,41 @@ shape is:
 :root[data-theme="dark"] { colour roles (dark) }
 ```
 
-A few tokens exist for looks that need them: `--font-display` (mega, display
-and headline), `--font-label` (labels, chips, numbers), `--weight-display`,
-`--principle-N-ink` (a principle's colour as text or a thin line, for looks with
-pale fills), `--connector-style` and `--viz-link-dash` (dashed connectors).
-`--check` asks for text at 7:1, muted text and the trust accent at 4.5:1, inks
-at 3:1 on the ground and text on principle fills at 4:1, in both palettes.
+Tokens a look can set (all default to blueprint's values, so `deck.html` does
+not change):
+
+- Type per role: `--mega-font/-weight/-tracking`, `--display-weight/-tracking`,
+  `--headline-font/-weight/-tracking`, `--sub-font/-weight/-tracking`,
+  `--label-weight/-tracking/-leading`, `--chip-font/-weight/-tracking`,
+  `--code-weight/-leading`, `--hand-tracking`, plus the sizes (`--mega-size`...),
+  `--font-display`, `--font-label`, `--weight-display` and `--numeric-variant`
+  (tabular figures; `normal` for a face whose tabular set widens punctuation).
+- Lines and surfaces: `--outline` (box outlines, separate from `--text`),
+  `--hairline` (pill, chip and rail strokes, dividers, progress track),
+  `--surface`, `--placeholder-stroke` (dashed boxes), `--rail-idle-stroke`,
+  `--rail-idle-text`, `--connector`, `--connector-style`, `--diagram-stroke`,
+  `--diagram-label`, `--diagram-quiet`, `--hand-text`, `--photo-ring`,
+  `--photo-fill`, `--footnote-text`, `--progress-fill`, `--counter-text`,
+  `--qr-ink`, `--qr-ground`, `--qr-radius`, `--ask-fill`, `--ask-text`,
+  `--ask-pad-x`, `--slide-bg-image` and `--slide-bg-size` (a ground pattern).
+- Principles: `--on-principle-1..5` (text on each fill; default `--on-principle`)
+  and `--principle-N-ink` (the colour as text or a thin line).
+- Charts: `--viz-primary` (single-series charts; default principle 1's ink),
+  `--viz-highlight`, `--viz-up`, `--viz-down`, `--viz-total`, their `-ink`
+  forms for hand-drawn charts, `--viz-series-1..5` (the multi-series order),
+  `--viz-grid`, `--viz-axis`, `--viz-muted`, `--viz-area-opacity`.
+
+`--check` asks for text at 7:1, quiet and muted text and the trust accent at
+4.5:1, inks at 3:1 on the ground and each `--on-principle-N` on its fill at 4:1,
+in both palettes.
 
 Write the dark values once; the build repeats them under
 `prefers-color-scheme: dark` as the hosting page needs. Then
 `build.py --theme NAME` and `build.py --check` (it lists missing tokens and
 reports contrast; text on a principle fill must be at least 4:1).
 
-`ink.css` (dark, high contrast, Space Grotesk, square) and `paper.css` (warm,
-serif display, soft corners, thin strokes) are **examples** that show the range;
-they are not design proposals.
+The five candidate looks above show the range; `blueprint-night.css` is the
+smallest one to start from (blueprint's shapes, a new palette).
 
 ## Look at it
 

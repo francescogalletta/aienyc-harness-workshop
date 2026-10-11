@@ -96,7 +96,28 @@ img { max-width: 100%; }
   --diagram-label-font: var(--font-sans);
   --diagram-note-font: var(--font-hand);
 
-  /* Type roles */
+  /* Type roles: size, leading, family, weight and tracking per role, so a face can be tuned */
+  --mega-font: var(--display-font);
+  --mega-weight: var(--weight-display);
+  --mega-tracking: var(--tracking-tight);
+  --display-weight: var(--weight-display);
+  --display-tracking: var(--tracking-tight);
+  --headline-font: var(--display-font);
+  --headline-weight: var(--weight-display);
+  --headline-tracking: var(--tracking-snug);
+  --sub-font: var(--body-font);
+  --sub-weight: var(--weight-regular);
+  --sub-tracking: normal;
+  --label-weight: var(--weight-strong);
+  --label-tracking: var(--tracking-caps);
+  --label-leading: 1.2;
+  --chip-font: var(--label-font);
+  --chip-weight: var(--weight-regular);
+  --chip-tracking: 0;
+  --code-weight: var(--weight-regular);
+  --code-leading: 1.3;
+  --hand-tracking: normal;
+  --numeric-variant: tabular-nums;  /* figures line up; a face whose tabular set also widens punctuation can set normal */
   --mega-size: var(--fs-6xl);
   --mega-leading: 0.95;
   --display-size: var(--fs-4xl);
@@ -122,6 +143,22 @@ img { max-width: 100%; }
   --gap-tight: 20px;
   --row-gap: var(--space-s);
 
+  /* Role colours a look can tune on their own (defaults are the plain roles) */
+  --outline: var(--text);             /* box outlines: step, track, command */
+  --hairline: var(--line);            /* rules, idle bars, pill and chip outlines */
+  --rail-idle-stroke: var(--framework-idle);
+  --rail-idle-text: var(--text-muted);
+  --photo-ring: var(--placeholder-stroke);
+  --photo-fill: transparent;
+  --counter-text: var(--text-muted);
+  --on-principle-1: var(--on-principle);  /* text on each principle's fill */
+  --on-principle-2: var(--on-principle);
+  --on-principle-3: var(--on-principle);
+  --on-principle-4: var(--on-principle);
+  --on-principle-5: var(--on-principle);
+  --slide-bg-image: none;             /* e.g. a faint grid, drawn on the stage */
+  --slide-bg-size: auto;
+
   /* Slide frame */
   --slide-margin: var(--space-2xl);
   --slide-pad-top: 108px;
@@ -134,10 +171,10 @@ img { max-width: 100%; }
   --step-fill: var(--surface);
   --step-text: var(--text);
   --step-stroke: var(--stroke);
-  --step-stroke-color: var(--text);
+  --step-stroke-color: var(--outline);
   --step-radius: var(--radius-m);
   --from-you-radius: var(--radius-pill);
-  --your-call-stroke: var(--text);
+  --your-call-stroke: var(--outline);
 
   --pill-h: 72px;
   --pill-pad-x: 30px;
@@ -145,7 +182,7 @@ img { max-width: 100%; }
   --pill-text: var(--text-quiet);
   --pill-fill: var(--surface);
   --pill-stroke: var(--stroke-hair);
-  --pill-stroke-color: var(--line);
+  --pill-stroke-color: var(--hairline);
   --pill-radius: var(--radius-pill);
 
   --chip-h: 56px;
@@ -153,7 +190,7 @@ img { max-width: 100%; }
   --chip-size: var(--fs-xs);
   --chip-text: var(--text-muted);
   --chip-stroke: var(--stroke-hair);
-  --chip-stroke-color: var(--line);
+  --chip-stroke-color: var(--hairline);
   --chip-radius: var(--radius-pill);
 
   --placeholder-stroke: var(--text);
@@ -194,14 +231,17 @@ img { max-width: 100%; }
   --stress-underline-offset: 14px;
   --ask-fill: var(--attention);
   --ask-text: var(--text);
+  --hand-text: var(--text);      /* handwritten notes and asides; inside the ask it follows --ask-text */
   --ask-pad-top: 72px;
   --ask-pad-x: 160px;
+  --ask-max: 1200px;
   --ask-pad-bottom: 80px;
   --ask-who-gap: 36px;
 
   /* Person intro */
   --photo-size: 340px;
   --photo-radius: var(--radius-round);
+  --qr-radius: 2px;    /* in QR modules (about 24px on the slide), not screen pixels */
   --photo-label-size: var(--fs-2xs);
   --reel-spot-size: var(--fs-5xl);
   --reel-out-size: calc(94px * var(--type-scale));
@@ -269,7 +309,7 @@ img { max-width: 100%; }
   --question-size: var(--fs-2xl);
 
   /* Framework stack, dividers, rail */
-  --framework-idle: var(--line);
+  --framework-idle: var(--hairline);
   --goal-size: var(--fs-5xl);
   --bars-gap: 10px;
   --bars-top: 32px;
@@ -299,7 +339,7 @@ img { max-width: 100%; }
 
   /* Chrome and focus */
   --progress-h: var(--stroke);
-  --progress-track: var(--line);
+  --progress-track: var(--hairline);
   --progress-fill: var(--text);
   --focus-ring: var(--text);
   --focus-ring-width: var(--stroke);
@@ -431,7 +471,7 @@ body {
   color: var(--text);
   font-family: var(--body-font);
   font-weight: var(--weight-regular);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--numeric-variant);
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
@@ -448,6 +488,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
   width: var(--stage-w); height: var(--stage-h);
   margin: calc(var(--stage-h) / -2) 0 0 calc(var(--stage-w) / -2);
   transform-origin: 50% 50%;
+  background-image: var(--slide-bg-image); background-size: var(--slide-bg-size);
 }
 
 /* Every slide: left margin, content block vertically centred, nudged up ~3% (optical centre). */
@@ -465,12 +506,12 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 
 /* ---------- Type roles ---------- */
 .mega, .display, .headline, .sub { text-wrap: balance; }
-.mega     { font-family: var(--display-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); }
-.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); max-width: var(--display-measure); }
-.headline { font-family: var(--display-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-display); letter-spacing: var(--tracking-snug); max-width: var(--display-measure); }
-.sub      { font-size: var(--sub-size); line-height: var(--sub-leading); font-weight: var(--weight-regular); color: var(--text-quiet); max-width: var(--sub-measure); }
-.label    { font-family: var(--label-font); font-size: var(--label-size); line-height: 1.2; font-weight: var(--weight-strong); letter-spacing: var(--tracking-caps); color: var(--text-muted); }
-.mono     { font-family: var(--code-font); font-size: var(--code-size); font-weight: var(--weight-regular); line-height: 1.3; }
+.mega     { font-family: var(--mega-font); font-size: var(--mega-size); line-height: var(--mega-leading); font-weight: var(--mega-weight); letter-spacing: var(--mega-tracking); }
+.display  { font-family: var(--display-font); font-size: var(--display-size); line-height: var(--display-leading); font-weight: var(--display-weight); letter-spacing: var(--display-tracking); max-width: var(--display-measure); }
+.headline { font-family: var(--headline-font); font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--headline-weight); letter-spacing: var(--headline-tracking); max-width: var(--display-measure); }
+.sub      { font-family: var(--sub-font); font-size: var(--sub-size); line-height: var(--sub-leading); font-weight: var(--sub-weight); letter-spacing: var(--sub-tracking); color: var(--text-quiet); max-width: var(--sub-measure); }
+.label    { font-family: var(--label-font); font-size: var(--label-size); line-height: var(--label-leading); font-weight: var(--label-weight); letter-spacing: var(--label-tracking); color: var(--text-muted); }
+.mono     { font-family: var(--code-font); font-size: var(--code-size); font-weight: var(--code-weight); line-height: var(--code-leading); }
 .quiet    { color: var(--text-quiet); }
 .soft     { font-size: var(--headline-size); line-height: var(--headline-leading); font-weight: var(--weight-regular); color: var(--text-quiet); }
 .soft .lead { font-weight: var(--weight-strong); color: var(--text); }
@@ -499,8 +540,8 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .progress > i { display: block; height: 100%; width: 0; background: var(--progress-fill); }
 .counter {
   position: fixed; right: 14px; bottom: 10px;
-  font-family: var(--label-font); font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--text-muted);
-  font-variant-numeric: tabular-nums; opacity: 0.7; pointer-events: none;
+  font-family: var(--label-font); font-size: var(--counter-size); line-height: 1; font-weight: var(--weight-strong); color: var(--counter-text);
+  font-variant-numeric: var(--numeric-variant); opacity: 0.7; pointer-events: none;
 }
 
 /* ---------- Motion (dormant) ----------
@@ -544,8 +585,8 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .chip {
   display: inline-flex; align-items: center; white-space: nowrap;
   height: var(--chip-h); padding: 0 var(--chip-pad-x);
-  font-family: var(--label-font); font-size: var(--chip-size); line-height: 1; font-weight: var(--weight-regular);
-  font-variant-numeric: tabular-nums; letter-spacing: 0;
+  font-family: var(--chip-font); font-size: var(--chip-size); line-height: 1; font-weight: var(--chip-weight);
+  font-variant-numeric: var(--numeric-variant); letter-spacing: var(--chip-tracking);
   color: var(--chip-text);
   border-radius: var(--chip-radius); box-shadow: inset 0 0 0 var(--chip-stroke) var(--chip-stroke-color);
 }
@@ -574,6 +615,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
   display: grid; place-items: center;
 }
 .photo > span { font-size: var(--photo-label-size); letter-spacing: var(--tracking-caps); }
+.photo.ph { border-color: var(--photo-ring); background: var(--photo-fill); }
 .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .person-name { position: absolute; left: 0; right: 0; top: 440px; text-align: center; }
 .emoji-reel { position: absolute; inset: 0; pointer-events: none; }
@@ -629,7 +671,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 
 /* ---------- Tally (show of hands) ---------- */
 .hands { display: flex; justify-content: space-between; width: 100%; }
-.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); font-variant-numeric: tabular-nums; }
+.hands .num { font-family: var(--display-font); font-size: var(--tally-size); line-height: 0.95; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); font-variant-numeric: tabular-nums; }
 .hands .num.muted { color: var(--text-muted); }
 
 /* ---------- Swap (one line replaces another) and the big ask ---------- */
@@ -639,10 +681,10 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .swap-left > * { text-wrap: balance; }
 .ask {
   position: relative;
-  background: var(--ask-fill); color: var(--ask-text);
+  background: var(--ask-fill); color: var(--ask-text); --hand-text: var(--ask-text);
   box-shadow: none;
   padding: var(--ask-pad-top) var(--ask-pad-x) var(--ask-pad-bottom);
-  max-width: 1200px;
+  max-width: var(--ask-max);
 }
 
 .dots { letter-spacing: 0.12em; }
@@ -655,10 +697,10 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 /* ---------- Tracks ---------- */
 .tracks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--tracks-gap); width: 100%; }
 .track { padding: var(--track-pad-top) var(--track-pad-x) var(--track-pad-bottom); display: flex; flex-direction: column; }
-.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); }
+.track-num { font-family: var(--display-font); font-size: var(--track-num-size); line-height: 0.9; font-weight: var(--display-weight); letter-spacing: var(--display-tracking); }
 .track-name { margin-top: var(--track-name-gap); }
 .track-line { margin-top: var(--track-line-gap); }
-.hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; color: var(--text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
+.hand-note { font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--hand-note-size); line-height: 1.05; letter-spacing: var(--hand-tracking); color: var(--hand-text); transform: rotate(-2deg); transform-origin: left center; max-width: 900px; }
 canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: var(--stage-h); pointer-events: none; z-index: 5; }
 .footnote.hand { bottom: var(--aside-bottom); font-family: var(--aside-font); font-weight: var(--weight-hand); font-size: var(--aside-size); transform: rotate(-2deg); transform-origin: left center; }
 .footnote.hand .emo { font-family: var(--emoji-font); font-size: var(--aside-emoji-scale); }
@@ -668,12 +710,12 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 @keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
 @media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
 .big-emoji { font-family: var(--emoji-font); font-size: var(--big-emoji-size); line-height: 1; }
-.hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
+.hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--hand-text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
 
 /* ---------- Setup ---------- */
 .setup { display: grid; grid-template-columns: 560px 1fr; gap: var(--setup-gap); align-items: start; width: 100%; }
 .qr { display: block; width: 500px; height: 500px; shape-rendering: crispEdges; }
-.qr .qr-ground { fill: var(--qr-ground); }
+.qr .qr-ground { fill: var(--qr-ground); rx: var(--qr-radius); ry: var(--qr-radius); }
 .qr .qr-ink { fill: var(--qr-ink); }
 .url { display: inline-block; margin-top: var(--gap-s); text-decoration: none; color: var(--text); max-width: 560px; }
 .url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
@@ -695,7 +737,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .node-num { font-family: var(--label-font); font-size: var(--node-num-size); line-height: 1; }
 .node-name { font-size: var(--node-name-size); line-height: 1.15; }
 .flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
-.flow-node.step.tint { background: var(--c); color: var(--on-principle); box-shadow: none; position: relative; }
+.flow-node.step.tint { background: var(--c); color: var(--oc); box-shadow: none; position: relative; }
 .node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }
@@ -706,7 +748,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 /* ---------- Split halves ---------- */
 .split { display: grid; grid-template-columns: 1fr var(--split-rule-width) 1fr; column-gap: var(--split-gap); width: 100%; align-items: start; }
-.split .divider { align-self: stretch; background: var(--line); margin: calc(var(--split-rule-overhang) * -1) 0; }
+.split .divider { align-self: stretch; background: var(--hairline); margin: calc(var(--split-rule-overhang) * -1) 0; }
 .split .foot { grid-column: 1 / -1; text-align: center; justify-self: center; margin-top: var(--split-foot-gap); }
 
 /* ---------- Converging pills (inputs drop onto a question) ---------- */
@@ -714,7 +756,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .question {
   position: absolute; left: 410px; width: 1100px; top: var(--step-top); height: 180px;
   display: grid; place-items: center; text-align: center;
-  font-family: var(--display-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--weight-display); letter-spacing: var(--tracking-snug);
+  font-family: var(--headline-font); font-size: var(--question-size); line-height: 1.1; font-weight: var(--headline-weight); letter-spacing: var(--headline-tracking);
 }
 .input { position: absolute; left: var(--cx); top: var(--top); width: 0; }
 .input .pill { position: absolute; left: 0; top: 0; transform: translateX(-50%); font-size: var(--input-pill-size); height: var(--input-pill-h); padding: 0 var(--placeholder-pad-x); }
@@ -732,7 +774,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 
 /* ---------- Framework stack ---------- */
 .stack { width: 100%; }
-.stack-goal { font-family: var(--display-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--weight-display); letter-spacing: var(--tracking-tight); margin-top: var(--space-2xs); }
+.stack-goal { font-family: var(--mega-font); font-size: var(--goal-size); line-height: 0.92; font-weight: var(--mega-weight); letter-spacing: var(--mega-tracking); margin-top: var(--space-2xs); }
 .stack-bars { display: flex; flex-direction: column; gap: var(--bars-gap); margin-top: var(--bars-top); }
 .bar {
   height: var(--bar-h); border-radius: var(--bar-radius); padding: 0 var(--bar-pad-x);
@@ -742,7 +784,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .bar-num { font-family: var(--label-font); font-size: var(--bar-num-size); font-weight: var(--weight-strong); line-height: 1; width: 44px; }
 .bar-name { font-size: var(--bar-name-size); font-weight: var(--weight-strong); line-height: 1; }
 .bar-text { margin-left: auto; font-size: var(--bar-text-size); font-weight: var(--weight-regular); line-height: 1.1; text-align: right; visibility: hidden; }
-.bar.filled { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.bar.filled { background: var(--c); color: var(--oc); box-shadow: none; }
 .bar.filled .bar-text { visibility: inherit; }
 
 /* ---------- Principle dividers ---------- */
@@ -754,7 +796,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   flex: none; width: 64px; height: 88px; border-radius: var(--cell-radius);
   display: grid; place-items: center;
   font-family: var(--label-font); font-size: var(--cell-size); font-weight: var(--weight-strong);
-  background: var(--c); color: var(--on-principle);
+  background: var(--c); color: var(--oc);
 }
 .builds-on .arrow { width: 64px; height: 18px; }
 .builds-on .sub { max-width: 1300px; }
@@ -786,9 +828,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   width: 64px; height: 96px; border-radius: var(--cell-radius);
   display: grid; place-items: center;
   font-family: var(--label-font); font-size: var(--cell-size); font-weight: var(--weight-strong); line-height: 1;
-  color: var(--text-muted); box-shadow: inset 0 0 0 var(--stroke-hair) var(--framework-idle);
+  color: var(--rail-idle-text); box-shadow: inset 0 0 0 var(--stroke-hair) var(--rail-idle-stroke);
 }
-.rail-cell.done, .rail-cell.now { background: var(--c); color: var(--on-principle); box-shadow: none; }
+.rail-cell.done, .rail-cell.now { background: var(--c); color: var(--oc); box-shadow: none; }
 .rail-cell.now { width: var(--rail-current-w); }
 .stage:has(> .slide.active[data-principle="wrap"]) .rail-cap { background: var(--accent-trust); }
 </style>
@@ -1015,15 +1057,15 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
   <div class="flow gap-xl">
     <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Setup</span></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-1)"><span class="node-emoji" aria-hidden="true">🤝</span><span class="node-num">1</span><span class="node-name">Shared Domain</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="node-emoji" aria-hidden="true">🤝</span><span class="node-num">1</span><span class="node-name">Shared Domain</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-2)"><span class="node-emoji" aria-hidden="true">🧮</span><span class="node-num">2</span><span class="node-name">Consistency</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="node-emoji" aria-hidden="true">🧮</span><span class="node-num">2</span><span class="node-name">Consistency</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-3)"><span class="node-emoji" aria-hidden="true">🧾</span><span class="node-num">3</span><span class="node-name">Evidence</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="node-emoji" aria-hidden="true">🧾</span><span class="node-num">3</span><span class="node-name">Evidence</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-4)"><span class="node-emoji" aria-hidden="true">🙋</span><span class="node-num">4</span><span class="node-name">Accountability</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="node-emoji" aria-hidden="true">🙋</span><span class="node-num">4</span><span class="node-name">Accountability</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-5)"><span class="node-emoji" aria-hidden="true">🔍</span><span class="node-num">5</span><span class="node-name">Verification</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="node-emoji" aria-hidden="true">🔍</span><span class="node-num">5</span><span class="node-name">Verification</span></div></div></div>
     <svg class="arrow" viewBox="0 0 30 16"><path class="l" d="M1 8H20" pathLength="100"/><path class="h" d="M19 1l11 7-11 7z"/></svg>
     <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">Wrap</span></div></div>
   </div>
@@ -1108,11 +1150,11 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
     <ol class="stack-bars">
-      <li class="bar" data-step-fill="5" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
-      <li class="bar" data-step-fill="4" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar" data-step-fill="3" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar" data-step-fill="2" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar" data-step-fill="1" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
+      <li class="bar" data-step-fill="5" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar" data-step-fill="4" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar" data-step-fill="3" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar" data-step-fill="2" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar" data-step-fill="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
     </ol>
   </div>
 </section>
@@ -1172,7 +1214,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <section class="slide" id="s-p2" data-principle="2">
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2-ink)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span><span class="chip">20 min</span></div>
   <p class="sub gap-m">Numbers come only from tested code.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
 
 <!-- 36 · P2 · Why -->
@@ -1220,7 +1262,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <section class="slide" id="s-p3" data-principle="3">
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3-ink)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span><span class="chip">17 min</span></div>
   <p class="sub gap-m">Every number can be followed back.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2); --oc:var(--on-principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code leaves a trail to follow.</p></div>
 </section>
 
 <!-- 42 · P3 · Why / without it / examples -->
@@ -1242,7 +1284,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <section class="slide" id="s-p4" data-principle="4">
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4-ink)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span><span class="chip">25 min</span></div>
   <p class="sub gap-m">Ask only where a person must decide.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3); --oc:var(--on-principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
 
 <!-- 46 · P4 · Why / without it / examples -->
@@ -1264,7 +1306,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <section class="slide" id="s-p5" data-principle="5">
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5-ink)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span><span class="chip">12 min</span></div>
   <p class="sub gap-m">A reviewer challenges the plan.</p>
-  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
+  <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4); --oc:var(--on-principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
 
 <!-- 50 · P5 · Why / without it / examples -->
@@ -1288,11 +1330,11 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
     <p class="label">THE GOAL</p>
     <p class="stack-goal"><span class="trust">Trust</span></p>
     <ol class="stack-bars">
-      <li class="bar filled" style="--c:var(--principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
-      <li class="bar filled" style="--c:var(--principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
-      <li class="bar filled" style="--c:var(--principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
-      <li class="bar filled" style="--c:var(--principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
-      <li class="bar filled" style="--c:var(--principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
+      <li class="bar filled" style="--c:var(--principle-5); --oc:var(--on-principle-5)"><span class="bar-num">5</span><span class="bar-name">Verification</span><span class="bar-emoji" aria-hidden="true">🔍</span><span class="bar-text">A reviewer challenges the plan.</span></li>
+      <li class="bar filled" style="--c:var(--principle-4); --oc:var(--on-principle-4)"><span class="bar-num">4</span><span class="bar-name">Accountability</span><span class="bar-emoji" aria-hidden="true">🙋</span><span class="bar-text">Ask only where a person must decide.</span></li>
+      <li class="bar filled" style="--c:var(--principle-3); --oc:var(--on-principle-3)"><span class="bar-num">3</span><span class="bar-name">Evidence</span><span class="bar-emoji" aria-hidden="true">🧾</span><span class="bar-text">Every number can be followed back.</span></li>
+      <li class="bar filled" style="--c:var(--principle-2); --oc:var(--on-principle-2)"><span class="bar-num">2</span><span class="bar-name">Consistency</span><span class="bar-emoji" aria-hidden="true">🧮</span><span class="bar-text">Numbers come only from tested code.</span></li>
+      <li class="bar filled" style="--c:var(--principle-1); --oc:var(--on-principle-1)"><span class="bar-num">1</span><span class="bar-name">Shared Domain</span><span class="bar-emoji" aria-hidden="true">🤝</span><span class="bar-text">Agree the plan before any number.</span></li>
     </ol>
   </div>
 </section>
@@ -1310,11 +1352,11 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 <!-- Framework rail: shown on slides with data-principle (unless data-rail="off"); deck.js sets its state from that attribute. -->
 <div class="rail" aria-hidden="true">
   <span class="rail-cap"></span>
-  <span class="rail-cell" data-n="5" style="--c:var(--principle-5)">5</span>
-  <span class="rail-cell" data-n="4" style="--c:var(--principle-4)">4</span>
-  <span class="rail-cell" data-n="3" style="--c:var(--principle-3)">3</span>
-  <span class="rail-cell" data-n="2" style="--c:var(--principle-2)">2</span>
-  <span class="rail-cell" data-n="1" style="--c:var(--principle-1)">1</span>
+  <span class="rail-cell" data-n="5" style="--c:var(--principle-5); --oc:var(--on-principle-5)">5</span>
+  <span class="rail-cell" data-n="4" style="--c:var(--principle-4); --oc:var(--on-principle-4)">4</span>
+  <span class="rail-cell" data-n="3" style="--c:var(--principle-3); --oc:var(--on-principle-3)">3</span>
+  <span class="rail-cell" data-n="2" style="--c:var(--principle-2); --oc:var(--on-principle-2)">2</span>
+  <span class="rail-cell" data-n="1" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span>
 </div>
 
 </div>

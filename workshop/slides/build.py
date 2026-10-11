@@ -2,7 +2,7 @@
 """Build the workshop deck from src/. Standard library only (Python 3.11+), no network.
 
     python build.py                  deck.html (default theme) + dist/deck.fragment.html
-    python build.py --theme ink      dist/deck.ink.html + dist/deck.ink.fragment.html
+    python build.py --theme nord     dist/deck.nord.html + dist/deck.nord.fragment.html
     python build.py --all            every theme in src/themes/
     python build.py --check          validate the sources; exit 1 on problems
     python build.py --gallery [--theme NAME | --all]   dist/gallery.<theme>.html (+ fragment)
@@ -304,6 +304,7 @@ class Deck:
         self.principles = json.loads((src / "principles.json").read_text(encoding="utf-8"))["principles"]
         for p in self.principles:
             p["ink"] = p.get("color", "") + "-ink"   # the colour as text or a thin stroke
+            p["on"] = "--on-" + p.get("color", "").lstrip("-")  # text on the colour
         self.by_n = {p["n"]: p for p in self.principles}
         self.loader = Loader(src / "layouts")
         self.slides = self._load_slides()
@@ -873,6 +874,10 @@ class Theme:
         self.text = path.read_text(encoding="utf-8")
         m = _FONT_LINK.search(self.text)
         self.font_link = m.group(1) if m else None
+        head = re.search(r"/\*(.*?)\*/", self.text, re.S)
+        meta = dict(re.findall(r"^\s*(name|short):\s*(.+?)\s*$", head.group(1) if head else "", re.M))
+        self.display = meta.get("name", self.name)       # shown in the looks bar
+        self.short = meta.get("short", self.display[:5])  # ... when the bar is narrow
         light = _LIGHT.search(strip_comments(self.text))
         dark = _DARK.search(strip_comments(self.text))
         self.light = declarations(light.group(1)) if light else {}
@@ -980,7 +985,8 @@ def build(deck: Deck, theme_name: str, standalone: bool, looks: list[str] | None
     font_links = list(dict.fromkeys(t.font_link for t in themes))
     ctx = {"standalone": standalone, "lang": deck.meta.get("lang", "en"), "title": title, "font_links": font_links,
            "css": Markup(build_css(deck, theme, standalone, kit, themes if looks else None).rstrip("\n")),
-           "motion": deck.meta.get("motion", "off"), "slides": Markup(slides), "looks": names if looks else [],
+           "motion": deck.meta.get("motion", "off"), "slides": Markup(slides),
+           "looks": [{"id": t.name, "name": t.display, "short": t.short} for t in themes] if looks else [],
            "rail": Markup(r.render_rail()), "js": Markup(build_js(deck, kit, libs, bool(looks)))}
     return deck.loader.get("deck.html").render(ctx)
 
@@ -1081,7 +1087,7 @@ def resolve_color(name: str, tokens: dict, seen=()) -> str | None:
 
 
 CONTRAST_PAIRS = [  # (foreground, background, minimum)
-    *[("--on-principle", f"--principle-{n}", 4.0) for n in range(1, 6)],
+    *[(f"--on-principle-{n}", f"--principle-{n}", 4.0) for n in range(1, 6)],
     *[(f"--principle-{n}-ink", "--slide-bg", 3.0) for n in range(1, 6)],
     ("--text", "--slide-bg", 7.0), ("--text-quiet", "--slide-bg", 4.5), ("--text-muted", "--slide-bg", 4.5),
     ("--accent-trust", "--slide-bg", 4.5), ("--text", "--surface", 4.5), ("--pill-text", "--pill-fill", 4.5),
@@ -1102,7 +1108,7 @@ def contrast_report(deck: Deck, theme: Theme) -> tuple[list[str], list[str]]:
                 problems.append(f"{theme.name} {mode}: cannot resolve {fg} or {bg} to a hex colour")
                 continue
             c = contrast(a, b)
-            if fg == "--on-principle" and (worst is None or c < worst[0]):
+            if fg.startswith("--on-principle") and (worst is None or c < worst[0]):
                 worst = (c, bg)
             if c < minimum:
                 problems.append(f"{theme.name} {mode}: {fg} on {bg} is {c:.2f}:1 (needs {minimum}:1)")

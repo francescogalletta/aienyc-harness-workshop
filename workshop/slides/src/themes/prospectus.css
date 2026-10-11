@@ -1,0 +1,144 @@
+/* Prospectus: a finance document, with restraint. Warm white, a deep blue-green-black
+   ink, Instrument Serif for the big words and Instrument Sans for everything else,
+   thin visible hairlines, 3px corners, deep muted section fields with warm-white text.
+   Mono only for the command and the URL. Alternate: an ink-dark ground with lighter tints.
+   name: Prospectus
+   short: Pros
+   font-link: https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Instrument+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --page: #f6f4ee;
+  --page-lift: #fffdf8;
+  --rule: #d3d2c8;
+  --dash: #9aa4a8;
+  --connector-grey: #7d8a90;
+  --frame: #3f5058;
+  --muted: #5a6870;
+  --quiet: #34444c;
+  --ink: #14232b;
+  --warm-white: #fbf7ee;
+  --wheat: #f0d9a0;
+  --wheat-dim: #dcc48a;     /* the ask on the night ground: wheat one step down, no glare */
+  --trust: #0e6e5c;
+  --navy: #23466e;
+  --aubergine: #5b3a78;
+  --oxblood: #8c2f39;
+  --bronze: #7a5a12;
+  --forest: #2f6b4a;
+  --night: #14202b;
+  --night-lift: #1b2a36;
+  --night-rule: #2c3b47;
+  --night-dash: #55646f;
+  --night-frame: #6e7f8a;
+  --night-muted: #9ba3a4;
+  --night-quiet: #c9c6bc;
+  --night-text: #ece8de;
+  --trust-light: #5fc4ab;
+  --navy-tint: #94bbea;
+  --aubergine-tint: #c8a7ea;
+  --oxblood-tint: #f19da0;
+  --bronze-tint: #d5b270;
+  --forest-tint: #8ac8a2;
+
+  /* type: serif display at its one weight, sans for the rest */
+  --font-sans: "Instrument Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --weight-display: 400;
+  --mega-tracking: -0.02em;
+  --display-tracking: -0.015em;
+  --headline-tracking: -0.01em;
+  /* Instrument Serif is narrow with a small x-height: set it a step larger to carry the same weight */
+  --mega-size: calc(var(--fs-6xl) * 1.1);
+  --display-size: calc(var(--fs-4xl) * 1.12);
+  --headline-size: calc(var(--fs-3xl) * 1.1);
+  --ask-pad-x: 250px;   /* a wider margin keeps "to help me" on one line in this narrower face */
+  --ask-max: 1360px;    /* and room for the handwritten aside under it */
+  --footnote-font: var(--font-sans);
+  --diagram-label-font: var(--font-sans);
+
+  /* shape: 3px corners, thin rules */
+  --radius-s: 3px;
+  --radius-m: 3px;
+  --radius-l: 3px;
+  --radius-pill: 3px;
+  --photo-radius: 3px;
+  --qr-radius: 0.25px; /* one module is 12px: 3px */
+  --stroke-hair: 1.5px;
+  --stroke: 2px;
+  --stroke-sketch: 2.5px;
+  --stroke-strike: 3px;
+  --stroke-heavy: 6px;
+
+  /* colour roles (primary) */
+  --slide-bg: var(--page);
+  --surface: var(--page-lift);
+  --text: var(--ink);
+  --text-quiet: var(--quiet);
+  --text-muted: var(--muted);
+  --line: var(--rule);
+  --connector: var(--connector-grey);
+  --attention: var(--wheat);
+  --ask-text: var(--ink);
+  --accent-trust: var(--trust);
+  --principle-1: var(--navy);
+  --principle-2: var(--aubergine);
+  --principle-3: var(--oxblood);
+  --principle-4: var(--bronze);
+  --principle-5: var(--forest);
+  --on-principle: var(--warm-white);
+  --qr-ink: var(--ink);
+  --qr-ground: var(--page-lift);
+  --outline: var(--frame);
+  --hairline: var(--rule);
+  --placeholder-stroke: var(--dash);
+  --placeholder-text: var(--muted);
+  --photo-ring: var(--dash);
+  --photo-fill: transparent;
+  /* chart series: principles reordered so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  --viz-series-1: var(--principle-4);
+  --viz-series-2: var(--principle-2);
+  --viz-series-3: var(--principle-5);
+  --viz-series-4: var(--principle-1);
+  --viz-series-5: var(--principle-3);
+  --viz-series-1-ink: var(--principle-4-ink);
+  --viz-series-2-ink: var(--principle-2-ink);
+  --viz-series-3-ink: var(--principle-5-ink);
+  --viz-highlight: var(--oxblood);
+  --viz-down: var(--oxblood);
+  --viz-area-opacity: 0.07;   /* bronze at 0.12 muddies the page */
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+}
+
+/* Alternate: ink-dark. */
+:root[data-theme="dark"] {
+  --slide-bg: var(--night);
+  --surface: var(--night-lift);
+  --text: var(--night-text);
+  --text-quiet: var(--night-quiet);
+  --text-muted: var(--night-muted);
+  --line: var(--night-rule);
+  --connector: var(--night-frame);
+  --accent-trust: var(--trust-light);
+  --principle-1: var(--navy-tint);
+  --principle-2: var(--aubergine-tint);
+  --principle-3: var(--oxblood-tint);
+  --principle-4: var(--bronze-tint);
+  --principle-5: var(--forest-tint);
+  --on-principle: var(--night);
+  --qr-ground: var(--night-quiet);
+  --outline: var(--night-frame);
+  --hairline: var(--night-rule);
+  --placeholder-stroke: var(--night-dash);
+  --placeholder-text: var(--night-muted);
+  --photo-ring: var(--night-dash);
+  --photo-fill: var(--night-lift);
+  --viz-highlight: var(--oxblood-tint);
+  --viz-down: var(--oxblood-tint);
+  --ask-fill: var(--wheat-dim);
+  color-scheme: dark;
+}

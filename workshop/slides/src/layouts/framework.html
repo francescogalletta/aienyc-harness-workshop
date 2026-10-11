@@ -8,7 +8,7 @@
     <p class="stack-goal">{{ goal|text }}</p>
     <ol class="stack-bars">
 {% for p in principles_top_down %}
-      <li class="bar{% if not reveal %} filled{% endif %}"{% if reveal %} data-step-fill="{{ p.n }}"{% endif %} style="--c:var({{ p.color }})"><span class="bar-num">{{ p.n }}</span><span class="bar-name">{{ p.name }}</span><span class="bar-emoji" aria-hidden="true">{{ p.emoji }}</span><span class="bar-text">{{ p.statement|text }}</span></li>
+      <li class="bar{% if not reveal %} filled{% endif %}"{% if reveal %} data-step-fill="{{ p.n }}"{% endif %} style="--c:var({{ p.color }}); --oc:var({{ p.on }})"><span class="bar-num">{{ p.n }}</span><span class="bar-name">{{ p.name }}</span><span class="bar-emoji" aria-hidden="true">{{ p.emoji }}</span><span class="bar-text">{{ p.statement|text }}</span></li>
 {% endfor %}
     </ol>
   </div>

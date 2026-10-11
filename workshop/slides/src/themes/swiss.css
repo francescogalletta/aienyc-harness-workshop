@@ -1,0 +1,140 @@
+/* Swiss: light, strict, high-impact. One grotesque (Schibsted Grotesk) set tight,
+   square corners, heavier rules, sections as solid fields of equal weight: built in
+   OKLCH at lightness 0.54-0.575 and the most chroma sRGB allows up to 0.18
+   (blue h258, violet h300, red-pink h12, amber-brown h60, green h150), white text on all.
+   Alternate: the same on graphite, with the sections at lightness 0.76.
+   name: Swiss
+   short: Swiss
+   font-link: https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;600;800&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --paper: #f5f5f2;
+  --paper-lift: #fcfcfa;
+  --rule: #cfd0cc;
+  --grey-dash: #8a8f96;
+  --grey-connector: #6b7078;
+  --grey-muted: #595e66;
+  --grey-quiet: #2f343b;
+  --ink: #111418;
+  --signal: #ffd400;
+  --signal-dim: #e8c000;    /* the ask on graphite: signal one step down, no glare */
+  --teal: #00625f;          /* trust: deeper and bluer than the green section */
+  --blue: #1f6dd8;          /* oklch(0.55 0.18 258) */
+  --violet: #8451c9;        /* oklch(0.55 0.18 300) */
+  --red: #c33355;           /* oklch(0.55 0.18 12) */
+  --amber: #b16203;         /* oklch(0.575 0.134 60): sRGB's limit at this lightness */
+  --green: #00853b;         /* oklch(0.54 0.148 150) */
+  --graphite: #16181d;
+  --graphite-lift: #1e2128;
+  --graphite-rule: #30343c;
+  --graphite-dash: #5c626b;
+  --graphite-connector: #6d737c;
+  --graphite-outline: #8a9099;
+  --graphite-muted: #9aa0a8;
+  --graphite-quiet: #c4c8ce;
+  --graphite-text: #eceef1;
+  --teal-light: #52bfb9;
+  --blue-light: #80b3fe;    /* oklch(0.76 0.12 258) */
+  --violet-light: #be9df7;  /* oklch(0.76 0.13 300) */
+  --red-light: #f78d9b;     /* oklch(0.76 0.13 12) */
+  --amber-light: #ed9c55;   /* oklch(0.76 0.13 60) */
+  --green-light: #6fc884;   /* oklch(0.76 0.13 150) */
+
+  /* type: one grotesque, tight on the big roles */
+  --font-sans: "Schibsted Grotesk", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --mega-weight: 800;
+  --display-weight: 800;
+  --headline-weight: 600;
+  --mega-tracking: -0.045em;
+  --display-tracking: -0.04em;
+  --headline-tracking: -0.025em;
+  --mega-size: calc(var(--fs-6xl) * 0.97);   /* 800 is wider than Plex 600: keep blueprint's line breaks */
+  --label-tracking: 0.06em;
+  --numeric-variant: normal;   /* Schibsted's tabular set widens . , ; as well */
+
+  /* shape: square, heavier rules, small-radius pills */
+  --radius-s: 0px;
+  --radius-m: 0px;
+  --radius-l: 0px;
+  --radius-pill: 2px;
+  --photo-radius: 0px;
+  --qr-radius: 0px;
+  --stroke-hair: 2.5px;
+  --stroke: 3.5px;
+  --stroke-sketch: 4px;
+
+  /* colour roles (primary) */
+  --slide-bg: var(--paper);
+  --surface: var(--paper-lift);
+  --text: var(--ink);
+  --text-quiet: var(--grey-quiet);
+  --text-muted: var(--grey-muted);
+  --line: var(--rule);
+  --connector: var(--grey-connector);
+  --attention: var(--signal);
+  --ask-text: var(--ink);
+  --accent-trust: var(--teal);
+  --principle-1: var(--blue);
+  --principle-2: var(--violet);
+  --principle-3: var(--red);
+  --principle-4: var(--amber);
+  --principle-5: var(--green);
+  --on-principle: var(--paper-lift);
+  --qr-ink: var(--ink);
+  --qr-ground: var(--paper-lift);
+  --outline: var(--ink);
+  --hairline: var(--rule);
+  --placeholder-stroke: var(--grey-dash);
+  --placeholder-text: var(--grey-muted);
+  --photo-ring: var(--grey-dash);
+  --photo-fill: transparent;
+  /* chart series: principles reordered so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  --viz-series-1: var(--principle-4);
+  --viz-series-2: var(--principle-2);
+  --viz-series-3: var(--principle-5);
+  --viz-series-4: var(--principle-1);
+  --viz-series-5: var(--principle-3);
+  --viz-series-1-ink: var(--principle-4-ink);
+  --viz-series-2-ink: var(--principle-2-ink);
+  --viz-series-3-ink: var(--principle-5-ink);
+  --viz-highlight: var(--ink);
+  --viz-down: var(--red);
+  --viz-total: var(--grey-muted);
+  --viz-area-opacity: 0.07;   /* the amber first series reads as beige at the default 0.12 */
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+}
+
+/* Alternate: graphite. */
+:root[data-theme="dark"] {
+  --slide-bg: var(--graphite);
+  --surface: var(--graphite-lift);
+  --text: var(--graphite-text);
+  --text-quiet: var(--graphite-quiet);
+  --text-muted: var(--graphite-muted);
+  --line: var(--graphite-rule);
+  --connector: var(--graphite-connector);
+  --accent-trust: var(--teal-light);
+  --principle-1: var(--blue-light);
+  --principle-2: var(--violet-light);
+  --principle-3: var(--red-light);
+  --principle-4: var(--amber-light);
+  --principle-5: var(--green-light);
+  --on-principle: var(--ink);
+  --qr-ground: var(--graphite-quiet);
+  --outline: var(--graphite-outline);
+  --hairline: var(--graphite-rule);
+  --placeholder-stroke: var(--graphite-dash);
+  --placeholder-text: var(--graphite-muted);
+  --photo-ring: var(--graphite-dash);
+  --photo-fill: var(--graphite-lift);
+  --viz-highlight: var(--graphite-text);
+  --viz-down: var(--red-light);
+  --viz-total: var(--graphite-muted);
+  --ask-fill: var(--signal-dim);
+  color-scheme: dark;
+}

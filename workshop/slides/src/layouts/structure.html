@@ -5,7 +5,7 @@
     <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">{{ start }}</span></div></div>
 {% for p in principles %}
     {% include "parts/arrow-flow.html" %}
-    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var({{ p.color }})"><span class="node-emoji" aria-hidden="true">{{ p.emoji }}</span><span class="node-num">{{ p.n }}</span><span class="node-name">{{ p.name }}</span></div></div></div>
+    <div class="flow-item grow"><div class="flow-slot"><div class="flow-node step tint" style="--c:var({{ p.color }}); --oc:var({{ p.on }})"><span class="node-emoji" aria-hidden="true">{{ p.emoji }}</span><span class="node-num">{{ p.n }}</span><span class="node-name">{{ p.name }}</span></div></div></div>
 {% endfor %}
     {% include "parts/arrow-flow.html" %}
     <div class="flow-item"><div class="flow-slot"><span class="flow-node pill">{{ end }}</span></div></div>

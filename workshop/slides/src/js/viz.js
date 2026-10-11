@@ -112,6 +112,7 @@ var viz = (function () {
   }
   function gridY(svg, fig, spec, sc, box, rough) {
     var g = el('g', { 'class': 'viz-frame' }, svg), rc = rough ? window.rough.svg(svg) : null;
+    svg.insertBefore(g, svg.firstChild);  /* gridlines sit behind the data, whatever was drawn first */
     for (var t = sc.lo; t <= sc.hi + 1e-9; t += sc.tick) {
       var y = box.y + box.h - (t - sc.lo) / (sc.hi - sc.lo) * box.h;
       if (spec.axis !== false) {
@@ -227,11 +228,11 @@ var viz = (function () {
     xs.forEach(function (x, i) { if (i % every === 0 || i === n - 1) text(svg, xOf(i), box.y + box.h + 48, x, 'viz-label'); });
     var pr = num('--viz-point-r', 8, fig);
     series.forEach(function (s, k) {
-      var cls = 'viz-s' + (k + 1), pts = s.values.map(function (v, i) { return [xOf(i), yOf(v)]; });
+      var cls = series.length === 1 ? 'viz-sp' : 'viz-s' + (k + 1), pts = s.values.map(function (v, i) { return [xOf(i), yOf(v)]; });
       var g = stepOn(el('g', { 'class': 'viz-series ' + cls }, svg), s.step || spec.step);
       var d = 'M' + pts.map(function (p) { return r1(p[0]) + ' ' + r1(p[1]); }).join('L');
       if (spec.area && !rough && k === 0) el('path', { 'class': 'viz-area', d: d + 'L' + r1(pts[n - 1][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'L' + r1(pts[0][0]) + ' ' + r1(yOf(Math.max(sc.lo, 0))) + 'Z' }, g);
-      if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok('--viz-series-' + (k + 1) + '-ink'), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
+      if (rc) g.appendChild(rc.linearPath(pts, roughOpts(fig, { stroke: tok(series.length === 1 ? '--viz-primary' : '--viz-series-' + (k + 1) + '-ink'), strokeWidth: num('--viz-line-width', 3, fig) + 0.5, roughness: 1, seed: 20 + k })));
       else el('path', { 'class': 'viz-line', d: d }, g);
       inkable(g);
       if (spec.points !== false) pts.forEach(function (p, i) { el('circle', { 'class': 'viz-point', cx: r1(p[0]), cy: r1(p[1]), r: pr, style: '--i:' + i }, g); });
@@ -275,8 +276,8 @@ var viz = (function () {
       var x = xOf(day(e.date)), up = i % 2 === 0, g = stepOn(el('g', { 'class': 'viz-event', style: '--i:' + i }, svg), each ? (s0 + i || null) : (e.step || spec.step));
       var y2 = up ? mid - 70 : mid + 70;
       el('line', { 'class': 'viz-leader', x1: r1(x), x2: r1(x), y1: mid, y2: y2 }, g);
-      if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-series-1-ink'), fill: tok('--viz-series-1-ink'), fillStyle: 'solid', seed: 90 + i })));
-      else el('circle', { 'class': 'viz-point viz-s1', cx: r1(x), cy: mid, r: pr * 1.5 }, g);
+      if (rc) g.appendChild(rc.circle(x, mid, pr * 3, roughOpts(fig, { stroke: tok('--viz-primary'), fill: tok('--viz-primary'), fillStyle: 'solid', seed: 90 + i })));
+      else el('circle', { 'class': 'viz-point viz-sp', cx: r1(x), cy: mid, r: pr * 1.5 }, g);
       var anchorPos = x < x0 + 160 ? 'start' : x > x1 - 160 ? 'end' : 'middle';
       var dt = new Date(day(e.date)), when = MONTHS[dt.getUTCMonth()] + ' ' + dt.getUTCDate();
       var lines = [when, e.text]; if (e.value) lines.push(e.value);
@@ -321,7 +322,7 @@ var viz = (function () {
     nodes.forEach(function (n, i) {
       var b = box(n), fillTok = n.principle ? '--principle-' + n.principle : n.role === 'accent' ? '--viz-highlight' : null;
       var cls = 'viz-node' + (fillTok ? ' viz-filled' : n.role === 'muted' ? ' viz-muted' : '');
-      var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' : null }, nodeG), n.step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step));
+      var g = stepOn(el('g', { 'class': cls, style: fillTok ? '--c:var(' + fillTok + ')' + (n.principle ? '; --oc:var(--on-principle-' + n.principle + ')' : '') : null }, nodeG), n.step || (spec.reveal === 'each' ? (spec.step || 0) + i || null : spec.step));
       if (rc) g.appendChild(rc.rectangle(b.x, b.y, nw, nh, roughOpts(fig, { stroke: tok('--viz-node-stroke'), strokeWidth: sw + 1, fill: fillTok ? tok(fillTok) : tok('--viz-node-fill'), fillStyle: 'solid', seed: i + 3 })));
       else el('rect', { x: r1(b.x), y: r1(b.y), width: r1(nw), height: nh, rx: rad, ry: rad }, g);
       var lines = String(n.text).split('\n'), hasNum = n.principle && spec.numbers !== false;
@@ -503,11 +504,12 @@ var viz = (function () {
     restore(fig, step);
   }
   function draw(scope) { (scope || doc).querySelectorAll('[data-viz]').forEach(drawOne); }
-  function retheme() {  /* concrete colours/geometry were read at draw time: redraw those */
+  function retheme() {  /* geometry (radii, strokes, label widths) and rough colours are read at
+                           draw time, and a look can change any of them: redraw every SVG figure */
     doc.querySelectorAll('[data-viz]').forEach(function (f) {
-      var s = f._spec || {};
+      var kind = f.getAttribute('data-viz');
       if (f._retheme) { f._retheme(); return; }
-      if (s.style === 'rough' || f.getAttribute('data-viz') === 'mark') drawOne(f);
+      if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo') drawOne(f);
     });
   }
   function remark() { doc.querySelectorAll('[data-viz="mark"]').forEach(drawOne); }

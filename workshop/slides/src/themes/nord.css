@@ -1,0 +1,125 @@
+/* Nord: Polar Night, with Snow Storm as the alternate. Calm and low-glare.
+   Palette values from the nord 0.2.1 package (Arctic Ice Studio), licence
+   Apache-2.0 AND CC-BY-SA-4.0 as the package declares.
+   Roles: ground nord0, boxes nord1, hairlines nord2, text nord6, quiet nord4,
+   trust frost nord7, attention aurora nord12; sections nord9, nord15, nord11, nord13,
+   nord14 with nord0 as text. IBM Plex and blueprint's shapes.
+   Deviations (smallest OKLCH lightness change to pass the checks):
+   muted text: nord3 #4c566a lifted to #909cb2 (4.5:1 on nord0; Nord has no mid grey);
+   box outlines and dashes: nord3 lifted to #687388 (visible as a quiet frame);
+   nord11 #bf616a -> #d6767e as a fill (nord0 text 4:1); nord12 #d08770 -> #d38972
+   (nord0 text 4.5:1). Snow Storm: nord7 as trust -> #497474 (4.5:1 on nord6); inks
+   (text-strength copies) nord15 -> #a47e9d, nord13 -> #a48547, nord14 -> #779161, nord12 -> #be7660 (chart highlight).
+   name: Nord
+   short: Nord
+   font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --nord0: #2e3440;
+  --nord1: #3b4252;
+  --nord2: #434c5e;
+  --nord3: #4c566a;
+  --nord4: #d8dee9;
+  --nord5: #e5e9f0;
+  --nord6: #eceff4;
+  --nord7: #8fbcbb;
+  --nord8: #88c0d0;
+  --nord9: #81a1c1;
+  --nord10: #5e81ac;
+  --nord11: #bf616a;
+  --nord12: #d08770;
+  --nord13: #ebcb8b;
+  --nord14: #a3be8c;
+  --nord15: #b48ead;
+  --nord3-lift: #687388;      /* deviation */
+  --nord3-muted: #909cb2;     /* deviation */
+  --nord11-fill: #d6767e;     /* deviation */
+  --nord12-fill: #d38972;     /* deviation */
+  --nord7-deep: #497474;      /* deviation, Snow Storm */
+  --nord15-ink: #a47e9d;      /* deviation, Snow Storm */
+  --nord13-ink: #a48547;      /* deviation, Snow Storm */
+  --nord14-ink: #779161;      /* deviation, Snow Storm */
+  --nord12-ink: #be7660;    /* deviation: chart highlight on nord6, 3:1 */
+
+  /* fonts */
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+
+  /* colour roles (primary: Polar Night) */
+  --slide-bg: var(--nord0);
+  --surface: var(--nord1);
+  --text: var(--nord6);
+  --text-quiet: var(--nord4);
+  --text-muted: var(--nord3-muted);
+  --line: var(--nord2);
+  --connector: var(--nord3-lift);
+  --attention: var(--nord12-fill);
+  --ask-text: var(--nord0);
+  --accent-trust: var(--nord7);
+  --principle-1: var(--nord9);
+  --principle-2: var(--nord15);
+  --principle-3: var(--nord11-fill);
+  --principle-4: var(--nord13);
+  --principle-5: var(--nord14);
+  --on-principle: var(--nord0);
+  --qr-ink: var(--nord0);
+  --qr-ground: var(--nord4);   /* softer than nord6 on the dark ground; nord0 on it is 10:1 */
+  --outline: var(--nord3-lift);
+  --hairline: var(--nord2);
+  --placeholder-stroke: var(--nord3-lift);
+  --placeholder-text: var(--nord3-muted);
+  --rail-idle-stroke: var(--nord3);
+  --rail-idle-text: var(--nord3-muted);
+  --photo-ring: var(--nord3-lift);
+  --photo-fill: var(--nord1);
+  --diagram-stroke: var(--nord4);
+  --diagram-label: var(--nord6);
+  --diagram-quiet: var(--nord3-muted);
+  --progress-fill: var(--nord9);
+  --strike-color: var(--nord4);
+  --viz-highlight: var(--attention);
+  --viz-up: var(--nord14);
+  --viz-down: var(--nord11-fill);
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+  color-scheme: dark;
+}
+
+/* Alternate: Snow Storm. */
+:root[data-theme="dark"] {
+  --slide-bg: var(--nord6);
+  --surface: var(--nord5);
+  --text: var(--nord0);
+  --text-quiet: var(--nord1);
+  --text-muted: var(--nord3);
+  --line: var(--nord4);
+  --connector: var(--nord3-lift);
+  --accent-trust: var(--nord7-deep);
+  --principle-1-ink: var(--nord10);
+  --principle-2-ink: var(--nord15-ink);
+  --principle-3-ink: var(--nord11);
+  --principle-4-ink: var(--nord13-ink);
+  --principle-5-ink: var(--nord14-ink);
+  --qr-ink: var(--nord0);
+  --qr-ground: var(--nord5);
+  --outline: var(--nord3);
+  --hairline: var(--nord4);
+  --placeholder-stroke: var(--nord3-lift);
+  --placeholder-text: var(--nord3);
+  --rail-idle-stroke: var(--nord4);
+  --rail-idle-text: var(--nord3);
+  --photo-ring: var(--nord3-lift);
+  --photo-fill: var(--nord5);
+  --diagram-stroke: var(--nord1);
+  --diagram-label: var(--nord0);
+  --diagram-quiet: var(--nord3);
+  --progress-fill: var(--nord10);
+  --strike-color: var(--nord1);
+  --viz-highlight: var(--nord12-ink);
+  --viz-up: var(--nord14-ink);
+  --viz-down: var(--nord11);
+  color-scheme: light;
+}

@@ -113,40 +113,70 @@ validator (`validate_palette.js`, adjacent pairs, against each mode's background
 | --- | --- | --- |
 | blueprint | light | all checks pass (worst CVD ΔE 11.2) |
 | blueprint | dark | CVD 11.7 and normal vision 23.7 pass; lightness band fails (the dark-mode pastels are L 0.76–0.81, chosen to carry dark text) |
-| ink | both | CVD 19.7 and normal vision 26.4 pass; lightness band fails (bright hues on near-black) |
-| paper | light | chroma fails for ochre (0.094) and CVD fails between clay and moss (ΔE 3.2), which sit next to each other in this order |
-| paper | dark | lightness, chroma, CVD (3.3) and normal vision (14.2) fail |
 
-Charts in the kit use one or two series and a highlight, which are series 1
-and 2 (principles 1 and 4). That pair passes in every theme and mode (CVD
-ΔE ≥ 19). Values are always labelled or tabled, so identity never rests on
-colour alone. A theme can fix its own order: for paper, setting
-`--viz-series-1..5` to principles 3, 1, 5, 2, 4 passes CVD (ΔE 12.6) in both
-modes. That override is not applied: the example themes are left as they were
-reviewed, to show the kit working with no theme edits.
+Charts in the kit use one or two series and a highlight. A single-series chart
+draws in `--viz-primary` (principle 1's ink unless a look says otherwise), the
+highlight in `--viz-highlight` (the look's attention colour, or its ink in
+swiss), so the highlight never doubles as a series colour. Values are always
+labelled or tabled, so identity never rests on colour alone.
 
 ### Candidate looks (October 2026)
 
-Each look sets its own series order (`--viz-series-*` in its theme file).
-Validator results, adjacent pairs, against each palette's ground:
+Each look sets its own series order (`--viz-series-*` in its theme file),
+chosen for colour-blind separation of neighbours. Validator results, adjacent
+pairs, against each palette's ground (series listed in order):
 
-| Look | Primary | Alternate |
-| --- | --- | --- |
-| dusk | CVD 11.4, normal 24.4 pass; lightness band fails (luminous fills on dark slate) | same fills: same result |
-| mist | all checks pass (CVD 12.0) | CVD 8.1, normal 15.7 pass; lightness band fails (tints) |
-| chalkboard | CVD 11.3, normal 17.8 pass; lightness band fails (chalk pastels) | all checks pass (CVD 17.0) |
-| ledger | all checks pass (CVD 11.9) | CVD 11.1, normal 16.7 pass; lightness band fails (tints) |
-| receipt | all checks pass (CVD 9.7): its series are the pen inks, not the pale highlighters | CVD 8.5, normal 16.8 pass; lightness and chroma fail (highlighters on dark) |
+| Look | Palette | Series (principles) | Result |
+| --- | --- | --- | --- |
+| blueprint-night | primary | 1, 4, 2, 5, 3 | CVD 11.7, normal 23.7, contrast pass; lightness band fails (pastels that carry navy text) |
+| blueprint-night | alternate | 1, 4, 2, 5, 3 | all checks pass (CVD 11.2) |
+| catppuccin | Macchiato | 1, 5, 2, 4, 3 | CVD 12.6 passes; normal vision 13.0, lightness and chroma fail (Catppuccin's pastels are close in lightness by design) |
+| catppuccin | Latte | 1, 5, 2, 4, 3 | CVD 19.9, normal 20.5 pass; contrast warns for pink and peach on base (their inks are used for text) |
+| nord | Polar Night | 1, 4, 2, 5, 3 | CVD 8.9, normal 15.5 pass; lightness and chroma fail (Nord's aurora is deliberately muted) |
+| nord | Snow Storm | 1, 4, 2, 5, 3 | same fills: CVD 8.9, normal 15.5 pass; contrast warns (inks are used for lines and text) |
+| swiss | primary | 4, 2, 5, 1, 3 | all checks pass (CVD 21.1) |
+| swiss | graphite | 4, 2, 5, 1, 3 | CVD 14.0, normal 20.4 pass; lightness band fails (L 0.76 fields that carry ink text) |
+| prospectus | primary | 4, 2, 5, 1, 3 | CVD 9.1, normal 15.1 pass; lightness and chroma fail (muted deep fields) |
+| prospectus | ink-dark | 4, 2, 5, 1, 3 | CVD 10.4 passes; normal 12.2, lightness and chroma fail (soft tints) |
 
-The first two series pass in every look and palette (CVD ΔE ≥ 21). The
-lightness-band failures come from the brief itself: luminous or pastel fills
-that carry dark text.
+The first two series pass CVD in every look and palette (ΔE ≥ 17). The
+lightness and chroma failures come from the palettes themselves: the community
+palettes are used as published, and the brief asked for muted fields in
+prospectus and pastel fields with dark text in the dark looks.
+
+### Palette sources and deviations
+
+The community palettes are taken from their npm packages; a value changes only
+where a contrast check failed, and then by the smallest OKLCH lightness step
+that passes. Every deviation is also listed in the theme's header comment.
+
+- **catppuccin**: `@catppuccin/palette` 1.8.0, MIT licence, (c) 2021
+  Catppuccin. Macchiato is used unchanged. Latte: subtext0 #6c6f85 → #696c82
+  (muted text 4.5:1), teal #179299 → #007a81 (trust 4.5:1); text-strength inks
+  pink #ea76cb → #d361b6, peach #fe640b → #f25800, green #40a02b → #3e9e29 and
+  yellow #df8e1d → #c87800 (chart highlight), each for 3:1 on base. Text on
+  Latte's blue and mauve fields is Latte base; on the others, Macchiato crust.
+- **nord**: `nord` 0.2.1 (Arctic Ice Studio), licence Apache-2.0 AND
+  CC-BY-SA-4.0 as the package declares. Polar Night: nord3 lifted to #687388
+  for outlines, dashes and connectors and to #909cb2 for muted text (4.5:1;
+  Nord has no mid grey); nord11 #bf616a → #d6767e and nord12 #d08770 → #d38972
+  as fills (nord0 text at 4:1 and 4.5:1). Snow Storm: nord7 → #497474 as trust
+  (4.5:1); inks nord15 → #a47e9d, nord13 → #a48547, nord14 → #779161,
+  nord12 → #be7660 (3:1 on nord6). The QR tile is nord4, not nord6, on the dark
+  ground.
+- **blueprint-night**: the workshop's own blueprint palette on a navy ground;
+  the ask is apricot-200 one step down (#f0c396) so it does not glare.
+- **swiss** and **prospectus**: palettes made for this deck (OKLCH section
+  families for swiss; named deep fields for prospectus), with dimmer ask fills
+  on their dark alternates (#e8c000, #dcc48a).
+
 
 ## Not tested
 
 - Firefox and Safari: only Chromium was run (Playwright's build).
 - Google Fonts: the sandbox cannot reach them, so screenshots used local
-  woff2 copies of the same families (IBM Plex, Caveat, Space Grotesk,
-  Fraunces) injected as data URIs; the hosted page loads them from Google.
+  woff2 copies of the same families (IBM Plex, Caveat, Figtree, JetBrains Mono,
+  Schibsted Grotesk, Instrument Serif and Instrument Sans, from their npm
+  packages) injected as data URIs; the hosted page loads them from Google.
 - Projectors: sizes were judged on 1920×1080 screenshots (chart labels are 30 px
   and up on the stage).

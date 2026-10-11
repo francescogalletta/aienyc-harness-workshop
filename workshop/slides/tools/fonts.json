@@ -1,5 +1,5 @@
 {
-  "_comment": "Local woff2 files used only by tools/shoot.py, for screenshots where Google Fonts cannot be reached. Paths are relative to --font-dir (or $DECK_FONT_DIR); the folder names match the npm packages ibm-plex-sans, ibm-plex-mono, @fontsource/caveat, @fontsource/space-grotesk, fraunces, manrope, jetbrains-mono, figtree, kalam, nunito, source-serif-4 and source-sans-3 unpacked side by side. The deck itself never uses these.",
+  "_comment": "Local woff2 files used only by tools/shoot.py, for screenshots where Google Fonts cannot be reached. Paths are relative to --font-dir (or $DECK_FONT_DIR); the folder names match the npm packages ibm-plex-sans, ibm-plex-mono and @fontsource/{caveat,figtree,jetbrains-mono,schibsted-grotesk,instrument-serif,instrument-sans} unpacked side by side. The deck itself never uses these.",
   "IBM Plex Sans": {
     "400": "ibm-plex-sans-1.1.0/package/fonts/complete/woff2/IBMPlexSans-Regular.woff2",
     "600": "ibm-plex-sans-1.1.0/package/fonts/complete/woff2/IBMPlexSans-SemiBold.woff2"
@@ -11,39 +11,24 @@
     "500": "caveat/package/files/caveat-latin-500-normal.woff2",
     "700": "caveat/package/files/caveat-latin-700-normal.woff2"
   },
-  "Space Grotesk": {
-    "400": "space-grotesk/package/files/space-grotesk-latin-400-normal.woff2",
-    "600": "space-grotesk/package/files/space-grotesk-latin-600-normal.woff2"
-  },
-  "Fraunces": {
-    "400": "fraunces/package/files/fraunces-latin-400-normal.woff2",
-    "600": "fraunces/package/files/fraunces-latin-600-normal.woff2"
-  },
-  "Manrope": {
-    "400": "manrope/package/files/manrope-latin-400-normal.woff2",
-    "600": "manrope/package/files/manrope-latin-600-normal.woff2",
-    "700": "manrope/package/files/manrope-latin-700-normal.woff2"
-  },
-  "JetBrains Mono": {
-    "400": "jetbrains-mono/package/files/jetbrains-mono-latin-400-normal.woff2",
-    "700": "jetbrains-mono/package/files/jetbrains-mono-latin-700-normal.woff2"
-  },
   "Figtree": {
     "400": "figtree/package/files/figtree-latin-400-normal.woff2",
-    "600": "figtree/package/files/figtree-latin-600-normal.woff2"
+    "600": "figtree/package/files/figtree-latin-600-normal.woff2",
+    "700": "figtree/package/files/figtree-latin-700-normal.woff2"
   },
-  "Kalam": {
-    "700": "kalam/package/files/kalam-latin-700-normal.woff2"
+  "JetBrains Mono": {
+    "400": "jetbrains-mono/package/files/jetbrains-mono-latin-400-normal.woff2"
   },
-  "Nunito": {
-    "400": "nunito/package/files/nunito-latin-400-normal.woff2",
-    "700": "nunito/package/files/nunito-latin-700-normal.woff2"
+  "Schibsted Grotesk": {
+    "400": "schibsted-grotesk/package/files/schibsted-grotesk-latin-400-normal.woff2",
+    "600": "schibsted-grotesk/package/files/schibsted-grotesk-latin-600-normal.woff2",
+    "800": "schibsted-grotesk/package/files/schibsted-grotesk-latin-800-normal.woff2"
   },
-  "Source Serif 4": {
-    "600": "source-serif-4/package/files/source-serif-4-latin-600-normal.woff2"
+  "Instrument Serif": {
+    "400": "instrument-serif/package/files/instrument-serif-latin-400-normal.woff2"
   },
-  "Source Sans 3": {
-    "400": "source-sans-3/package/files/source-sans-3-latin-400-normal.woff2",
-    "600": "source-sans-3/package/files/source-sans-3-latin-600-normal.woff2"
+  "Instrument Sans": {
+    "400": "instrument-sans/package/files/instrument-sans-latin-400-normal.woff2",
+    "600": "instrument-sans/package/files/instrument-sans-latin-600-normal.woff2"
   }
 }

@@ -1,0 +1,158 @@
+/* Catppuccin: Macchiato, with Latte as the alternate. Palette values from the
+   @catppuccin/palette 1.8.0 package, MIT licence, (c) 2021 Catppuccin.
+   Roles: ground = base, boxes = surface0, hairlines = surface1, outlines = overlay1,
+   text = text, quiet = subtext1, muted = subtext0, trust = teal, attention = yellow,
+   sections = blue, mauve, pink, peach, green with crust as text.
+   Deviations (smallest OKLCH lightness change to pass the checks), Latte only:
+   subtext0 #6c6f85 -> #696c82 (muted text 4.5:1), teal #179299 -> #007a81 (trust 4.5:1),
+   inks (text-strength copies of a section colour) pink #ea76cb -> #d361b6,
+   peach #fe640b -> #f25800, green #40a02b -> #3e9e29, yellow #df8e1d -> #c87800 for the
+   chart highlight (3:1 on base). Dark text on
+   Latte's light sections is Macchiato crust; light text on Latte's dark ones is Latte base.
+   name: Catppuccin
+   short: Ctp
+   font-link: https://fonts.googleapis.com/css2?family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette: Macchiato */
+  --mac-crust: #181926;
+  --mac-mantle: #1e2030;
+  --mac-base: #24273a;
+  --mac-surface0: #363a4f;
+  --mac-surface1: #494d64;
+  --mac-surface2: #5b6078;
+  --mac-overlay0: #6e738d;
+  --mac-overlay1: #8087a2;
+  --mac-overlay2: #939ab7;
+  --mac-subtext0: #a5adcb;
+  --mac-subtext1: #b8c0e0;
+  --mac-text: #cad3f5;
+  --mac-teal: #8bd5ca;
+  --mac-yellow: #eed49f;
+  --mac-red: #ed8796;
+  --mac-blue: #8aadf4;
+  --mac-mauve: #c6a0f6;
+  --mac-pink: #f5bde6;
+  --mac-peach: #f5a97f;
+  --mac-green: #a6da95;
+  /* palette: Latte */
+  --lat-base: #eff1f5;
+  --lat-mantle: #e6e9ef;
+  --lat-surface0: #ccd0da;
+  --lat-surface1: #bcc0cc;
+  --lat-overlay0: #9ca0b0;
+  --lat-overlay1: #8c8fa1;
+  --lat-subtext0: #696c82;     /* deviation, see header */
+  --lat-subtext1: #5c5f77;
+  --lat-text: #4c4f69;
+  --lat-teal: #007a81;         /* deviation */
+  --lat-yellow: #df8e1d;
+  --lat-red: #d20f39;
+  --lat-blue: #1e66f5;
+  --lat-mauve: #8839ef;
+  --lat-pink: #ea76cb;
+  --lat-peach: #fe640b;
+  --lat-green: #40a02b;
+  --lat-pink-ink: #d361b6;     /* deviation */
+  --lat-peach-ink: #f25800;    /* deviation */
+  --lat-green-ink: #3e9e29;    /* deviation */
+  --lat-yellow-ink: #c87800;   /* deviation: chart highlight on Latte base, 3:1 */
+
+  /* fonts */
+  --font-sans: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  --weight-display: 700;
+
+  /* shape: rounder */
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 48px;
+
+  /* colour roles (primary: Macchiato) */
+  --slide-bg: var(--mac-base);
+  --surface: var(--mac-surface0);
+  --text: var(--mac-text);
+  --text-quiet: var(--mac-subtext1);
+  --text-muted: var(--mac-subtext0);
+  --line: var(--mac-surface1);
+  --connector: var(--mac-overlay0);
+  --attention: var(--mac-yellow);
+  --ask-text: var(--mac-crust);
+  --accent-trust: var(--mac-teal);
+  --principle-1: var(--mac-blue);
+  --principle-2: var(--mac-mauve);
+  --principle-3: var(--mac-pink);
+  --principle-4: var(--mac-peach);
+  --principle-5: var(--mac-green);
+  --on-principle: var(--mac-crust);
+  --qr-ink: var(--mac-crust);
+  --qr-ground: var(--mac-text);
+  --outline: var(--mac-overlay1);
+  --hairline: var(--mac-surface1);
+  --placeholder-stroke: var(--mac-overlay0);
+  --placeholder-text: var(--mac-subtext0);
+  --rail-idle-text: var(--mac-overlay2);
+  --photo-ring: var(--mac-overlay0);
+  --photo-fill: var(--mac-surface0);
+  --diagram-stroke: var(--mac-subtext1);
+  --diagram-label: var(--mac-text);
+  --diagram-quiet: var(--mac-subtext0);
+  --progress-fill: var(--mac-overlay1);
+  --strike-color: var(--mac-subtext1);
+  /* chart series: principles reordered so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  --viz-series-1: var(--principle-1);
+  --viz-series-2: var(--principle-5);
+  --viz-series-3: var(--principle-2);
+  --viz-series-4: var(--principle-4);
+  --viz-series-5: var(--principle-3);
+  --viz-series-1-ink: var(--principle-1-ink);
+  --viz-series-2-ink: var(--principle-5-ink);
+  --viz-series-3-ink: var(--principle-2-ink);
+  --viz-highlight: var(--attention);
+  --viz-down: var(--mac-red);
+  --viz-highlight-ink: var(--viz-highlight);  /* hand-drawn charts ink with the same colours */
+  --viz-down-ink: var(--viz-down);
+  color-scheme: dark;
+}
+
+/* Alternate: Latte. */
+:root[data-theme="dark"] {
+  --slide-bg: var(--lat-base);
+  --surface: var(--lat-mantle);
+  --text: var(--lat-text);
+  --text-quiet: var(--lat-subtext1);
+  --text-muted: var(--lat-subtext0);
+  --line: var(--lat-surface1);
+  --connector: var(--lat-overlay0);
+  --attention: var(--lat-yellow);
+  --accent-trust: var(--lat-teal);
+  --principle-1: var(--lat-blue);
+  --principle-2: var(--lat-mauve);
+  --principle-3: var(--lat-pink);
+  --principle-4: var(--lat-peach);
+  --principle-5: var(--lat-green);
+  --principle-3-ink: var(--lat-pink-ink);
+  --principle-4-ink: var(--lat-peach-ink);
+  --principle-5-ink: var(--lat-green-ink);
+  --on-principle-1: var(--lat-base);
+  --on-principle-2: var(--lat-base);
+  --qr-ink: var(--mac-crust);
+  --qr-ground: var(--lat-mantle);   /* a visible tile on the base ground */
+  --outline: var(--lat-overlay1);
+  --hairline: var(--lat-surface1);
+  --placeholder-stroke: var(--lat-overlay0);
+  --placeholder-text: var(--lat-subtext0);
+  --rail-idle-text: var(--lat-subtext0);
+  --photo-ring: var(--lat-overlay0);
+  --photo-fill: var(--lat-mantle);
+  --diagram-stroke: var(--lat-text);
+  --diagram-label: var(--lat-text);
+  --diagram-quiet: var(--lat-subtext0);
+  --progress-fill: var(--lat-overlay1);
+  --strike-color: var(--lat-text);
+  --viz-highlight: var(--lat-yellow-ink);
+  --viz-down: var(--lat-red);
+  color-scheme: light;
+}

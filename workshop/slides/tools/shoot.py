@@ -224,9 +224,14 @@ def cmd_check(a):
         looks = page.evaluate("Array.from(document.querySelectorAll('.looks-bar [data-look-btn]')).map(function (b) { return b.getAttribute('data-look-btn'); })")
         if looks and page.evaluate("document.documentElement.getAttribute('data-theme')") != "light":
             problems.append("looks build did not open on the primary palette (data-theme=light)")
-        for look in (looks or [None]):
-            tag = f"[{look}] " if look else ""
-            if look:
+        walks = [(look, pal) for look in looks for pal in ("primary", "alternate")] if looks else [(None, None)]
+        for look, pal in walks:
+            tag = f"[{look} {pal}] " if look else ""
+            if pal == "alternate":  # same look, other palette, through the real key
+                page.keyboard.press("d")
+                if page.evaluate("document.documentElement.getAttribute('data-theme')") != "dark":
+                    problems.append(f"{tag}D did not switch to the alternate palette")
+            if look and pal == "primary":
                 # switching keeps slide and step, and the button does not move the deck
                 open_at(page, url, 28)
                 forward(page, 3)
@@ -258,6 +263,10 @@ def cmd_check(a):
             back = page.evaluate("[location.hash, document.querySelector('.slide.active').id, document.querySelectorAll('.slide.active .shown, .slide.active .gone, .slide.active .filled, .slide.active .struck').length]")
             if back[0] != "#1" or back[2] != 0:
                 problems.append(f"{tag}back to start: {back}")
+            if pal == "alternate":
+                page.keyboard.press("d")
+                if page.evaluate("document.documentElement.getAttribute('data-theme')") != "light":
+                    problems.append(f"{tag}D did not switch back to the primary palette")
         if looks:
             page.keyboard.press("t")
             if page.evaluate("document.documentElement.getAttribute('data-look')") != looks[0]:
@@ -283,7 +292,7 @@ def cmd_check(a):
                 problems.append(f"400px viewport, slide {n}: horizontal scroll {sw}>{cw}")
         problems += mobile.errors
         b.close()
-    print(f"checked {n_slides} slides, {sum(steps)} steps" + (f", in {len(looks)} looks" if looks else ""))
+    print(f"checked {n_slides} slides, {sum(steps)} steps" + (f", in {len(looks)} looks x 2 palettes" if looks else ""))
     for p in problems:
         print("PROBLEM", p)
     print("ok" if not problems else f"{len(problems)} problems")

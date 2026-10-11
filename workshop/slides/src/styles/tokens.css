@@ -84,7 +84,28 @@
   --diagram-label-font: var(--font-sans);
   --diagram-note-font: var(--font-hand);
 
-  /* Type roles */
+  /* Type roles: size, leading, family, weight and tracking per role, so a face can be tuned */
+  --mega-font: var(--display-font);
+  --mega-weight: var(--weight-display);
+  --mega-tracking: var(--tracking-tight);
+  --display-weight: var(--weight-display);
+  --display-tracking: var(--tracking-tight);
+  --headline-font: var(--display-font);
+  --headline-weight: var(--weight-display);
+  --headline-tracking: var(--tracking-snug);
+  --sub-font: var(--body-font);
+  --sub-weight: var(--weight-regular);
+  --sub-tracking: normal;
+  --label-weight: var(--weight-strong);
+  --label-tracking: var(--tracking-caps);
+  --label-leading: 1.2;
+  --chip-font: var(--label-font);
+  --chip-weight: var(--weight-regular);
+  --chip-tracking: 0;
+  --code-weight: var(--weight-regular);
+  --code-leading: 1.3;
+  --hand-tracking: normal;
+  --numeric-variant: tabular-nums;  /* figures line up; a face whose tabular set also widens punctuation can set normal */
   --mega-size: var(--fs-6xl);
   --mega-leading: 0.95;
   --display-size: var(--fs-4xl);
@@ -110,6 +131,22 @@
   --gap-tight: 20px;
   --row-gap: var(--space-s);
 
+  /* Role colours a look can tune on their own (defaults are the plain roles) */
+  --outline: var(--text);             /* box outlines: step, track, command */
+  --hairline: var(--line);            /* rules, idle bars, pill and chip outlines */
+  --rail-idle-stroke: var(--framework-idle);
+  --rail-idle-text: var(--text-muted);
+  --photo-ring: var(--placeholder-stroke);
+  --photo-fill: transparent;
+  --counter-text: var(--text-muted);
+  --on-principle-1: var(--on-principle);  /* text on each principle's fill */
+  --on-principle-2: var(--on-principle);
+  --on-principle-3: var(--on-principle);
+  --on-principle-4: var(--on-principle);
+  --on-principle-5: var(--on-principle);
+  --slide-bg-image: none;             /* e.g. a faint grid, drawn on the stage */
+  --slide-bg-size: auto;
+
   /* Slide frame */
   --slide-margin: var(--space-2xl);
   --slide-pad-top: 108px;
@@ -122,10 +159,10 @@
   --step-fill: var(--surface);
   --step-text: var(--text);
   --step-stroke: var(--stroke);
-  --step-stroke-color: var(--text);
+  --step-stroke-color: var(--outline);
   --step-radius: var(--radius-m);
   --from-you-radius: var(--radius-pill);
-  --your-call-stroke: var(--text);
+  --your-call-stroke: var(--outline);
 
   --pill-h: 72px;
   --pill-pad-x: 30px;
@@ -133,7 +170,7 @@
   --pill-text: var(--text-quiet);
   --pill-fill: var(--surface);
   --pill-stroke: var(--stroke-hair);
-  --pill-stroke-color: var(--line);
+  --pill-stroke-color: var(--hairline);
   --pill-radius: var(--radius-pill);
 
   --chip-h: 56px;
@@ -141,7 +178,7 @@
   --chip-size: var(--fs-xs);
   --chip-text: var(--text-muted);
   --chip-stroke: var(--stroke-hair);
-  --chip-stroke-color: var(--line);
+  --chip-stroke-color: var(--hairline);
   --chip-radius: var(--radius-pill);
 
   --placeholder-stroke: var(--text);
@@ -182,14 +219,17 @@
   --stress-underline-offset: 14px;
   --ask-fill: var(--attention);
   --ask-text: var(--text);
+  --hand-text: var(--text);      /* handwritten notes and asides; inside the ask it follows --ask-text */
   --ask-pad-top: 72px;
   --ask-pad-x: 160px;
+  --ask-max: 1200px;
   --ask-pad-bottom: 80px;
   --ask-who-gap: 36px;
 
   /* Person intro */
   --photo-size: 340px;
   --photo-radius: var(--radius-round);
+  --qr-radius: 2px;    /* in QR modules (about 24px on the slide), not screen pixels */
   --photo-label-size: var(--fs-2xs);
   --reel-spot-size: var(--fs-5xl);
   --reel-out-size: calc(94px * var(--type-scale));
@@ -257,7 +297,7 @@
   --question-size: var(--fs-2xl);
 
   /* Framework stack, dividers, rail */
-  --framework-idle: var(--line);
+  --framework-idle: var(--hairline);
   --goal-size: var(--fs-5xl);
   --bars-gap: 10px;
   --bars-top: 32px;
@@ -287,7 +327,7 @@
 
   /* Chrome and focus */
   --progress-h: var(--stroke);
-  --progress-track: var(--line);
+  --progress-track: var(--hairline);
   --progress-fill: var(--text);
   --focus-ring: var(--text);
   --focus-ring-width: var(--stroke);
@@ -322,8 +362,9 @@
   --viz-series-1-ink: var(--principle-1-ink);   /* lines, points, rough strokes: the ink of each */
   --viz-series-2-ink: var(--principle-4-ink);
   --viz-series-3-ink: var(--principle-2-ink);
-  --viz-bar: var(--viz-series-1);
-  --viz-bar-ink: var(--viz-series-1-ink);
+  --viz-primary: var(--principle-1-ink);   /* single-series charts */
+  --viz-bar: var(--viz-primary);
+  --viz-bar-ink: var(--viz-primary);
   --viz-highlight-ink: var(--viz-series-2-ink);
   --viz-down-ink: var(--viz-series-2-ink);
   --viz-highlight: var(--viz-series-2);
