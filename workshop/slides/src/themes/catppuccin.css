@@ -16,11 +16,9 @@
 :root {
   /* palette: Macchiato */
   --mac-crust: #181926;
-  --mac-mantle: #1e2030;
   --mac-base: #24273a;
   --mac-surface0: #363a4f;
   --mac-surface1: #494d64;
-  --mac-surface2: #5b6078;
   --mac-overlay0: #6e738d;
   --mac-overlay1: #8087a2;
   --mac-overlay2: #939ab7;
@@ -38,7 +36,6 @@
   /* palette: Latte */
   --lat-base: #eff1f5;
   --lat-mantle: #e6e9ef;
-  --lat-surface0: #ccd0da;
   --lat-surface1: #bcc0cc;
   --lat-overlay0: #9ca0b0;
   --lat-overlay1: #8c8fa1;
@@ -101,7 +98,7 @@
   --diagram-quiet: var(--mac-subtext0);
   --progress-fill: var(--mac-overlay1);
   --strike-color: var(--mac-subtext1);
-  /* chart series: principles reordered so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  /* chart series: principles reordered so neighbours stay apart for colour-blind readers */
   --viz-series-1: var(--principle-1);
   --viz-series-2: var(--principle-5);
   --viz-series-3: var(--principle-2);

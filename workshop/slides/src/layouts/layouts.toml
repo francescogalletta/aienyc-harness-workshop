@@ -101,9 +101,8 @@ template = "typescale"
 fields = ["label", "rows", "row"]
 required = ["label", "rows"]
 
-# Every layout also takes two optional slide-level lists, drawn by the visuals kit:
-#   marks  = [ { target = ".hands .num:last-child", kind = "circle", step = 5 } ]   underline, circle, bracket, box
-#   choreo = [ { step = 2, targets = ".chip", from = { opacity = 0 }, to = { opacity = 1 }, stagger = 80 } ]   anime.js
+# Every layout also takes an optional slide-level list, drawn by the visuals kit:
+#   marks = [ { target = ".hands .num:last-child", kind = "circle", step = 5 } ]   underline, circle, bracket, box
 
 # Placeholder kinds: what the dashed panel says, and whether it has the rounded
 # "from you" shape.
@@ -198,6 +197,6 @@ lookname = "look-name"  # the current look's name, kept up to date in a --looks 
 # ---------------------------------------------------------------------------
 # Visuals: { viz = "<type>", label = "what it shows", … } as a block, or as the
 # figure of a figure slide. Types: flow, bars, waterfall, line, timeline, count,
-# draw, echarts. Any of them: step (when the data appears), style = "rough",
+# draw. Any of them: step (when the data appears), style = "rough",
 # animate = false. build.py checks the keys; README "Add a chart" has examples.
 # ---------------------------------------------------------------------------

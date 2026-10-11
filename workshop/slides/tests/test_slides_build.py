@@ -381,22 +381,19 @@ def test_count_is_the_number_itself_with_its_step(deck):
     ({"viz": "timeline", "label": "x", "events": [{"date": "2026-05-01", "text": "b"}, {"date": "2026-01-01", "text": "a"}]}, "date order"),
     ({"viz": "flow", "label": "x", "nodes": ["a", {"text": "b", "principle": 9}]}, "principle 9"),
     ({"viz": "flow", "label": "x", "nodes": ["a", {"text": "b", "step": 3}], "travel": 2}, "travel comes before"),
-    ({"viz": "echarts", "label": "x", "option": "{not json"}, "not valid JSON"),
 ])
 def test_viz_validation(deck, block, needle):
     with pytest.raises(BuildError, match=re.escape(needle)):
         build.viz_markup(block, deck)
 
 
-def test_marks_and_choreo_overlays(deck):
-    out = build.overlays({"marks": [{"target": ".sub", "kind": "circle", "step": 2, "style": "rough"}],
-                          "choreo": [{"step": 1, "targets": ".pill", "to": {"opacity": 1}}]}, deck)
+def test_marks_overlay(deck):
+    out = build.overlays({"marks": [{"target": ".sub", "kind": "circle", "step": 2, "style": "rough"}]}, deck)
     assert '<svg class="viz-marks" data-viz="mark" data-lib="rough"' in out
-    assert '<i class="viz-choreo" data-viz="choreo" data-lib="anime"' in out and 'data-step="1" hidden></i>' in out
     with pytest.raises(BuildError, match="kind is circle"):
         build.overlays({"marks": [{"target": ".x", "kind": "zigzag"}]}, deck)
-    with pytest.raises(BuildError, match="needs 'step'"):
-        build.overlays({"choreo": [{"targets": ".x"}]}, deck)
+    with pytest.raises(BuildError, match="needs 'target'"):
+        build.overlays({"marks": [{"kind": "box"}]}, deck)
 
 
 def test_kit_and_libraries_only_when_used(deck, tmp_path):
@@ -411,8 +408,7 @@ def test_kit_and_libraries_only_when_used(deck, tmp_path):
                    'blocks = [ { viz = "bars", style = "rough", label = "A chart", data = [["a", 1], ["b", 2]] } ]\n', encoding="utf-8")
     html = build.build(build.Deck(src), "blueprint", False)
     assert "var viz = (function" in html and "--viz-series-1" in html and ".viz-svg" in html
-    assert "vendor: roughjs 4.6.6" in html and "anime" not in html.lower().split("<script>")[1][:200]
-    assert "echarts" not in html.split("<script>")[1].split("(function () {")[0]
+    assert "vendor: roughjs 4.6.6" in html
     assert html.count("<script>") == 1 and html.count("<style>") == 1
     assert html.index("var rough=") < html.index("(function () {")  # vendor code sits before the deck's own script
 
@@ -420,9 +416,9 @@ def test_kit_and_libraries_only_when_used(deck, tmp_path):
 def test_figure_layout_takes_a_viz(tmp_path):
     src = copy_src(tmp_path)
     sec = src / "slides" / "about-us.toml"
-    sec.open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-path"\nlayout = "figure"\nlabel = "HOW"\nfigure = { viz = "draw", svg = "sketch.svg", label = "The path" }\n')
+    sec.open("a", encoding="utf-8").write('\n[[slide]]\nid = "s-path"\nlayout = "figure"\nlabel = "HOW"\nfigure = { viz = "draw", svg = "sample-draw.svg", label = "The path" }\n')
     deck = build.Deck(src)
-    html = build.SlideRenderer(deck).render_slide(5, deck.slides[-1] if False else next(x for x in deck.slides if x["id"] == "s-path"))
+    html = build.SlideRenderer(deck).render_slide(5, next(x for x in deck.slides if x["id"] == "s-path"))
     assert '<figure class="viz viz-draw" data-viz="draw"' in html and '<svg class="sketch gap-s"' in html
 
 
@@ -434,18 +430,17 @@ def test_hand_written_figure_in_raw_is_checked(tmp_path, capsys):
     assert "unknown viz type 'sparkle'" in capsys.readouterr().out
 
 
-def test_gallery_builds_with_every_library_and_the_theme_name():
+def test_gallery_builds_with_the_library_and_the_theme_name():
     g = build.Deck(gallery=True)
     for theme in g.themes:
         frag = build.build(g, theme, False)
         assert frag.startswith(f"<title>Design system gallery · {theme}</title>")
         assert frag.count("<script>") == frag.count("<style>") == 1 and "<!doctype" not in frag.lower()
         assert f"Theme: <span class=\"trust\">{theme}</span>" in frag
-        for lib in ("roughjs 4.6.6", "animejs 4.5.0", "echarts 6.1.0"):
-            assert f"vendor: {lib}" in frag
+        assert "vendor: roughjs 4.6.6" in frag
         for kind in build.VIZ_TYPES:
             assert f'data-viz="{kind}"' in frag, kind
-        assert 'data-viz="mark"' in frag and 'data-viz="choreo"' in frag
+        assert 'data-viz="mark"' in frag
 
 
 def test_viz_tokens_are_stripped_but_kept_in_tokens_css(deck):

@@ -14,7 +14,6 @@
 
   /* Type scale. Every size multiplies by --type-scale: one knob for all type. */
   --type-scale: 1;
-  --fs-3xs: calc(12px * var(--type-scale));
   --fs-2xs: calc(30px * var(--type-scale));
   --fs-xs: calc(32px * var(--type-scale));
   --fs-s: calc(36px * var(--type-scale));
@@ -63,7 +62,6 @@
 
   /* Motion. Deck motion is OFF (data-motion on #stage); these still drive the
      handwritten-aside pop and anything switched back on. */
-  --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 360ms;
   --dur-draw: 500ms;
@@ -297,18 +295,8 @@
   --grid-pad-x: 36px;
   --grid-size: calc(44px * var(--type-scale));
 
-  /* Flow (the structure slide) */
-  --flow-slot-h: 200px;
-  --flow-tint-h: 260px;
-  --flow-arrow-h: 16px;
-  --flow-item-gap: var(--space-s);
-  --flow-node-pad-y: 24px;
-  --flow-node-pad-x: 18px;
-  --flow-node-gap: 10px;
+  /* Pills at the ends of the structure slide */
   --flow-pill-pad-x: 20px;
-  --node-num-size: var(--fs-2xl);
-  --node-name-size: calc(34px * var(--type-scale));
-  --node-emoji-size: var(--fs-2xl);
   --stair-base: 128px;
   --stair-rise: 46px;
   --stair-tread: var(--stroke-heavy);
@@ -413,8 +401,7 @@
    line above to the end of this file otherwise, so a deck without charts is
    unchanged. All derived from the roles above; a theme may override any. */
 :root {
-  /* series: the principle hues, reordered so neighbours stay apart for colour-blind
-     readers (docs/visuals.md has the validator results) */
+  /* series: the principle hues, reordered so neighbours stay apart for colour-blind readers */
   --viz-series-1: var(--principle-1);
   --viz-series-2: var(--principle-4);
   --viz-series-3: var(--principle-2);
@@ -471,7 +458,6 @@
   --viz-ring-width: var(--stroke);
 
   --viz-dur: var(--dur-slow);
-  --viz-dur-draw: var(--dur-draw);
   --viz-dur-line: 900ms;
   --viz-dur-travel: 2400ms;
   --viz-dur-count: 1200ms;
