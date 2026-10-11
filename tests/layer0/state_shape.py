@@ -18,7 +18,7 @@ LANES = ("idle", "working", "waiting")
 
 # `chips` on messages (layer 3) and `proposal` on threads (layer 4) are checked when present. Set these to True
 # once the packages that write them (D3a, D4a) have landed, and every live state must then carry them.
-CHIPS_REQUIRED = False
+CHIPS_REQUIRED = True
 PROPOSAL_REQUIRED = False
 
 

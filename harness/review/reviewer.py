@@ -300,7 +300,8 @@ def thread_text(challenge: dict) -> str:
 
 def open_thread(work, conversation: str, pass_no: int, rank: int, challenge: dict) -> str:
     """Store one kept challenge and open its review thread. Returns the challenge id, 'c<n>'."""
-    thread = add_thread(work.conn, conversation, kind="review", step=challenge["step"], title=challenge["title"])
+    thread = add_thread(work.conn, conversation, kind="review", step=challenge["step"], title=challenge["title"],
+                        origin="reviewer", subject={"kind": "step", "step": challenge["step"]})
     cursor = work.conn.execute(
         "INSERT INTO challenges (ts, conversation, pass, step_id, kind, title, concern, proposal, change, impact,"
         " rank, sources, status, thread_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)",

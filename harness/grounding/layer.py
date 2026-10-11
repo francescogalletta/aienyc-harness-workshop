@@ -9,7 +9,7 @@ import json
 import re
 from pathlib import Path
 
-from ..core import BadAction, NotNow, list_messages
+from ..core import BadAction, NotNow, list_messages, list_trunk
 from ..layers import Command, Layer
 from .brief import draw, load_brief, summarise_brief
 from .interview import PLAN_ACCEPTED, new_state, run_interview
@@ -22,6 +22,7 @@ NOT_WAITING_ANSWER = "The interview is not waiting for an answer."
 INTRO = "Tell me what you want help with, in your own words. Type /quit to stop."
 PLAN_HINT = "Type /accept to accept this plan, or say what is wrong with it."
 PREPARED = "This is a prepared plan: {goal}. Ask a question about it, or click a step to see what it does."
+ACCEPTED_NODE = "Plan accepted"
 
 
 def state_path(config) -> Path:
@@ -90,6 +91,7 @@ def _run(work, state: dict, answer: dict | None = None) -> None:
     work.session.memory["plan"] = None
     path.unlink(missing_ok=True)
     work.post(PLAN_ACCEPTED, who="harness")
+    work.decide(who="you", kind="plan_accepted", text=ACCEPTED_NODE)
     work.hook("plan_accepted", work)
 
 
@@ -132,9 +134,21 @@ def route(core, message: dict):
 
 
 def loaded(core) -> None:
-    """Resume an interview a former process left unfinished; open a seeded example's empty chat with a word."""
+    """Resume an interview a former process left unfinished; open a seeded example's empty chat with a word;
+    give a confirmed plan whose conversation has no trunk node yet its first one (SPEC 3.2)."""
     _resume(core)
     _introduce(core)
+    _first_node(core)
+
+
+def _first_node(core) -> None:
+    """A confirmed plan found on load (a seeded example, a database made before the trunk) is the trunk's
+    first node, after `PREPARED` when that was posted."""
+    if core.memory.get("plan") is not None or _saved(core.memory, core.config) is None:
+        return
+    if list_trunk(core.conn, core.conversation):
+        return
+    core.decide(who="you", kind="plan_accepted", text=ACCEPTED_NODE)
 
 
 def _introduce(core) -> None:

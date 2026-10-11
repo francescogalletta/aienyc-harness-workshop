@@ -23,7 +23,15 @@ export interface FAH {
   /** Replays a CSS animation by removing and re-adding a class. */
   restart(el: Element, cls: string): void;
   wait(ms: number): Promise<void>;
+  /** The path of a contributor mark centred at x, y: circle you, diamond assistant, square harness, triangle reviewer. */
+  shape(who: Contributor, x: number, y: number, r: number): string;
+  /** A contributor mark as an SVG with its name as aria-label. Filled when decided; 'open' on a branch, 'dead' dimmed, 'needs' waiting on the person. */
+  mark(who: Contributor, state?: 'open' | 'dead' | 'needs', size?: number): SVGSVGElement;
+  /** The join moment: draws `line`, pops `mark`, rises `card`, then rises each tag 150ms apart; focuses `focus`. Resolves when the last tag is in. */
+  join(o: { line?: SVGPathElement; mark?: SVGElement; card?: HTMLElement; tags?: HTMLElement[]; focus?: HTMLElement }): Promise<void>;
 }
+
+export type Contributor = 'you' | 'assistant' | 'harness' | 'reviewer';
 
 declare global {
   interface Window { FAH: FAH; }

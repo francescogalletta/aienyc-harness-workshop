@@ -179,3 +179,31 @@ def test_an_added_step_nothing_fed_stays_unconnected(open_session):
     step = step_of(state, "added_1")
     assert step["needs"] == [] and step["near"] is None
     assert events(session, "you.module_requested")[0]["near"] is None
+
+
+def built_nodes(state):
+    return [node for node in state["history"]["trunk"] if node["kind"] == "built"]
+
+
+def test_a_build_the_analyst_asked_for_records_a_built_node_of_the_assistant(open_session):
+    session = open_session([request("new", name="Triple an amount"), *triple_turns(),
+                            run("triple", {"amount": 7}), reply("Three times 7 is 21.")])
+    state = say(session, "What is three times 7?")
+    [node] = built_nodes(state)
+    assert (node["who"], node["branch"], node["text"]) == ("assistant", None, f"Built step {step_of(state, 'added_1')['number']} Triple an amount")
+    assert node["change"] == {"steps": {"added_1": "built"}, "why": "new"}
+    assert node["touched"] == {"inputs": [], "steps": ["added_1"]}
+    assert step_of(state, "added_1")["changed_by"] == node["id"]
+
+
+def test_a_step_built_for_a_request_names_its_case(open_session):
+    session = open_session([request("step", target="c3", works_out="tax on the double", gives="the tax",
+                                    formula="double x 2"), *tax_turns(), reply("The tax step is ready.")])
+    [node] = built_nodes(say(session, "Can you work out the tax?"))
+    assert node["change"] == {"steps": {"c3": "built"}, "why": "step"} and node["touched"]["steps"] == ["c3"]
+
+
+def test_a_build_that_fails_records_no_node(open_session):
+    bad_spec = call("propose_spec", name="triple")
+    session = open_session([request("new"), bad_spec, bad_spec, bad_spec, reply("I could not build that.")])
+    assert built_nodes(say(session, "What is three times 7?")) == []

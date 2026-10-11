@@ -103,6 +103,10 @@ def test_accepting_saves_the_brief_as_confirmed_and_calls_the_hook(open_session)
     assert {"plan.accepted", "core.action"} <= kinds(session)
     assert not (Path(load_config().db_path).parent / "grounding_state.json").exists()
     assert session.act("accept_plan", {})[0] is False                   # nothing to accept now
+    [node] = state["history"]["trunk"]                                  # the first node of the trunk
+    assert (node["who"], node["kind"], node["text"], node["touched"]) == (
+        "you", "plan_accepted", "Plan accepted", {"inputs": [], "steps": []})
+    assert node["after"] == state["chat"][-1]["id"] and state["history"]["latest"] == node["id"]
 
 
 def test_a_brief_with_open_questions_can_be_accepted(open_session):
@@ -305,3 +309,21 @@ def test_ground_exits_1_when_input_ends_before_the_plan_is_accepted(open_session
             raise EOFError from None
 
     assert run_ground(session, read=read, write=lambda text: None) == 1
+
+
+def test_a_confirmed_plan_found_on_load_with_an_empty_trunk_gets_its_node_once_after_prepared(open_session, moving_brief,
+                                                                                            monkeypatch, tmp_path):
+    folder = tmp_path / "example"
+    folder.mkdir()
+    (folder / "domain_brief.json").write_text(json.dumps(moving_brief), encoding="utf-8")
+    monkeypatch.setenv("HARNESS_BRIEF_DIR", str(folder))
+    monkeypatch.setenv("HARNESS_EXAMPLE", "moving")
+    state = open_session().state()
+    [node] = state["history"]["trunk"]
+    assert (node["who"], node["kind"], node["after"]) == ("you", "plan_accepted", state["chat"][0]["id"])
+    assert len(open_session().state()["history"]["trunk"]) == 1         # not again on the next start
+
+
+def test_no_plan_and_no_node_while_the_plan_is_only_proposed(open_session):
+    session = proposed_session(open_session)
+    assert session.state()["history"] == {"trunk": [], "latest": None}

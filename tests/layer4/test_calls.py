@@ -180,3 +180,35 @@ def test_a_decision_shows_longer_decimals_as_the_harness_writes_numbers(open_ses
     (figure,) = [each for each in message["figures"] if each["text"] == "1,888.89"]
     assert (figure["step"], figure["run"]) == ("c1", "r1")
     assert problems(state, strict=True) == []
+
+
+def nodes(state, kind):
+    return [node for node in state["history"]["trunk"] if node["kind"] == kind]
+
+
+def test_choosing_records_a_call_node_of_the_person_touching_the_decisions_step(open_session):
+    session, state = asking(open_session, reply("Then we keep 30."))
+    decision = next(each for each in state["chat"] if each["kind"] == "decision")["decision"]["id"]
+    assert nodes(state, "call") == []                                    # nothing is decided while it waits
+    state = act(session, "choose", decision=decision, option=2)
+    [node] = nodes(state, "call")
+    assert (node["who"], node["branch"], node["text"]) == ("you", None, f"{QUESTION} {OPTIONS[1]}")
+    assert node["change"] == {"decision": decision, "step": "j1", "choice": "2", "words": OPTIONS[1]}
+    assert node["touched"] == {"inputs": [], "steps": ["j1"]}
+    assert node["after"] == state["chat"][-2]["id"] and state["history"]["latest"] == node["id"]
+    assert step_of(state, "j1")["changed_by"] == node["id"]
+
+
+def test_an_answer_in_words_records_a_call_node_too(open_session):
+    session, state = asking(open_session, reply("Then 45 it is."))
+    state = say(session, "Neither, I want to try 45")
+    [node] = nodes(state, "call")
+    assert (node["change"]["choice"], node["change"]["words"]) == ("something else", "Neither, I want to try 45")
+    assert node["text"] == f"{QUESTION} Neither, I want to try 45" and node["touched"]["steps"] == ["j1"]
+
+
+def test_a_dropped_decision_records_no_node(open_session):
+    session, state = asking(open_session)
+    session.close()
+    again = open_session()
+    assert nodes(again.state(), "call") == []

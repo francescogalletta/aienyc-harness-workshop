@@ -1217,7 +1217,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m2",
@@ -1229,7 +1230,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m3",
@@ -1241,7 +1243,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m4",
@@ -1253,7 +1256,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m5",
@@ -1265,7 +1269,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m6",
@@ -1277,7 +1282,8 @@
       "kind": "plan",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m7",
@@ -1289,7 +1295,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m9",
@@ -1301,7 +1308,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m10",
@@ -1313,7 +1321,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m11",
@@ -1325,7 +1334,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m12",
@@ -1413,7 +1423,8 @@
           "s5"
         ],
         "status": "open"
-      }
+      },
+      "chips": []
     }
   ],
   "history": {

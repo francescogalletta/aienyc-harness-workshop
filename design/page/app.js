@@ -14,10 +14,11 @@
   var canvas = $('canvas'), scroller = $('scroll'), input = $('say'), sideBtn = $('sidebtn'), composer = $('composer');
 
   var S = null, drawnVersion = -1, first = true, timer = null, failing = false;
-  var ui = { selected: null, attached: null, notice: null, thread: null, side: false, pop: null, popRun: null, code: false,
-             review: false, whole: false, openThread: null, knownThreads: null, wantNewThread: false };
+  var ui = { selected: null, selInput: null, attached: null, notice: null, side: false, pop: null, popRun: null, code: false,
+             review: false, whole: false, openThread: null, knownThreads: null, wantNewThread: false,
+             markNode: null, draft: null, replies: {}, branchOpen: {}, showEarlier: false, focusKey: null };
   var stepEls = {}, lineShown = {}, needShown = {}, lay = null, layKey = '', edgeSegs = {}, pillEls = [];
-  var msgEls = {}, thrEls = {}, answerKey = null, animating = {}, animRun = 0, popEl = null;
+  var answerKey = null, animating = {}, animRun = 0, popEl = null;
 
   /* ---------- small helpers ---------- */
   function el(tag, cls, text) {
@@ -363,6 +364,8 @@
     var list = steps();
     var answerSteps = lastAnswerSteps();
     var anyAnswer = answerSteps.length > 0;
+    var pm = planMarks();
+    ui.joinTags = [];
     var inAnswer = {}; answerSteps.forEach(function (s) { inAnswer[s.id] = true; });
 
     /* steps: create, update, remove (kept by id so motion plays on change only) */
@@ -377,12 +380,22 @@
       b.classList.toggle('fah-step--your-call', s.kind === 'your_call');
       var tag = b.querySelector('.fa-tag'); tag.textContent = '';
       tagFor(s).forEach(function (p) { var sp = el('span', null, p[0]); if (p[1]) { sp.title = p[1]; } tag.appendChild(sp); });
+      if (pm.running[s.id]) {
+        var rn = el('span', 'dg-tag'), wk = el('span', 'fah-working'); wk.setAttribute('aria-hidden', 'true');
+        add(rn, wk, 'running again'); tag.appendChild(rn);
+      } else if (pm.changed[s.id] && pm.word) {
+        var tg = el('span', 'dg-tag dg-tag__new'); tg.appendChild(F.mark(pm.who, null, 9)); add(tg, pm.word);
+        tg.title = pm.title; tag.appendChild(tg);
+        if (joinAnim && pm.node === joinAnim) { tg.style.visibility = 'hidden'; ui.joinTags.push(tg); }
+      }
+      b.classList.toggle('dg-touch', !!pm.touch[s.id] || !!pm.running[s.id]);
+      b.classList.toggle('dg-touch--far', !pm.touch[s.id] && !pm.running[s.id] && !!pm.far[s.id]);
       var nyou = !!s.needs_you;
       if (needShown[s.id] !== nyou) { F.needsYou(b, nyou); needShown[s.id] = nyou; }
       /* the Review view fades by challenges only; otherwise the last answer decides */
       var faded = !nyou && (ui.review && hasReview() ? !openChallenges(s).length : anyAnswer && !inAnswer[s.id]);
       F.fade(b, faded);
-      if (ui.selected === s.id) { b.classList.add('fah-step--selected'); }
+      b.classList.toggle('fah-step--selected', ui.selected === s.id || (!!ui.markNode && !!pm.changed[s.id]));
     });
     Object.keys(stepEls).forEach(function (id) {
       if (!live[id]) { stepEls[id].remove(); delete stepEls[id]; delete lineShown[id]; delete needShown[id]; if (ui.pop === id) { closePop(false); } if (ui.attached === id) { ui.attached = null; } }
@@ -421,7 +434,7 @@
       canvas.insertBefore(row, canvas.firstChild); pillEls.push(row);
       /* the design's rule: more than three inputs show two and "+N"; fewer if they do not fit the step's width */
       for (var n = ins.length > 3 ? 2 : ins.length; n >= 1; n--) {
-        fillPills(row, ins, n);
+        fillPills(row, ins, n, pm);
         if (row.scrollWidth <= STEP_W + 1) { break; }
       }
     });
@@ -446,20 +459,70 @@
     }
   }
 
-  function fillPills(row, ins, n) {
+  function fillPills(row, ins, n, pm) {
     row.textContent = '';
+    function marks(pill, ids) {
+      var any = function (o) { return ids.some(function (id) { return o[id]; }); };
+      pill.setAttribute('data-inputs', ids.join(' '));
+      pill.classList.toggle('dg-touch', any(pm.touch));
+      pill.classList.toggle('dg-needs', any(pm.needs));
+      pill.classList.toggle('dg-pill--changed', any(pm.changed));
+      pill.classList.toggle('dg-pill--sel', ids.indexOf(ui.selInput) >= 0);
+    }
     ins.slice(0, n).forEach(function (id) {
       var i = S.inputs && S.inputs[id];
       var pill = el('span', 'fah-pill' + (i && i.used ? ' fah-pill--used' : ''), inputName(id));
-      pill.title = inputName(id) + (i && i.description && i.description !== i.name ? ': ' + i.description : '') + (i && i.origin ? ' (' + originTitle(i.origin) + ')' : '');
+      if (pm.changed[id] && i && i.value != null && String(i.value).length <= 12) { pill.appendChild(el('span', 'dg-pill__v', fmt(i.value))); }
+      pill.title = inputName(id) + (i && i.value != null ? ' ' + fmt(i.value) : '') + (i && i.description && i.description !== i.name ? ': ' + i.description : '') + (i && i.origin ? ' (' + originTitle(i.origin) + ')' : '');
+      marks(pill, [id]);
       row.appendChild(pill);
     });
     if (ins.length > n) {
       var rest = ins.slice(n), used = rest.some(function (id) { return S.inputs && S.inputs[id] && S.inputs[id].used; });
       var more = el('span', 'fah-pill' + (used ? ' fah-pill--used' : ''), '+' + rest.length);
       more.title = rest.map(inputName).join(', '); more.setAttribute('aria-label', 'and ' + more.title);
+      marks(more, rest);
       row.appendChild(more);
     }
+  }
+  /* The input pills of one input id (several when more than one step uses it). */
+  function pillsOf(id) {
+    return Array.prototype.filter.call(canvas.querySelectorAll('.fah-pill[data-inputs]'), function (p) { return p.getAttribute('data-inputs').split(' ').indexOf(id) >= 0; });
+  }
+  function markPills() {
+    canvas.querySelectorAll('.fah-pill[data-inputs]').forEach(function (p) { p.classList.toggle('dg-pill--sel', !!ui.selInput && p.getAttribute('data-inputs').split(' ').indexOf(ui.selInput) >= 0); });
+  }
+
+  /* What the decision history marks on the plan right now (ARCHITECTURE 9, B3):
+     a pending proposal's impact (touched; its inputs need you unless a call waits), a join that is running,
+     and what the latest node (or the node the person selected) changed. */
+  var TAG_WORD = { value: 're-ran', assumption_corrected: 're-ran', plan_revised: 'changed', challenge_used: 'changed',
+                   built: 'rebuilt', call: 'decided', assumption_confirmed: 'confirmed' };
+  function planMarks() {
+    var pm = { touch: {}, far: {}, needs: {}, running: {}, changed: {}, word: '', who: 'you', node: null, title: '' };
+    var calls = decisionWaits();
+    arr(threads()).forEach(function (t) {
+      var p = t.proposal, imp = p && p.impact;
+      if (!imp) { return; }
+      var live = p.status === 'pending' && outcome(t) === 'open';
+      var joining = p.status === 'accepted' && outcome(t) !== 'joined';
+      if (!live && !joining) { return; }
+      arr(imp.inputs).forEach(function (id) { pm.touch[id] = true; if (live && !calls) { pm.needs[id] = true; } });
+      arr(imp.steps).forEach(function (id) { pm.touch[id] = true; });
+      if (live) { arr(imp.downstream).forEach(function (id) { pm.far[id] = true; }); }
+    });
+    arr(S.activity).forEach(function (a) { if (a.what === 'join' && a.step) { pm.running[a.step] = true; } });
+    var n = nodeById(ui.markNode) || nodeById(history().latest);
+    if (n && TAG_WORD[n.kind]) {
+      pm.word = TAG_WORD[n.kind]; pm.who = n.who; pm.node = n.id; pm.title = (WHO[n.who] || '') + ': ' + n.text;
+      if (ui.markNode) {
+        arr(n.touched && n.touched.steps).concat(arr(n.touched && n.touched.inputs)).forEach(function (id) { pm.changed[id] = true; });
+      } else {
+        steps().forEach(function (s) { if (s.changed_by === n.id) { pm.changed[s.id] = true; } });
+        Object.keys(S.inputs || {}).forEach(function (id) { if (S.inputs[id].changed_by === n.id) { pm.changed[id] = true; } });
+      }
+    }
+    return pm;
   }
 
   function setLine(id, d, animate) {
@@ -499,9 +562,10 @@
 
   function clickStep(id) {
     var wasOpen = ui.pop === id;
-    ui.selected = id; ui.attached = id; ui.thread = null; ui.notice = null; ui.popRun = null;
-    F.select(stepEls[id], document);
-    document.querySelectorAll('.fah-num.is-traced').forEach(function (n) { n.classList.remove('is-traced'); });
+    ui.selected = id; ui.attached = id; ui.notice = null; ui.popRun = null; ui.selInput = null;
+    if (ui.markNode) { ui.markNode = null; drawDiagram(); markNodeSel(); }
+    F.select(stepEls[id], document); markPills();
+    clearTraced();
     drawComposer();
     if (wasOpen) { closePop(true); } else { openPop(id); }
   }
@@ -685,7 +749,7 @@
       if (c.kind !== 'question') { row.appendChild(btn('Use this', function () { act('use_challenge', { challenge: c.id }); }, true)); }
       row.appendChild(btn('Dismiss', function () { act('dismiss_challenge', { challenge: c.id }); }));
     }
-    row.appendChild(linkBtn('Open thread', function () { openThread(t.id); }));
+    row.appendChild(linkBtn('Open branch', function () { closePop(false); openBranch(t.id, false); }));
     wrap.appendChild(row);
     return wrap;
   }
@@ -845,9 +909,162 @@
     if (!any) { box.appendChild(el('p', 'fa-p fa-quiet', S.review.running ? 'The reviewer is looking at the plan.' : 'Nothing is challenged.')); }
   }
 
-  /* ================= the chat ================= */
+  /* ================= the panel: the decision history, the latest exchange ================= */
+  /* Before the plan is accepted the panel is a plain conversation. From "Plan accepted" on, the trunk
+     holds the decisions and the branches fork from it; the main chat's latest exchange sits at the foot. */
+  var WHO = { you: 'You', assistant: 'The assistant', harness: 'The harness', reviewer: 'The reviewer' };
+  var CHIP_CLASS = { value: 'given', assumption: 'assumed', result: 'result', decision: 'decision' };
+  var CHIP_WORDS = { value: 'a value that went in', assumption: 'an assumption', result: 'worked out by a step', decision: 'a decision' };
+  var panelSig = '', seenMsgs = null, prevOutcome = {}, joinAnim = null, graphRows = [], graphRO = null;
+
+  function history() { return S && S.history && typeof S.history === 'object' ? S.history : { trunk: [], latest: null }; }
+  function trunk() { return arr(history().trunk); }
+  function nodeById(id) { var t = trunk(); for (var i = 0; i < t.length; i++) { if (t[i].id === id) { return t[i]; } } return null; }
+  function outcome(t) { return t.outcome || (t.status === 'used' ? 'joined' : t.status === 'dismissed' ? 'dead' : 'open'); }
+  function opener(t) { return t.origin || (t.kind === 'review' ? 'reviewer' : t.kind === 'harness' ? 'harness' : 'you'); }
+  function subjectOf(t) { return t.subject && t.subject.kind ? t.subject : (t.step ? { kind: 'step', step: t.step } : { kind: 'plan' }); }
+  function pendingOf(t) { return t.proposal && t.proposal.status === 'pending' && outcome(t) === 'open' ? t.proposal : null; }
+  function decisionWaits() { return !!(S && S.waiting && S.waiting.kind === 'decision'); }
+  function threadById(id) { return arr(threads()).filter(function (t) { return t.id === id; })[0] || null; }
+  /* Runs a join replaced (node.change.runs: old run -> new run), each with the input the join changed.
+     What those runs produced is no longer current; of what went in, only the changed value is. */
+  function staleRuns() {
+    var out = {};
+    trunk().forEach(function (n) {
+      var c = n.change || {}, r = c.runs;
+      if (r && typeof r === 'object') { Object.keys(r).forEach(function (k) { out[k] = { key: c.input || null }; }); }
+    });
+    return out;
+  }
+  function chipStale(c, stale) {
+    var sub = c.subject || {}, hit = sub.run && stale[sub.run];
+    if (!hit) { return false; }
+    if (c.kind === 'result') { return true; }
+    if (c.kind === 'value') { return !!hit.key && sub.key === hit.key; }
+    return false;
+  }
+  function plainNum(v) { var t = String(v == null ? '' : v); return /^-?\d+(\.\d+)?$/.test(t) ? Number(t).toLocaleString('en-US', { maximumFractionDigits: 2 }) : t; }
+  function keyWords(k) { k = String(k || '').replace(/_/g, ' '); return k.charAt(0).toUpperCase() + k.slice(1); }
+  function subjKey(sub) { sub = sub || {}; return [sub.kind, sub.run, sub.key, sub.step, sub.input, sub.node, sub.text].join('|'); }
+  function svgEl(tag, attrs) { var e = document.createElementNS(SVGNS, tag); Object.keys(attrs || {}).forEach(function (k) { if (attrs[k] != null) { e.setAttribute(k, attrs[k]); } }); return e; }
+  function icon(name) {
+    var svg = svgEl('svg', { viewBox: '0 0 16 16', 'aria-hidden': 'true' });
+    if (name === 'see') { svg.appendChild(svgEl('path', { d: 'M1.5 8s2.4-4.5 6.5-4.5S14.5 8 14.5 8s-2.4 4.5-6.5 4.5S1.5 8 1.5 8z' })); svg.appendChild(svgEl('circle', { cx: 8, cy: 8, r: 2 })); }
+    else if (name === 'fix') { svg.appendChild(svgEl('path', { d: 'M2 6h12' })); svg.appendChild(svgEl('path', { d: 'M5 13.5l3-4.5 3 4.5' })); }
+    else { svg.appendChild(svgEl('path', { d: 'M4.5 1.8v12.4' })); svg.appendChild(svgEl('path', { d: 'M4.5 10.5c0-4 6.5-3 6.5-6.2' })); svg.appendChild(svgEl('circle', { cx: 11, cy: 3, r: 1.4 })); }
+    return svg;
+  }
+  function smooth() { return reduced.matches ? 'auto' : 'smooth'; }
+  function clearTraced() { document.querySelectorAll('.dg-chip.is-traced, .fah-num.is-traced').forEach(function (n) { n.classList.remove('is-traced'); }); }
+
+  /* ---------- see it in the graph ---------- */
+  function seeStep(id, run, openIt) {
+    var b = stepEls[id]; if (!b) { return; }
+    ui.selInput = null; ui.selected = id;
+    if (ui.markNode) { ui.markNode = null; drawDiagram(); markNodeSel(); }
+    F.select(b, document); markPills();
+    if (openIt) {
+      ui.popRun = run || null; openPop(id);
+      var rh = popEl && popEl.querySelector('.fa-runhead');
+      if (rh) { popEl.scrollTop = Math.max(0, rh.offsetTop - 12); }
+    } else { closePop(false); b.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth() }); }
+  }
+  function seeInput(id) {
+    closePop(false); ui.selected = null; F.select(null, document);
+    if (ui.markNode) { ui.markNode = null; drawDiagram(); markNodeSel(); }
+    ui.selInput = id; markPills();
+    var p = pillsOf(id)[0]; if (p) { p.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: smooth() }); }
+  }
+  function seeNode(id) {
+    closePop(false); ui.selInput = null; ui.selected = null; F.select(null, document); markPills();
+    ui.markNode = ui.markNode === id ? null : id;
+    drawDiagram(); markNodeSel();
+    var card = document.querySelector('[data-node="' + id + '"]');
+    if (card) { card.scrollIntoView({ block: 'nearest', behavior: smooth() }); }
+  }
+  /* A chip's subject is enough to find its place (3.5): the input, else the step and its run. */
+  function seeSubject(sub, host) {
+    clearTraced(); if (host) { host.classList.add('is-traced'); }
+    sub = sub || {};
+    if (sub.kind === 'decision') { if (nodeById(sub.node)) { seeNode(sub.node); } return; }
+    if (sub.input && S.inputs && S.inputs[sub.input] && pillsOf(sub.input).length) { seeInput(sub.input); return; }
+    if (sub.step && stepEls[sub.step]) { seeStep(sub.step, sub.run || null, !!sub.run); }
+  }
+
+  /* ---------- refs, chips, figures, and their menu ---------- */
+  function refStep(id) {
+    var s = stepById(id); if (!s) { return null; }
+    var b = el('button', 'dg-ref' + (s.kind === 'from_you' ? ' dg-ref--you' : s.kind === 'your_call' ? ' dg-ref--call' : ''), s.number != null ? s.number : s.name);
+    b.type = 'button'; b.title = label(s); b.setAttribute('aria-label', 'Step ' + label(s) + ': show in the plan');
+    b.addEventListener('click', function (ev) { ev.stopPropagation(); seeStep(id, null, false); });
+    return b;
+  }
+  function refInput(id) {
+    var name = inputName(id);
+    if (!(S.inputs && S.inputs[id])) { return el('span', null, name); }
+    var b = el('button', 'dg-ref dg-ref--input', name); b.type = 'button'; b.title = name;
+    b.setAttribute('aria-label', name + ': show in the plan');
+    b.addEventListener('click', function (ev) { ev.stopPropagation(); seeInput(id); });
+    return b;
+  }
+  function refs(ids) { return arr(ids).map(function (id) { return /^in:/.test(id) || (S.inputs && S.inputs[id]) ? refInput(id) : refStep(id); }).filter(Boolean); }
+
+  function withMenu(host, name, sub, see, focusBack) {
+    var lab = el('span', 'dg-menu__label', 'See in graph'); lab.setAttribute('aria-hidden', 'true');
+    var row = el('span', 'dg-menu__row');
+    var acts = [['see', 'See in graph', see]];
+    if (layerOn(4) && sub) {
+      acts.push(['fix', 'Challenge or correct', function () { startBranch(sub, 'fix', name); }],
+                ['branch', 'Talk about it', function () { startBranch(sub, 'talk', name); }]);
+    }
+    acts.forEach(function (a) {
+      var b = el('button', 'dg-menu__btn'); b.type = 'button'; b.title = a[1];
+      b.setAttribute('aria-label', a[1] + ': ' + name); b.appendChild(icon(a[0]));
+      b.addEventListener('click', function (ev) { ev.preventDefault(); ev.stopPropagation(); host.classList.add('is-shut'); a[2](); });
+      b.addEventListener('mouseenter', function () { lab.textContent = a[1]; });
+      b.addEventListener('focus', function () { lab.textContent = a[1]; });
+      row.appendChild(b);
+    });
+    var menu = el('span', 'dg-menu'); menu.setAttribute('role', 'group'); menu.setAttribute('aria-label', 'Actions for ' + name);
+    add(menu, row, lab); host.appendChild(menu);
+    function place() {
+      var r = host.getBoundingClientRect(), log = $('log');
+      var scrolls = log.scrollHeight > log.clientHeight + 1 && getComputedStyle(log).overflowY !== 'visible';
+      var lr = scrolls ? log.getBoundingClientRect() : { top: 0, right: window.innerWidth };
+      host.classList.toggle('dg-below', r.top - lr.top < 72);
+      host.classList.toggle('dg-end', r.left + 150 > Math.min(lr.right, window.innerWidth));
+    }
+    function reset() { host.classList.remove('is-shut'); lab.textContent = 'See in graph'; }
+    host.addEventListener('mouseenter', place);
+    host.addEventListener('focusin', place);
+    host.addEventListener('mouseleave', reset);
+    host.addEventListener('focusout', function (e) { if (!host.contains(e.relatedTarget)) { reset(); } });
+    host.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); host.classList.add('is-shut'); focusBack.focus(); } });
+  }
+
+  function chipEl(c, o) {
+    o = o || {};
+    var kind = CHIP_CLASS[c.kind] || 'given', stale = !!o.stale || c.status === 'corrected';
+    var wrap = el('span', 'dg-chip dg-chip--' + kind + (c.kind === 'assumption' ? ' dg-chip--wrap' : '') +
+      (c.status === 'confirmed' ? ' dg-chip--confirmed' : '') + (stale ? ' dg-chip--stale' : ''));
+    var btn = el('button', 'dg-chip__btn'); btn.type = 'button';
+    if (o.label && c.label && kind !== 'decision' && kind !== 'assumed') { btn.appendChild(el('span', 'dg-chip__k', c.label)); }
+    if (kind === 'assumed') { var g = el('span', 'dg-chip__g', c.status === 'confirmed' ? '✓' : '◌'); g.setAttribute('aria-hidden', 'true'); btn.appendChild(g); }
+    if (kind === 'result') { var g2 = el('span', 'dg-chip__g', '→'); g2.setAttribute('aria-hidden', 'true'); btn.appendChild(g2); }
+    if (kind === 'decision') { var nd = nodeById(c.subject && c.subject.node); var g3 = el('span', 'dg-chip__g'); g3.appendChild(F.mark(nd ? nd.who : 'you', null, 10)); btn.appendChild(g3); }
+    btn.appendChild(el('span', 'dg-chip__v', c.text));
+    var name = (c.label && kind !== 'decision' ? c.label + ' ' : '') + c.text;
+    btn.setAttribute('aria-label', name + ', ' + CHIP_WORDS[c.kind] + (c.status ? ', ' + c.status : '') + (stale ? ', no longer current' : '') + '. Show in the plan');
+    btn.addEventListener('click', function (ev) { ev.stopPropagation(); seeSubject(c.subject, wrap); });
+    wrap.appendChild(btn);
+    withMenu(wrap, name, c.subject, function () { seeSubject(c.subject, wrap); }, btn);
+    return wrap;
+  }
+
+  /* The figures in a message stay underlined and clickable, and get the same menu with the subject 3.5 derives. */
   function withFigures(p, m) {
     var text = String(m.text || ''), figs = arr(layerOn(3) ? m.figures : null).filter(function (f) { return f && f.step && stepById(f.step); }), pos = 0, spans = [];
+    var stale = staleRuns();
     figs.forEach(function (f) {
       var s = f.start, e = f.end;
       if (!(typeof s === 'number' && typeof e === 'number' && text.slice(s, e) === f.text)) { s = text.indexOf(f.text, pos); e = s + String(f.text).length; }
@@ -857,40 +1074,52 @@
     spans.forEach(function (sp) {
       if (sp[0] < pos) { return; }
       p.appendChild(document.createTextNode(text.slice(pos, sp[0])));
-      var n = el('span', 'fah-num', text.slice(sp[0], sp[1])), sid = sp[2].step;
+      var f = sp[2], sid = f.step, word = text.slice(sp[0], sp[1]), old = !!(f.run && stale[f.run]);
+      var host = el('span', 'dg-fig');
+      var n = el('span', 'fah-num' + (old ? ' dg-num--stale' : ''), word);
       n.tabIndex = 0; n.setAttribute('role', 'button');
-      n.setAttribute('aria-label', text.slice(sp[0], sp[1]) + ', from step ' + label(stepById(sid)));
-      var runId = sp[2].run || null;
-      function go(ev) {
-        ev.preventDefault(); ev.stopPropagation(); ui.selected = sid; F.trace(n, stepEls[sid] || null, document);
-        if (stepEls[sid]) {
-          ui.popRun = runId; openPop(sid);
-          var rh = popEl && popEl.querySelector('.fa-runhead');      /* open on the run the figure came from */
-          if (rh) { popEl.scrollTop = Math.max(0, rh.offsetTop - 12); }
-        }
-      }
+      n.setAttribute('aria-label', word + ', from step ' + label(stepById(sid)) + (old ? ', no longer current' : ''));
+      function go(ev) { if (ev) { ev.preventDefault(); ev.stopPropagation(); } clearTraced(); n.classList.add('is-traced'); seeStep(sid, f.run || null, true); }
       n.addEventListener('click', go);
       n.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { go(ev); } });
-      p.appendChild(n); pos = sp[1];
+      host.appendChild(n);
+      var sub = f.run ? { kind: 'result', run: f.run, step: sid, value: word } : f.input ? { kind: 'input', input: f.input, step: null } : { kind: 'step', step: sid };
+      withMenu(host, word, sub, function () { go(null); }, n);
+      p.appendChild(host); pos = sp[1];
     });
     p.appendChild(document.createTextNode(text.slice(pos)));
     return p;
   }
   function chip(stepId) { var s = stepById(stepId); return s ? el('span', 'fah-chip', label(s)) : null; }
 
+  /* An answer's chips as facts: results with their labels, then what they rest on and assume. */
+  function factsOf(m, skipAssumptions) {
+    var list = layerOn(3) ? arr(m.chips).filter(function (c) { return c && c.text != null; }) : [];
+    if (!list.length) { return null; }
+    var stale = staleRuns(), dl = el('dl', 'dg-facts'), any = false;
+    function old(c) { return chipStale(c, stale); }
+    function row(t, kids) { if (!kids.length) { return; } any = true; var dd = el('dd'); kids.forEach(function (k) { dd.appendChild(k); }); dl.appendChild(el('dt', null, t)); dl.appendChild(dd); }
+    function of(kind) { return list.filter(function (c) { return c.kind === kind; }); }
+    of('decision').forEach(function (c) { row('Decided', [chipEl(c)]); });
+    of('result').forEach(function (c) { row(c.label || 'Result', [chipEl(c, { stale: old(c) })]); });
+    row('Rests on', of('value').map(function (c) { return chipEl(c, { label: true, stale: old(c) }); }));
+    if (!skipAssumptions) { row('Assumes', of('assumption').map(function (c) { return chipEl(c, { stale: old(c) }); })); }
+    return any ? dl : null;
+  }
+
+  /* ---------- messages of the main chat ---------- */
   function openNoticeFor(stepId) {
     var c = arr(S.chat);
     for (var i = c.length - 1; i >= 0; i--) { var n = c[i].notice; if (n && n.status === 'open' && arr(n.steps).indexOf(stepId) >= 0) { return c[i]; } }
     return null;
   }
   function changeIt(m) {
-    ui.notice = m.id; ui.attached = arr(m.notice.steps)[0] || null; ui.thread = null; setSide(false);
+    ui.notice = m.id; ui.attached = arr(m.notice.steps)[0] || null; setSide(false);
     drawComposer(); input.focus();
   }
-
-  function messageNode(m, ctx) {
-    var wrap = document.createDocumentFragment(), nodes = [];
-    var kind = m.kind || 'text';
+  function messageNodes(m, ctx) {
+    var nodes = [], kind = m.kind || 'text';
+    var noticeOpen = !!(m.notice && m.notice.status === 'open' && layerOn(4));
     if (kind === 'decision' && m.decision && layerOn(4)) {
       var d = m.decision;
       if (d.status === 'open') {
@@ -911,18 +1140,23 @@
       if (m.queued) { py.appendChild(el('span', 'fa-meta', 'Waiting its turn')); }
       nodes.push(py);
     } else {
-      var pa = withFigures(el('p', 'fah-msg' + (kind === 'withheld' || m.who === 'harness' ? ' fa-muted' : '')), m);
-      if (m.step && m.who !== 'you') { var c3 = chip(m.step); if (c3) { pa.insertBefore(el('br'), pa.firstChild); pa.insertBefore(c3, pa.firstChild); } }
-      nodes.push(pa);
+      var quiet = kind === 'withheld' || m.who === 'harness';
+      var facts = factsOf(m, noticeOpen);
+      var lead = withFigures(el('p', facts ? 'fa-ans-lead' + (quiet ? ' fa-muted' : '') : 'fah-msg' + (quiet ? ' fa-muted' : '')), m);
+      if (m.step) { var c3 = chip(m.step); if (c3) { lead.insertBefore(el('br'), lead.firstChild); lead.insertBefore(c3, lead.firstChild); } }
+      if (facts) { var ans = el('div', 'fah-msg dg-answer'); add(ans, lead, facts); nodes.push(ans); } else { nodes.push(lead); }
       if (kind === 'plan' && ctx.acceptHere) {
         nodes.push(add(el('div', 'fah-row'), btn('Accept plan', function (b) { b.setAttribute('aria-disabled', 'true'); act('accept_plan'); }, true)));
       }
     }
-    if (m.notice && m.notice.status === 'open' && layerOn(4)) {
+    if (noticeOpen) {
       var nt = el('div', 'fah-notice'), as = arr(m.notice.assumptions);
-      if (as.length === 1) { nt.appendChild(el('div', null, '◌ This rests on one thing you haven\'t confirmed: ' + lower(as[0].text))); }
-      else {
-        nt.appendChild(el('div', null, '◌ This rests on ' + as.length + ' things you haven\'t confirmed:'));
+      var achips = arr(layerOn(3) ? m.chips : null).filter(function (c) { return c && c.kind === 'assumption'; });
+      nt.appendChild(el('div', null, '◌ This rests on ' + (as.length === 1 ? 'one thing' : as.length + ' things') + ' you haven\'t confirmed' + (achips.length ? ':' : (as.length === 1 ? ': ' + lower(as[0] && as[0].text) : ':'))));
+      if (achips.length) {
+        var dl = el('dl', 'dg-facts'), dd = el('dd'); achips.forEach(function (c) { dd.appendChild(chipEl(c)); });
+        dl.appendChild(el('dt', null, 'Assumes')); dl.appendChild(dd); nt.appendChild(dl);
+      } else if (as.length > 1) {
         var ul = el('ul', 'fa-list'); as.forEach(function (a) { ul.appendChild(el('li', null, a.text)); }); nt.appendChild(ul);
       }
       nt.appendChild(add(el('div', 'fah-row'),
@@ -930,187 +1164,519 @@
         btn('Change it', function () { changeIt(m); })));
       nodes.push(nt);
     }
-    nodes.forEach(function (n) { wrap.appendChild(n); });
     return nodes;
   }
   function lower(t) { t = String(t || ''); return t && /^[A-Z][a-z]/.test(t) ? t.charAt(0).toLowerCase() + t.slice(1) : t; }
 
-  function nearBottom() { var l = $('log'); return l.scrollHeight - l.scrollTop - l.clientHeight < 80; }
-  function toBottom() { var l = $('log'); if (l.scrollHeight > l.clientHeight) { l.scrollTop = l.scrollHeight; } }
-
-  function drawChat() {
-    var stick = first || nearBottom();
-    var chat = arr(S.chat), box = $('msgs');
-    var lastPlan = -1; chat.forEach(function (m, i) { if (m.kind === 'plan') { lastPlan = i; } });
-    var waitingPlan = S.waiting && S.waiting.kind === 'plan';
-    var live = {}, prev = null;
-    chat.forEach(function (m, i) {
-      var ctx = { acceptHere: i === lastPlan && waitingPlan, nextIsYou: !!(chat[i + 1] && chat[i + 1].who === 'you') };
-      var key = m.id || ('i' + i);
-      var sig = JSON.stringify([m, ctx, (m.figures || []).map(function (f) { return f.step && !!stepById(f.step); }), m.step ? label(stepById(m.step)) : '']);
-      live[key] = true;
-      var rec = msgEls[key];
-      if (!rec || rec.sig !== sig) {
-        var nodes = messageNode(m, ctx);
-        if (rec) { nodes.forEach(function (n) { n.classList.add('fa-noanim'); }); rec.nodes.forEach(function (n, j) { if (j === 0) { return; } n.remove(); }); }
-        var anchor = rec ? rec.nodes[0] : null;
-        var holder = el('div'); holder.style.display = 'contents'; nodes.forEach(function (n) { holder.appendChild(n); });
-        if (first) { nodes.forEach(function (n) { n.classList.add('fa-noanim'); }); }
-        if (anchor) { anchor.replaceWith(holder); } else { insertAfter(box, holder, prev); }
-        rec = msgEls[key] = { sig: sig, nodes: [holder] };
-      }
-      prev = rec.nodes[0];
-      if (prev.parentNode !== box) { box.appendChild(prev); }
-    });
-    Object.keys(msgEls).forEach(function (k) { if (!live[k]) { msgEls[k].nodes.forEach(function (n) { n.remove(); }); delete msgEls[k]; } });
-
-    drawThreads();
-    drawTail();
-    if (stick) { toBottom(); }
-  }
-  function insertAfter(parent, node, prev) {
-    if (prev && prev.parentNode === parent) {
-      var ref = prev.nextSibling;      /* threads that follow a message stay right after it */
-      while (ref && ref.classList && ref.classList.contains('fah-thread')) { ref = ref.nextSibling; }
-      parent.insertBefore(node, ref);
-    } else { parent.insertBefore(node, parent.firstChild); }
-  }
-
-  function drawThreads() {
-    var box = $('threads'), list = threads();
-    if (!list) { show(box, false); return; }
-    if (ui.knownThreads && ui.wantNewThread) {
-      list.forEach(function (t) { if (t.kind === 'side' && !ui.knownThreads[t.id]) { ui.openThread = t.id; ui.wantNewThread = false; } });
+  /* ---------- trunk nodes ---------- */
+  function joinMessageOf(nodeId) {
+    var c = arr(S.chat);
+    for (var i = c.length - 1; i >= 0; i--) {
+      if (arr(c[i].chips).some(function (x) { return x && x.kind === 'decision' && x.subject && x.subject.node === nodeId; })) { return c[i]; }
     }
-    ui.knownThreads = {}; list.forEach(function (t) { ui.knownThreads[t.id] = true; });
-    var sideWorking = S.lanes && S.lanes.side === 'working';
-    var workingIn = null;
-    var sideAct = arr(S.activity).filter(function (x) { return x.lane === 'side' && x.thread; })[0];
-    if (sideWorking && sideAct) { workingIn = sideAct.thread; }
-    else if (sideWorking) {
-      list.forEach(function (t) { var ms = arr(t.messages); if (ms.length && ms[ms.length - 1].who === 'you') { workingIn = t.id; } });
-    }
-    var live = {}, lastAt = {}, loose = 0;
-    list.forEach(function (t) {
-      live[t.id] = true;
-      var sig = JSON.stringify([t, workingIn === t.id, t.step ? label(stepById(t.step)) : '']);
-      var rec = thrEls[t.id];
-      if (!rec || rec.sig !== sig) {
-        var d = threadNode(t, workingIn === t.id);
-        if (rec) { d.classList.add('fa-noanim'); rec.node.replaceWith(d); }
-        thrEls[t.id] = rec = { sig: sig, node: d };
-      }
-      rec.node.open = ui.openThread === t.id;
-      /* a thread is drawn right after the main-chat message it follows; with none it goes last */
-      var host = t.after && msgEls[t.after] ? lastAt[t.after] || msgEls[t.after].nodes[0] : null;
-      if (host) { if (host.nextSibling !== rec.node) { host.after(rec.node); } lastAt[t.after] = rec.node; }
-      else { box.appendChild(rec.node); loose++; }
-    });
-    show(box, loose > 0);
-    Object.keys(thrEls).forEach(function (k) { if (!live[k]) { thrEls[k].node.remove(); delete thrEls[k]; } });
+    return null;
   }
-  function threadNode(t, working) {
-    var d = el('details', 'fah-thread'); d.setAttribute('name', 'fa-threads'); d.id = 'thread-' + t.id;
-    var s = t.step ? stepById(t.step) : null;
-    var sum = el('summary', null, t.kind === 'review' ? 'Reviewer' : 'Side question');
-    var about = t.kind === 'review' ? (s ? label(s) : t.title) : (t.title || (s ? label(s) : ''));
-    var meta = el('span', 'fah-thread__meta', '· ' + (about || '') + (t.status === 'used' ? ' · used' : t.status === 'dismissed' ? ' · dismissed' : ''));
-    sum.appendChild(meta);
+  function nodeMeta(n) {
+    var t = n.touched || {}, ins = arr(t.inputs), sts = arr(t.steps), meta = el('p', 'dg-node__meta');
+    function words(w) { meta.appendChild(el('span', null, w)); }
+    function put(list) { refs(list).forEach(function (r) { meta.appendChild(r); }); }
+    switch (n.kind) {
+      case 'plan_accepted':
+        var nIn = Object.keys(S.inputs || {}).length;
+        words(steps().filter(function (s) { return s.in_plan !== false; }).length + ' steps' + (nIn ? ', ' + nIn + ' inputs' : '')); break;
+      case 'value': case 'assumption_corrected':
+        if (ins.length) { words('Changed'); put(ins); }
+        if (sts.length) { words(ins.length ? 're-ran' : 'Re-ran'); put(sts); } break;
+      case 'built': if (sts.length) { words(n.who === 'harness' ? 'By itself, built' : 'Built'); put(sts); } break;
+      case 'call': if (sts.length) { words('Your call on'); put(sts); } break;
+      case 'challenge_used': if (sts.length || ins.length) { words('On a challenge, changed'); put(ins.concat(sts)); } break;
+      case 'assumption_confirmed': if (sts.length) { words('Confirmed, on'); put(sts); } break;
+      default: if (sts.length || ins.length) { words('Changed'); put(ins.concat(sts)); }
+    }
+    return meta.childNodes.length ? meta : null;
+  }
+  function nodeEl(n, isNew) {
+    var card = el('div', 'dg-node' + (isNew ? ' is-new' : '')); card.setAttribute('data-node', n.id);
+    var title = el('button', 'dg-node__title'); title.type = 'button'; title.setAttribute('data-anchor', '');
+    add(title, el('span', 'dg-sr', (WHO[n.who] || 'You') + ', decided: '), n.text || '');
+    title.setAttribute('aria-pressed', String(ui.markNode === n.id));
+    title.title = 'Show what this changed in the plan';
+    title.addEventListener('click', function (ev) { ev.stopPropagation(); seeNode(n.id); });
+    card.appendChild(title);
+    var meta = nodeMeta(n); if (meta) { card.appendChild(meta); }
+    var jm = joinMessageOf(n.id), results = jm ? arr(jm.chips).filter(function (c) { return c.kind === 'result'; }) : [];
+    if (results.length && layerOn(3)) {
+      var rs = el('div', 'dg-node__results'), stale = staleRuns();
+      results.forEach(function (c) { var ce = chipEl(c, { stale: chipStale(c, stale) }); ce.title = c.label || ''; rs.appendChild(ce); });
+      card.appendChild(rs);
+    }
+    arr(n.change && n.change.failed).forEach(function (f) {
+      var s = stepById(f.step); card.appendChild(el('p', 'dg-node__fail', (s ? 'Step ' + s.number : 'A step') + ' could not run again: ' + (f.reason || '')));
+    });
+    return card;
+  }
+  function markNodeSel() {
+    document.querySelectorAll('.dg-node__title').forEach(function (b) { b.setAttribute('aria-pressed', String(b.parentNode.getAttribute('data-node') === ui.markNode)); });
+    drawGraph(null);
+  }
+
+  /* ---------- branches ---------- */
+  function subjectChip(sub) {
+    if (sub.kind === 'value') { return { kind: 'value', label: sub.input && S.inputs && S.inputs[sub.input] ? inputName(sub.input) : keyWords(sub.key), text: plainNum(sub.value), status: null, subject: sub }; }
+    if (sub.kind === 'result') {
+      var s = stepById(sub.step), shown = null;
+      if (s) { arr(s.runs).concat(s.last_run ? [s.last_run] : []).forEach(function (r) { if (r.run === sub.run && r.shown && r.shown.output) { shown = r.shown.output.text; } }); }
+      return { kind: 'result', label: s ? s.name : '', text: shown || plainNum(sub.value), status: null, subject: sub };
+    }
+    if (sub.kind === 'assumption') { return { kind: 'assumption', label: '', text: sub.text || '', status: null, subject: sub }; }
+    if (sub.kind === 'decision') { var n = nodeById(sub.node); return { kind: 'decision', label: 'Decided', text: n ? n.text : String(sub.node), status: null, subject: sub }; }
+    return null;
+  }
+  function subjectLine(sub) {
+    var p = el('p', 'dg-branch__on'), c = subjectChip(sub);
+    if (c) { add(p, 'From', chipEl(c, { label: true })); return p; }
+    if (sub.kind === 'step' && stepById(sub.step)) { add(p, 'On', refStep(sub.step), el('span', null, stepById(sub.step).name)); return p; }
+    if (sub.kind === 'input') { add(p, 'On', refInput(sub.input)); return p; }
+    add(p, 'On the whole plan');
+    return p;
+  }
+  function subjectName(sub) {
+    var c = subjectChip(sub); if (c) { return (c.label && c.kind !== 'decision' ? c.label + ' ' : '') + c.text; }
+    if (sub.kind === 'step' && stepById(sub.step)) { return label(stepById(sub.step)); }
+    if (sub.kind === 'input') { return inputName(sub.input); }
+    return 'the plan';
+  }
+  function sayLine(m, dead) {
+    var who = m.who || 'assistant', p = el('p', 'dg-say' + (who === 'you' ? ' dg-say--you' : ''));
+    p.appendChild(F.mark(who, dead ? 'dead' : 'open', 10));
+    var body = add(el('span'), el('span', 'dg-sr', (WHO[who] || '') + ': '), m.text || '');
+    var srcs = arr(m.sources).filter(function (x) { return x && safeUrl(x.url); });
+    if (srcs.length) {
+      var sp = el('span', 'dg-say__src'); add(sp, ' ');
+      srcs.forEach(function (x, i) { if (i) { add(sp, ', '); } add(sp, '↗ ', link(x.title || x.url, x.url)); });
+      body.appendChild(sp);
+    }
+    p.appendChild(body);
+    return p;
+  }
+  function replyBox(key, ph, send) {
+    var w = el('div', 'dg-reply'), i = el('input');
+    i.type = 'text'; i.autocomplete = 'off'; i.placeholder = ph; i.setAttribute('data-key', key);
+    i.setAttribute('aria-label', ph.replace('…', ''));
+    i.value = ui.replies[key] || '';
+    i.addEventListener('input', function () { ui.replies[key] = i.value; });
+    i.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' && !ev.isComposing) {
+        ev.preventDefault();
+        var text = i.value.trim(); if (!text) { return; }
+        i.value = ''; ui.replies[key] = '';
+        send(text).then(function (ok) { if (!ok && !ui.replies[key]) { ui.replies[key] = text; var j = document.querySelector('[data-key="' + key + '"]'); if (j) { j.value = text; } } });
+      }
+      if (ev.key === 'Escape' && key === 'draft') { ev.preventDefault(); ui.draft = null; drawPanel(true); input.focus(); }
+    });
+    w.appendChild(i);
+    return w;
+  }
+  function proposeEl(t, p, needs) {
+    var ch = p.change || {}, imp = p.impact || {};
+    var box = el('div', 'dg-propose'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Proposed change');
+    var q = el('p', 'dg-propose__q'); q.appendChild(F.mark('harness', needs ? 'needs' : 'open', 12));
+    var target = ch.input && S.inputs && S.inputs['in:' + ch.input] ? 'in:' + ch.input : null;
+    if (ch.kind === 'value') { add(q, 'Change ' + lower(ch.label || keyWords(ch.input)) + ' to ' + plainNum(ch.to) + '?'); }
+    else { add(q, ch.step && stepById(ch.step) ? 'Change step ' + stepById(ch.step).number + ' of the plan?' : 'Change the plan?'); }
+    box.appendChild(q);
+    var r1 = el('p', 'dg-propose__row');
+    if (ch.kind === 'value') {
+      r1.appendChild(target ? refInput(target) : el('span', null, ch.label || keyWords(ch.input)));
+      if (ch.from != null) { r1.appendChild(el('s', null, plainNum(ch.from))); add(r1, '→'); }
+      r1.appendChild(el('b', null, plainNum(ch.to)));
+    } else { add(r1, '“' + (ch.words || p.words || '') + '”'); }
+    box.appendChild(r1);
+    if (arr(imp.steps).length) { var rr = add(el('p', 'dg-propose__row'), el('span', 'dg-propose__k', 'Re-runs')); refs(imp.steps).forEach(function (r) { rr.appendChild(r); }); box.appendChild(rr); }
+    if (arr(imp.downstream).length) { var rd = add(el('p', 'dg-propose__row'), el('span', 'dg-propose__k', 'Further on')); refs(imp.downstream).forEach(function (r) { rd.appendChild(r); }); box.appendChild(rd); }
+    var no = ch.kind === 'value' && ch.from != null ? 'Keep ' + plainNum(ch.from) : 'No, keep it';
+    box.appendChild(add(el('div', 'fah-row'),
+      btn('Yes, change it', function (b) { b.setAttribute('aria-disabled', 'true'); act('accept_proposal', { proposal: p.id }); }, true),
+      btn(no, function () { act('decline_proposal', { proposal: p.id }); })));
+    if (decisionWaits()) { box.appendChild(el('span', 'fa-meta', 'Answer your call first; then this can join.')); }
+    return box;
+  }
+  function branchState(t, ctx) {
+    var oc = outcome(t), c = t.challenge;
+    if (ctx.needs) { return 'needs you'; }
+    if (ctx.joining) { return 'joining'; }
+    if (ctx.working) { return 'answering'; }
+    if (oc === 'joined') { return 'joined'; }
+    if (oc === 'dead') { return c && c.status === 'dismissed' ? 'dismissed' : 'no change'; }
+    if (t.kind === 'review' && c) { return c.kind === 'question' ? 'question' : 'challenge'; }
+    return 'open';
+  }
+  function branchEl(t, ctx) {
+    var oc = outcome(t), who = opener(t), prop = pendingOf(t), dead = oc === 'dead';
+    ctx.needs = !!prop && !decisionWaits();
+    ctx.joining = !!(t.proposal && t.proposal.status === 'accepted' && oc !== 'joined');
+    var d = el('details', 'dg-branch dg-branch--' + (dead ? 'dead' : oc === 'joined' ? 'joined' : 'open') + (ctx.needs ? ' dg-branch--needs' : ''));
+    d.id = 'thread-' + t.id; d.setAttribute('data-branch', t.id);
+    var isOpen = has(ui.branchOpen, t.id) ? ui.branchOpen[t.id] : ctx.defaultOpen;
+    if (isOpen) { d.open = true; }
+    var sum = el('summary'), title = el('span', 'dg-branch__title');
+    title.setAttribute('data-anchor', '');
+    add(title, el('span', 'dg-sr', (WHO[who] || 'You') + ' opened: '), t.title || subjectName(subjectOf(t)));
+    add(sum, title, el('span', 'dg-branch__state', branchState(t, ctx)));
     d.appendChild(sum);
-    var body = el('div', 'fah-thread__body');
-    if (t.kind === 'review' && t.title) { body.appendChild(el('p', 'fa-tmsg', null)).appendChild(el('b', null, t.title)); }
-    arr(t.messages).forEach(function (m) {
-      var p = el('p', 'fa-tmsg' + (m.who === 'you' ? ' fa-tmsg--you' : ''));
-      if (m.who === 'you') { p.appendChild(el('span', 'fa-tmsg__who', 'You: ')); }
-      add(p, m.text || '');
-      var srcs = arr(m.sources).filter(function (x) { return x && safeUrl(x.url); });
-      if (srcs.length) {
-        var sp = el('span', 'fah-thread__source fa-src'); add(sp, ' ');
-        srcs.forEach(function (x, i) { if (i) { add(sp, ', '); } add(sp, '↗ ', link(x.title || x.url, x.url)); });
-        p.appendChild(sp);
-      }
-      body.appendChild(p);
+    var body = el('div', 'dg-branch__body');
+    body.appendChild(subjectLine(subjectOf(t)));
+    arr(t.messages).forEach(function (m, i) {
+      if (i === 0 && m.who === 'you' && t.title && String(m.text || '').trim() === String(t.title).trim()) { return; }   /* the title says it */
+      body.appendChild(sayLine(m, dead));
     });
-    if (working) {
-      var w = el('div', 'fa-working'); var bar = el('div', 'fah-working'); bar.setAttribute('role', 'status'); bar.setAttribute('aria-label', 'Answering on the side');
-      add(w, bar, 'Answering on the side'); body.appendChild(w);
+    if (ctx.working) {
+      var w = el('div', 'fa-working'), bar = el('div', 'fah-working'); bar.setAttribute('role', 'status'); bar.setAttribute('aria-label', 'Answering in the branch');
+      add(w, bar, 'Answering'); body.appendChild(w);
     }
     var c = t.challenge;
     if (c && c.status === 'open') {
+      var last = arr(t.messages).slice(-1)[0];
+      if (c.proposal && !(last && String(last.text || '').indexOf(c.proposal) >= 0)) { body.appendChild(el('p', 'dg-say', 'Proposed: ' + c.proposal)); }
       var row = el('div', 'fah-row');
       if (c.kind !== 'question') { row.appendChild(btn('Use this', function () { act('use_challenge', { challenge: c.id }); }, true)); }
       row.appendChild(btn('Dismiss', function () { act('dismiss_challenge', { challenge: c.id }); }));
       body.appendChild(row);
     }
-    if (t.status === 'open') { body.appendChild(add(el('div'), linkBtn('Reply on the side', function () { replyIn(t); }))); }
+    if (prop) { body.appendChild(proposeEl(t, prop, ctx.needs)); }
+    if (ctx.joining) {
+      var jw = el('div', 'fa-working'), jb = el('div', 'fah-working'); jb.setAttribute('role', 'status'); jb.setAttribute('aria-label', 'Running the steps again');
+      add(jw, jb, 'Yes. Running the steps again'); body.appendChild(jw);
+    }
+    if (t.proposal && t.proposal.status === 'failed' && oc === 'open') { body.appendChild(el('p', 'dg-branch__end', 'It could not join: ' + (t.proposal.reason || 'the change failed') + '.')); }
+    if (oc === 'joined') {
+      body.appendChild(el('p', 'dg-branch__end', who === 'harness' ? 'Joined by itself: tests are the harness’s own.' : t.kind === 'review' ? 'Joined when you used it.' : 'Joined when you said yes.'));
+    } else if (dead) {
+      var pr = t.proposal, ch = pr && pr.change;
+      var kept = pr && pr.status === 'declined' && ch && ch.kind === 'value' && ch.from != null ? 'You kept ' + plainNum(ch.from) + '. ' : '';
+      body.appendChild(el('p', 'dg-branch__end', kept + 'Nothing in the plan changed.'));
+    }
+    if (oc === 'open' && layerOn(4) && !ctx.joining) {
+      body.appendChild(replyBox('reply:' + t.id, t.kind === 'review' ? 'Reply to the reviewer…' : 'Reply…', function (text) { return act('side', { text: text, thread: t.id }); }));
+      if (t.kind === 'side') { body.appendChild(add(el('div', 'dg-branch__acts'), linkBtn('Close branch', function () { act('close_branch', { thread: t.id }); }))); }
+    }
     d.appendChild(body);
-    d.addEventListener('toggle', function () { if (d.open) { ui.openThread = t.id; } else if (ui.openThread === t.id) { ui.openThread = null; } });
+    d.addEventListener('toggle', function () { ui.branchOpen[t.id] = d.open; if (d.open) { ui.openThread = t.id; } drawGraph(null); });
     return d;
   }
-  function openThread(id) {
-    ui.openThread = id; drawThreads();
-    var n = $('thread-' + id); if (n) { n.open = true; n.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' }); var s = n.querySelector('summary'); if (s) { s.focus({ preventScroll: true }); } }
+  function draftEl() {
+    var dr = ui.draft, fix = dr.mode === 'fix';
+    var d = el('details', 'dg-branch dg-branch--open'); d.open = true; d.id = 'thread-draft';
+    var sum = el('summary'), title = el('span', 'dg-branch__title'); title.setAttribute('data-anchor', '');
+    add(title, el('span', 'dg-sr', 'You, a new branch: '), (fix ? 'Correct ' : 'About ') + dr.name);
+    add(sum, title, el('span', 'dg-branch__state', 'new'));
+    d.appendChild(sum);
+    var body = el('div', 'dg-branch__body');
+    body.appendChild(subjectLine(dr.subject));
+    body.appendChild(replyBox('draft', fix ? 'Say what should change…' : 'Start a branch about this…', function (text) {
+      return act('side', { text: text, subject: dr.subject }).then(function (ok) { if (ok) { ui.draft = null; ui.wantNewThread = true; ui.replies.draft = ''; } return ok; });
+    }));
+    body.appendChild(add(el('div', 'dg-branch__acts'), linkBtn('Cancel', function () { ui.draft = null; drawPanel(true); input.focus(); })));
+    d.appendChild(body);
+    d.addEventListener('toggle', function () { if (!d.open) { ui.draft = null; drawPanel(true); } });
+    return d;
   }
-  function replyIn(t) { ui.thread = t.id; ui.attached = null; ui.notice = null; setSide(true); drawComposer(); input.focus(); }
+  /* Challenge or talk: a branch starts with the person's first message, so the page opens a draft until then.
+     "Talk" opens the branch already about this subject, when there is one. */
+  function startBranch(sub, mode, name) {
+    if (!layerOn(4)) { return; }
+    if (mode === 'talk') {
+      var same = arr(threads()).filter(function (t) { return outcome(t) === 'open' && subjKey(subjectOf(t)) === subjKey(sub); })[0];
+      if (same) { openBranch(same.id, true); return; }
+    }
+    ui.draft = { subject: sub, mode: mode, name: name };
+    ui.focusKey = 'draft';
+    drawPanel(true);
+    var d = $('thread-draft'); if (d) { d.scrollIntoView({ block: 'nearest', behavior: smooth() }); }
+  }
+  function openBranch(id, focusReply) {
+    ui.branchOpen[id] = true; ui.openThread = id;
+    if (focusReply) { ui.focusKey = 'reply:' + id; }
+    drawPanel(true);
+    var n = $('thread-' + id);
+    if (n) {
+      n.open = true; n.scrollIntoView({ block: 'nearest', behavior: smooth() });
+      if (!focusReply) { var s = n.querySelector('summary'); if (s) { s.focus({ preventScroll: true }); } }
+    }
+  }
+  function openThread(id) { openBranch(id, false); }
 
-  function drawTail() {
-    var tail = $('tail'); tail.textContent = '';
-    var main = S.lanes && S.lanes.main;
-    if (main === 'working') {
+  /* ---------- the graph: rows on a spine, lines drawn from measured positions ---------- */
+  function rowEl(box, kind) {
+    var r = el('div', 'dg-row dg-row--' + kind);
+    add(r, el('div', 'dg-row__l'), el('div', 'dg-row__s'), el('div', 'dg-row__r'));
+    box.appendChild(r);
+    return r;
+  }
+  function buildGraph(box, T, list, ctxOf) {
+    box.textContent = '';
+    box.appendChild(svgEl('svg', { class: 'dg-svg', 'aria-hidden': 'true' }));
+    graphRows = [];
+    var placed = {}, onTrunk = {};
+    T.forEach(function (n) { onTrunk[n.id] = true; });
+    function branchRow(t) {
+      if (placed[t.id]) { return; }
+      placed[t.id] = true;
+      var r = rowEl(box, 'branch');
+      r.querySelector('.dg-row__r').appendChild(branchEl(t, ctxOf(t)));
+      graphRows.push({ kind: 'branch', id: t.id, t: t, el: r, anchor: r.querySelector('[data-anchor]') });
+    }
+    T.forEach(function (n, i) {
+      list.forEach(function (t) { if (outcome(t) === 'joined' && t.node === n.id) { branchRow(t); } });
+      var r = rowEl(box, 'trunk');
+      r.querySelector('.dg-row__l').appendChild(nodeEl(n, joinAnim === n.id));
+      graphRows.push({ kind: 'trunk', id: n.id, n: n, el: r, anchor: r.querySelector('[data-anchor]') });
+      list.forEach(function (t) {
+        var joinedHere = outcome(t) === 'joined' && onTrunk[t.node];
+        if (!joinedHere && (t.from === n.id || (i === 0 && (!t.from || !onTrunk[t.from])))) { branchRow(t); }
+      });
+    });
+    list.forEach(branchRow);
+    if (ui.draft) {
+      var dr = rowEl(box, 'branch'); dr.querySelector('.dg-row__r').appendChild(draftEl());
+      graphRows.push({ kind: 'draft', id: 'draft', el: dr, anchor: dr.querySelector('[data-anchor]') });
+    }
+    var now = rowEl(box, 'now'), nw = el('span', 'dg-now', 'Now'); nw.setAttribute('data-anchor', '');
+    now.querySelector('.dg-row__l').appendChild(nw);
+    graphRows.push({ kind: 'now', el: now, anchor: nw });
+  }
+  function rel(a, base) { var r = a.getBoundingClientRect(), b = base.getBoundingClientRect(); return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height }; }
+  function drawGraph(anim) {
+    var box = $('graph');
+    if (box.hidden || !graphRows.length || !box.isConnected) { return {}; }
+    box.classList.toggle('dg-graph--narrow', box.clientWidth < 440);
+    var svg = box.querySelector('.dg-svg'); svg.textContent = '';
+    var W = box.clientWidth, H = box.scrollHeight;
+    svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    function path(d, cls, draw) { var p = svgEl('path', { d: d, class: 'dg-l ' + cls, pathLength: draw ? 100 : null }); svg.appendChild(p); return p; }
+    var sp = rel(graphRows[0].el.querySelector('.dg-row__s'), box), X = Math.round(sp.x + sp.w / 2);
+    var trunkY = {}, firstY = null, nowY = 0, marks = [], out = {};
+    graphRows.forEach(function (r) {
+      if (r.kind === 'trunk') { trunkY[r.id] = rel(r.anchor, box).y + 10; if (firstY == null) { firstY = trunkY[r.id]; } }
+      if (r.kind === 'now') { nowY = rel(r.anchor, box).y + 8; }
+    });
+    if (firstY == null) { firstY = 12; }
+    path('M' + X + ' ' + firstY + 'V' + nowY, 'dg-l--trunk');
+    path('M' + (X - 6) + ' ' + nowY + 'H' + (X + 6), 'dg-l--trunk');
+    graphRows.forEach(function (r) {
+      if (r.kind === 'trunk') { marks.push([r.n.who, X, trunkY[r.id], null, 7, anim === r.id]); return; }
+      if (r.kind !== 'branch' && r.kind !== 'draft') { return; }
+      var t = r.t, oc = t ? outcome(t) : 'open', dead = oc === 'dead';
+      var det = r.el.querySelector('details'), card = rel(det, box);
+      var x1 = Math.round(card.x - 11), by = rel(r.anchor, box).y + 10, line = dead ? 'dg-l--dead' : 'dg-l--branch';
+      path('M' + X + ' ' + (by - 18) + 'C' + X + ' ' + (by - 6) + ' ' + x1 + ' ' + (by - 14) + ' ' + x1 + ' ' + (by - 5), line);
+      var ey = by, prop = null;
+      if (det.open) {
+        prop = r.el.querySelector('.dg-propose');
+        var last = prop || r.el.querySelector('.dg-branch__body > :last-child');
+        if (last) { ey = rel(last, box).y + (prop ? 20 : 9); }
+      }
+      if (ey > by + 6) { path('M' + x1 + ' ' + (by + 5) + 'V' + ey, line); }
+      if (oc === 'joined' && trunkY[t.node] != null && trunkY[t.node] > ey) {
+        var jy = trunkY[t.node];
+        var jl = path('M' + x1 + ' ' + ey + 'V' + Math.max(ey, jy - 24) + 'C' + x1 + ' ' + (jy - 10) + ' ' + X + ' ' + (jy - 18) + ' ' + X + ' ' + (jy - 8), 'dg-l--branch', anim === t.node);
+        if (anim === t.node) { out.line = jl; }
+      }
+      if (dead) { path('M' + x1 + ' ' + (ey + 6) + 'V' + (ey + 16), 'dg-l--dead'); path('M' + (x1 - 5) + ' ' + (ey + 17) + 'H' + (x1 + 5), 'dg-l--cap'); }
+      marks.push([t ? opener(t) : 'you', x1, by, dead ? 'dead' : 'open', 5.5]);
+      if (t && prop && pendingOf(t)) { marks.push(['harness', x1, ey, decisionWaits() ? 'open' : 'needs', 6]); }
+    });
+    if (ui.markNode && trunkY[ui.markNode] != null) { svg.appendChild(svgEl('circle', { class: 'dg-l dg-l--sel', cx: X, cy: trunkY[ui.markNode], r: 12 })); }
+    marks.forEach(function (m) {
+      var p = svgEl('path', { d: F.shape(m[0], m[1], m[2], m[4]), class: 'dg-shape' + (m[3] ? ' dg-shape--' + m[3] : '') });
+      svg.appendChild(p);
+      if (m[5]) { out.mark = p; }
+    });
+    return out;
+  }
+
+  /* ---------- the whole panel, drawn from the state ---------- */
+  function workingThread(list) {
+    if (!(S.lanes && S.lanes.side === 'working')) { return null; }
+    var a = arr(S.activity).filter(function (x) { return x.lane === 'side' && x.thread; })[0];
+    if (a) { return a.thread; }
+    var w = null;
+    list.forEach(function (t) { var ms = arr(t.messages); if (ms.length && ms[ms.length - 1].who === 'you') { w = t.id; } });
+    return w;
+  }
+  function tailNodes() {
+    var out = [];
+    if (S.lanes && S.lanes.main === 'working') {
       var a = arr(S.activity).filter(function (x) { return x.lane === 'main'; })[0];
       var s = a && a.step ? stepById(a.step) : null;
       var w = el('div', 'fa-working'), bar = el('div', 'fah-working');
       var text = (s ? label(s) + ': ' : '') + ((a && a.text) || 'Working');
       bar.setAttribute('role', 'status'); bar.setAttribute('aria-label', text);
-      add(w, bar, text); tail.appendChild(w);
+      add(w, bar, text); out.push(w);
     }
     if (S.phase === 'interview' && S.waiting && S.waiting.kind === 'message') {
-      tail.appendChild(add(el('div'), linkBtn('Propose the plan now', function () { act('wrap'); })));
+      out.push(add(el('div'), linkBtn('Propose the plan now', function () { act('wrap'); })));
     }
-    if (S.error) { tail.appendChild(el('p', 'fah-msg fa-muted fa-noanim', 'That did not finish: ' + S.error)); }
-    show(tail, tail.childNodes.length > 0);
+    if (S.error) { out.push(el('p', 'fah-msg fa-muted fa-noanim', 'That did not finish: ' + S.error)); }
+    return out;
+  }
+  function drawPanel(force) {
+    var T = trunk(), chat = arr(S.chat), list = arr(threads());
+    var sig = JSON.stringify([S.chat, S.history, S.threads, S.activity, S.lanes, S.waiting, S.phase, S.layers, S.error, S.inputs,
+      steps().map(function (s) { return [s.id, s.number, s.name, s.kind, (s.runs || []).length]; }), ui.draft, ui.showEarlier]);
+    if (sig === panelSig && !force) { return; }
+    panelSig = sig;
+    var log = $('log'), stick = first || nearBottom(), top = log.scrollTop;
+    var ae = document.activeElement, focusKey = ui.focusKey || (ae && ae.getAttribute && ae.getAttribute('data-key')), caret = ae && ae.selectionStart;
+    ui.focusKey = null;
+
+    /* a side message that opened a new branch: open it and keep typing there */
+    if (ui.knownThreads && ui.wantNewThread) {
+      list.forEach(function (t) { if (!ui.knownThreads[t.id]) { ui.branchOpen[t.id] = true; ui.openThread = t.id; ui.wantNewThread = false; focusKey = 'reply:' + t.id; } });
+    }
+    ui.knownThreads = {}; list.forEach(function (t) { ui.knownThreads[t.id] = true; });
+
+    var lastPlan = -1; chat.forEach(function (m, i) { if (m.kind === 'plan') { lastPlan = i; } });
+    var waitingPlan = S.waiting && S.waiting.kind === 'plan';
+    var fresh = [], firstDraw = seenMsgs === null; seenMsgs = seenMsgs || {};
+    function render(m, holder) {
+      var i = chat.indexOf(m);
+      messageNodes(m, { acceptHere: i === lastPlan && waitingPlan }).forEach(function (n) {
+        if (firstDraw || seenMsgs[m.id]) { n.classList.add('fa-noanim'); }
+        holder.appendChild(n);
+      });
+      if (!seenMsgs[m.id] && !firstDraw) { fresh.push(m); }
+      seenMsgs[m.id] = true;
+    }
+    var workingIn = workingThread(list), lastOpenSide = null;
+    list.forEach(function (t) { if (t.kind === 'side' && outcome(t) === 'open') { lastOpenSide = t.id; } });
+    function ctxOf(t) {
+      var oc = outcome(t);
+      return { working: workingIn === t.id, defaultOpen: oc === 'open' && (!!pendingOf(t) || workingIn === t.id || t.id === ui.openThread || t.id === lastOpenSide) };
+    }
+
+    var before = $('before'), bmsgs = $('beforemsgs'), graph = $('graph'), convo = $('convo'), foot = $('foot');
+    bmsgs.textContent = ''; convo.textContent = ''; foot.textContent = '';
+    if (graphRO) { graphRO.disconnect(); graphRO = null; }
+
+    if (!T.length) {
+      /* no decision yet (before "Plan accepted", or a layer that records none): a plain conversation,
+         with any branch right after the message it follows */
+      show(before, false); show(graph, false); graphRows = []; graph.textContent = '';
+      var lastAt = {};
+      chat.forEach(function (m) { var h = el('div', 'fah-chat'); render(m, h); convo.appendChild(h); lastAt[m.id] = h; });
+      list.forEach(function (t) {
+        var b = add(el('div', 'fa-loose'), branchEl(t, ctxOf(t)));
+        var host = t.after && lastAt[t.after];
+        if (host) { host.after(b); lastAt[t.after] = b; } else { convo.appendChild(b); }
+      });
+      if (ui.draft) { convo.appendChild(add(el('div', 'fa-loose'), draftEl())); }
+      var tl = tailNodes(); if (tl.length) { var tw = el('div', 'fah-chat'); tl.forEach(function (n) { tw.appendChild(n); }); convo.appendChild(tw); }
+      Array.prototype.forEach.call(convo.children, function (c, i) { if (i) { c.style.marginTop = '14px'; } });
+    } else {
+      var cut = T[0].after ? chat.map(function (m) { return m.id; }).indexOf(T[0].after) : -1;
+      var pre = chat.slice(0, cut + 1);
+      var joinMsgs = {};
+      T.forEach(function (n) { var jm = joinMessageOf(n.id); if (jm && jm.who === 'harness') { joinMsgs[jm.id] = true; } });
+      var post = chat.slice(cut + 1).filter(function (m) { return !joinMsgs[m.id]; });
+      /* the interview, folded: the trunk starts at "Plan accepted" */
+      show(before, pre.length > 0);
+      $('beforesum').textContent = 'How the plan was made · ' + pre.length + (pre.length === 1 ? ' message' : ' messages');
+      pre.forEach(function (m) { render(m, bmsgs); });
+      /* the graph */
+      show(graph, true);
+      buildGraph(graph, T, list, ctxOf);
+      /* the foot: the latest exchange; anything still waiting on the person stays in it */
+      var start = -1;
+      post.forEach(function (m, i) { if (m.who === 'you') { start = i; } });
+      if (start < 0) { start = 0; }
+      post.forEach(function (m, i) {
+        var waits = (m.decision && m.decision.status === 'open') || (m.notice && m.notice.status === 'open');
+        if (i < start && waits && layerOn(4)) { start = i; }
+      });
+      if (start <= 2) { start = 0; }      /* fold only when there is something to fold */
+      var earlier = post.slice(0, start), latest = post.slice(start);
+      if (earlier.length) {
+        var lk = linkBtn(ui.showEarlier ? 'Hide earlier messages' : 'Earlier in the chat · ' + earlier.length, function () { ui.showEarlier = !ui.showEarlier; drawPanel(true); });
+        lk.classList.add('fa-earlier'); lk.setAttribute('aria-expanded', String(ui.showEarlier)); foot.appendChild(lk);
+        if (ui.showEarlier) { earlier.forEach(function (m) { render(m, foot); }); }
+        else { earlier.forEach(function (m) { seenMsgs[m.id] = true; }); }
+      }
+      latest.forEach(function (m) { render(m, foot); });
+      tailNodes().forEach(function (n) { foot.appendChild(n); });
+    }
+    if (fresh.length) { var lm = fresh[fresh.length - 1]; $('live').textContent = (WHO[lm.who] || '') + ': ' + (lm.text || ''); }
+
+    /* keep what the person was doing */
+    if (focusKey) {
+      var f = document.querySelector('[data-key="' + focusKey + '"]');
+      if (f) { f.focus({ preventScroll: true }); if (typeof caret === 'number' && f.value) { try { f.setSelectionRange(caret, caret); } catch (e) { /* not a text field */ } } }
+    }
+    if (stick) { toBottom(); } else { log.scrollTop = top; }
+    var j = joinAnim; joinAnim = null;
+    var drawn = drawGraph(j);
+    if (j) {
+      var card = graph.querySelector('[data-node="' + j + '"]');
+      var focusIt = !ae || ae === document.body || log.contains(ae) || !document.contains(ae);
+      if (card) { card.scrollIntoView({ block: 'nearest', behavior: smooth() }); }
+      F.join({ line: drawn.line, mark: drawn.mark, card: card, tags: ui.joinTags || [], focus: focusIt && card ? card.querySelector('.dg-node__title') : null });
+      ui.joinTags = [];
+    } else { graph.classList.add('dg-still'); }
+    if (j) { graph.classList.remove('dg-still'); }
+    if (!graph.hidden && window.ResizeObserver) {
+      var firstObs = true;
+      graphRO = new ResizeObserver(function () { if (firstObs) { firstObs = false; return; } drawGraph(null); });
+      graphRO.observe(graph);
+    }
+  }
+  function nearBottom() { var l = $('log'); return l.scrollHeight - l.scrollTop - l.clientHeight < 80; }
+  function toBottom() { var l = $('log'); if (l.scrollHeight > l.clientHeight) { l.scrollTop = l.scrollHeight; } }
+  /* A branch that was open is joined now: the next draw plays the join (motion.md). */
+  function detectJoin() {
+    arr(threads()).forEach(function (t) {
+      var oc = outcome(t);
+      if (!first && prevOutcome[t.id] && prevOutcome[t.id] !== 'joined' && oc === 'joined' && t.node) { joinAnim = t.node; }
+      if (prevOutcome[t.id] === 'open' && oc !== 'open') { delete ui.branchOpen[t.id]; if (ui.openThread === t.id) { ui.openThread = null; } }   /* ended: fold it */
+      prevOutcome[t.id] = oc;
+    });
   }
 
-  /* ---------- the composer ---------- */
+  /* ---------- the composer at the foot: the main conversation, or a new branch ---------- */
   function setSide(on) {
     ui.side = !!on;
     sideBtn.setAttribute('aria-pressed', String(ui.side));
     composer.classList.toggle('fah-composer--side', ui.side);
   }
   function drawComposer() {
-    var canSide = !!threads();
+    var canSide = !!S && layerOn(4);
     show(sideBtn, canSide);
     if (!canSide && ui.side) { setSide(false); }
     var old = composer.querySelector('.fa-chiprow'); if (old) { old.remove(); }
     var text = null, aria = '';
-    var t = ui.thread ? arr(threads()).filter(function (x) { return x.id === ui.thread; })[0] : null;
-    if (ui.thread && !t) { ui.thread = null; }
-    if (t) { text = 'Reply: ' + (t.title || 'side question'); aria = 'Stop replying in this thread'; }
-    else if (ui.attached && stepById(ui.attached)) { text = label(stepById(ui.attached)); aria = 'Remove step ' + text; }
+    if (ui.attached && stepById(ui.attached)) { text = label(stepById(ui.attached)); aria = 'Remove step ' + text; }
     else { ui.attached = null; ui.notice = null; }
     if (text) {
       var c = el('button', 'fah-chip', text + ' ✕'); c.type = 'button'; c.setAttribute('aria-label', aria);
-      c.addEventListener('click', function () { if (ui.thread) { ui.thread = null; setSide(false); } ui.attached = null; ui.notice = null; drawComposer(); input.focus(); });
+      c.addEventListener('click', function () { ui.attached = null; ui.notice = null; drawComposer(); input.focus(); });
       composer.insertBefore(add(el('div', 'fa-chiprow'), c), input);
     }
     composer.classList.toggle('fa-has-chip', !!text);
     var ph, decisionOpen = S && S.waiting && S.waiting.kind === 'decision';
-    if (ui.thread) { ph = 'Reply on the side…'; }
-    else if (ui.notice) { ph = 'Say what is different…'; }
-    else if (ui.side) { ph = 'Ask on the side, nothing changes…'; }
+    if (ui.notice) { ph = 'Say what is different…'; }
+    else if (ui.side) { ph = ui.attached ? 'Start a branch about this…' : 'Start a branch…'; }
     else if (decisionOpen) { ph = '…or answer in your own words'; }
     else if (ui.attached) { ph = 'Say what should change…'; }
     else if (!S || S.phase === 'empty' || !steps().length) { ph = S && S.phase === 'interview' ? 'Answer, or add anything…' : 'Say what you want to plan…'; }
     else { ph = 'Ask, or click a step…'; }
     input.placeholder = ph;
-    input.setAttribute('aria-label', ui.thread ? 'Reply on the side' : ui.attached ? 'Message about step ' + label(stepById(ui.attached)) : 'Message');
+    input.setAttribute('aria-label', ui.side ? 'Start a branch' : ui.attached ? 'Message about step ' + label(stepById(ui.attached)) : 'Message');
   }
   function send() {
     var text = input.value.trim(); if (!text) { return; }
     var p;
-    if (ui.thread) { p = act('side', { text: text, thread: ui.thread }); }
-    else if (ui.side) {
-      var body = { text: text }; if (ui.attached) { body.step = ui.attached; }
+    if (ui.side) {
+      var body = { text: text, subject: ui.attached ? { kind: 'step', step: ui.attached } : { kind: 'plan' } };
+      if (ui.attached) { body.step = ui.attached; }
       ui.wantNewThread = true; p = act('side', body);
     } else {
       var b2 = { text: text }; if (ui.attached) { b2.step = ui.attached; } if (ui.notice) { b2.notice = ui.notice; }
@@ -1119,12 +1685,12 @@
     input.value = '';
     p.then(function (ok) {
       if (!ok) { if (!input.value) { input.value = text; } return; }
-      ui.attached = null; ui.notice = null; ui.thread = null; setSide(false); drawComposer();
+      ui.attached = null; ui.notice = null; setSide(false); drawComposer();
       if (ui.selected && !ui.pop) { F.select(null, document); ui.selected = null; }   /* the step went with the message */
     });
   }
   input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); } });
-  sideBtn.addEventListener('click', function () { var on = F.sideToggle(sideBtn); ui.side = on; if (!on) { ui.thread = null; } drawComposer(); input.focus(); });
+  sideBtn.addEventListener('click', function () { var on = F.sideToggle(sideBtn); ui.side = on; drawComposer(); input.focus(); });
 
   /* ---------- empty plan ---------- */
   function drawEmpty() {
@@ -1139,12 +1705,13 @@
   /* ---------- one draw from the state document ---------- */
   function draw() {
     try {
+      detectJoin();
       drawTop();
       drawEmpty();
       drawDiagram();
       drawWhole();
       drawReviewList();
-      drawChat();
+      drawPanel();
       drawComposer();
       if (ui.pop) { refreshPop(); }
       if (first) {
@@ -1160,12 +1727,13 @@
   /* ---------- page-level keys and clicks ---------- */
   document.addEventListener('keydown', function (ev) {
     if (ev.key === 'Escape' && ui.pop) { ev.preventDefault(); closePop(true); }
+    else if (ev.key === 'Escape' && (ui.selInput || ui.markNode)) { ui.selInput = null; ui.markNode = null; markPills(); drawDiagram(); markNodeSel(); }
   });
   document.addEventListener('click', function (ev) {
     if (ui.pop && popEl && !popEl.contains(ev.target)) { closePop(false); }
   });
   var resizeTimer = null;
-  window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { if (S) { drawDiagram(); placePop(); } }, 120); });
+  window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { if (S) { drawDiagram(); placePop(); drawGraph(null); } }, 120); });
 
   drawComposer();
   poll();

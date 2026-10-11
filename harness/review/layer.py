@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from ..calc.builder import plan_of
-from ..core import BadAction, NotNow, list_threads, number_of, set_thread_status
+from ..core import BadAction, NotNow, list_threads, number_of, set_outcome, set_thread_status
 from ..grounding.layer import phase_of
 from ..layers import Expect, Layer
 from ..needs_you import marks
@@ -21,6 +21,7 @@ NOT_OPEN = "That challenge has already been {status}."
 A_QUESTION = "A question is answered in its thread, not used."
 ANSWER_FIRST = "Answer the question that is waiting first."
 NO_STEP = "The step that challenge is about is no longer in the plan."
+NODE_TEXT = "Reviewer's suggestion used on step {number}"
 
 
 # --- Which passes start by themselves (SPEC 7.1) ---
@@ -134,12 +135,18 @@ def use_challenge(core, payload: dict) -> None:
     if found is None:
         raise NotNow(NO_STEP)
     settle_challenge(core, row, "used")
+    core.decide(who="reviewer", kind="challenge_used", text=NODE_TEXT.format(number=found[0]),
+                change={"challenge": f"c{row['id']}", "step": row["step_id"], "change": row["change"]},
+                touched={"inputs": [], "steps": [row["step_id"]]}, branch=row["thread_id"])
     text = USE_THIS.format(number=found[0], name=found[1], proposal=row["proposal"])
     core._say({"text": text, "step": row["step_id"]})
 
 
 def dismiss_challenge(core, payload: dict) -> None:
-    settle_challenge(core, find_open(core, payload), "dismissed")
+    row = find_open(core, payload)
+    settle_challenge(core, row, "dismissed")
+    set_outcome(core.conn, row["thread_id"], "dead")
+    core.changed()
 
 
 # --- Replay expectation (SPEC 7.4) ---

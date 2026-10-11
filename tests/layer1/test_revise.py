@@ -39,7 +39,7 @@ def test_a_revision_saves_the_new_plan_records_it_and_lists_the_steps_that_chang
                            "needs": ["a2"], "produces": "x", "cadence": "", "origin": {"kind": "proposed"}})
     session, seen = accepted_session(open_session, [write_brief(new)])
     result = revise(session, words="include the deposit", step="a1", by="person")
-    assert result == {"changed": ["a1", "a3"]}
+    assert result == {"changed": ["a1", "a3"], "node": "n2"}
     state = session.state()
     assert [step["id"] for step in state["steps"]] == ["a1", "a2", "a3"] and state["phase"] == "accepted"
     assert state["steps"][0]["formula"] == "van hire + rent + deposit"
@@ -58,7 +58,7 @@ def test_a_removed_step_is_a_changed_step(open_session):
     new["process"].pop()
     new["open_questions"][0]["step"] = None
     session, seen = accepted_session(open_session, [write_brief(new)])
-    assert revise(session, words="drop the decision", step=None, by="reviewer") == {"changed": ["a2"]}
+    assert revise(session, words="drop the decision", step=None, by="reviewer") == {"changed": ["a2"], "node": "n2"}
     assert session.state()["context"]["revisions"][0]["by"] == "reviewer"
 
 
@@ -82,7 +82,7 @@ def test_a_reply_without_a_brief_is_an_error_and_changes_nothing(open_session):
 
 def test_a_revision_can_look_a_term_up(open_session, researcher):
     session, _seen = accepted_session(open_session, [looks_up("Opening Balance"), write_brief()])
-    assert revise(session, words="use the opening balance") == {"changed": []}
+    assert revise(session, words="use the opening balance") == {"changed": [], "node": "n2"}
     assert researcher.asked == ["Opening Balance"]
 
 
@@ -101,3 +101,45 @@ def test_what_changed_is_said_by_the_harness_from_the_two_plans():
     assert describe_changes(new, old) == "changed step 2 Keep the date?; removed step 3 Extra"
     assert describe_changes(old, {**old, "goal": item("Another goal")}) == "no step changed; the goal did"
     assert describe_changes(old, old) == "nothing changed"
+
+
+def test_a_revision_records_a_plan_revised_node_of_the_person_touching_the_changed_steps(open_session):
+    new = small_brief()
+    new["process"][0]["formula"] = "van hire + rent + deposit"
+    session, _seen = accepted_session(open_session, [write_brief(new)])
+    revise(session, words="include the deposit", step="a1")
+    _accepted, node = session.state()["history"]["trunk"]
+    assert (node["who"], node["kind"], node["branch"]) == ("you", "plan_revised", None)
+    assert node["change"] == {"step": "a1", "words": "include the deposit", "changed": ["a1"]}
+    assert node["touched"] == {"inputs": [], "steps": ["a1"]} and node["text"].startswith("Plan changed: ")
+    assert len(node["text"]) <= 80 and node["after"] == session.state()["chat"][-1]["id"]
+    assert session.state()["steps"][0]["changed_by"] == node["id"]
+
+
+def test_a_reviewers_revision_is_the_reviewers_node(open_session):
+    new = small_brief()
+    new["process"].pop()
+    new["open_questions"][0]["step"] = None
+    session, _seen = accepted_session(open_session, [write_brief(new)])
+    revise(session, words="drop the decision", by="reviewer")
+    _accepted, node = session.state()["history"]["trunk"]
+    assert (node["who"], node["kind"]) == ("reviewer", "plan_revised")
+
+
+def test_a_revision_from_a_branch_joins_that_branch(open_session):
+    from harness.core import add_thread, list_threads
+    new = small_brief()
+    new["process"][0]["formula"] = "van hire + rent + deposit"
+    session, _seen = accepted_session(open_session, [write_brief(new)])
+    thread = add_thread(session.conn, session.conversation, kind="side", title="the deposit", step="a1")
+    result = revise(session, words="include the deposit", step="a1", branch=thread)
+    state = session.state()
+    [branch] = list_threads(session.conn, session.conversation)
+    assert branch["outcome"] == "joined" and branch["node"] == result["node"]
+    assert state["history"]["trunk"][1]["branch"] == thread
+
+
+def test_a_revision_that_changes_nothing_records_no_node(open_session):
+    session, _seen = accepted_session(open_session, [{"text": "I would not change that."}])
+    assert "error" in revise(session, words="include the deposit")
+    assert [node["kind"] for node in session.state()["history"]["trunk"]] == ["plan_accepted"]   # the one found on load

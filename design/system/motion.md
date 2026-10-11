@@ -9,7 +9,7 @@ Motion here does one job: it shows that something changed, and where. It is neve
 | `dur-fast` | 120ms | Hover, press, selection |
 | `dur-base` | 200ms | A message, pop-up or thread entering; a fill changing |
 | `dur-slow` | 360ms | A step's new line arriving |
-| `dur-draw` | 500ms | The tick drawing; one pulse along an arrow |
+| `dur-draw` | 500ms | The tick drawing; one pulse along an arrow; the join line |
 | `ease-out` | `cubic-bezier(0.2, 0, 0, 1)` | Everything that enters or responds |
 | `ease-in-out` | `cubic-bezier(0.4, 0, 0.2, 1)` | The pulse along an arrow |
 
@@ -29,6 +29,10 @@ Motion here does one job: it shows that something changed, and where. It is neve
 | A pop-up opens | It scales from 97% at its top-left corner | automatic on `.fah-pop` |
 | The agent is working | A short line with a sliding segment. The only loop | `.fah-working` |
 | Hover and press | A step lifts 1px with the pop shadow; a press settles to 99% | automatic |
+| A branch joins the trunk | One moment, in order: the join line draws itself into the trunk (500ms); the new node's mark scales in from nothing and its card rises 4px (after the line); the plan re-runs with the usual pulse and line arrivals in plan order; each "re-ran" tag rises in, 150ms apart. Focus moves to the new node's title | `FAH.join({line, mark, card, tags, focus})` |
+| A join is running | The steps being run again show the working line and "running again" under them | `.dg-tag .fah-working` |
+| A hover menu opens | It fades in and settles 3px | automatic on `.dg-chip:hover`, `:focus-within` |
+| A node is selected | A ring round its mark on the spine; what it changed is outlined in the plan | page |
 
 ## Rules
 
@@ -36,4 +40,5 @@ Motion here does one job: it shows that something changed, and where. It is neve
 - **The pulse follows the data.** Run `FAH.flow` first and set each step's result as its pulse lands, so the eye is led from input to answer.
 - **The ring plays once.** The attention colour stays; the ring does not repeat. A looping pulse would nag.
 - **Nothing moves the layout.** Outlines are drawn inside the box and lines enter by opacity and a 4px rise, so text never reflows.
+- **The join is the one orchestrated moment.** Nothing else in the history animates on its own; a redraw of the graph is still.
 - **Reduced motion.** Under `prefers-reduced-motion: reduce` every animation and transition is cut to nothing. State still changes; it just does not travel.

@@ -1226,6 +1226,22 @@ For the decision graph (section 12), 11 October:
   current one from `meta`; the state has none). A value one leaf of a re-run kept and another changed is ambiguous, as one
   mapped to two values. "Needed its output" is "holds a value it produced" (`_produced`). Only re-run outputs map; the
   changed input itself maps nowhere but its own top-level key. `RERUN_EXPECTED` lives in `answers/rerun.py` (layer 4 imports it).
+- **D3a · Chips.** Built in `answers/layer.py` (`add_chips`, `run_chips`): every main-chat message gets `chips`, `[]` without
+  runs. A value chip's subject `value` and a result chip's are the input or output as written (text as is, a list or object
+  as JSON); a "produced" value is one whose every number and date an earlier run of the same message produced; no step for
+  the run: no result chip, `step` null on its value chips. `tell_analyst` adds to the note that goes with the next message
+  (as `WITHHELD_NOTE` does, after the person's words); `store_input` writes only, `save_input` keeps its event.
+- **D1 · Nodes of layer 1.** `plan_accepted` is recorded in `_run` after `PLAN_ACCEPTED` is posted and before the `plan_accepted` hook (so a
+  node follows that message); `loaded` records it for a confirmed plan with an empty trunk and no interview, after `PREPARED`. `revise_plan`
+  gains `branch=None`, returns `{"changed", "node"}`, and records `plan_revised` (text `Plan changed: {changes}`, touched steps `changed`)
+  after `PLAN_CHANGED`; a revision that errors records nothing. Every layer 2 and later session on a saved plan therefore starts with `n1`.
+- **D4b · Nodes of layer 4.** `call` is recorded in `ask_decision` right after the answer is stored, so `choose` and words both record it
+  (text `{question} {words}`, `words` being the option's text for `choose`). `assumption_confirmed` and `assumption_corrected` use the
+  notice's steps and all the notice's (resp. corrected) assumptions; text `Confirmed: `/`Corrected: ` + first sentence (+ ` and n more`),
+  kept within 80 characters by `marks.node_text`. `built` is recorded when `request_module` ends `built` or `reused` (`why` is the case).
+- **D5 · Review branches.** `open_thread` passes `origin="reviewer"` and subject `{"kind": "step", "step"}`. `use_challenge` records
+  `challenge_used` (after settling the challenge, before the "use this" message) with `branch` the thread; `dismiss_challenge` calls
+  `set_outcome(thread, "dead")`. A question branch stays `open` until dismissed.
 
 ## 12. Decision history
 

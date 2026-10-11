@@ -100,3 +100,47 @@ def test_use_this_is_refused_while_the_main_lane_waits_for_a_decision(open_sessi
     session.act("say", {"text": "Is it enough?"})
     until(session, lambda s: s["waiting"] and s["waiting"]["kind"] == "decision")
     assert "waiting" in refused(session, "use_challenge", challenge=state["threads"][0]["challenge"]["id"])
+
+
+def test_a_review_thread_is_a_branch_of_the_reviewer_about_the_step(open_session):
+    session, state, cid = one_challenge(open_session, [reply("Understood.")], step="c2")
+    [thread] = threads_of(state)
+    assert (thread["origin"], thread["subject"], thread["outcome"], thread["node"]) == (
+        "reviewer", {"kind": "step", "step": "c2"}, "open", None)
+    assert thread["from"] == state["history"]["latest"]                 # it left from the newest node
+
+
+def test_use_this_records_challenge_used_and_joins_the_branch(open_session):
+    session, state, cid = one_challenge(open_session, [reply("Understood.")], step="c2", change="plan",
+                                        proposal="Count B only once.")
+    thread_id = threads_of(state)[0]["id"]
+    before = len(state["history"]["trunk"])
+    state = act(session, "use_challenge", challenge=cid)
+    nodes = [node for node in state["history"]["trunk"] if node["kind"] == "challenge_used"]
+    assert len(state["history"]["trunk"]) == before + 1 and len(nodes) == 1
+    [node] = nodes
+    assert (node["who"], node["branch"], node["touched"]) == ("reviewer", thread_id, {"inputs": [], "steps": ["c2"]})
+    assert node["text"] == "Reviewer's suggestion used on step 2"
+    assert node["change"] == {"challenge": cid, "step": "c2", "change": "plan"}
+    [thread] = threads_of(state)
+    assert (thread["outcome"], thread["node"]) == ("joined", node["id"])
+    assert node["after"] is None and chat_of(state, "you")             # recorded before the person's message
+    assert step_of(state, "c2")["changed_by"] == node["id"]
+
+
+def test_dismiss_makes_the_branch_dead_and_records_no_node(open_session):
+    session, state, cid = one_challenge(open_session)
+    before = state["history"]["trunk"]
+    assert session.act("dismiss_challenge", {"challenge": cid}) == (True, "")
+    state = session.state()
+    [thread] = threads_of(state)
+    assert (thread["outcome"], thread["node"], thread["status"]) == ("dead", None, "dismissed")
+    assert state["history"]["trunk"] == before and events(session, "review.dismissed")[0]["challenge"] == cid
+
+
+def test_a_question_branch_stays_open_until_it_is_dismissed(open_session):
+    session = open_session(reviewer=[report(question())])
+    state = pass_now(session)
+    assert threads_of(state)[0]["outcome"] == "open"
+    session.act("dismiss_challenge", {"challenge": state["threads"][0]["challenge"]["id"]})
+    assert threads_of(session.state())[0]["outcome"] == "dead"

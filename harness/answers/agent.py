@@ -281,6 +281,24 @@ def run_module(turn: Turn, call) -> dict:
                                          "output": result["output"]}))
 
 
+def store_input(conn, name: str, value, note: str, conversation: str) -> None:
+    """Write a saved input, replacing the one of that name. `save_input` calls it after its checks; so does the
+    join of a branch (SPEC 6.6), which has checked the value against the person's words already."""
+    conn.execute(
+        "INSERT INTO inputs (name, value, note, ts, session_id) VALUES (?, ?, ?, ?, ?)"
+        " ON CONFLICT(name) DO UPDATE SET value = excluded.value, note = excluded.note,"
+        " ts = excluded.ts, session_id = excluded.session_id",
+        (name, json.dumps(value), str(note), datetime.now(timezone.utc).isoformat(), conversation))
+    conn.commit()
+
+
+def tell_analyst(session, text: str) -> None:
+    """Put a `[harness]` line before the analyst's next turn: it goes with the person's next message, as
+    `WITHHELD_NOTE` does. `session` is the Session, or a Work (which has one)."""
+    memory = memory_of(getattr(session, "session", session))
+    memory["note"] += "\n\n" + text
+
+
 def save_input(turn: Turn, call) -> dict:
     arguments = call.arguments
     name, value, note = arguments.get("name"), arguments.get("value"), arguments.get("note", "")
@@ -293,12 +311,7 @@ def save_input(turn: Turn, call) -> dict:
         turn.corrections += 1
         turn.record("ask.correction", {"reason": "save_input", "numbers": numbers, "text": json.dumps(arguments)})
         return tool_result(call, INPUTS_UNBACKED.format(numbers=", ".join(numbers)), True)
-    turn.conn.execute(
-        "INSERT INTO inputs (name, value, note, ts, session_id) VALUES (?, ?, ?, ?, ?)"
-        " ON CONFLICT(name) DO UPDATE SET value = excluded.value, note = excluded.note,"
-        " ts = excluded.ts, session_id = excluded.session_id",
-        (name, json.dumps(value), str(note), datetime.now(timezone.utc).isoformat(), turn.conversation))
-    turn.conn.commit()
+    store_input(turn.conn, name, value, note, turn.conversation)
     turn.record("ask.input_saved", {"name": name, "value": value, "note": note}, "agent")
     turn.work.changed()
     return tool_result(call, SAVED)

@@ -1226,7 +1226,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m2",
@@ -1238,7 +1239,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m3",
@@ -1250,7 +1252,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m4",
@@ -1262,7 +1265,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m5",
@@ -1274,7 +1278,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m6",
@@ -1286,7 +1291,8 @@
       "kind": "plan",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m7",
@@ -1298,7 +1304,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m8",
@@ -1310,7 +1317,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m9",
@@ -1322,7 +1330,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m10",
@@ -1334,7 +1343,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m11",
@@ -1422,7 +1432,8 @@
           "s5"
         ],
         "status": "confirmed"
-      }
+      },
+      "chips": []
     },
     {
       "id": "m12",
@@ -1446,7 +1457,8 @@
         "status": "answered",
         "choice": "1"
       },
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m13",
@@ -1458,7 +1470,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m14",
@@ -1470,7 +1483,8 @@
       "kind": "text",
       "figures": [],
       "decision": null,
-      "notice": null
+      "notice": null,
+      "chips": []
     },
     {
       "id": "m15",
@@ -1504,7 +1518,8 @@
         "status": "open",
         "choice": null
       },
-      "notice": null
+      "notice": null,
+      "chips": []
     }
   ],
   "history": {

@@ -96,6 +96,7 @@
         "harness/answers/agent.py",
         "harness/answers/figures.py",
         "harness/answers/layer.py",
+        "harness/answers/rerun.py",
         "harness/answers/schema.sql"
       ],
       "given": [
