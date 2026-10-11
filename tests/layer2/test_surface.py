@@ -9,7 +9,7 @@ from harness.calc import builder, helper
 from harness.calc.added import add_step
 from harness.calc.layer import LAYER, run_build_command
 from harness.calc.notes import list_notes
-from harness.core import NO_ROUTE, BadAction
+from harness.core import NO_ROUTE_PLAN, BadAction
 from harness.model import ScriptedModel
 from layer2_helpers import (SETTLE, TOTAL_CODE, TOTAL_EXAMPLES, TOTAL_SPEC, WRONG_TOTAL_CODE, call, checker_turn,
                             code_turn, double_turns, events, examples_turn, respond_turn, small_plan, spec_turn,
@@ -200,7 +200,15 @@ def test_a_message_with_a_calculation_step_goes_to_the_helper_and_others_are_not
     for text, step in (("hello", None), ("is this enough?", "j1"), ("what is this?", "nothing")):
         before = len(model.inner.calls)
         state = say(session, text, step)
-        assert harness_lines(state)[-1] == NO_ROUTE and len(model.inner.calls) == before
+        assert harness_lines(state)[-1] == NO_ROUTE_PLAN and len(model.inner.calls) == before
+
+
+def test_a_message_about_an_accepted_plan_with_no_layer_to_take_it_says_what_is_true_at_this_step(plan, open_session):
+    state = say(open_session([]), "is this enough?", None)
+    reply = harness_lines(state)[-1]
+    assert reply == NO_ROUTE_PLAN
+    assert reply.startswith("Nothing here can answer that yet.") and "can be read, but not changed or questioned" in reply
+    assert "step 3" in reply
 
 
 def test_wants_is_true_for_not_built_left_out_and_unconfirmed_steps_only(plan, open_session, build):

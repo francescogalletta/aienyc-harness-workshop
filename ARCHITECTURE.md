@@ -667,7 +667,7 @@ Each has the default the work plan takes.
   `module_for_step` and `registry.list_modules` describe what is built.
 - **A2a · Status.** `step_status(conn, brief, step_id) -> (status, reason)`: `none` (no record, no module),
   `not_built` (the record's reason), `stale` (reason `the step changed in the plan` when the plan's fingerprint
-  differs from the record's, `its files changed` when the module's files changed or are gone), else `built`.
+  differs from the record's, `its files changed` when the module's files changed, `its folder is missing` when they are gone), else `built`.
   `building` comes from `building_step(memory)`. `build_steps` has one more column than SPEC 4.2,
   `step_fingerprint`, because a reused module carries a step other than its own; `modules.step_fingerprint` is of
   the module's own step. `test_runs.reason` may also be `adopt`.

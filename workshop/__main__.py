@@ -57,6 +57,7 @@ def cmd_at(manifest, args, write=print):
     n = step_number(args.n)
     tree.write_layers_file(ROOT, n)
     write(f"This copy now runs as the harness at step {n} (my/var/layers holds {n}). Nothing was removed or copied.")
+    write("A page that is already open keeps the old step: stop it (Ctrl+C) and start it again.")
     if os.environ.get("HARNESS_LAYERS"):
         write(f"Your shell sets HARNESS_LAYERS={os.environ['HARNESS_LAYERS']}, which wins over the file. Unset it.")
     gone = [k for k in range(1, n + 1) if not tree.present(ROOT, manifest)[k]]

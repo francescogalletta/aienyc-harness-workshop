@@ -304,13 +304,14 @@ def update_build(conn, step_id: str, **changes) -> None:
 
 STALE_PLAN = "the step changed in the plan"
 STALE_FILES = "its files changed"
+STALE_MISSING = "its folder is missing"
 
 
 def step_status(conn, brief: dict | None, step_id: str) -> tuple[str, str]:
     """(status, reason) of a calculation step: `none`, `built`, `not_built` or `stale` (SPEC 4.4).
 
     Stale: built, but the plan's step fingerprint differs from the one stored when it was built, or the
-    module's files changed or are gone. `building` is not stored: see `builder.building_step`."""
+    module's files changed (`its files changed`) or its folder is gone (`its folder is missing`). `building` is not stored: see `builder.building_step`."""
     record = get_build(conn, step_id)
     if record is None:
         module = module_for_step(conn, step_id)
@@ -321,8 +322,11 @@ def step_status(conn, brief: dict | None, step_id: str) -> tuple[str, str]:
         return "not_built", record["reason"]
     else:
         module, stored = record["module"], record["step_fingerprint"]
-    if module is None or get_module(conn, module) is None or file_status(conn, module) != "unchanged":
-        return "stale", STALE_FILES
+    if module is None or get_module(conn, module) is None:
+        return "stale", STALE_MISSING
+    files = file_status(conn, module)
+    if files != "unchanged":
+        return "stale", STALE_MISSING if files == "missing" else STALE_FILES
     if stored and plan_fingerprint(conn, brief, step_id) != stored:
         return "stale", STALE_PLAN
     return "built", ""

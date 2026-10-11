@@ -1,6 +1,6 @@
 # Hands-on exercises
 
-Fifteen exercises, three for each layer. Each takes 5 to 15 minutes. Do them on the main example. Each one is a change you make, then something you watch the harness do. Every one was tried on a clean clone and undone. Three kinds: **break it** (make something wrong and watch the harness refuse it), **change it** (move a limit or a format and see what changes), **extend it** (add something of your own).
+Fifteen exercises, three for each layer. Each takes 5 to 15 minutes. Do them on the main example. Each one is a change you make, then something you watch the harness do. Every one was tried on a clean clone and undone, and 2.1, 2.2, 3.1, 3.2, 3.3, 4.1, 4.2 and 4.3 again on the final code. Three kinds: **break it** (make something wrong and watch the harness refuse it), **change it** (move a limit or a format and see what changes), **extend it** (add something of your own).
 
 ## Before you start
 
@@ -74,7 +74,7 @@ You will see a module go stale the moment its code changes, and the harness refu
 3. Watch step 1 on the page. Wait about five seconds.
 4. Stop the page and start it again.
 5. Repair it: `uv run python -m harness build` (about 30 seconds).
-- **Expected:** step 1 reads `Stale · rebuild` with the reason `its files changed`. Running the step's tests does not bring it back. After the restart it reads `Not built` (`its tests do not pass here`). The build writes the spec, examples and code again, and step 1 is `built` with passing tests. The rebuilt module's input names may differ from the old one.
+- **Expected:** step 1 reads `Stale · rebuild` with the reason `its files changed`. Running the step's tests does not bring it back. After the restart it reads `Not built` (`its tests do not pass here`). Delete the module's folder instead of editing it and the reason reads `its folder is missing`. The build writes the spec, examples and code again, and step 1 is `built` with passing tests. The rebuilt module's input names may differ from the old one.
 - **Why it matters:** code that no longer passes its tests cannot produce a number, so a wrong module cannot reach an answer.
 
 ### 2.2 Change how a value is written (change it) · 6 min · Model call: no
@@ -134,7 +134,7 @@ You will see what the exemption for small numbers is worth.
 uv run python -c "from harness.calc.provenance import unbacked; print(unbacked('You will pay 7 times, in 3 steps, 41,200 in all', []))"
 ```
 5. Set `SMALL = 0` and run it again. Then run `uv run pytest tests/layer2/test_provenance.py -q`.
-- **Expected:** with 100000 the answer shows `41,200`. Nothing is held back, and in the page that number is not underlined, because no step made it. The one-liner prints `['41,200']` at 12, `[]` at 100000 and `['7', '3', '41,200']` at 0. At 0 a provenance test fails.
+- **Expected:** with 100000 the answer shows `41,200`. Nothing is held back, and in the page that number is not underlined, because no step made it. The one-liner prints `['41,200']` at 12, `[]` at 100000 and `['7', '3', '41,200']` at 0. At 0 three provenance tests fail.
 - **Why it matters:** the check is a tripwire, and how small a number it ignores decides what slips through.
 
 ### 3.3 Write a scenario of your own (extend it) · 8 min · Model call: yes
@@ -167,7 +167,7 @@ You will see the harness build what is missing instead of making up an answer.
 2. `rm -rf my/var/examples/wedding/modules/monthly_surplus`
 3. `uv run python -m harness ask`. Type: `I take home 10,000 a month and spend 5,000 a month. What is my monthly surplus?`
 4. When it answers, `/quit`. Then `ls my/var/examples/wedding/modules`.
-- **Expected:** progress lines (`writing the spec`, `writing worked examples`, `second pass`, `writing the code`, `running the tests`), then `Step 3 Work out monthly surplus is built and tested.` Then the answer: `Your monthly surplus (step 3) is 5,000.` The folder is back. It took about a minute.
+- **Expected:** progress lines (`writing the spec`, `writing worked examples`, `second pass`, `writing the code`, `running the tests`), then `Step 3 Work out monthly surplus is built and tested.` Then the answer: `Your monthly surplus (step 3) is 5,000.` (the step is named `s3` or `3`; the wording varies) The folder is back. It took about a minute.
 - **Why it matters:** when no tested module can answer, the harness builds and tests one, and does not do the sum itself.
 
 ### 4.2 No more calls (change it) · 8 min · Model call: yes
@@ -175,10 +175,10 @@ You will see the difference between a call that stops and asks, and a question b
 
 1. `uv run python -m workshop at 4`. Save the question below in a file or your clipboard:
 `Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect 150 guests at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due in 21 days, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 5,000 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027. Once you have the results, help me decide what to update first.`
-2. `rm -rf my/var/examples/wedding`, then `uv run python -m harness ask` and send the question. It takes about a minute. You see a numbered list of options. Type `1`. The answer also carries `◌ The guest count stays at 150.` and `Type /confirm, or say what is different.` Then `/quit`.
+2. `rm -rf my/var/examples/wedding`, then `uv run python -m harness ask` and send the question. It takes about a minute. You see a numbered list of options. Type `1`. The answer also carries a `◌` line (for example `The whole monthly surplus is added to the wedding fund each month.`) and `Type /confirm, or say what is different.` Then `/quit`.
 3. In `harness/needs_you/calls.py` change `MAX_DECISIONS = 2` to `MAX_DECISIONS = 0`.
 4. `rm -rf my/var/examples/wedding` and send the same question again.
-- **Expected:** with 0 the answer ends with a sentence like `Next I'll ask you what to update first.` There are no options, and nothing waits for you. Also try `MAX_PERSON_MESSAGES = 1` in `harness/needs_you/side.py`: `/side @s5 What does the fund balance step actually do?` then `/reply And why does it start from the 10,000?` prints `This side thread has reached its limit of 1 messages. Start a new one.`
+- **Expected:** with 0 the answer may list the options in plain text ("I couldn't put it to you as a choice, so these are the options: 1. ...") or end with `Next I'll ask you what to update first.` Either way there are no buttons or prompt, and nothing waits for you. Also try `MAX_PERSON_MESSAGES = 1` in `harness/needs_you/side.py`: `/side @s5 What does the fund balance step actually do?` then `/reply And why does it start from the 10,000?` prints `This side thread has reached its limit of 1 messages. Start a new one.`
 - **Why it matters:** a call that is yours must stop and wait for you, not slip past as a remark.
 
 ### 4.3 A new kind of mark (extend it) · 6 min · Model call: no

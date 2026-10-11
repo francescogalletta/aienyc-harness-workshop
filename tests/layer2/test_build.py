@@ -257,6 +257,16 @@ def test_changed_files_make_the_step_stale(tmp_path, plan, open_session, build):
         gate_call(session, "double", {"total": "1"})
 
 
+def test_a_deleted_module_folder_reads_as_missing_not_as_changed_files(tmp_path, plan, open_session, build):
+    import shutil
+    session = open_session(total_turns() + double_turns())
+    build(session)
+    shutil.rmtree(tmp_path / "modules" / "double")
+    found = step_of(session.state(), "c2")["build"]
+    assert (found["status"], found["reason"]) == ("stale", registry.STALE_MISSING)
+    assert registry.STALE_MISSING == "its folder is missing" != registry.STALE_FILES
+
+
 def test_a_corrected_example_rebuilds_the_code_and_a_disagreement_stops_the_gate(plan, open_session, build):
     session = open_session(total_turns() + double_turns() + [code_turn(TOTAL_CODE)] * 3)
     build(session)

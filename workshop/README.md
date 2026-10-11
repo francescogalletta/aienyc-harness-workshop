@@ -1,6 +1,13 @@
 # Workshop guide
 
+> **Before you arrive** (about ten minutes, on your own laptop)
+> 1. Install [uv](https://docs.astral.sh/uv/) (macOS or Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`) and git.
+> 2. Install Claude Code and sign in with your plan (`claude auth status` should say `"loggedIn": true`), or `export ANTHROPIC_API_KEY=...` and add `--extra claude` after every `uv run`.
+> 3. `git clone https://github.com/francescogalletta/aienyc-harness-workshop && cd aienyc-harness-workshop && uv run python -m harness check` (it should end with `Setup works`).
+
 This is for people taking part. The facilitator's notes are in `FACILITATOR.md`.
+
+Words used here: the **harness** is the program in `harness/`: a core plus five layers. **Step N** (0 to 5) is the harness with layers up to N switched on. A **step in the plan** is a box in the diagram on the page. **The page** is the screen `uv run python -m harness ui` opens in your browser: the plan as a diagram, and a chat beside it. **The example** is the seeded wedding plan.
 
 ## Read this first
 
@@ -12,9 +19,9 @@ The session is not made for building an entirely different harness, or a very di
 
 ## What you need
 
-1. [uv](https://docs.astral.sh/uv/). The root `README.md` has the install line.
-2. Model access: Claude Code signed in with your plan, or an Anthropic API key (see "Set up" in `README.md`).
-3. A check, from the repository root:
+1. git, and [uv](https://docs.astral.sh/uv/), which fetches Python and the packages the first time you run a command (the root `README.md` has the install line, including Windows).
+2. Model access: Claude Code signed in with your plan, or an Anthropic API key (see "Set up" in `README.md`; with a key, add `--extra claude` after `uv run` in every command below). If `ANTHROPIC_API_KEY` is set and you want to use Claude Code, unset it.
+3. The repository cloned (`git clone https://github.com/francescogalletta/aienyc-harness-workshop`) and a terminal open in its folder. Every command below runs from there. A check:
 
 ```
 uv run python -m harness check
@@ -31,7 +38,7 @@ uv run python -m workshop status --quick   # which layers are present and on
 uv run python -m workshop at N             # run this copy as the harness at step N
 ```
 
-`at N` removes and copies nothing. It writes `N` to `my/var/layers`, and `harness` reads it when it starts: stop the page (Ctrl+C) and start it again after `at N`, a reload is not enough. `at 5` is the whole harness. If `HARNESS_LAYERS` is set in your shell, it wins, and `at` says so.
+`at N` removes and copies nothing. It writes `N` to `my/var/layers`, and `harness` reads it when it starts: stop the page (Ctrl+C) and start it again after `at N`, a reload is not enough (`at N` prints a line saying so). `at 5` is the whole harness. If `HARNESS_LAYERS` is set in your shell, it wins, and `at` says so.
 
 ## Three ways to take part
 
@@ -43,7 +50,7 @@ The seeded wedding plan. Nothing you do touches `my/`: the example is copied to 
 
 ```
 uv run python -m workshop at 1
-HARNESS_EXAMPLE=wedding uv run python -m harness ui
+HARNESS_EXAMPLE=wedding uv run python -m harness ui     # PowerShell: $env:HARNESS_EXAMPLE="wedding"; uv run python -m harness ui
 ```
 
 Then `at 2`, `at 3` and so on: stop the page (Ctrl+C), run `at N`, start the page again. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment` (the example is an argument, so `HARNESS_EXAMPLE` is not needed).
@@ -61,7 +68,7 @@ Say what you want help with, answer the questions (or click **Propose the plan n
 
 ### (c) Build a layer's code yourself
 
-You write the code with your own coding agent, one layer at a time. Each step has a contract (`SPEC.md`, `ARCHITECTURE.md`), tests and a build prompt.
+You write the code with your own coding agent (Claude Code, Cursor, or similar), one layer at a time. Each step has a contract (`SPEC.md`, `ARCHITECTURE.md`), tests and a build prompt.
 
 ```
 uv run python -m workshop start 1       # removes layer 1's code and every later layer; keeps the tests

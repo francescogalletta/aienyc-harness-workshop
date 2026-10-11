@@ -95,13 +95,14 @@ in ARCHITECTURE.md section 4. Rules the code must keep:
      "notice"}`);
   2. else the highest enabled layer whose `route` returns a handler gets it,
      as a main-lane job;
-  3. else the harness posts `NO_ROUTE`.
+  3. else the harness posts `NO_ROUTE`, or `NO_ROUTE_PLAN` once a plan is accepted.
 - A job that raises is caught: `error` is set to one line, the event
   `core.job_failed` is recorded, the lane goes on with its next job.
 - **Templates** (posted by the harness):
 
 ```
 NO_ROUTE = "Nothing here can answer that yet."
+NO_ROUTE_PLAN = NO_ROUTE + " At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3."
 WITHHELD = "(The answer was held back, because it held numbers that no tested module produced: {numbers}.)"
 TOO_MANY = "(The harness stopped working on this, because it took too many steps. Try asking in a simpler way.)"
 ```
@@ -396,7 +397,7 @@ and examples.
 A step's fingerprint is the SHA-256 of the canonical JSON of its `kind`,
 `method`, `formula`, `needs`, `produces` and the `what` and `handling` of its
 particulars. `register` stores it. A built step is `stale` when the plan's
-step fingerprint differs from the stored one, or its files changed. The gate
+step fingerprint differs from the stored one, or its files changed or its folder is gone (reasons `its files changed`, `its folder is missing`). The gate
 also refuses a stale module: `STALE = "The step of '{name}' changed in the
 plan, so '{name}' must be built again."` Every other gate rule is kept.
 

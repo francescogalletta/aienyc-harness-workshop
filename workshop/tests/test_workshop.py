@@ -45,7 +45,9 @@ def test_at_writes_the_local_default_and_removes_nothing(project, capsys):
     assert cli.main(["at", "3"]) == 0
     assert (root / "my/var/layers").read_text() == "3\n"
     assert sorted(tree.files_under(root, ".")) == sorted(before + ["my/var/layers"])
-    assert "step 3" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "step 3" in out
+    assert "A page that is already open keeps the old step: stop it (Ctrl+C) and start it again." in out
 
 
 def test_at_tells_when_a_layer_is_not_here_and_when_the_shell_overrides(project, monkeypatch, capsys):

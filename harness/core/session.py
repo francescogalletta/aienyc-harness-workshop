@@ -20,6 +20,8 @@ from . import state as plan_state
 from .lanes import LANES, Job, Lane
 
 NO_ROUTE = "Nothing here can answer that yet."
+NO_ROUTE_PLAN = (NO_ROUTE + " At this step the plan can be read, but not changed or questioned."
+                 " Asking about it arrives at step 3.")
 NOTHING_WAITS = "Nothing is waiting for an answer."
 ACTORS = {"you": "person", "assistant": "agent", "reviewer": "agent", "harness": "harness"}
 WHO = tuple(ACTORS)
@@ -394,7 +396,11 @@ class Session:
                 self.queue("main", lambda work: handler(work, message),
                            what=getattr(handler, "what", "answer"), step=message["step"])
                 return
-        self.post(NO_ROUTE, who="harness")
+        self.post(self._no_route(), who="harness")
+
+    def _no_route(self) -> str:
+        """The reply when no layer takes a message: after a plan is accepted it says what is true at this step."""
+        return NO_ROUTE_PLAN if self.state().get("phase") == "accepted" else NO_ROUTE
 
     def _store_conversation(self, conn) -> str:
         conversation = uuid.uuid4().hex
@@ -463,7 +469,7 @@ class Session:
             if handler is not None:
                 job.what = getattr(handler, "what", "answer")
                 return lambda work: handler(work, message)
-        self.post(NO_ROUTE, who="harness")
+        self.post(self._no_route(), who="harness")
         return None
 
     def _failed(self, conn, what, lane, step, error) -> None:
