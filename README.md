@@ -94,14 +94,15 @@ Then you need model access, one of:
 
 - **Claude Code** installed and signed in with your Claude plan. Check with `claude auth status`. Usage counts against your plan. If `ANTHROPIC_API_KEY` is set in your shell, unset it, or it is used instead.
 - **An Anthropic API key**: `export ANTHROPIC_API_KEY=...`, and run with `uv run --extra claude`.
+- **Codex** (the OpenAI command-line tool) installed and signed in. Check with `codex login status`. Usage counts against your plan. It runs Codex's default model unless `HARNESS_MODEL` names another; web lookups use Wikipedia, as by default.
 
-`HARNESS_MODEL_PROVIDER` can force `claude_code`, `anthropic` or `scripted` (prepared replies, used by every test). The default `auto` picks `anthropic` when a key and the package are present, else `claude_code`. `HARNESS_MODEL` picks the model; the default is `claude-sonnet-5-5`.
+`HARNESS_MODEL_PROVIDER` can force `claude_code`, `anthropic`, `codex` or `scripted` (prepared replies, used by every test). The default `auto` picks `anthropic` when a key and the package are present, else `claude_code`, else `codex`. `HARNESS_MODEL` picks the model; the default is `claude-sonnet-5-5`.
 
 ```
 uv run python -m harness check
 ```
 
-It sends the model a one-line test and should end with `Setup works: the model replied and the check was saved as event 1.` A model reply takes 20 to 60 seconds through Claude Code.
+It sends the model a one-line test and should end with `Setup works: the model replied and the check was saved as event 1.` A model reply takes 20 to 60 seconds through Claude Code or Codex.
 
 ## Use it
 

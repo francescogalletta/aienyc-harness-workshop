@@ -46,7 +46,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - `workshop at 0`, `harness --help`: `check, events, ui, replay`. `harness check` (3 to 5 s here; up to a minute on a slow link), then `harness events`: one line, `core.check`.
 - Page: `HARNESS_DB=my/var/shell.db harness ui`. Empty. Type "I want to pay for my wedding": the reply is "Nothing here can answer that yet." at once (1/1). Say: the core takes the message and no layer wants it. (Once a plan is accepted the same reply goes on: "At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3.") Use the throwaway database so block 1's empty page stays empty.
 - Attendees: all run `harness check`. Path (c) reads `SPEC.md` section 1 and the first ten lines of `ARCHITECTURE.md`.
-- If it goes wrong: sign-in (`claude auth status`, `claude update`), `ANTHROPIC_API_KEY` set by mistake (unset it). Fallback: `workshop/fallback/open.sh 0-setup`.
+- If it goes wrong: sign-in (`claude auth status`, `claude update`; with Codex, `codex login status`), `ANTHROPIC_API_KEY` set by mistake (unset it). Fallback: `workshop/fallback/open.sh 0-setup`.
 
 ### Block 1: the plan (18 min)
 

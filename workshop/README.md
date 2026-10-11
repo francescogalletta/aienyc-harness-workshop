@@ -2,7 +2,7 @@
 
 > **Before you arrive** (about ten minutes, on your own laptop)
 > 1. Install [uv](https://docs.astral.sh/uv/) (macOS or Linux: `curl -LsSf https://astral.sh/uv/install.sh | sh`) and git.
-> 2. Install Claude Code and sign in with your plan (`claude auth status` should say `"loggedIn": true`), or `export ANTHROPIC_API_KEY=...` and add `--extra claude` after every `uv run`.
+> 2. Install Claude Code and sign in with your plan (`claude auth status` should say `"loggedIn": true`), or `export ANTHROPIC_API_KEY=...` and add `--extra claude` after every `uv run`, or install Codex and sign in (`codex login status`).
 > 3. `git clone https://github.com/francescogalletta/aienyc-harness-workshop && cd aienyc-harness-workshop && uv run python -m harness check` (it should end with `Setup works`).
 
 This is for people taking part. The facilitator's notes are in `FACILITATOR.md`.
@@ -20,7 +20,7 @@ The session is not made for building an entirely different harness, or a very di
 ## What you need
 
 1. git, and [uv](https://docs.astral.sh/uv/), which fetches Python and the packages the first time you run a command (the root `README.md` has the install line, including Windows).
-2. Model access: Claude Code signed in with your plan, or an Anthropic API key (see "Set up" in `README.md`; with a key, add `--extra claude` after `uv run` in every command below). If `ANTHROPIC_API_KEY` is set and you want to use Claude Code, unset it.
+2. Model access: Claude Code signed in with your plan, an Anthropic API key, or Codex signed in (see "Set up" in `README.md`; with a key, add `--extra claude` after `uv run` in every command below). If `ANTHROPIC_API_KEY` is set and you want to use Claude Code, unset it.
 3. The repository cloned (`git clone https://github.com/francescogalletta/aienyc-harness-workshop`) and a terminal open in its folder. Every command below runs from there. A check:
 
 ```
