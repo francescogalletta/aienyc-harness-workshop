@@ -195,4 +195,4 @@ id = "g-draw"
 name = "Draw-on"
 layout = "figure"
 label = "DRAW · ANY INLINE SVG STROKES IN AT ITS OWN STEPS"
-figure = { viz = "draw", svg = "sketch.svg", label = "How we got here: from the principles to an example, past a harness builder and a UI" }
+figure = { viz = "draw", svg = "sample-draw.svg", label = "Three boxes joined by two arrows: input, process, output" }

@@ -28,14 +28,11 @@
   --nord5: #e5e9f0;
   --nord6: #eceff4;
   --nord7: #8fbcbb;
-  --nord8: #88c0d0;
   --nord9: #81a1c1;
   --nord10: #5e81ac;
   --nord11: #bf616a;
-  --nord12: #d08770;
   --nord13: #ebcb8b;
   --nord14: #a3be8c;
-  --nord15: #b48ead;
   --nord3-lift: #687388;      /* deviation */
   --nord3-muted: #909cb2;     /* deviation */
   --nord11-fill: #ab4f59;     /* deviation: carries nord6 text */
@@ -87,7 +84,7 @@
   --diagram-quiet: var(--nord3-muted);
   --progress-fill: var(--nord9);
   --strike-color: var(--nord4);
-  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers */
   --viz-series-3: var(--principle-3);
   --viz-series-4: var(--principle-2);
   --viz-series-5: var(--principle-5);

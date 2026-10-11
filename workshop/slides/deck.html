@@ -26,7 +26,6 @@ img { max-width: 100%; }
 
   /* Type scale. Every size multiplies by --type-scale: one knob for all type. */
   --type-scale: 1;
-  --fs-3xs: calc(12px * var(--type-scale));
   --fs-2xs: calc(30px * var(--type-scale));
   --fs-xs: calc(32px * var(--type-scale));
   --fs-s: calc(36px * var(--type-scale));
@@ -75,7 +74,6 @@ img { max-width: 100%; }
 
   /* Motion. Deck motion is OFF (data-motion on #stage); these still drive the
      handwritten-aside pop and anything switched back on. */
-  --dur-fast: 120ms;
   --dur-base: 200ms;
   --dur-slow: 360ms;
   --dur-draw: 500ms;
@@ -309,18 +307,8 @@ img { max-width: 100%; }
   --grid-pad-x: 36px;
   --grid-size: calc(44px * var(--type-scale));
 
-  /* Flow (the structure slide) */
-  --flow-slot-h: 200px;
-  --flow-tint-h: 260px;
-  --flow-arrow-h: 16px;
-  --flow-item-gap: var(--space-s);
-  --flow-node-pad-y: 24px;
-  --flow-node-pad-x: 18px;
-  --flow-node-gap: 10px;
+  /* Pills at the ends of the structure slide */
   --flow-pill-pad-x: 20px;
-  --node-num-size: var(--fs-2xl);
-  --node-name-size: calc(34px * var(--type-scale));
-  --node-emoji-size: var(--fs-2xl);
   --stair-base: 128px;
   --stair-rise: 46px;
   --stair-tread: var(--stroke-heavy);
@@ -425,8 +413,7 @@ img { max-width: 100%; }
    line above to the end of this file otherwise, so a deck without charts is
    unchanged. All derived from the roles above; a theme may override any. */
 :root {
-  /* series: the principle hues, reordered so neighbours stay apart for colour-blind
-     readers (docs/visuals.md has the validator results) */
+  /* series: the principle hues, reordered so neighbours stay apart for colour-blind readers */
   --viz-series-1: var(--principle-1);
   --viz-series-2: var(--principle-4);
   --viz-series-3: var(--principle-2);
@@ -483,7 +470,6 @@ img { max-width: 100%; }
   --viz-ring-width: var(--stroke);
 
   --viz-dur: var(--dur-slow);
-  --viz-dur-draw: var(--dur-draw);
   --viz-dur-line: 900ms;
   --viz-dur-travel: 2400ms;
   --viz-dur-count: 1200ms;
@@ -522,14 +508,11 @@ img { max-width: 100%; }
   --nord5: #e5e9f0;
   --nord6: #eceff4;
   --nord7: #8fbcbb;
-  --nord8: #88c0d0;
   --nord9: #81a1c1;
   --nord10: #5e81ac;
   --nord11: #bf616a;
-  --nord12: #d08770;
   --nord13: #ebcb8b;
   --nord14: #a3be8c;
-  --nord15: #b48ead;
   --nord3-lift: #687388;      /* deviation */
   --nord3-muted: #909cb2;     /* deviation */
   --nord11-fill: #ab4f59;     /* deviation: carries nord6 text */
@@ -581,7 +564,7 @@ img { max-width: 100%; }
   --diagram-quiet: var(--nord3-muted);
   --progress-fill: var(--nord9);
   --strike-color: var(--nord4);
-  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers (docs/visuals.md) */
+  /* chart series: principles 1, 4, 3, 2, 5, so neighbours stay apart for colour-blind readers */
   --viz-series-3: var(--principle-3);
   --viz-series-4: var(--principle-2);
   --viz-series-5: var(--principle-5);
@@ -780,7 +763,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .panel.from-you { border-radius: var(--panel-open-radius); padding: var(--panel-open-pad-y) var(--panel-open-pad-x); }
 .row { display: flex; align-items: center; gap: var(--row-gap); }
 
-/* flow arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
+/* arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
 .arrow { flex: none; overflow: visible; fill: none; stroke: var(--connector); stroke-width: var(--connector-width); stroke-linecap: round; }
 .arrow .h { fill: var(--connector); stroke: none; }
 .arrow .l { stroke-dasharray: 100; stroke-dashoffset: 0; }
@@ -838,7 +821,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 }
 .muted { color: var(--text-muted); }
 
-/* ---------- Hand-drawn diagram (inline SVG from src/assets/sketch.svg) ---------- */
+/* ---------- Hand-drawn diagram (an inline SVG from src/assets, e.g. sample-draw.svg) ---------- */
 .sketch { display: block; width: 100%; height: auto; overflow: visible; }
 .sketch .ln { fill: none; stroke: var(--diagram-stroke); stroke-width: var(--diagram-stroke-width); stroke-linecap: round; stroke-linejoin: round; }
 .sketch .ln.tick { stroke: var(--diagram-quiet); stroke-width: var(--diagram-tick-width); }
@@ -921,22 +904,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .tree-line-text { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
 .tree-line .command { padding: var(--tree-command-pad-y) var(--tree-command-pad-x); }
 
-/* ---------- Flow (the structure slide) ---------- */
-.flow { display: flex; align-items: flex-start; width: 100%; }
-.flow:has(.tint) { --flow-slot-h: var(--flow-tint-h); }
-.flow-item { display: flex; flex-direction: column; align-items: center; gap: var(--flow-item-gap); flex: none; }
-.flow-item.grow { flex: 1 1 0; min-width: min-content; }
-.flow-slot { height: var(--flow-slot-h); display: flex; align-items: center; width: 100%; justify-content: center; }
+/* ---------- Pills at the ends of the structure slide ---------- */
 .flow-node { display: flex; flex-direction: column; font-weight: var(--weight-strong); }
-.flow-node.step {
-  width: 100%; height: var(--flow-slot-h); padding: var(--flow-node-pad-y) var(--flow-node-pad-x); gap: var(--flow-node-gap);
-  justify-content: flex-start;
-}
 .flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
-.node-num { font-family: var(--label-font); font-size: var(--node-num-size); line-height: 1; }
-.node-name { font-size: var(--node-name-size); line-height: 1.15; }
-.flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
-.flow-node.step.tint { background: var(--c); color: var(--oc); box-shadow: none; position: relative; }
 
 /* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
 .stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--hairline); }
@@ -978,7 +948,6 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--hairline); }
 .tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--ci, var(--c)); }
 .tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }
 .p-emoji { font-family: var(--emoji-font); font-size: var(--divider-emoji-size); line-height: 1; align-self: center; }
@@ -1094,7 +1063,6 @@ figure.viz { align-self: stretch; }
 .viz-svg { display: block; overflow: visible; max-width: 100%; height: auto; }
 .viz-sr { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .viz-anchor { position: absolute; width: 0; height: 0; overflow: hidden; }
-.viz-choreo { display: none; }
 
 /* text */
 .viz .viz-label { font-size: var(--viz-label-size); fill: var(--viz-label); }
@@ -1147,9 +1115,6 @@ figure.viz { align-self: stretch; }
 .viz-marks { position: absolute; left: 0; top: 0; width: var(--stage-w); height: var(--stage-h); overflow: visible; pointer-events: none; }
 .viz-marks .viz-mark :is(ellipse, path, rect) { fill: none; stroke: var(--viz-annotate); stroke-width: var(--viz-annotate-width); stroke-linecap: round; stroke-linejoin: round; }
 .viz-marks .viz-mark-note { fill: var(--viz-annotate); }
-
-/* ECharts host */
-.viz-echarts-host { display: block; }
 
 /* ---------- motion ---------- */
 .viz-ink { stroke-dasharray: 1; stroke-dashoffset: 0; }
@@ -1878,11 +1843,10 @@ figure.viz { align-self: stretch; }
   }
 
   /* viz.js: the visuals kit. Draws <figure class="viz" data-viz="…" data-spec="{json}"> as inline SVG.
-     No dependencies. Optional shelf libraries, inlined by the build only when a slide asks:
-     window.rough (style = "rough"), window.echarts (viz = "echarts"), window.anime (choreo).
+     No dependencies. Rough.js (window.rough, style = "rough") is inlined by the build only when a slide asks.
 
      - Colours are written as CSS classes reading --viz-* tokens, so light/dark/theme switches repaint
-       with no JS. Rough.js and ECharts need concrete colours: they redraw on a theme change.
+       with no JS. Rough.js needs concrete colours: rough figures redraw on a theme change.
      - Build steps: drawn parts carry data-step, so the deck's own engine shows them (.shown) and
        counts them. Motion is CSS keyed on .shown; JS (Web Animations / rAF) only for the travel
        marker and count-up. Entering a slide (.instant) or prefers-reduced-motion shows end states. */
@@ -1930,11 +1894,6 @@ figure.viz { align-self: stretch; }
     }
     function compact(v) { return Math.abs(v) >= 1000 ? (v / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 }) + 'k' : String(v); }
     function niceMax(v) { var p = Math.pow(10, Math.floor(Math.log10(v || 1))), m = v / p; return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p; }
-    /* resolve a CSS value (e.g. a size token holding calc()) by measuring a probe inside the figure */
-    function cssPx(fig, prop, value) {
-      var p = doc.createElement('span'); p.style.position = 'absolute'; p.style.visibility = 'hidden'; p.style[prop] = value;
-      fig.appendChild(p); var v = parseFloat(getComputedStyle(p)[prop]); p.remove(); return v;
-    }
     function svgFor(fig, w, h) {
       return el('svg', { 'class': 'viz-svg', viewBox: '0 0 ' + w + ' ' + h, width: w, height: h, 'aria-hidden': 'true', focusable: 'false' }, fig);
     }
@@ -2300,85 +2259,13 @@ figure.viz { align-self: stretch; }
       });
     };
 
-    /* ---------- ECharts adapter (window.echarts, SVG renderer) ---------- */
-    function merge(a, b) {
-      if (Array.isArray(b) || typeof b !== 'object' || b === null) return b;
-      var out = {}; var k;
-      for (k in a) out[k] = a[k];
-      for (k in b) out[k] = (k in out && typeof out[k] === 'object' && !Array.isArray(out[k])) ? merge(out[k], b[k]) : b[k];
-      return out;
-    }
-    function echartsDefaults(fig) {
-      var size = cssPx(fig, 'fontSize', 'var(--viz-label-size)'), fam = getComputedStyle(fig).fontFamily;
-      var text = tok('--viz-text'), muted = tok('--viz-muted'), grid = tok('--viz-grid'), axis = tok('--viz-axis');
-      var axisDef = { axisLine: { lineStyle: { color: axis, width: num('--viz-stroke', 3) } }, axisTick: { show: false }, axisLabel: { color: muted, fontSize: size, fontFamily: fam, margin: 18 },
-        splitLine: { lineStyle: { color: grid, width: num('--viz-hair', 2) } }, nameTextStyle: { color: muted, fontSize: size, fontFamily: fam } };
-      return {
-        backgroundColor: 'transparent', animation: !reduce() && fig._spec.animate !== false, animationDuration: ms('--viz-dur-draw', 500) * 1.6,
-        color: [1, 2, 3, 4, 5].map(function (i) { return tok('--viz-series-' + i); }),
-        textStyle: { fontFamily: fam, fontSize: size, color: text },
-        grid: { left: 130, right: 40, top: 70, bottom: 80 },
-        legend: { textStyle: { color: text, fontSize: size, fontFamily: fam }, itemWidth: 44, itemHeight: 10, top: 0 },
-        tooltip: { show: false },
-        xAxis: axisDef, yAxis: merge(axisDef, { axisLine: { show: false } }),
-        _axis: axisDef
-      };
-    }
-    KINDS.echarts = function (fig, spec) {
-      if (!window.echarts) return;
-      var host = fig.querySelector('.viz-echarts-host');
-      if (!host) { host = doc.createElement('div'); host.className = 'viz-echarts-host'; fig.appendChild(host); }
-      var W = spec.width || 1640, H = spec.height || 560;
-      host.style.width = W + 'px'; host.style.height = H + 'px';
-      if (fig._chart) { fig._chart.dispose(); }
-      var chart = window.echarts.init(host, null, { renderer: 'svg', width: W, height: H });
-      fig._chart = chart;
-      function option(shown, animate) {
-        var d = echartsDefaults(fig), o = spec.option, axisDef = d._axis; delete d._axis;
-        var m = merge(d, o);
-        ['xAxis', 'yAxis'].forEach(function (ax) { if (Array.isArray(o[ax])) m[ax] = o[ax].map(function (a) { return merge(axisDef, a); }); });
-        if (!animate) m.animation = false;
-        if (!shown) m.series = (m.series || []).map(function (s) { return merge(s, { data: (s.data || []).map(function () { return null; }) }); });
-        return m;
-      }
-      var state = { shown: !spec.step };
-      chart.setOption(option(state.shown, false), true);
-      fig._retheme = function () { chart.setOption(option(state.shown, false), true); };
-      if (spec.step) anchor(fig, spec.step, function (on, animate) { state.shown = on; chart.setOption(option(on, animate), true); });
-    };
-
-    /* ---------- choreography (window.anime): run a timeline on a step, undo it stepping back ---------- */
-    KINDS.choreo = function (node, spec) {
-      var A = window.anime; if (!A) return;
-      var slide = slideOf(node) || doc, parts = spec.parts || [spec], running = null;
-      var targets = function (p) { return slide.querySelectorAll(p.targets); };
-      function setAll(which) { parts.forEach(function (p) { var t = targets(p); if (t.length && p[which]) A.utils.set(t, p[which]); }); }
-      setAll('from');
-      node._play = function (on, animate) {
-        if (running) { running.pause(); running = null; }
-        if (!on) { setAll('from'); return; }
-        if (!animate) { setAll('to'); return; }
-        var tl = A.createTimeline({ defaults: { ease: spec.ease || 'outExpo' } });
-        parts.forEach(function (p) {
-          var props = {}, k;
-          for (k in p.to) props[k] = [p.from && k in p.from ? p.from[k] : p.to[k], p.to[k]];
-          props.duration = p.duration || spec.duration || ms('--viz-dur-draw', 500) * 1.4;
-          if (p.stagger || spec.stagger) props.delay = A.stagger(p.stagger || spec.stagger);
-          if (p.ease) props.ease = p.ease;
-          tl.add(targets(p), props, p.at == null ? undefined : p.at);
-        });
-        running = tl;
-      };
-      if (!node._watched) { node._watched = true; node._on = false; node._animate = spec.animate !== false; observer.observe(node, { attributes: true, attributeFilter: ['class'] }); }
-    };
-
     /* ---------- drawing everything ---------- */
     function drawOne(fig) {
       var kind = fig.getAttribute('data-viz'), fn = KINDS[kind]; if (!fn) return;
       var spec = fig._spec || (fig._spec = JSON.parse(fig.getAttribute('data-spec') || '{}'));
       var slide = slideOf(fig), step = slide && slide.classList.contains('active') ? currentStep(slide) : null;  /* before old parts go */
       if (spec.animate === false) fig.classList.add('viz-still');
-      if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo' && kind !== 'mark') {
+      if (kind !== 'count' && kind !== 'draw' && kind !== 'mark') {
         fig.querySelectorAll('.viz-svg, .viz-anchor').forEach(function (n) { n.remove(); });
       }
       fn(fig, spec);
@@ -2389,8 +2276,7 @@ figure.viz { align-self: stretch; }
                              draw time, and a look can change any of them: redraw every SVG figure */
       doc.querySelectorAll('[data-viz]').forEach(function (f) {
         var kind = f.getAttribute('data-viz');
-        if (f._retheme) { f._retheme(); return; }
-        if (kind !== 'count' && kind !== 'draw' && kind !== 'echarts' && kind !== 'choreo') drawOne(f);
+        if (kind !== 'count' && kind !== 'draw') drawOne(f);
       });
     }
     function remark() { doc.querySelectorAll('[data-viz="mark"]').forEach(drawOne); }

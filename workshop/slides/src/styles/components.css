@@ -36,7 +36,7 @@
 .panel.from-you { border-radius: var(--panel-open-radius); padding: var(--panel-open-pad-y) var(--panel-open-pad-x); }
 .row { display: flex; align-items: center; gap: var(--row-gap); }
 
-/* flow arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
+/* arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
 .arrow { flex: none; overflow: visible; fill: none; stroke: var(--connector); stroke-width: var(--connector-width); stroke-linecap: round; }
 .arrow .h { fill: var(--connector); stroke: none; }
 .arrow .l { stroke-dasharray: 100; stroke-dashoffset: 0; }
@@ -94,7 +94,7 @@
 }
 .muted { color: var(--text-muted); }
 
-/* ---------- Hand-drawn diagram (inline SVG from src/assets/sketch.svg) ---------- */
+/* ---------- Hand-drawn diagram (an inline SVG from src/assets, e.g. sample-draw.svg) ---------- */
 .sketch { display: block; width: 100%; height: auto; overflow: visible; }
 .sketch .ln { fill: none; stroke: var(--diagram-stroke); stroke-width: var(--diagram-stroke-width); stroke-linecap: round; stroke-linejoin: round; }
 .sketch .ln.tick { stroke: var(--diagram-quiet); stroke-width: var(--diagram-tick-width); }
@@ -177,22 +177,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .tree-line-text { font-size: var(--tree-gloss-size); color: var(--text-quiet); }
 .tree-line .command { padding: var(--tree-command-pad-y) var(--tree-command-pad-x); }
 
-/* ---------- Flow (the structure slide) ---------- */
-.flow { display: flex; align-items: flex-start; width: 100%; }
-.flow:has(.tint) { --flow-slot-h: var(--flow-tint-h); }
-.flow-item { display: flex; flex-direction: column; align-items: center; gap: var(--flow-item-gap); flex: none; }
-.flow-item.grow { flex: 1 1 0; min-width: min-content; }
-.flow-slot { height: var(--flow-slot-h); display: flex; align-items: center; width: 100%; justify-content: center; }
+/* ---------- Pills at the ends of the structure slide ---------- */
 .flow-node { display: flex; flex-direction: column; font-weight: var(--weight-strong); }
-.flow-node.step {
-  width: 100%; height: var(--flow-slot-h); padding: var(--flow-node-pad-y) var(--flow-node-pad-x); gap: var(--flow-node-gap);
-  justify-content: flex-start;
-}
 .flow-node.pill { font-weight: var(--weight-regular); padding: 0 var(--flow-pill-pad-x); flex-direction: row; align-items: center; }
-.node-num { font-family: var(--label-font); font-size: var(--node-num-size); line-height: 1; }
-.node-name { font-size: var(--node-name-size); line-height: 1.15; }
-.flow .arrow { width: 30px; height: var(--flow-arrow-h); margin: calc((var(--flow-slot-h) - var(--flow-arrow-h)) / 2) var(--space-3xs) 0; }
-.flow-node.step.tint { background: var(--c); color: var(--oc); box-shadow: none; position: relative; }
 
 /* Structure variants: stairs, layers, timeline (the same five principles, each building on the one before) */
 .stairs { position: relative; display: flex; align-items: flex-end; width: 100%; padding-top: calc(var(--pill-h) + var(--space-xs)); border-bottom: var(--stroke-hair) solid var(--hairline); }
@@ -234,7 +221,6 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--hairline); }
 .tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--ci, var(--c)); }
 .tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
-.node-emoji { font-family: var(--emoji-font); font-size: var(--node-emoji-size); line-height: 1; position: absolute; top: 22px; right: 18px; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }
 .p-emoji { font-family: var(--emoji-font); font-size: var(--divider-emoji-size); line-height: 1; align-self: center; }
