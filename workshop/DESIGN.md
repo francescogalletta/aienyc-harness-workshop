@@ -28,7 +28,7 @@ and with git.
 | `__main__.py` | The commands and their messages, and the table written to `STEPS.md` |
 | `STEPS.md` | The six steps in one table, generated from the manifest |
 | `tests/` | The tool's own tests: `uv run pytest workshop/tests` (not part of `uv run pytest`) |
-| `README.md`, `FACILITATOR.md`, `BUILD_PLAN.md`, `prompts/` | Guides for people; not read by the tool |
+| `README.md`, `EXERCISES.md`, `FACILITATOR.md`, `BUILD_PLAN.md`, `prompts/`, `slides/`, `fallback/` | Guides, exercises, build prompts, the slide deck and the no-model fallbacks, for people; not read by the tool |
 
 ## The manifest
 
@@ -71,7 +71,7 @@ Three states for each step N from 0 to 5 (18 lines):
 Each folder is run by its own pytest, because two `tests/layer*` folders in one run share the name
 `conftest`. Copies leave out `.git`, `my/var`, `my/brief` and `my/modules`. States run four at a time.
 One line per state; exit 1 on any surprise, on a manifest that disagrees with the tree and on a stale
-`STEPS.md`. With two cores it takes about four minutes.
+`STEPS.md`. It takes about five minutes.
 
 A failure of "layers<=N only" or "HARNESS_LAYERS=N" is a finding about layering (section 7: a test of
 layer K must hold in any later tree, and in an earlier one with its own layer): fix the test or move it
@@ -79,6 +79,6 @@ to the layer it belongs to.
 
 ## Not done
 
-- `next` of version 1 is gone: `at N` is the follower's switch, `finish N` the catch-up.
+- There is no `next` command: `at N` is the follower's switch, `finish N` the catch-up.
 - Tests of layers above N stay after `start N` and fail until their layer exists; run
   `uv run pytest tests/layerN`, as `STEPS.md` says.

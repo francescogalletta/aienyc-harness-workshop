@@ -1,8 +1,8 @@
 # Facilitator notes
 
-Rehearsed block by block on 11 October 2026 against the real model, driving the page in a browser, and run through once more on the final code (the two layer 4 safeguards in). Times are what the room waits. "n/n" is how often a moment came out as written. `harness ...` is `uv run python -m harness ...`; `workshop ...` is `uv run python -m workshop ...`. Slides are elsewhere.
+Times are what the room waits, measured against the real model, driving the page in a browser. "n/n" is how often a moment came out as written in rehearsal. `harness ...` is `uv run python -m harness ...`; `workshop ...` is `uv run python -m workshop ...`. The slides are in `workshop/slides/`: open the built deck `workshop/slides/deck.html` in a browser (`workshop/slides/README.md` says how to rebuild it).
 
-Three rules that cost a rehearsal each:
+Three rules worth knowing before you start:
 
 - **The page reads the step when it starts.** After `workshop at N`, stop the page (Ctrl+C) and start it again. A reload shows the old step. `workshop at N` prints a line saying so; say it aloud too.
 - **The example copy keeps your last run** (`my/var/examples/wedding`). Delete it, then start the page, to begin a block clean. The page without an example keeps its interview in `my/var/harness.db` and `my/var/grounding_state.json`: delete both for an empty page.
@@ -26,10 +26,10 @@ Spare 10 minutes: 1:50 to 2:00. If behind, cut in this order: the live interview
 
 ```
 git pull --ff-only && git status -sb                          # "## main...origin/main", no changes
-uv run pytest -q                                              # every test passes ("551 passed" on the final code, about 60 s)
-uv run python -m workshop check                               # last line "Nothing surprised." (3 to 5 minutes; start it, then do the rest in another terminal)
+uv run pytest -q                                              # every test passes (several hundred, under a minute)
+uv run python -m workshop check                               # last line "Nothing surprised." (about five minutes; start it, then do the rest in another terminal)
 claude auth status | grep loggedIn; env | grep ANTHROPIC_API_KEY   # "loggedIn": true; the second prints nothing
-uv run python -m harness check                                # "Setup works: the model replied and the check was saved as event N." (3 s)
+uv run python -m harness check                                # "Setup works: the model replied and the check was saved as event N." (a few seconds, up to a minute)
 uv run python -m harness replay wedding cover_each_payment    # "PASS wedding/cover_each_payment (layer 3) 45 to 52 s" (about 1 minute)
 workshop/fallback/open.sh 3-answers                           # "Kept run 3-answers at layer 3: http://127.0.0.1:8765/": open it, see 54,500 on step 1 and underlined numbers in the chat, Ctrl+C
 rm -rf my/var/examples/wedding my/var/harness.db* my/var/grounding_state.json my/var/fallback my/var/replay
@@ -43,7 +43,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 0: setup (10 min)
 
 - Principle: one core owns the conversation, three lanes and the plan state; the model is one swappable interface.
-- `workshop at 0`, `harness --help`: `check, events, ui, replay`. `harness check` (3 to 5 s here; up to a minute on a slow link), then `harness events`: one line, `core.check`.
+- `workshop at 0`, `harness --help`: `check, events, ui, replay`. `harness check` (a few seconds, up to a minute on a first run or a slow link), then `harness events`: one line, `core.check`.
 - Page: `HARNESS_DB=my/var/shell.db harness ui`. Empty. Type "I want to pay for my wedding": the reply is "Nothing here can answer that yet." at once (1/1). Say: the core takes the message and no layer wants it. (Once a plan is accepted the same reply goes on: "At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3.") Use the throwaway database so block 1's empty page stays empty.
 - Attendees: all run `harness check`. Path (c) reads `SPEC.md` section 1 and the first ten lines of `ARCHITECTURE.md`.
 - If it goes wrong: sign-in (`claude auth status`, `claude update`), `ANTHROPIC_API_KEY` set by mistake (unset it). Fallback: `workshop/fallback/open.sh 0-setup`.
@@ -75,8 +75,8 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 
   `Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due on 1 November 2026, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 8,500 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027.`
 
-- Wait 53 to 68 s (2/2 on the final code; 54 s each). Say what the analyst is doing: it runs the modules, the number check holds back anything no step made. Answer: totals 43,000 and 54,500, payments 18,500 and 24,250, surplus 1,500; on 12 October the 200-guest shortfall at payment 2 is 9,750 (4/4) and 4,000 for 150 guests.
-- Click an underlined number (54,500): step 1 is selected, its pop-up shows "In the last answer ... Came out 54,500", steps not used fade. Then type `What if my families give nothing?`: 20 to 60 s (27 s on the final run, with step 1 still selected), payment 3 now short by 22,500 and 34,000.
+- Wait 53 to 68 s (2/2). Say what the analyst is doing: it runs the modules, the number check holds back anything no step made. Answer: totals 43,000 and 54,500, payments 18,500 and 24,250, surplus 1,500; on 12 October the 200-guest shortfall at payment 2 is 9,750 (4/4) and 4,000 for 150 guests.
+- Click an underlined number (54,500): step 1 is selected, its pop-up shows "In the last answer ... Came out 54,500", steps not used fade. Then type `What if my families give nothing?`: 20 to 60 s (with step 1 still selected), payment 3 now short by 22,500 and 34,000.
 - Attendees: (a) ask it, change the guest range. (b) ask about their plan, built first. (c) `prompts/step3_answers.md`, `uv run pytest tests/layer3 -q`.
 - If it goes wrong: `replay wedding cover_each_payment` (51 s, PASS; fixes its date so 5,250 shows). No model: `open.sh 3-answers` (underlines, 5,250); the before is `open.sh 3-answers 8765 2`.
 
@@ -84,16 +84,16 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 
 - Principle: assumptions run and are marked; only a call that is the person's stops.
 - `workshop at 4`, restart the page on a fresh copy (`rm -rf my/var/examples/wedding`).
-- Marks: paste `What are my three wedding payments? The wedding is on 12 June 2027. I expect 150 guests at 230 each for dinner, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due on 1 November 2026. The second and third are shares of what remains, due 30 days and 14 days before the wedding.` After 25 to 30 s (1/1 on the final code, 4/4 before it; the first reply is refused once and redone when it uses an input you never gave, and the redo lists it as an assumption) the answer has `◌ This rests on 2 or 3 things`: the 50/50 split, the 6,000 counting toward the total, and often the first payment taken as "21 days from today" (you gave a date, the module wants days; read it out, it is true to 1 November). One Confirm takes all of them. Click **Confirm** (instant). Then type `On second thought, the second payment is 40% of what remains, and the third is the other 60%.`: 12 to 13 s (3/3), 14,800 and 22,200. After Confirm there is no Change it button; just type.
-- Your call: fresh copy, restart, paste the block 3 sentence with ` Once you have the results, help me decide what to update first.` added. After 55 to 75 s (64, 66 and 71 s on the final run: a reply that leaves the call in prose is sent back once, and a run input never given is refused once; 3/3 asked with buttons) step 7 asks with four buttons, whose words differ each time; pick one: 9 s later step 7 reads "Decided"; open it: "You chose: ...". The reply to your pick carries a new `◌`; ignore it.
-- Side thread: ask any question, then at once click **On the side** and type `What is a sinking fund?`. The side answer arrives while the main one runs; nothing changes. It answers from the plan's glossary and offers to look it up; it did not look it up (1/1 on the final code). The answer takes about 6 s.
+- Marks: paste `What are my three wedding payments? The wedding is on 12 June 2027. I expect 150 guests at 230 each for dinner, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due on 1 November 2026. The second and third are shares of what remains, due 30 days and 14 days before the wedding.` After 25 to 30 s (5/5; the first reply is refused once and redone when it uses an input you never gave, and the redo lists it as an assumption) the answer has `◌ This rests on 2 or 3 things`: the 50/50 split, the 6,000 counting toward the total, and often the first payment taken as "21 days from today" (you gave a date, the module wants days; read it out, it is true to 1 November). One Confirm takes all of them. Click **Confirm** (instant). Then type `On second thought, the second payment is 40% of what remains, and the third is the other 60%.`: 12 to 13 s (3/3), 14,800 and 22,200. After Confirm there is no Change it button; just type.
+- Your call: fresh copy, restart, paste the block 3 sentence with ` Once you have the results, help me decide what to update first.` added. After 55 to 75 s (a reply that leaves the call in prose is sent back once, and a run input never given is refused once; 3/3 asked with buttons) step 7 asks with four buttons, whose words differ each time; pick one: 9 s later step 7 reads "Decided"; open it: "You chose: ...". The reply to your pick carries a new `◌`; ignore it.
+- Side thread: ask any question, then at once click **On the side** and type `What is a sinking fund?`. The side answer arrives while the main one runs; nothing changes. It answers from the plan's glossary and offers to look it up; it did not look it up (1/1). The answer takes about 6 s.
 - Attendees: (a) as shown. (b) their plan. (c) `prompts/step4_needs_you.md`, `uv run pytest tests/layer4 -q`.
 - If it goes wrong: no `◌`, say the model chose no assumption, rephrase (0 misses in 4). No buttons after 90 s: `open.sh 4-call` (replay `decide_what_to_update` passed 1 of 3, so do not rely on it). No model: `open.sh 4-marks` shows `◌` open; `open.sh 4-marks-corrected` the 14,800 and 22,200.
 
 ### Block 5: review (12 min)
 
 - Principle: someone other than the analyst looks at how the problem is being thought about.
-- `workshop at 5`, restart the page. The reviewer runs on open: **Reviewing**, then `Review · 2` or `Review · 3` after 8 to 15 s (1/1 on the final code). Steps carry `▲`. Click **Review**: one line per challenge with **Use this**, **Dismiss**, **Open thread**. A challenge that is only a question has no Use this: pick another.
+- `workshop at 5`, restart the page. The reviewer runs on open: **Reviewing**, then `Review · 2` or `Review · 3` after 8 to 15 s (1/1). Steps carry `▲`. Click **Review**: one line per challenge with **Use this**, **Dismiss**, **Open thread**. A challenge that is only a question has no Use this: pick another.
 - Click Use this on one: the analyst replies in 9 to 10 s (it asks for inputs not saved yet). Dismiss the other: the line closes. Threads show "used" and "dismissed".
 - Attendees: (a) as shown. (c) `prompts/step5_review.md`, `uv run pytest tests/layer5 -q`.
 - If it goes wrong: nothing raised, send the block 4 marks sentence for a second pass. Outside lookups need Wikipedia; challenges then carry no source. No model: `open.sh 5-review`, before: `open.sh 5-review 8765 4`.
@@ -108,7 +108,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 
 ## Known rough edges
 
-- Timings measured: check 3 s, short reply 10 to 15 s, a full answer 50 to 75 s, rebuild of one step 25 to 35 s, a whole 4-step build 200 s, reviewer 8 to 15 s, `replay` per scenario 27 to 99 s (all six in a row: 5 min 16 s, 6 of 6 passed).
+- Timings measured: check a few seconds (up to a minute on a first run), short reply 10 to 15 s, a full answer 50 to 75 s, rebuild of one step 25 to 35 s, a whole 4-step build 200 s, reviewer 8 to 15 s, `replay` per scenario 27 to 99 s (all six in a row: 5 min 16 s, 6 of 6 passed).
 - Marks are only as complete as the analyst's list; the mark appeared 4/4 here. The side assistant offers a lookup, it does not make one.
 - The seeded examples' worked examples were recomputed by an AI agent, not by a person.
 - Two layer 4 safeguards can re-do a reply before you see it (a call left in prose; a run input you never gave and no assumption lists). They add 5 to 15 s and show as a longer wait, nothing else. The first payment "21 days from today" shows up as an assumption because of the second one; it is the correct reading.

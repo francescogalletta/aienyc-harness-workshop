@@ -5,7 +5,7 @@
 > 2. Install Claude Code and sign in with your plan (`claude auth status` should say `"loggedIn": true`), or `export ANTHROPIC_API_KEY=...` and add `--extra claude` after every `uv run`.
 > 3. `git clone https://github.com/francescogalletta/aienyc-harness-workshop && cd aienyc-harness-workshop && uv run python -m harness check` (it should end with `Setup works`).
 
-This is for people taking part. The facilitator's notes are in `FACILITATOR.md`.
+This is for people taking part, and the start page for the workshop. Also here: hands-on exercises for each layer in `EXERCISES.md`, the slides in `slides/` (open `slides/deck.html` in a browser), and the facilitator's notes in `FACILITATOR.md`.
 
 Words used here: the **harness** is the program in `harness/`: a core plus five layers. **Step N** (0 to 5) is the harness with layers up to N switched on. A **step in the plan** is a box in the diagram on the page. **The page** is the screen `uv run python -m harness ui` opens in your browser: the plan as a diagram, and a chat beside it. **The example** is the seeded wedding plan.
 
@@ -27,7 +27,7 @@ The session is not made for building an entirely different harness, or a very di
 uv run python -m harness check
 ```
 
-It should end with `Setup works`. It takes a few seconds; a longer model reply can take up to a minute.
+It should end with `Setup works`. It takes a few seconds, up to a minute on a first run.
 
 ## The six steps
 
