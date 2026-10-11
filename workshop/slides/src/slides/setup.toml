@@ -9,7 +9,7 @@ label = "GET THE REPO"
 minutes = 10
 url = "https://github.com/francescogalletta/aienyc-harness-workshop"
 needs_label = "YOU NEED ONE OF"
-needs = ["Claude Code", "Codex", "Claude Desktop", "an API key"]
+needs = ["Claude Code", "Codex", "an API key"]
 needs_todo = "others to confirm"
 note = "Or just ask your agent to guide you."
 
