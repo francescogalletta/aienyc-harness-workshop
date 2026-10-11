@@ -6,7 +6,7 @@ id = "s-bait"
 name = "The real ask"
 layout = "centred"
 blocks = [
-  { display = "Speaking of ==trust==, this is another bait." },
+  { display = "Speaking of ==trust==…" },
 ]
 
 [[slide]]
@@ -14,10 +14,7 @@ id = "s-value"
 name = "The value question"
 layout = "centred"
 blocks = [
-  { swap = [
-      { display = "You thought you would get all the value today?" },
-      { pause = "…" },
-  ] },
+  { display = "I have an ulterior motive today." },
 ]
 
 [[slide]]
@@ -25,7 +22,8 @@ id = "s-ask"
 name = "The real ask"
 layout = "centred"
 blocks = [
-  { ask = "You are here to help [me]{stress}. [(Francesco)]{aside who step=1}" },
+  { ask = "You are here to help [me]{stress}." },
+  { who = "(Francesco)", step = 1 },
 ]
 
 [[slide]]
@@ -35,7 +33,7 @@ layout = "statement"
 blocks = [
   { label = "TODAY'S DEMO" },
   { mega = "My wedding.", emoji = "💍" },
-  { sub = "Paying for it, to be exact.", step = 1 },
+  { sub = "Figuring out the finances around it, to be exact.", step = 1 },
 ]
 
 [[slide]]
@@ -46,7 +44,7 @@ blocks = [
   { label = "SHOW OF HANDS" },
   { display = "Who has had a wedding?" },
   { label = "GUESTS" },
-  { tally = ["50", "100", "150", "200"] },   # one per click; the previous one mutes
+  { tally = ["<50", "100", "150", "200"], grow = true },   # one per click; the previous one mutes
   { sub = "These things are expensive. I do not recommend it.", step = 5 },
 ]
 

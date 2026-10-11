@@ -97,6 +97,12 @@ def test_sequences_for_swap_and_tally():
     assert build.SlideRenderer.sequence(2, 1, "mute") == [{"step": 1, "mute": 2}, {"step": 2, "mute": None}]
 
 
+def test_tally_grow_adds_a_class_and_who_block_is_outside_the_ask(deck):
+    html = build.build(deck, "blueprint", True)
+    assert 'class="hands grow' in html
+    assert '<p class="hand-aside ask-who' in html and "(Francesco)</p>" in html
+
+
 # ---------- themes ----------
 def test_theme_dark_block_is_written_once_and_emitted_twice():
     css = build.Theme(SLIDES / "src" / "themes" / "blueprint.css").css()
