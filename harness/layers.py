@@ -44,7 +44,8 @@ class Layer:
     - `tools(turn)`: the analyst tools, as (ToolSpec, handle(turn, call) -> tool result) pairs.
     - `prompt`: a part of the analyst's system prompt; `context(conn)`: its "What you know" sections.
     - `hooks[name]`: `loaded(core)`, `plan_accepted(work)`, `plan_changed(work, changed_steps)`,
-      `step_built(work, step_id)`, `turn_finished(work, turn)`.
+      `step_built(work, step_id)`, `turn_finished(work, turn)`; inside an analyst turn
+      `run_ready(work, turn, arguments)` and `reply_ready(work, turn, text)` (they may set `turn.send_back`).
     - `commands`, `expects`: added to `python -m harness` and to replay.
     """
     number: int

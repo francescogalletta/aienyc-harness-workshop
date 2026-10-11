@@ -1,0 +1,23 @@
+{
+  "name": "monthly_surplus",
+  "description": "Works out how much money is left each month after spending, which is the amount available to save for the wedding.",
+  "step_id": "s3",
+  "method": "arithmetic",
+  "formula": "monthly surplus = net_monthly_income - monthly_spending, rounded to 2 decimals (halves round up). The result is negative if spending is higher than income.",
+  "inputs": [
+    {
+      "name": "net_monthly_income",
+      "type": "number",
+      "description": "Your take-home pay for a typical month, after tax and deductions, in your currency."
+    },
+    {
+      "name": "monthly_spending",
+      "type": "number",
+      "description": "What you spend in a typical month on all your regular costs, in your currency. Leave out the wedding payments. It can be an average."
+    }
+  ],
+  "output": {
+    "type": "number",
+    "description": "The amount left each month after spending, in your currency, rounded to 2 decimals. Negative if you spend more than you earn."
+  }
+}

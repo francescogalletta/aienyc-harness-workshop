@@ -9,7 +9,7 @@ import json
 import re
 
 from .. import db
-from ..answers.agent import Turn, reply_figures, tool_result
+from ..answers.agent import Turn, reply_figures, step_of_module, tool_result
 from ..calc.added import process_steps
 from ..calc.builder import plan_of
 from ..core import BadAction, NotNow, number_of
@@ -49,6 +49,12 @@ INPUTS_UNBACKED = ("These numbers did not come from the person, the plan, a save
 NO_DECISION = "There is no open decision {decision}."
 NOT_WAITING = "That decision is not the one waiting for an answer."
 BAD_OPTION = "option must be the number of one of the options."
+DECISION_SEND_BACK = ("[harness] Your reply was not shown. It leaves to the person, in plain text, what may be a call "
+                      "of theirs{steps}. If it is a call only the person can make, such as a choice between ways "
+                      "forward or what to change, put it to them now with `ask_decision`, with the options you had in "
+                      "mind; your reply up to that question is shown first. If it only asks for a figure or a fact you "
+                      "lack, or offers to do more, send the same reply again.")
+DECISION_STEPS = ", after runs that a call of the person's rests on (step {steps})"
 
 
 def one_line(text: str) -> str:
@@ -166,6 +172,9 @@ def ask_decision(turn: Turn, call) -> dict:
     options = [tidy_numbers(one_line(each)) for each in options]     # shown as the harness writes numbers (SPEC 2.4)
     question, why = tidy_numbers(one_line(question)), tidy_numbers(why)
     turn.extra["decisions_asked"] = turn.extra.get("decisions_asked", 0) + 1
+    held = turn.extra.pop("held_reply", None)
+    if held:                                                 # the results of a reply sent back (SPEC 6.2)
+        work.post(held, who="assistant", data={"_runs": list(turn.runs), "figures": reply_figures(turn, held)})
     cursor = conn.execute(
         "INSERT INTO decisions (ts, conversation, step_id, question, options, suggested, why, runs)"
         " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -222,3 +231,87 @@ def choose(core, payload: dict) -> None:
         raise BadAction(BAD_OPTION)
     core.post(options[option - 1], who="you", step=row["step_id"])
     core.answer({"choice": option, "decision": decision})
+
+
+# --- A call left in prose (SPEC 6.2) ---
+
+SENTENCE_END = re.compile(r"(?<=[.!?])\s+|\n+")
+LIST_ITEM = re.compile(r"^\s*(?:[-*\u2022]|\d{1,2}[.)]|[A-Za-z][.)])\s+\S")
+OR = re.compile(r"\bor\b", re.IGNORECASE)
+TRAILING = " \t*_)\"'\u201d"
+
+
+def _questions(text: str) -> list[tuple[str, bool, bool]]:
+    """(question, list of two or more items just before it, just after it) for each line of the reply that has a
+    sentence ending in `?`."""
+    lines = [line for line in text.splitlines() if line.strip()]
+    items = [bool(LIST_ITEM.match(line)) for line in lines]
+
+    def run_of(start: int, step: int) -> int:
+        count, at = 0, start
+        while 0 <= at < len(lines) and items[at]:
+            count, at = count + 1, at + step
+        return count
+
+    found = []
+    for at, line in enumerate(lines):
+        for sentence in SENTENCE_END.split(line):
+            if sentence.rstrip(TRAILING).endswith("?"):
+                found.append((sentence.strip(), run_of(at - 1, -1) >= 2, run_of(at + 1, 1) >= 2))
+    return found
+
+
+def fed_calls(turn: Turn) -> list[str]:
+    """The `judgment` steps with no answered decision that a step run in this turn feeds directly."""
+    conn = turn.conn
+    brief = plan_of(turn.work.config)
+    if not brief or not turn.runs:
+        return []
+    steps = process_steps(conn, brief)
+    ids = {step["id"] for step in steps}
+    ran = set()
+    for run_id in turn.runs:
+        row = conn.execute("SELECT module FROM calc_runs WHERE id = ?", (run_id,)).fetchone()
+        if row:
+            ran.add(step_of_module(conn, row["module"], ids))
+    decided = {row["step_id"] for row in rows_of(conn, turn.conversation) if row["status"] == "answered"}
+    return [step["id"] for step in steps if step.get("kind") == "judgment" and step["id"] not in decided
+            and ran & set(step.get("needs") or [])]
+
+
+ASKS_TO_DECIDE = re.compile(r"\b(?:decid\w*|decision\w*|choos\w*|choice\w*)\b", re.IGNORECASE)
+
+
+def left_in_prose(turn: Turn, text: str) -> tuple[str, list[str], str] | None:
+    """(reason, the judgment steps the turn's runs feed, the reply up to its question) when the person asked to decide
+    and the reply leaves the call in plain text (SPEC 6.2), else None."""
+    if turn.extra.get("decisions_asked") or not turn.runs:
+        return None
+    calls = fed_calls(turn)
+    message = turn.message or {}
+    if not (ASKS_TO_DECIDE.search(message.get("text", "")) or message.get("step") in calls):
+        return None
+    questions = _questions(text)
+    if questions:
+        question, listed_before, listed_after = next(
+            (each for each in questions if OR.search(each[0]) or each[1] or each[2]), questions[-1])
+        reason = "alternatives" if OR.search(question) or listed_before or listed_after else "your call"
+        return reason, calls, text[:text.find(question)].rstrip() if question in text else text
+    return ("your call", calls, text) if calls else None
+
+
+def reply_ready(work, turn: Turn, text: str) -> None:
+    """Hook: a reply that leaves a call of the person's in plain text is sent back once (SPEC 6.2); the reply up to
+    its question is kept for `ask_decision` to post first."""
+    if turn.extra.get("decision_prompted"):
+        turn.extra.pop("held_reply", None)
+        return
+    found = left_in_prose(turn, text)
+    if found is None:
+        return
+    reason, steps, held = found
+    turn.extra["decision_prompted"] = True
+    turn.extra["held_reply"] = held
+    turn.record("you.decision_prompted", {"reason": reason, "steps": steps, "text": text})
+    turn.send_back = DECISION_SEND_BACK.format(
+        steps=DECISION_STEPS.format(steps=", ".join(steps)) if steps else "")

@@ -348,7 +348,8 @@ class Layer:                                       # harness/layers.py
   written with `format_sections`. Layer 3 owns the first part.
 - **Hooks**, called on the lane that caused them, in layer order:
   `loaded(core)`, `plan_accepted(work)`, `plan_changed(work, changed_steps)`,
-  `step_built(work, step_id)`, `turn_finished(work, turn)`. A hook may queue
+  `step_built(work, step_id)`, `turn_finished(work, turn)`, and inside an analyst turn
+  `run_ready(work, turn, arguments)` and `reply_ready(work, turn, text)` (SPEC 5.1). A hook may queue
   jobs; it never waits on the person.
 - **Commands** are added to `python -m harness`. **Expects** are added to the
   scenario validator and checker (SPEC 2.6).
@@ -959,3 +960,22 @@ Each has the default the work plan takes.
   (`builder.read_departures`); `answers.layer.connect_added` gives an added step needs, pills and edges from its latest
   run; `you.module_requested` records `near` (`requests.asked_from`) and layer 4 sets it on added steps; layer 1's
   `loaded` posts `PREPARED` in example mode on an empty chat.
+- **Live fixes · A call left in prose, an assumption left unlisted.** Seen in live replays at b729d6d:
+  `decide_what_to_update` 8 of 12 (all four failures ended "Next I'll ask you what to update first": no question,
+  no decision, nothing waited) and `confirm_and_correct` 11 of 12 (one run took the plan's 50% split as 0.5 with
+  empty `assumptions`: no notice). Two layer 4 hooks inside the analyst turn (layer 3 calls them; `Turn.send_back`
+  carries a refusal or a send-back). `reply_ready` sends a reply back once with `DECISION_SEND_BACK` when the
+  person asked to decide (or attached a judgment step) and the turn ran modules but asked no decision; it never
+  makes options, and a second prose reply is shown. The reply up to its question is posted before the decision,
+  so the results are not lost (a first version without this lost the figures in 3 of 12). It does not look at a
+  turn where the person did not ask: in a first version that also fired on any question with "or" after runs, the
+  model turned "do you want me to use 150, or also run 200?" and "do you want to see it if the contribution comes
+  later?" into decisions (one false stop in 12 `confirm_and_correct` runs, one in 4 `cover_each_payment` runs
+  at layer 4). `run_ready` refuses the first run of a turn that has an
+  input value the person did not give and the run does not list, and adds `AUTO_ASSUMED` sentences on later runs of
+  the turn, so a run on such a value always carries a mark. The plan's `proposed` items do not count as the
+  person's (they still pass the number check). After: `decide_what_to_update` 12 of 12 (fired once, obeyed),
+  `confirm_and_correct` 12 of 12 (refused 4 times, each time listed on the next call), `cover_each_payment` 4 of 4
+  at layer 3 and 4 of 4 at layer 4 (nothing fired). What stays unchecked: text and true/false inputs (whether a
+  payment counts toward a total), whole numbers up to 12, a value of the person's put into the wrong input, and a
+  call left in prose when the person did not ask to decide.

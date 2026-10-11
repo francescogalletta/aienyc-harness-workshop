@@ -499,6 +499,13 @@ on the main lane.
 - The final reply is posted with `figures` (5.2). Hook `turn_finished(turn)`,
   where `turn` lists the runs made, the reply's message id and whether it was
   withheld.
+- Two checks of later layers. Before a run that passed the number check goes
+  to the gate, hook `run_ready(work, turn, arguments)`: a layer may add
+  sentences to `arguments["assumptions"]`, or refuse the run by setting
+  `turn.send_back` (that text is the tool's error result). A reply that passed
+  the number check, while the turn has a model call left, goes to hook
+  `reply_ready(work, turn, text)`: a layer that sets `turn.send_back` has the
+  reply not shown and that text sent to the model as the next user message.
 
 ### 5.2 Figures and last runs: `figures.py`
 
@@ -556,6 +563,27 @@ case-folded.
   says this is not right: {assumptions}. Their words follow. Run again the
   steps that rested on it."` A corrected assumption used again counts as
   unconfirmed.
+- **Unlisted assumptions** (hook `run_ready`). A value is the person's when
+  the person's messages in this conversation (with `half`, `a third`, `a
+  quarter` and number words read as numbers, and dates written as `12 June
+  2027`), a saved input, an item of the plan whose origin is `person`, a
+  confirmed assumption, today, or the output of a run of this conversation
+  holds it: a number as the number check reads it, a date whole. A run input
+  (at any depth) that is a number other than a whole number from 0 to 12, or
+  an ISO date, and is not the person's, is an assumption. It is listed when a
+  sentence of the run's `assumptions` holds its value or names its input
+  (`second_payment_share` as `second payment share`). The first run of a turn
+  with an unlisted one is refused with `UNLISTED`; a later run of that turn
+  goes ahead with `AUTO_ASSUMED` added for each. A value only in a `proposed`
+  item of the plan is therefore an assumption. Text and true/false values
+  are not checked. Recorded as `you.assumption_unlisted {module, values,
+  outcome: refused | marked}`.
+
+```
+UNLISTED     = "These values are not ones the person gave (in their words, a saved input, a confirmed assumption or an earlier result): {values}. Each is an assumption: give it in `assumptions`, with its value, in plain words. Then run again."
+AUTO_ASSUMED = "{input} is taken to be {value}, which you did not give."
+```
+
 - Context section `assumptions`: each with its status and words.
 
 ### 6.2 Calls that are the person's: `calls.py`
@@ -576,6 +604,25 @@ answered with no choice).
   else` with the words.
 - The record is a `decisions` row and the step's `calls.records`. The tool
   result is as in version 1.
+- **A call left in prose** (hook `reply_ready`). It looks only at a turn
+  where the person's message asks to decide or choose (a word such as
+  `decide`, `decision`, `choose`, `choice`), or is attached to a `judgment`
+  step its runs feed, and the turn ran a module and asked no decision. Such a turn's reply
+  is sent back once with `DECISION_SEND_BACK` when it has a question (a
+  sentence ending in `?`; reason `alternatives` when the question has the word
+  `or` or is next to a list of two or more items, else `your call`), or when it
+  has none but a run of the turn was of a step that an undecided `judgment`
+  step needs (reason `your call`). `{steps}` names those judgment steps (else
+  it is empty). The harness never makes the options. The reply up to that question (all of it for a reply with
+  no question) is kept: if the model then asks a decision, it is posted first,
+  as the assistant's message, so the results are not lost. The reply after the
+  send-back is shown whatever it is. Recorded as `you.decision_prompted
+  {reason, steps, text}`.
+
+```
+DECISION_SEND_BACK = "[harness] Your reply was not shown. It leaves to the person, in plain text, what may be a call of theirs{steps}. If it is a call only the person can make, such as a choice between ways forward or what to change, put it to them now with `ask_decision`, with the options you had in mind; your reply up to that question is shown first. If it only asks for a figure or a fact you lack, or offers to do more, send the same reply again."
+```
+
 - Context section `decisions`.
 
 ### 6.3 Missing calculations: `requests.py`
@@ -627,7 +674,8 @@ count}]`), `marks` (`{"min", "max", "confirmed", "corrected"}`: open notices; ac
 `you.decision_refused`, `you.assumptions_confirmed`,
 `you.assumptions_corrected`, `you.module_requested`, `you.request_refused`,
 `you.side_opened`, `you.side_message`, `you.side_reply`, `you.side_withheld`,
-`you.side_lookup`.
+`you.side_lookup`, `you.assumption_unlisted`, `you.decision_prompted`. Hooks
+`run_ready` and `reply_ready` (5.1).
 
 ## 7. Layer 5: review (`harness/review/`)
 

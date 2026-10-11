@@ -79,6 +79,7 @@ class Turn:
     withheld: bool = False
     corrections: int = 0
     extra: dict = field(default_factory=dict)        # what a later layer's tools count within the turn
+    send_back: str | None = None                     # set by a `run_ready` or `reply_ready` hook (SPEC 5.1)
 
     @property
     def conn(self):
@@ -259,6 +260,11 @@ def run_module(turn: Turn, call) -> dict:
         turn.corrections += 1
         turn.record("ask.correction", {"reason": "run_module", "numbers": numbers, "text": json.dumps(arguments)})
         return tool_result(call, INPUTS_UNBACKED.format(numbers=", ".join(numbers)), True)
+    turn.send_back = None
+    turn.work.hook("run_ready", turn.work, turn, arguments)        # a later layer may refuse or add assumptions
+    if turn.send_back:
+        refusal, turn.send_back = turn.send_back, None
+        return tool_result(call, refusal, True)
     module = arguments.get("module")
     registered = get_module(turn.conn, module) if isinstance(module, str) else None
     step = registered["spec"].get("step_id") if registered else None
@@ -369,7 +375,7 @@ def _run_turn(turn: Turn, messages: list) -> tuple[str, str, str, str]:
     specs = [spec for spec, _ in collected]
     handlers = {spec.name: handle for spec, handle in collected}
     corrected = False
-    for _ in range(MAX_CALLS):
+    for made in range(MAX_CALLS):
         work.progress("thinking")
         response = work.model.complete(system=system_prompt(turn), messages=messages, tools=specs)
         if response.tool_calls:                         # its text is not shown
@@ -394,6 +400,13 @@ def _run_turn(turn: Turn, messages: list) -> tuple[str, str, str, str]:
             messages.append({"role": "user", "content": NUMBERS_CORRECTION.format(numbers=", ".join(numbers))})
             continue
         messages.append({"role": "assistant", "content": text})
+        if not numbers and made < MAX_CALLS - 1:
+            turn.send_back = None
+            work.hook("reply_ready", work, turn, text)                 # a later layer may send it back
+            if turn.send_back:
+                messages.append({"role": "user", "content": turn.send_back})
+                turn.send_back = None
+                continue
         if numbers:
             turn.withheld = True
             turn.record("ask.withheld", {"numbers": numbers, "text": text})

@@ -20,7 +20,7 @@ The session is not made for building an entirely different harness, or a very di
 uv run python -m harness check
 ```
 
-It should end with `Setup works`. A model reply takes 20 to 60 seconds.
+It should end with `Setup works`. It takes a few seconds; a longer model reply can take up to a minute.
 
 ## The six steps
 
@@ -31,7 +31,7 @@ uv run python -m workshop status --quick   # which layers are present and on
 uv run python -m workshop at N             # run this copy as the harness at step N
 ```
 
-`at N` removes and copies nothing. It writes `N` to `my/var/layers`, and `harness` reads it. `at 5` is the whole harness. If `HARNESS_LAYERS` is set in your shell, it wins, and `at` says so.
+`at N` removes and copies nothing. It writes `N` to `my/var/layers`, and `harness` reads it when it starts: stop the page (Ctrl+C) and start it again after `at N`, a reload is not enough. `at 5` is the whole harness. If `HARNESS_LAYERS` is set in your shell, it wins, and `at` says so.
 
 ## Three ways to take part
 
@@ -46,7 +46,7 @@ uv run python -m workshop at 1
 HARNESS_EXAMPLE=wedding uv run python -m harness ui
 ```
 
-Then `at 2`, `at 3` and so on, and reload the page. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment` (the example is an argument, so `HARNESS_EXAMPLE` is not needed).
+Then `at 2`, `at 3` and so on: stop the page (Ctrl+C), run `at N`, start the page again. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment` (the example is an argument, so `HARNESS_EXAMPLE` is not needed).
 
 ### (b) A variation with your own figures and plan
 
@@ -57,7 +57,7 @@ uv run python -m workshop at 5
 uv run python -m harness ui
 ```
 
-Say what you want help with, answer the questions, accept the plan, click **Build the calculations**, then ask. A build takes one to four minutes. Check each worked example with a calculator: a second model pass checks them, and a mistake both passes make gets through. Never type account numbers or passwords.
+Say what you want help with, answer the questions (or click **Propose the plan now**), accept the plan, click **Build the calculations**, then ask. A build takes one to four minutes. If the page shows an earlier plan, delete `my/var/harness.db*` and `my/var/grounding_state.json` to start again. Check each worked example with a calculator: a second model pass checks them, and a mistake both passes make gets through. Never type account numbers or passwords.
 
 ### (c) Build a layer's code yourself
 
@@ -83,7 +83,7 @@ Commands are `uv run python -m harness ...`; `harness --help` lists what exists 
 | After step | Commands | In the page |
 | --- | --- | --- |
 | 0 core | `check`, `events`, `ui`, `replay` | An empty shell: no plan, nothing to draw yet |
-| 1 the plan | adds `ground` | Describe a goal and an interview agrees a plan. On the example the plan is already drawn: steps, inputs, origins, open questions. Click a step to say what is wrong |
+| 1 the plan | adds `ground` | Describe a goal and an interview proposes a plan; click a step and say what is wrong while it is proposed, and the plan redraws. On the example the plan is already accepted and drawn: steps, inputs, origins, open questions; click a step to read them |
 | 2 build | adds `build` | A build button. Each calculation step shows its examples and how many tests pass. Open a step to see examples, tests and code |
 | 3 answers | adds `ask` | Ask in the chat. Each number in an answer leads to the step that made it. Steps used light up, the rest fade |
 | 4 needs you | same commands | An answer that rests on something unconfirmed is marked `◌`: confirm or change it. Your calls ask with options. A missing calculation is built and shows as "not in the plan". "On the side" opens a side thread. In the terminal: `/confirm`, `/side TEXT`, `/reply TEXT` |
