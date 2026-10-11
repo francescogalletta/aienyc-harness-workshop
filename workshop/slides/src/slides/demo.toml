@@ -45,16 +45,15 @@ blocks = [
   { display = "Who has had a wedding?" },
   { label = "GUESTS" },
   { tally = ["<50", "100", "150", "200"], grow = true },   # one per click; the previous one mutes
-  { sub = "These things are expensive. I do not recommend it.", step = 5 },
 ]
 
 [[slide]]
-id = "s-simple"
-name = "Looks simple"
-layout = "statement"
+id = "s-expensive"
+name = "Expensive"
+layout = "centred"
 blocks = [
-  { display = "Looks simple. It is not." },
-  { big_emoji = "😅", say = "sweating", step = 1 },
+  { display = "In short, these things are expensive and complicated." },
+  { display = "I wouldn't recommend.", step = 1 },
 ]
 
 [[slide]]
