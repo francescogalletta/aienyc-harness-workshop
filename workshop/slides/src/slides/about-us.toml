@@ -26,13 +26,13 @@ person = "Felippe"
 photo = "felippe.jpg"
 reel = [
   { emoji = "🇧🇷", x = 11.5, y = 18.5, rot = -8 },
-  { emoji = "🎸", x = 88.5, y = 18.5, rot = 7 },
-  { emoji = "💻", x = 28.5, y = 24, rot = 6 },
-  { emoji = "🧑‍🏫", x = 71.5, y = 24, rot = -6 },
+  { emoji = "🇬🇧", x = 88.5, y = 18.5, rot = 7 },
+  { emoji = "🎹", x = 28.5, y = 24, rot = 6 },
+  { emoji = "📈", x = 71.5, y = 24, rot = -6 },
   { emoji = "🚀", x = 8.5, y = 55.6, rot = 5 },
   { emoji = "🏦", x = 91.5, y = 55.6, rot = -7 },
-  { emoji = "🥾", x = 22.9, y = 81, rot = -5 },
-  { emoji = "🧗", x = 77.1, y = 81, rot = 8 },
+  { emoji = "🤖", x = 22.9, y = 81, rot = -5 },
+  { emoji = "🧗‍♂️", x = 77.1, y = 81, rot = 8 },
 ]
 
 [[slide]]
