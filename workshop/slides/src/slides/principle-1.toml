@@ -1,0 +1,50 @@
+# Principle 1. Its name, emoji, minutes and statement are in principles.json.
+principle = 1
+
+[[slide]]
+layout = "divider"
+
+[[slide]]
+id = "s-p1-why"
+name = "P1 · Why"
+layout = "statement"
+blocks = [
+  { label = "WHY" },
+  { display = "What is obvious to you is not what the model learned." },
+  { sub = "Start from the goal. Work backwards, together.", step = 1 },
+]
+
+[[slide]]
+id = "s-p1-without"
+name = "P1 · Without it"
+layout = "statement"
+blocks = [
+  { label = "WITHOUT IT" },
+  { lines = [
+      { headline = "One shot.", step = 1 },
+      { headline = "A vague goal.", step = 2 },
+      { headline = "Your reality, assumed to be everyone's.", step = 3 },
+  ] },
+]
+
+[[slide]]
+id = "s-p1-examples"
+name = "P1 · Examples"
+layout = "statement"
+blocks = [
+  { label = "EXAMPLES" },
+  { heads = ["YOU SAY", "THE MODEL HAS TO GUESS"], guesses = [
+      { said = "“I make 10k”", doubts = ["net or gross?", "a month or a year?"] },
+      { said = "“I can save 2k”", doubts = ["every month?", "before investing?"], step = 1 },
+      { said = "“The wedding is 40k”", doubts = ["all in?", "how many guests?"], step = 2 },
+  ] },
+  { sub = "So it guesses, or it keeps asking.", step = 3 },
+]
+
+[[slide]]
+layout = "placeholder"
+kind = "demo"
+
+[[slide]]
+layout = "placeholder"
+kind = "turn"

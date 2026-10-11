@@ -1,0 +1,11 @@
+{% if cycle %}
+<{{ tag }} class="{{ cls }}"{{ attrs }}>{{ text|text }}
+  <span class="swap swap-left">
+{% for c in cycle %}
+    <span{{ c.attrs }}>{{ c.text|text }}</span>
+{% endfor %}
+  </span>
+</{{ tag }}>
+{% else %}
+<{{ tag }} class="{{ cls }}"{{ attrs }}>{{ text|text }}</{{ tag }}>
+{% endif %}

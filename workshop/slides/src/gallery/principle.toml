@@ -1,0 +1,21 @@
+# A principle block: divider, the three placeholder kinds, and the rail on the right.
+principle = 2
+
+[[slide]]
+layout = "divider"
+id = "g-divider"
+
+[[slide]]
+layout = "placeholder"
+kind = "content"
+id = "g-ph-content"
+
+[[slide]]
+layout = "placeholder"
+kind = "demo"
+id = "g-ph-demo"
+
+[[slide]]
+layout = "placeholder"
+kind = "turn"
+id = "g-ph-turn"

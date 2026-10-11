@@ -1,0 +1,17 @@
+/* Gallery-only styles (build.py --gallery). Tokens only, like components.css. */
+.gal-swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-s) var(--space-m); width: 100%; }
+.gal-swatch { display: grid; grid-template-columns: 112px 1fr; grid-template-rows: auto auto; column-gap: var(--space-xs); align-items: center; }
+.gal-chip { grid-row: 1 / span 2; width: 112px; height: 112px; border-radius: var(--step-radius); background: var(--sw); box-shadow: inset 0 0 0 var(--stroke-hair) var(--line); }
+.gal-name { font-family: var(--code-font); font-size: var(--fs-2xs); line-height: 1.3; color: var(--text); }
+.gal-value, .gal-name span { font-family: var(--code-font); font-size: var(--fs-2xs); color: var(--text-muted); }
+.gal-type { display: flex; flex-direction: column; gap: var(--space-s); width: 100%; }
+.gal-type-row { flex-direction: row; align-items: flex-end; justify-content: space-between; }
+.gal-spec { display: flex; flex-direction: column; gap: var(--space-2xs); }
+.gal-sample { line-height: 1.05; }
+.gal-sample[style] { font-size: var(--ts); }
+.gal-type-row .gal-name span { display: block; }
+.gal-type-row .gal-sample { font-family: var(--display-font); font-weight: var(--weight-strong); letter-spacing: var(--tracking-tight); line-height: 0.9; }
+.gal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-m) var(--space-s); width: 100%; }
+.gal-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-xs); }
+.gal-box { display: grid; place-items: center; width: 100%; min-height: 150px; padding: var(--space-xs); font-size: var(--fs-l); font-weight: var(--weight-strong); }
+.gal-box.panel { min-height: 150px; place-items: start; }

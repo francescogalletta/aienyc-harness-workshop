@@ -1,0 +1,17 @@
+# Principle 3. Its name, emoji, minutes and statement are in principles.json.
+principle = 3
+
+[[slide]]
+layout = "divider"
+
+[[slide]]
+layout = "placeholder"
+kind = "content"
+
+[[slide]]
+layout = "placeholder"
+kind = "demo"
+
+[[slide]]
+layout = "placeholder"
+kind = "turn"

@@ -1,0 +1,8 @@
+<div class="{{ cls }}"{{ attrs }}>
+  <p class="label">{{ b.heads.0 }}</p><span></span><p class="label">{{ b.heads.1 }}</p>
+{% for row in b.guesses %}
+  <p class="ex said"{{ row|reveal }}>{{ row.said|text }}</p>
+  <svg class="arrow"{{ row|reveal }} viewBox="0 0 88 20"><path class="l" d="M2 10H76" pathLength="100"/><path class="h" d="M74 2l14 8-14 8z"/></svg>
+  <div class="doubts"{{ row|reveal }}>{% for d in row.doubts %}<span class="doubt">{{ d|text }}</span>{% endfor %}</div>
+{% endfor %}
+</div>

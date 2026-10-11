@@ -1,0 +1,10 @@
+{# Swatches (gallery): one chip per colour token, with its live value (filled in by gallery.js). #}
+  <p class="label">{{ label }}</p>
+{% if headline %}
+  <h2 class="headline gap-xs">{{ headline|text }}</h2>
+{% endif %}
+  <div class="gal-swatches gap-m">
+{% for t in tokens %}
+    <div class="gal-swatch"><span class="gal-chip" style="--sw:var({{ t }})"></span><code class="gal-name">{{ t }}</code><span class="gal-value" data-token="{{ t }}"></span></div>
+{% endfor %}
+  </div>

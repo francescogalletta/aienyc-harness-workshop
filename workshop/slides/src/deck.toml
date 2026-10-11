@@ -1,0 +1,21 @@
+# The deck: its title, the theme deck.html is built with, and the order of sections.
+# Each section is a file in slides/ (without .toml); slides run in file order.
+
+title = "Harness You Can Trust"
+lang = "en"
+theme = "blueprint"   # default theme: built into deck.html; others go to dist/
+motion = "off"        # "on" brings back slide/step transitions (see styles/base.css)
+
+sections = [
+  "opening",
+  "about-us",
+  "framing",
+  "demo",
+  "trust",
+  "principle-1",
+  "principle-2",
+  "principle-3",
+  "principle-4",
+  "principle-5",
+  "wrap",
+]

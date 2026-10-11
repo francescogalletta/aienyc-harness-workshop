@@ -1,0 +1,80 @@
+/* Blueprint: the workshop's own look. Navy ink on a pale blue-grey ground,
+   IBM Plex, a teal for trust and five principle hues.
+   font-link: https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500;700&display=swap
+*/
+:root {
+  /* palette */
+  --white: #ffffff;
+  --navy-25: #e8eef7;
+  --navy-50: #eef2f7;
+  --navy-150: #c3cfdf;
+  --navy-200: #bccadb;
+  --navy-300: #9db0c8;
+  --navy-400: #6f84a0;
+  --navy-500: #5f7898;
+  --navy-600: #4f6078;
+  --navy-700: #33465f;
+  --navy-800: #2e4466;
+  --navy-900: #0f2440;
+  --navy-925: #14213a;
+  --navy-950: #0c1524;
+  --apricot-200: #ffd9b0;
+  --apricot-800: #7a4a10;
+  --teal-300: #5fd0c8;
+  --teal-700: #0b6b6a;
+  --blue-300: #7fb0ff;
+  --blue-600: #2563c9;
+  --violet-300: #b3a1f5;
+  --violet-600: #6d4fc4;
+  --magenta-300: #ee8fcb;
+  --magenta-600: #a8387f;
+  --amber-300: #f2b25c;
+  --amber-700: #b96a0c;
+  --green-300: #86d67f;
+  --green-600: #3d8a3a;
+
+  /* fonts */
+  --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --font-hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+  --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+
+  /* colour roles (light) */
+  --slide-bg: var(--navy-50);
+  --surface: var(--white);
+  --text: var(--navy-900);
+  --text-quiet: var(--navy-700);
+  --text-muted: var(--navy-600);
+  --line: var(--navy-200);
+  --connector: var(--navy-400);
+  --attention: var(--apricot-200);
+  --accent-trust: var(--teal-700);
+  --principle-1: var(--blue-600);
+  --principle-2: var(--violet-600);
+  --principle-3: var(--magenta-600);
+  --principle-4: var(--amber-700);
+  --principle-5: var(--green-600);
+  --on-principle: var(--white);
+  --qr-ink: var(--navy-900);   /* the QR stays dark on light in both modes */
+  --qr-ground: var(--white);
+}
+
+/* Colour roles (dark). Written once: the build repeats this block under
+   prefers-color-scheme: dark (unless the page says data-theme="light"). */
+:root[data-theme="dark"] {
+  --slide-bg: var(--navy-950);
+  --surface: var(--navy-925);
+  --text: var(--navy-25);
+  --text-quiet: var(--navy-150);
+  --text-muted: var(--navy-300);
+  --line: var(--navy-800);
+  --connector: var(--navy-500);
+  --attention: var(--apricot-800);
+  --accent-trust: var(--teal-300);
+  --principle-1: var(--blue-300);
+  --principle-2: var(--violet-300);
+  --principle-3: var(--magenta-300);
+  --principle-4: var(--amber-300);
+  --principle-5: var(--green-300);
+  --on-principle: var(--navy-950);
+}

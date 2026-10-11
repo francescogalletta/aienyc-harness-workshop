@@ -1,0 +1,9 @@
+<div class="{{ cls }}"{{ attrs }}>
+{% for t in b.tracks %}
+  <div class="track step{% if t.yours %} your-call{% endif %}"{{ t|reveal }}>
+    <span class="track-num">{{ loop.index }}</span>
+    <h2 class="headline track-name">{{ t.name|text }}</h2>
+    <p class="sub track-line">{{ t.line|text }}</p>
+  </div>
+{% endfor %}
+</div>

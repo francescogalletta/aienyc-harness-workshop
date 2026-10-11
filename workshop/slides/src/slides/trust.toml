@@ -1,0 +1,81 @@
+# Why trust, and the framework that earns it.
+
+[[slide]]
+id = "s-trust"
+name = "Trust"
+layout = "centred"
+blocks = [
+  { hero = "==Trust.==" },
+  { sub = "Money is never decided lightly. Not by a company, not by you.", step = 1 },
+]
+
+[[slide]]
+id = "s-tailored"
+name = "Tailored"
+layout = "statement"
+blocks = [
+  { display = "Finance is tailored." },
+  { lines = [
+      { headline = "Your numbers.", step = 1 },
+      { headline = "Your strategy. [Generally none...]{aside step=3}", step = 2 },
+      { headline = "Your knowledge. [(or misconceptions)]{aside step=5}", step = 4 },
+  ] },
+]
+
+[[slide]]
+id = "s-gap"
+name = "The gap"
+layout = "split"
+left = { label = "YOU", headline = "know your situation" }
+right = { label = "THE MODEL", headline = "knows the field", step = 1 }
+
+[[slide]]
+id = "s-caveats"
+name = "Caveats"
+layout = "converge"
+inputs = [
+  { text = "guest count not final", x = 440, y = 400, step = 1 },
+  { text = "three payment dates", x = 700, y = 290, step = 2 },
+  { text = "family money, maybe", x = 960, y = 180, step = 3 },
+  { text = "gross or net?", x = 1220, y = 290, step = 4 },
+  { text = "what we really spend", x = 1480, y = 400, step = 5 },
+]
+question = "Can we pay for the wedding?"
+sub = { text = "Simple question. Then the caveats.", step = 6 }
+
+[[slide]]
+id = "s-deal"
+name = "The deal"
+layout = "statement"
+blocks = [
+  { display = "Earn the ==trust==." },
+  { display = "Delegate the boring work.", quiet = true, step = 1 },
+]
+
+[[slide]]
+id = "s-analyst"
+name = "Why “analyst”"
+layout = "statement"
+blocks = [
+  { label = "WHY “ANALYST”" },
+  { display = "Treat the agent like a new hire." },
+  { sub = "Nobody hands a new analyst the money on day one.", step = 1 },
+  { sub = "A good manager builds that ==trust== on purpose.", step = 2 },
+]
+
+[[slide]]
+id = "s-code-model"
+name = "Code and model"
+layout = "split"
+left = { label = "CODE", headline = "repeats exactly" }
+right = { label = "THE MODEL", headline = "uses judgement", step = 1 }
+foot = { text = "The harness decides which does what.", step = 2 }
+
+[[slide]]
+id = "s-framework"
+name = "The framework (builds bottom-up)"
+layout = "framework"
+label = "THE GOAL"
+goal = "==Trust=="
+reveal = true     # one principle per click, from the bottom
+confetti = true   # and a burst when the last one lands

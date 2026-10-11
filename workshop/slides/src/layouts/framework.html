@@ -1,0 +1,14 @@
+{# Framework: the goal on top of the principles (from principles.json), 1 at the bottom.
+   reveal = true fills them one click at a time from the bottom; confetti = true bursts on one more click. #}
+{% if confetti %}
+  <span data-step="{{ confetti_step }}" data-confetti hidden></span>
+{% endif %}
+  <div class="stack">
+    <p class="label">{{ label }}</p>
+    <p class="stack-goal">{{ goal|text }}</p>
+    <ol class="stack-bars">
+{% for p in principles_top_down %}
+      <li class="bar{% if not reveal %} filled{% endif %}"{% if reveal %} data-step-fill="{{ p.n }}"{% endif %} style="--c:var({{ p.color }})"><span class="bar-num">{{ p.n }}</span><span class="bar-name">{{ p.name }}</span><span class="bar-emoji" aria-hidden="true">{{ p.emoji }}</span><span class="bar-text">{{ p.statement|text }}</span></li>
+{% endfor %}
+    </ol>
+  </div>
