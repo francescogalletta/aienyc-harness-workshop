@@ -1,8 +1,9 @@
-# Architecture: Financial Advisor Harness, version 2
+# Architecture: Financial Advisor Harness
 
-This file says how version 2 is built: the core, the plan state document, the
-layers and what each owns, the actions, how long work is reported, what is
-removed, how "the harness at step N" is produced, and the work plan.
+This file says how the harness is built: the core, the plan state document,
+the layers and what each owns, the actions, how long work is reported, how
+"the harness at step N" is produced, and the database. Section 9 keeps the
+notes made while each part was built.
 `SPEC.md` is the contract for behaviour; it relies on sections 3 to 5 here,
 which are part of the contract too. The product design is in `design/`
 (`design/ui-design-decisions.md` and `design/system/`). Where this file and the
@@ -27,10 +28,10 @@ design differ, the design wins; tell the maintainer.
    same. That is "the harness at step N", with no stored copies.
 8. The database is one schema file per layer, created on connect. No migration
    history.
-9. Kept and adapted: values, safety, runner, registry, gate, number check,
-   research desk, model adapters, builder phases and their prompts.
-10. Removed: account files, verifier, findings, evidence page, the two pages,
-    the assumption gate, pass-back from side conversations, workshop snapshots.
+9. Fixed code, no model, decides what counts: values, safety, runner,
+   registry, test gate, number check. Models sit behind `harness/model/`.
+10. Not here: reading account files, checking against the person's own data,
+    stored copies of earlier steps.
 
 ## 2. Files and layers
 
@@ -440,109 +441,19 @@ payload keys, never wording.
   part says plainly what it changes. These are the fallbacks, and they are
   enough for the four uses.
 
-## 8. What is removed
+## 8. The database
 
-Delete, with their tests, rather than leave dormant:
+The database is local and disposable: one `schema.sql` per layer, `CREATE
+TABLE IF NOT EXISTS`, applied on every connect for the enabled layers. No
+migration history. After a schema change, delete `my/var/harness.db`.
 
-- `harness/sources/` (account files, summaries), `harness/calc/findings.py`,
-  `verifier.py`, `verifier.md`, and every `data` command, scenario key and
-  table.
-- `harness/ui/evidence.py`, `evidence.html`, `grounding.html`, `session.py`;
-  the `work` and `decisions` commands. Their content moves into step pop-ups.
-- `harness/migrations/` (replaced by one `schema.sql` per layer).
-- The assumption gate, `GATE_*` texts, `ask.gate`; the build-request question
-  (`REQUEST_QUESTION`); the plan check question to the person; the person's
-  check of every example in the terminal; the `adopt` and `modules` commands
-  (adoption is automatic, SPEC 4.6).
-- `harness/calc/aside.py`, `aside.md`, `/aside`, `/back`, the pass-back
-  question.
-- `harness/calc/agent.py`, `analyst.md`, `decisions.py`, `example_helper.md`
-  (replaced by `answers/`, `needs_you/`, `step_helper.md`).
-- `examples/wedding/data/`, the scenarios `check_my_figures`,
-  `pay_agrees_with_files`, `spending_vs_brief`; `tests/fixtures/accounts/`,
-  `tests/data/`, `tests/step0` to `tests/step5`.
-- `workshop/states/`, the snapshot parts of `workshop/states.py` and
-  `DESIGN.md` sections 5, 6, 10 and 11.
+## 9. Implementation notes
 
-**Database.** Start a fresh schema. The database is local and disposable: one
-`schema.sql` per layer, `CREATE TABLE IF NOT EXISTS`, applied on every connect
-for the enabled layers. No migration history, no `schema_migrations`. After a
-schema change, delete `my/var/harness.db`; README says so.
-
-## 9. Work plan
-
-Each package is sized for one agent. "Reads" always includes `SPEC.md`, this
-file and `AGENTS.md`; the page package also reads `design/`. Every package
-leaves `uv run pytest -q` passing and adds no test that breaks the rule in
-section 7. A package that changes behaviour gets a second agent that writes
-its tests from the contract (AGENTS.md); the tests agent may start once the
-contract is final, in parallel with the code agent.
-
-### Phase A: behaviour, no new page
-
-| Id | What | Writes | Model | Depends on | Parallel with |
-| --- | --- | --- | --- | --- | --- |
-| A0 | Core, lanes, waiting slot, layer discovery, per-layer schema, `db.py`, `config.py` (`HARNESS_LAYERS`, `HARNESS_REVIEW`), server with `/api/state` and `/api/act` and a placeholder page, terminal driver, `__main__.py` by discovery, `core/state.py` with the step-line rule. Deletes everything in section 8 except what A1 to A4 replace. ~50 tests in `tests/layer0` | `harness/` base files, `tests/layer0/` | **Opus** | none | B1 |
-| A1 | Layer 1: brief v2 (origins, step links, validation), interview on the core, corrections with a step, `revise.py`, `contribute`, `ground`. ~55 tests | `harness/grounding/`, `tests/layer1/` | Sonnet | A0 | A1d, B1 |
-| A1d | Example briefs to v2: origins, step links, `checked_by` in every `golden.json`, scenarios tagged with `layer` (contents left to A6) | `examples/` | Sonnet | contract only | A0, A1 |
-| A2a | Layer 2 build engine: unattended builder, second-pass checker, `build_steps`, staleness, automatic adoption, `gate`/`registry` changes. ~70 tests | `harness/calc/` engine files | **Opus** | A1 | B1 |
-| A2b | Layer 2 surface: step helper chat, actions, `contribute`, `build` command. ~40 tests | `harness/calc/helper.py`, `layer.py`, `tests/layer2/` | Sonnet | A2a | A3 |
-| A3 | Layer 3: analyst on the core, tools `run_module`, `save_input`, `change_plan`, figures, last runs, `ask`. ~60 tests | `harness/answers/`, `tests/layer3/` | Sonnet | A2a | A2b |
-| A4a | Layer 4: marks (run-and-mark), calls (`ask_decision` via the waiting slot), automatic module requests, prompt part. ~45 tests | `harness/needs_you/` but `side.py` | Sonnet | A3 | A5 |
-| A4b | Layer 4: side threads everywhere. ~25 tests | `harness/needs_you/side.py`, its registration | Sonnet | A4a | A5 |
-| A5 | Layer 5: reviewer, challenges, use and dismiss, triggers. ~40 tests | `harness/review/`, `tests/layer5/` | Sonnet | A4a | A4b |
-| A6 | Replay on the core, expectation keys by layer, scenarios of both examples rewritten, `examples/README.md`; run `replay wedding` and `replay moving` against the real model and report | `harness/replay.py`, `examples/*/scenarios/`, `tests/layer0` replay tests | Sonnet | A5, A4b | B2 |
-| A7 | `README.md`, `AGENTS.md` for version 2 | root docs | Sonnet | A6 | C1 |
-
-### Phase B: the screen
-
-| Id | What | Writes | Model | Depends on | Parallel with |
-| --- | --- | --- | --- | --- | --- |
-| B1 | The single page: diagram and chat, pop-ups, Review view, composer with step chip and "On the side", decisions, notices, polling; design system inlined, no web font, no network. Works from sample state documents it writes under `tests/layer0/states/` | `harness/ui/page.html`, sample states | **Opus** | this file (section 3) | all of Phase A |
-| B2 | Serve the page; tests that the page is self-contained (no `http` URL, no external load), carries the token, and renders each sample state without a script error (a static check of the bundle's presence and IDs, no browser) | `harness/ui/server.py`, `tests/layer0/` | Sonnet | A0, B1 | A6 |
-
-### Phase C: the workshop
-
-| Id | What | Writes | Model | Depends on | Parallel with |
-| --- | --- | --- | --- | --- | --- |
-| C1 | Workshop machinery by layer: manifest lists each layer's built and given files; `start`, `next`, `finish` remove or restore files; `check` runs each step's tests on the finished tree minus later layers; delete `states/`; rewrite `DESIGN.md` | `workshop/` code and `DESIGN.md` | Sonnet | A6 | A7 |
-| C2 | Guides, facilitator notes, one build prompt per layer | `workshop/*.md`, `workshop/prompts/` | Sonnet | C1 | none |
-
-Order: A0 → A1 → A2a → (A2b ‖ A3) → A4a → (A4b ‖ A5) → A6 → (A7 ‖ C1) → C2.
-B1 runs beside all of Phase A; B2 after A0 and B1. Test budget: about 390 in
-all, under one minute.
-
-## 10. Questions for the maintainer
-
-Each has the default the work plan takes.
-
-1. **Changing the plan after it is accepted.** The design shows corrections
-   before acceptance only. Default: after acceptance the person can still
-   change it in their own words; the analyst calls `change_plan`, the plan is
-   revised and saved as accepted (their words are the consent), and changed
-   steps go stale.
-2. **Figures the person gave.** "A number no step produced is never shown"
-   could forbid echoing the person's own figures. Default: the number check is
-   unchanged (the person's words, saved inputs, the brief and today are
-   sources); only figures a step produced are underlined and lead to a step.
-3. **Reviewer research.** Default: the research desk's chain (saved reference
-   file, then Wikipedia's top search hit, one request, no model), with only a
-   general question of at most 100 characters and no digits. Offline
-   (`HARNESS_RESEARCHER=reference`) the reviewer still runs but cites no
-   outside source. `claude_code` gives better answers where available.
-4. **What attendees build at step 0.** Default: `config.py`, `db.py` and
-   `model/` as today; the core, server, page, terminal and replay are given.
-5. **Starting the build.** Default: the person presses Build after accepting;
-   accepting does not start it.
-6. **The chat across restarts.** Default: one conversation per plan, kept in
-   the database and shown again; the analyst starts each process with a fresh
-   context (the system prompt holds saved inputs, decisions and last runs).
-7. **The Kitchen components.** Default: not used; their licence is unstated and
-   they are React.
-8. **Commands dropped.** Default: `adopt`, `modules`, `work`, `decisions`,
-   `data` go; `check`, `events`, `ground`, `ui`, `build`, `ask`, `replay` stay.
-
-## 11. Decisions made while building
+Notes made while the harness was built, one package at a time (A0 to A6 for
+behaviour, B2 for the page, C1 for the workshop tool, then fixes from end-to-end
+and live runs). They record interfaces and choices the contract leaves open.
+Where a note mentions an earlier package, a later one, or the previous version
+of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
 
 - **A0 · Discovery.** A layer package's `layer.py` holds `LAYER`. A package whose folder or `layer.py`
   is missing counts as missing; any other `ModuleNotFoundError` is an error. `layers.enabled()` returns

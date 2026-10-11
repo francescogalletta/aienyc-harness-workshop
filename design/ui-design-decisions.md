@@ -1,6 +1,6 @@
-# Financial Advisor Harness UI: design decisions so far
+# Financial Advisor Harness UI: design decisions
 
-Working notes from the design discussion of 10 October 2026. Repository: `francescogalletta/aienyc-harness-workshop`. Nothing here is built yet. Sketches are on the design canvas "Harness builder: first sketch", page "Second version".
+The product decisions behind the page. The design system is in `design/system/`, the page source in `design/page/`. Where the code and this file differ, this file wins (`AGENTS.md`).
 
 ## Principles for the UI
 
@@ -46,7 +46,7 @@ Two parts that never change: the plan as a diagram, and the chat. Clicking a ste
 
 - An answer is one run through the diagram. Steps used for the last answer show what went in and what came out.
 - Every number in a chat answer leads to the step that produced it. A number no step produced is never shown.
-- No scenario comparison and no run history in the first version.
+- No scenario comparison. A step keeps its last few runs, one click away in its pop-up.
 
 ## 4. When the harness needs the person
 
@@ -55,7 +55,7 @@ Two parts that never change: the plan as a diagram, and the chat. Clicking a ste
 - A calculation missing from the plan is built automatically; the person is told, and it appears as a new step marked "not in the plan".
 - Side questions are a collapsible tinted thread inside the chat. They work everywhere (plan, build, questions). A side thread never changes anything; to make something count, the person says it in the main chat.
 
-## 5. Review (replaces "verification against your own data")
+## 5. Review
 
 - A reviewer looks at how the problem is being thought about (assumptions, inputs, methods, the shape of the plan) and pushes back where something looks weak. It may research on the web and ask the person a clarifying question.
 - It runs automatically in the background after the plan is accepted and when new assumptions appear.
@@ -65,29 +65,4 @@ Two parts that never change: the plan as a diagram, and the chat. Clicking a ste
 - A challenge based on outside information carries a source the harness actually fetched. Only the general question goes to the web, never the person's figures.
 - Each pass is capped to a few challenges, ranked by how much they would change the result.
 - A challenge may propose building or replacing a step.
-- Out of the first version: loading the person's account files, a "from your files" origin, and highlighting everything downstream of a challenge.
-
-## Harness changes all this implies
-
-- Brief: an origin on every item; particulars and open questions linked to a step; corrections that carry a step reference.
-- Build: no wait for hand-confirmed examples; a second-pass checker; unattended run.
-- Assumption gate becomes run-and-mark. Module requests build without asking.
-- Side threads available outside `ask`, without the pass-back prompt.
-- The verifier becomes a reviewer with web lookups, clarifying questions and module suggestions.
-- Build and questions served to the browser (terminal only today).
-
-## Reference for implementation, later
-
-Component experiments to consider pulling from once the design is agreed: https://www.dqnamo.com/kitchen (dqnamo's "The Kitchen", 15 interface experiments).
-
-| Experiment | Possible use |
-| --- | --- |
-| Hold to Confirm | Accepting the plan; calls that are the person's |
-| Dynamic Button | The build action, as its label changes through the run |
-| Scroll Fade List | Lists inside step pop-ups and the whole-plan section |
-| Receipt Printer | Evidence for one calculation run: what went in, what came out |
-| Stamp | A "tested" mark on a step |
-| Logo Trace Loader, Scramble Text | Waiting states and status changes |
-| Tactile Button | Primary actions |
-
-To check before using any of it: the page states no licence and does not say the code can be copied; the components appear to be React, while the harness pages today are single self-contained HTML files with no dependencies and no network access.
+- Not included: loading the person's account files, a "from your files" origin, and highlighting everything downstream of a challenge.

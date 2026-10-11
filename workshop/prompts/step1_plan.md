@@ -13,7 +13,7 @@ An interview that agrees the plan with the person, and draws it. The plan is a b
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 3 (the plan, 3.1 to 3.5). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.1, 3.2 and 3.5 (the state document), 4.3 (the Layer object) and the notes marked A0 and A1 in section 11.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.1, 3.2 and 3.5 (the state document), 4.3 (the Layer object) and the notes marked A0 and A1 in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer1/`. These tests are the definition of done.
 

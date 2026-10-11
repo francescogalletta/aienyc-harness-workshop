@@ -4,6 +4,15 @@ A small agent harness for personal finance, built one layer at a time. You descr
 
 The running example is a plan to pay for a wedding on time (`examples/wedding/`). The harness itself knows nothing about weddings.
 
+**Taking part in the workshop?** Start at [`workshop/README.md`](workshop/README.md): what to install before you arrive, the six steps and the three ways to follow along. Get the code first:
+
+```
+git clone https://github.com/francescogalletta/aienyc-harness-workshop
+cd aienyc-harness-workshop
+```
+
+The rest of this page describes the harness itself.
+
 ## Who this is for
 
 The repository serves four uses. They are listed in order of how well a two-hour workshop fits them.
@@ -65,7 +74,7 @@ flowchart TB
     gate --> db
 ```
 
-The model talks, asks and explains. Everything that produces or admits a number is fixed code: the tested modules, the test gate and the number check. The five layers are what the workshop adds, in order. There are no account files and no verifier in version 2.
+The model talks, asks and explains. Everything that produces or admits a number is fixed code: the tested modules, the test gate and the number check. The five layers are what the workshop adds, in order.
 
 ## What is here
 
@@ -101,7 +110,7 @@ Then you need model access, one of:
 uv run python -m harness check
 ```
 
-It sends the model a one-line test and should end with `Setup works: the model replied and the check was saved as event 1.` A model reply takes 20 to 60 seconds through Claude Code.
+It sends the model a one-line test and should end with `Setup works: the model replied and the check was saved as event 1.` It takes a few seconds, up to a minute on a first run.
 
 ## Use it
 
@@ -137,7 +146,7 @@ Which commands exist depends on the layers on (below). `ground`, `build` and `as
 
 ## Check a change
 
-Tests run offline with the scripted model: `uv run pytest -q` (a few hundred tests, about 40 seconds). They are in `tests/layer0` to `tests/layer5`, and the tests of layer K pass with layers above K off.
+Tests run offline with the scripted model: `uv run pytest -q` (several hundred tests, under a minute). They are in `tests/layer0` to `tests/layer5`, and the tests of layer K pass with layers above K off.
 
 To see a change with the real model, replay a seeded scenario, a scripted person playing against it:
 
@@ -150,16 +159,7 @@ It prints a line per expectation and exits 0 only when all pass. A scenario take
 
 ## Moving through the steps
 
-The workshop builds the harness in six steps, 0 (the core) and 1 to 5 (the layers). The `workshop` command moves your copy between them. It never touches `my/brief`, `my/modules` or your database, and it copies any file of yours it would replace to `my/var/set-aside/` first. `workshop/README.md` is the guide.
-
-```
-uv run python -m workshop status          # which layers are present and on
-uv run python -m workshop at N            # run this copy as the harness at step N; removes nothing
-uv run python -m workshop start N         # remove step N's code (and later layers), to build it yourself
-uv run python -m workshop finish N        # restore the code of layers 1 to N from git
-uv run python -m workshop leave           # remove workshop/ and keep the harness
-uv run python -m workshop check           # the drift check, about five minutes
-```
+The workshop builds the harness in six steps, 0 (the core) and 1 to 5 (the layers). The `workshop` command moves your copy between them (`uv run python -m workshop at N`) and never overwrites your work in `my/`. `workshop/README.md` is the guide, `workshop/STEPS.md` the table of steps and `workshop/DESIGN.md` every command.
 
 ## The three places
 

@@ -1,6 +1,6 @@
 # Hands-on exercises
 
-Fifteen exercises, three for each layer. Each takes 5 to 15 minutes. Do them on the main example. Each one is a change you make, then something you watch the harness do. Every one was tried on a clean clone and undone, and 2.1, 2.2, 3.1, 3.2, 3.3, 4.1, 4.2 and 4.3 again on the final code. Three kinds: **break it** (make something wrong and watch the harness refuse it), **change it** (move a limit or a format and see what changes), **extend it** (add something of your own).
+Fifteen exercises, three for each layer. Each takes 5 to 15 minutes. Do them on the main example. Each one is a change you make, then something you watch the harness do. Every one has been tried on a clean clone and undone. Three kinds: **break it** (make something wrong and watch the harness refuse it), **change it** (move a limit or a format and see what changes), **extend it** (add something of your own).
 
 ## Before you start
 
@@ -13,7 +13,7 @@ uv run python -m harness ask                # the same, in the terminal; type /q
 
 - **Reset after every exercise.** Run `git checkout .` (or `git stash`) to undo edits to `harness/` and `reference/`. Delete any file you added. A stash does not remove new files. Then `rm -rf my/var/examples/wedding` to reset the example copy.
 - Edit the copy under `my/var/examples/wedding/`, not `examples/`. It is made the first time you run `ui`, `ask`, `build` or `events`. Python edits need a restart of `ui`. Edits to a module in the copy are seen at once.
-- `uv run pytest -q` takes about a minute. One layer's tests: `uv run pytest tests/layer0 -q` (6 seconds).
+- `uv run pytest -q` runs several hundred tests in under a minute. One layer's tests: `uv run pytest tests/layer0 -q` (a few seconds).
 - **Model call: yes** means the exercise sends real prompts. A reply takes 5 to 60 seconds. The model varies, so try twice before you believe a miss. Do not type real account numbers.
 
 ## Layer 1: the plan
@@ -84,7 +84,7 @@ You will see that the way a value is shown is one function, separate from the nu
 2. In `harness/core/state.py`, function `show_number`, change the two last returns: `f"{whole:,}"` becomes `f"€{whole:,}"` and `f"{rounded:,.2f}"` becomes `f"€{rounded:,.2f}"`.
 3. Restart `ui`. Open step 1 and look at its worked examples.
 4. Run `uv run pytest tests/layer0 -q`.
-- **Expected:** the examples read `€1,000` and `€1,760`, not `1,000` and `1,760`. About 9 tests fail (I saw 9 failed, 223 passed), all in `tests/layer0/test_state.py`. The tests pin the format from SPEC 2.4.
+- **Expected:** the examples read `€1,000` and `€1,760`, not `1,000` and `1,760`. About 9 tests fail, all in `tests/layer0/test_state.py`. The tests pin the format from SPEC 2.4.
 - **Why it matters:** formatting is presentation. The exact values stay in the record, and the tests tell you when you change the contract.
 
 ### 2.3 Five examples, then one wrong (extend it) · 10 min · Model call: yes
@@ -193,7 +193,7 @@ You will see that a mark is one rule in the core and the page draws what it is g
 ```
 3. Restart `ui`. Look at the tag line on each step.
 4. Run `uv run pytest tests/layer0 -q`.
-- **Expected:** `✎` with a count appears on steps 1 to 5, beside `●`. Hover for the title. The tests of layer 0 still pass (232 when I tried), so nothing in the tests forbids it. If you keep the mark, it belongs in SPEC 2.4.
+- **Expected:** `✎` with a count appears on steps 1 to 5, beside `●`. Hover for the title. The tests of layer 0 still pass, so nothing in the tests forbids it. If you keep the mark, it belongs in SPEC 2.4.
 - **Why it matters:** marks are computed in one place from the state document, and the page never works them out itself.
 
 ## Layer 5: review

@@ -32,7 +32,7 @@
       "built": [],
       "given": [],
       "tests": "tests/layer0/",
-      "run": "python -m harness check, events, ui"
+      "run": "python -m harness check, events, ui, replay"
     },
     {
       "step": 1,
@@ -106,7 +106,7 @@
     },
     {
       "step": 4,
-      "principle": "4 human in the loop: marks, decisions, side threads",
+      "principle": "4 accountability: marks, decisions, side threads",
       "package": "harness/needs_you/",
       "built": [
         "harness/needs_you/__init__.py",
@@ -126,7 +126,7 @@
     },
     {
       "step": 5,
-      "principle": "5 verification: a reviewer challenges the figures",
+      "principle": "5 verification: a reviewer challenges the plan",
       "package": "harness/review/",
       "built": [
         "harness/review/__init__.py",

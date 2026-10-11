@@ -13,7 +13,7 @@ Every number comes from a tested module. An unattended build turns each calculat
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 4 (build and tested calculations, 4.1 to 4.8). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 (a step and its `build`), 4 and the notes marked A2a and A2b in section 11.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 (a step and its `build`), 4 and the notes marked A2a and A2b in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer2/`. These tests are the definition of done.
 

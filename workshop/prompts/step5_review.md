@@ -13,7 +13,7 @@ A reviewer looks at how the problem is being thought about and challenges weak a
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 7 (review, 7.1 to 7.4). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.4 (threads and challenges), 4 and the notes marked A5 in section 11.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.4 (threads and challenges), 4 and the notes marked A5 in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer5/`. These tests are the definition of done.
 

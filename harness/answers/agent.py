@@ -309,7 +309,7 @@ def spaced(text: str) -> str:
 
 
 def change_plan(turn: Turn, call) -> dict:
-    """The person's words change the plan (ARCHITECTURE.md 10, question 1): `words` must be in a message they typed."""
+    """The person's words change the plan (SPEC 5.1): `words` must be in a message they typed."""
     arguments = call.arguments
     words, step = arguments.get("words"), arguments.get("step") or None
     typed = [spaced(text) for text in person_words(turn.conn, turn.conversation)]
