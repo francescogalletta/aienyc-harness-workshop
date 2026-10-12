@@ -17,7 +17,7 @@ name = "What you cloned"
 layout = "repo"
 label = "WHAT YOU JUST CLONED"
 items = [
-  { path = "workshop/README.md", gloss = "today's guide: start here" },
+  { path = "README.md", gloss = "today's guide: start here" },
   { path = "examples/wedding/", gloss = "today's example" },
   { path = "harness/", gloss = "the harness: a core and five layers", mute = 1 },
   { path = "my/", gloss = "your own plan, for later", mute = 1 },

@@ -80,3 +80,4 @@ blocks = [
   { label = "WHY", gap = "m" },
   { sub = "Any number leads back to its step, its inputs and its tests.", gap = "xs" },
 ]
+footnote = { text = "Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again." }
