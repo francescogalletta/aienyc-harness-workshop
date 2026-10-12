@@ -1,4 +1,5 @@
-/* Financial Advisor Harness: tokens. Compiled from tokens.json; edit that file, not this one. */
+/* Financial Advisor Harness: tokens. The CSS form of tokens.json, kept in step with it by hand (there is no generator):
+   change tokens.json first, then the same line here. tests/layer0/test_page.py checks the two agree. */
 :root, [data-theme="light"] {
   --ground: #eef2f7;
   --surface: #ffffff;
@@ -7,10 +8,23 @@
   --muted: #4f6078;
   --line: #bccadb;
   --flow: #6f84a0;
-  --needs-you: #ffd9b0;
-  --tested: #0b6b6a;
+  --needs-you: #edd0c7;
+  --tested: #85617f;
   --thread: #dde6f2;
   --bubble: #dfe6ef;
+  --principle-1: #81a1c1;
+  --principle-1-ink: #51708e;
+  --principle-2: #b690af;
+  --principle-2-ink: #85617f;
+  --principle-3: #ab4f59;
+  --principle-3-ink: #ab4f59;
+  --principle-4: #d38a73;
+  --principle-4-ink: #9f5b45;
+  --principle-5: #a3be8c;
+  --principle-5-ink: #5c7446;
+  --on-principle: #0f2440;
+  --on-principle-3: #ffffff;
+  --principle-tint: 12%;
   --on-ink: #ffffff;
   --shadow-pop: 0 6px 20px rgba(15,36,64,0.16);
 }
@@ -22,10 +36,23 @@
   --muted: #9db0c8;
   --line: #2e4466;
   --flow: #5f7898;
-  --needs-you: #7a4a10;
-  --tested: #5fd0c8;
+  --needs-you: #644d52;
+  --tested: #b690af;
   --thread: #1b2c4a;
   --bubble: #223556;
+  --principle-1: #81a1c1;
+  --principle-1-ink: #81a1c1;
+  --principle-2: #b690af;
+  --principle-2-ink: #b690af;
+  --principle-3: #ab4f59;
+  --principle-3-ink: #cd6d76;
+  --principle-4: #d38a73;
+  --principle-4-ink: #d38a73;
+  --principle-5: #a3be8c;
+  --principle-5-ink: #a3be8c;
+  --on-principle: #0f2440;
+  --on-principle-3: #ffffff;
+  --principle-tint: 18%;
   --on-ink: #0c1524;
   --shadow-pop: 0 6px 20px rgba(0,0,0,0.5);
   color-scheme: dark;

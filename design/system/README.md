@@ -35,7 +35,8 @@ Positioning steps and drawing the lines between them is the page's job. The syst
 ## Principles
 
 - **The diagram carries the state.** A step shows its name and at most one more line. If nothing happened to a step, it says nothing.
-- **One attention colour.** `needs-you` fills the step that is waiting on the person. It is never used for selection, hover, emphasis or decoration.
+- **Colour is the principle.** Each of the five principles (one per harness layer) has a colour; an element takes the colour of the principle that produced it (`data-p`, see "Principle colour" in `components.md`). Colour is never the only signal.
+- **One attention colour.** `needs-you`, principle 4's attention fill, fills the step that is waiting on the person. It is never used for selection, hover, emphasis or decoration.
 - **Selection is an outline.** A selected step gets a 3px ink outline drawn inside its box, so nothing moves.
 - **Nothing blocks unless the call is the person's.** Anything unconfirmed runs and carries a mark.
 - **Every figure leads somewhere.** A number in the chat is underlined and selects the step that produced it.
@@ -44,19 +45,22 @@ Positioning steps and drawing the lines between them is the page's job. The syst
 
 ## Colour
 
-Twelve colours in two themes. Each has one job; the token notes say which text goes on which ground.
+Ten neutral colours and the five principles, in two themes (`needs-you` and `tested` are principles 4 and 2). Each has one job; the token notes say which text goes on which ground.
 
 | Token | Job |
 | --- | --- |
 | `ground`, `surface` | The page, and everything that sits on it |
 | `ink`, `ink-2`, `muted` | Text, from primary to quiet. `ink` also draws step outlines and fills primary buttons |
 | `line`, `flow` | Hairlines, and the arrows between steps |
-| `needs-you` | The step waiting on the person. Nothing else |
-| `tested` | The tick on a step whose tests pass |
-| `thread`, `bubble` | Side and reviewer threads; the person's own messages |
+| `needs-you` | The step waiting on the person: principle 4's attention fill. Nothing else |
+| `tested` | The tick on a step whose tests pass: principle 2's ink |
+| `thread`, `bubble` | The neutral tint (a traced number outside any principle, a thread outside the history); the person's own messages |
+| `principle-1` … `principle-5` | The five principles, the slide deck's colours: a fill, a tint (`principle-tint` of it in surface) or a stroke |
+| `principle-N-ink` | The same principle as small text, marks and thin strokes, 4.5:1 or more on surface and ground |
+| `on-principle`, `on-principle-3` | Text on a principle fill (3 takes light text) |
 | `on-ink` | Text on an ink fill |
 
-Do not add a red. A failed build is a step that needs the person, so it uses `needs-you`.
+Do not add a red beyond principle 3, and do not use principle 3 for warnings. A failed build is a step that needs the person, so it uses `needs-you`.
 
 ## Type
 
