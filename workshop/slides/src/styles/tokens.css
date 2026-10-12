@@ -372,7 +372,7 @@
   --doubts-gap: var(--space-xs);
   --doubt-pad-x: 26px;
   --doubt-size: var(--fs-xs);
-  --says-compact-said-w: 560px;   /* guesses with compact = true: long quotes, a smaller table */
+  --says-compact-said-w: 740px;   /* guesses with compact = true: long quotes, a smaller table */
   --says-compact-example-size: calc(44px * var(--type-scale));
   --says-compact-doubt-size: calc(32px * var(--type-scale));
   --says-compact-row-gap: 32px;

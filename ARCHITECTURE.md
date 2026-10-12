@@ -558,13 +558,9 @@ The decision history adds (section 12):
 ## 7. "The harness at step N"
 
 - **One setting.** `HARNESS_LAYERS=N` (default 5) turns layers above N off.
-  The facilitator presents step N on the finished tree with
-  `HARNESS_LAYERS=N uv run python -m harness ui`.
 - **Files absent.** A tree without the packages of layers above N is the
-  harness at step N; discovery stops at the first missing package. This is
-  how an attendee's copy is at step N (`workshop start N` removes the files of
-  layers N and above; `finish N` puts back layer N). Nothing is stored but the
-  finished tree.
+  harness at step N; discovery stops at the first missing package. Nothing
+  is stored but the finished tree.
 - **What each layer registers** is its `Layer` object (4.3): layer 1 plan
   actions, routing before acceptance, `ground`; layer 2 build actions,
   routing for steps, `build`; layer 3 routing after acceptance, its tools and
@@ -600,7 +596,7 @@ migration history. After a schema change, delete `my/var/harness.db`.
 ## 9. Implementation notes
 
 Notes made while the harness was built, one package at a time (A0 to A6 for
-behaviour, B2 for the page, C1 for the workshop tool, D0 to D6 for the decision
+behaviour, B2 for the page, D0 to D6 for the decision
 history of section 12, then fixes from end-to-end and live runs). They record interfaces and choices the contract leaves open.
 Where a note mentions an earlier package, a later one, or the previous version
 of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
@@ -1090,7 +1086,7 @@ of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
   join that raises makes the proposal `failed` (reason posted in the branch) and still sets `error`. The `turn_finished` hook
   is marks' then the `moved_on` death. A join notice first had every value chip of its new runs (13 in a live
   wedding run); after the first browser run it keeps the changed value and the results, each `new (was old)` (12.7).
-  `review_challenges.json` gained `"proposal": null`; `workshop/manifest.json` lists `join.py`.
+  `review_challenges.json` gained `"proposal": null`.
 - **D6 · Replay acts and scenarios.** The scenarios are `branch_that_joins` and `branch_that_dies` (SPEC 6.6 gives them; the question is one the real
   model answers reliably, and `today` is 2026-10-12). `branch` takes a `chip` or a
   `step`, not both. "Newest" is the highest number in the id (a review pass on load makes thread ids unpredictable), `accept` and

@@ -319,7 +319,7 @@ def test_repo_slide_mutes_the_rest(deck):
     assert out.count('class="tree-row"') == 8 and out.count('data-step-mute="1"') == 4
     for path in ("harness/", "examples/wedding/", "my/", "workshop/", "tests/", "reference/", "design/", "SPEC.md"):
         assert f">{path}</code>" in out
-    assert "tree-line" not in out
+    assert 'class="tree-line' not in out
 
 
 def test_check_slide_is_a_large_command(deck):
@@ -340,7 +340,7 @@ def test_split_examples_and_the_down_arrow_block(deck):
     html = sections_html(deck)
     gap = html.split('id="s-gap"')[1].split("</section>")[0]
     assert 'class="split has-examples"' in gap and gap.count('class="example"') == 7
-    assert 'class="example" data-step="6">the average wedding' in gap and 'data-step="7">Second nature' in gap
+    assert 'class="example" data-step="6">the average household' in gap and 'data-step="7">Second nature' in gap
     deal = html.split('id="s-deal"')[1].split("</section>")[0]
     assert '<div class="arrow-down gap-s" data-step="1">' in deal and '<svg class="arrow"' in deal
 

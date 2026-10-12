@@ -59,4 +59,3 @@ def test_harness_review_is_auto_or_off(monkeypatch):
     monkeypatch.setenv("HARNESS_REVIEW", "sometimes")
     with pytest.raises(ValueError, match="HARNESS_REVIEW"):
         load_config()
-
