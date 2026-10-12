@@ -28,11 +28,11 @@
   },
   {
     "inputs": {
-      "net_monthly_income": "2000.50",
-      "monthly_spending": "1500.25"
+      "net_monthly_income": "2500.50",
+      "monthly_spending": "1000.25"
     },
-    "expected": "500.25",
-    "working": "2000.50 - 1500.25 = 500.25",
+    "expected": "1500.25",
+    "working": "2500.50 - 1000.25 = 1500.25",
     "checked_by": "second_pass"
   }
 ]

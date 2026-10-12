@@ -7,7 +7,7 @@
 
 This is for people taking part. The facilitator's notes are in `FACILITATOR.md`.
 
-Words used here: the **harness** is the program in `harness/`: a core plus five layers. **Step N** (0 to 5) is the harness with layers up to N switched on. A **step in the plan** is a box in the diagram on the page. **The page** is the screen `uv run python -m harness ui` opens in your browser: the plan as a diagram, and a chat beside it. **The example** is the seeded wedding plan.
+Words used here: the **harness** is the program in `harness/`: a core plus five layers. **Step N** (0 to 5) is the harness with layers up to N switched on. A **step in the plan** is a box in the diagram on the page. **The page** is the screen `uv run python -m harness ui` opens in your browser: the plan as a diagram on the left, and on the right the **decision graph**: a trunk of the decisions that changed the plan, **branches** that leave it, and the conversation under it. A **chip** is a small box in a reply (a value, an assumption, a result); hover one for a menu. **The example** is the seeded wedding plan.
 
 ## Read this first
 
@@ -53,7 +53,7 @@ uv run python -m workshop at 1
 HARNESS_EXAMPLE=wedding uv run python -m harness ui     # PowerShell: $env:HARNESS_EXAMPLE="wedding"; uv run python -m harness ui
 ```
 
-Then `at 2`, `at 3` and so on: stop the page (Ctrl+C), run `at N`, start the page again. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment` (the example is an argument, so `HARNESS_EXAMPLE` is not needed).
+Then `at 2`, `at 3` and so on: stop the page (Ctrl+C), run `at N`, start the page again. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment`, or `branch_that_joins` for the decision graph (the example is an argument, so `HARNESS_EXAMPLE` is not needed). `EXERCISES.md` has exercises for each step.
 
 ### (b) A variation with your own figures and plan
 
@@ -92,9 +92,9 @@ Commands are `uv run python -m harness ...`; `harness --help` lists what exists 
 | 0 core | `check`, `events`, `ui`, `replay` | An empty shell: no plan, nothing to draw yet |
 | 1 the plan | adds `ground` | Describe a goal and an interview proposes a plan; click a step and say what is wrong while it is proposed, and the plan redraws. On the example the plan is already accepted and drawn: steps, inputs, origins, open questions; click a step to read them |
 | 2 build | adds `build` | A build button. Each calculation step shows its examples and how many tests pass. Open a step to see examples, tests and code |
-| 3 answers | adds `ask` | Ask in the chat. Each number in an answer leads to the step that made it. Steps used light up, the rest fade |
-| 4 needs you | same commands | An answer that rests on something unconfirmed is marked `◌`: confirm or change it. Your calls ask with options. A missing calculation is built and shows as "not in the plan". "On the side" opens a side thread. In the terminal: `/confirm`, `/side TEXT`, `/reply TEXT` |
-| 5 review | same commands | A reviewer challenges steps. A **Review** toggle shows them. Use or dismiss each, or reply in its thread |
+| 3 answers | adds `ask` | Ask in the chat. The reply is short; the values it used, what it assumed and what it found are chips under it. Each number leads to the step that made it. Steps used light up, the rest fade |
+| 4 needs you | same commands | An answer that rests on something unconfirmed is marked `◌`: confirm or change it. Your calls ask with options. A missing calculation is built and shows as "not in the plan". Hover a chip to challenge or correct it, or to open a branch about it (or click a step, then **New branch**). If a branch proposes a change to one of your figures, nothing changes until you say Yes: then it joins the trunk as a decision and the steps it reaches run again through the same test gate, with no model call. A branch that changes nothing stays on the page, dimmed. Confirm, Change it and your calls become trunk nodes too. In the terminal: `/confirm`, `/side TEXT`, `/reply TEXT`, `/yes`, `/no`, `/close` |
+| 5 review | same commands | A reviewer challenges steps; each challenge is a branch off the trunk, and the **Review** button counts the open ones. **Use this** joins the trunk, **Dismiss** leaves the branch dimmed. Or reply in its thread |
 
 ## Catching up
 

@@ -208,7 +208,9 @@ Message = {
                                   notice; [] on every other message once layer 3 is on (3.5)
 }
 Figure   = {"start": 13, "end": 19, "text": "43,000",
-            "step": "s1" | null, "run": "r17" | null, "input": "in:guest_count" | null}
+            "step": "s1" | null, "run": "r17" | null, "input": "in:guest_count" | null,
+            "superseded": false}     (layer 3) true only when a join ran its run again and the run that
+                                     came last no longer produces this value; an unchanged one stays false
 Decision = {"id": "d4", "step": "s7", "question": str, "options": [str], "suggested": 2 | null,
             "why": str, "status": "open" | "answered", "choice": null | "2" | "something else"}
 Notice   = {"assumptions": [Assumption], "steps": ["s5"], "status": "open" | "confirmed" | "changed"}
@@ -1157,7 +1159,8 @@ For the decision graph (section 12), 11 October:
   hooks (the review pass of a seeded plan starts there). Layer 4 `marks` also takes `confirmed` and `corrected` (at least that many
   `you.assumptions_*` events), layer 5 `challenges` takes `used` and `dismissed` (at least that many in that state), so a scenario
   can expect counts and states. Layer 3 `shown` and `not_shown` read the assistant's text and decision messages in the chat
-  (they read `ask.reply` events only, so a figure in a decision's question was "not shown").
+  (they read `ask.reply` events only, so a figure in a decision's question was "not shown"), and, since the decision graph,
+  the text of each harness message too, and with every message the text of its chips, so the figures of a join notice and the results a short reply leaves to its chips can be expected.
 - **A6 · Prompt changed on replay evidence.** `needs_you/analyst.md`: one bullet says a value put into a run that the person did
   not give (a share they only called "shares", a rate, a date worked out, whether a payment counts toward a total) is an
   assumption to list in the run's `assumptions`. Before it, four of four live runs of `confirm_and_correct` gave the 50/50 split

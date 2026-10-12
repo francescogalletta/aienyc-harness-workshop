@@ -578,7 +578,8 @@ input an earlier run of another step produced is an edge from that step); and
 
 Table `inputs` (as version 1). Tools above. Prompt `analyst.md`. Command
 `ask`. Expects `runs`, `shown`, `not_shown`, `max_withheld`,
-`max_corrections`, as in version 1. Events: `ask.message`, `ask.reply`,
+`max_corrections`, as in version 1; `shown` and `not_shown` read what the person reads in the main chat: the
+assistant's replies and decision questions and each harness message (a join notice), each with the text of its chips. Events: `ask.message`, `ask.reply`,
 `ask.correction`, `ask.withheld`, `ask.stopped`, `ask.input_saved`,
 `ask.plan_changed`, and the gate's `calc.run`, `calc.refused`.
 

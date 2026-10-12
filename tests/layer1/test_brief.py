@@ -22,6 +22,24 @@ def test_the_example_briefs_are_valid_version_2_briefs(name):
     assert found == []
 
 
+def test_the_wedding_glossary_has_sourced_definitions_and_no_unverified_notes():
+    brief = json.loads((EXAMPLES / "wedding" / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
+    reference = {each["term"].lower(): each for each in
+                 json.loads((EXAMPLES.parent / "reference" / "terms.json").read_text(encoding="utf-8"))}
+    looked_up = {each["name"].lower(): each for each in brief["meta"]["lookups"]}
+    for entry in brief["glossary"]:
+        found = reference.get(entry["term"].lower())
+        assert "not verified" not in entry["definition"].lower()
+        if found:                                   # a saved term: its sourced definition, recorded as a lookup
+            assert entry["definition"] == found["definition"] and entry["source"] == found["sources"][0]["url"]
+            assert looked_up[entry["term"].lower()]["sources"] == found["sources"]
+            assert looked_up[entry["term"].lower()]["origin"] == "reference"
+        else:                                       # no saved source: proposed, with nothing claimed
+            assert entry["source"] == ""
+    assert all(each["found"] and each["sources"] for each in brief["meta"]["lookups"])
+    assert "web search was unavailable" not in json.dumps(brief) and "not verified" not in json.dumps(brief).lower()
+
+
 def test_a_small_valid_brief_passes_and_a_missing_key_does_not():
     assert errors(small_brief()) == []
     broken = small_brief()

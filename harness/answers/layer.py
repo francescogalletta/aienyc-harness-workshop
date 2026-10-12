@@ -7,7 +7,7 @@ Which run belongs to which answer is kept on the message that ended the turn, in
 import json
 from pathlib import Path
 
-from ..calc.provenance import _produced, _read, unbacked
+from ..calc.provenance import _near, _produced, _read, unbacked
 from ..calc.registry import get_module, module_for_step
 from ..core import Session
 from ..core.state import display, display_inputs, show_value
@@ -114,6 +114,41 @@ def contribute(view, state: dict) -> None:
         entry["value"] = value if value is None or isinstance(value, str) else json.dumps(value, ensure_ascii=False)
         entry["used"] = any(step in lit for step in entry.get("steps", []))
     add_chips(view, state)
+    mark_superseded(view, state)
+
+
+def mark_superseded(view, state: dict) -> None:
+    """`superseded` on every figure of a message that names a run: true only when a join ran that run again (and
+    that re-run again, if a later join did) and the run that came last no longer produces the figure's value.
+    A re-run that gave the same value, a date or a payment that did not move, leaves it current."""
+    replaced = {}
+    for node in (state.get("history") or {}).get("trunk", []):
+        runs = (node.get("change") or {}).get("runs")
+        if isinstance(runs, dict):
+            replaced.update({old: new for old, new in runs.items() if isinstance(old, str) and isinstance(new, str)})
+    made = {}
+
+    def produced(run: str):
+        if run not in made:
+            row = view.conn.execute("SELECT inputs, output FROM calc_runs WHERE id = ?", (int(run[1:]),)).fetchone() \
+                if run[1:].isdigit() else None
+            made[run] = _produced(json.loads(row["output"]), json.loads(row["inputs"])) if row else None
+        return made[run]
+
+    for message in state["chat"]:
+        for figure in message.get("figures") or []:
+            figure["superseded"] = False
+            run, seen = figure.get("run"), set()
+            while run in replaced and run not in seen:
+                seen.add(run)
+                run = replaced[run]
+            if run == figure.get("run") or not isinstance(run, str) or (found := produced(run)) is None:
+                continue
+            numbers, dates = found
+            for item in _read(figure["text"]):
+                if item["parts"] and item["written"] not in dates \
+                        or not item["parts"] and not _near(numbers, item["value"], item["precision"]):
+                    figure["superseded"] = True
 
 
 # --- Chips (SPEC 5.4, ARCHITECTURE.md 12.7): built from the harness's own records, never by the model ---
@@ -350,15 +385,25 @@ def _check_runs(value, context) -> dict:
             "seen": "; ".join(f"{row['module']} {row['inputs']}" for row in rows) or "no runs"}
 
 
+def _shown_texts(state: dict) -> list[str]:
+    """What a person reads in the main chat, one text per message: an assistant reply or decision question, and a
+    harness message (a join notice), each with the text of its chips (the figures the reply no longer repeats)."""
+    texts = []
+    for message in state["chat"]:
+        if message["who"] == "assistant" and message["kind"] in ("text", "decision") \
+                or message["who"] == "harness" and (message["kind"] == "text" or message.get("chips")):
+            texts.append(" ".join([message["text"], *(chip["text"] for chip in message.get("chips") or [])]))
+    return texts
+
+
 def _check_shown(wanted: bool):
     def check(value, context) -> dict:
-        replies = [message["text"] for message in context.state()["chat"]
-                   if message["who"] == "assistant" and message["kind"] in ("text", "decision")]
+        replies = _shown_texts(context.state())
         found = [item for item in value if any(not unbacked(item, [text]) for text in replies)]
         shown = [item for item in value if item in found]
         passed = len(found) == len(value) if wanted else not found
         return {"what": ("shows " if wanted else "does not show ") + ", ".join(value), "passed": passed,
-                "seen": f"{', '.join(shown) or 'none'} of {len(replies)} replies"}
+                "seen": f"{', '.join(shown) or 'none'} of {len(replies)} messages"}
     return check
 
 

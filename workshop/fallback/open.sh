@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Open a kept run in the page with no model and no network.
 #   workshop/fallback/open.sh BLOCK [PORT] [LAYER]
-# BLOCK is a folder here (0-setup, 1-plan, 2-build, 3-answers, 4-marks, 4-call, 5-review).
+# BLOCK is a folder here (0-setup, 1-plan, 2-build, 3-answers, 4-marks, 4-marks-corrected, 4-call, 4-branch-proposal, 4-branch-joined, 5-review).
 # It works on a copy under my/var/fallback/, so the kept run stays as it was. LAYER overrides the layer the page
 # runs at: open the same kept run one layer lower to show the "before" (for example `open.sh 3-answers 8765 2`).
 set -euo pipefail

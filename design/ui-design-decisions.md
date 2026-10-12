@@ -53,7 +53,7 @@ Two parts that never change: the plan as a diagram, and the chat. Clicking a ste
 - Assumptions: run and mark. The result carries a mark ("rests on things you haven't confirmed"); one click confirms or corrects.
 - Calls that are the person's stay real stops. They belong to the "your call" steps; the question arrives in the chat with options as buttons, or the person answers in their own words. The record lives in that step's pop-up; there is no separate decisions list.
 - A calculation missing from the plan is built automatically; the person is told, and it appears as a new step marked "not in the plan".
-- Side questions are a collapsible tinted thread inside the chat. They work everywhere (plan, build, questions). A side thread never changes anything; to make something count, the person says it in the main chat.
+- Side questions are a collapsible tinted thread inside the chat. They work everywhere (plan, build, questions). A side thread is a branch (ARCHITECTURE.md section 12) and no longer only talks: it may propose a change, and nothing changes until the person says yes, which joins the branch to the trunk and runs the steps it reaches again. The side assistant itself never applies anything. A branch that proposes nothing stays dead and dimmed.
 
 ## 5. Review (replaces "verification against your own data")
 

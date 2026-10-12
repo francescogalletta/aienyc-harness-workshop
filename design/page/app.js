@@ -1069,7 +1069,6 @@
   /* The figures in a message stay underlined and clickable, and get the same menu with the subject 3.5 derives. */
   function withFigures(p, m) {
     var text = String(m.text || ''), figs = arr(layerOn(3) ? m.figures : null).filter(function (f) { return f && f.step && stepById(f.step); }), pos = 0, spans = [];
-    var stale = staleRuns();
     figs.forEach(function (f) {
       var s = f.start, e = f.end;
       if (!(typeof s === 'number' && typeof e === 'number' && text.slice(s, e) === f.text)) { s = text.indexOf(f.text, pos); e = s + String(f.text).length; }
@@ -1079,7 +1078,7 @@
     spans.forEach(function (sp) {
       if (sp[0] < pos) { return; }
       p.appendChild(document.createTextNode(text.slice(pos, sp[0])));
-      var f = sp[2], sid = f.step, word = text.slice(sp[0], sp[1]), old = !!(f.run && stale[f.run]);
+      var f = sp[2], sid = f.step, word = text.slice(sp[0], sp[1]), old = f.superseded === true;   /* decided in the state: a join ran its run again and the value moved */
       var host = el('span', 'dg-fig');
       var n = el('span', 'fah-num' + (old ? ' dg-num--stale' : ''), word);
       n.tabIndex = 0; n.setAttribute('role', 'button');

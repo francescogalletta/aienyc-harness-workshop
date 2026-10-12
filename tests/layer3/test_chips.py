@@ -4,6 +4,7 @@ import json
 
 from harness.answers import agent
 from harness.answers.layer import run_chips
+from harness.calc import gate
 from layer3_helpers import assistant, events, reply, run, save, say
 from state_shape import problems
 
@@ -108,3 +109,22 @@ def test_tell_analyst_puts_a_line_with_the_next_message_once(open_session):
     assert last[0] == "first"
     assert last[1].startswith("second") and "[harness] Decided on a branch: amount A is 150." in last[1]
     assert last[2] == "third"
+
+
+def test_a_figure_is_superseded_only_when_the_run_that_replaced_its_run_made_another_value(open_session):
+    session = open_session([run("total", {"a": 100, "b": 250}), run("double", {"total": 350}),
+                            reply("The total is 350 and doubled 700.")])
+    say(session, "A is 100 and B is 250")
+    figures = lambda: {each["text"]: each["superseded"] for each in assistant(session.state())[0]["figures"]}   # noqa: E731
+    assert figures() == {"350": False, "700": False}                       # nothing re-run: all current
+    # a join re-ran the total with other inputs that give the same 350, and the double on a new total of 400
+    for module, inputs in (("total", {"a": 150, "b": 200}), ("double", {"total": 400})):
+        gate.call(session.conn, module, {key: str(value) for key, value in inputs.items()}, assumptions=[],
+                  expected="as worked out", session_id=session.conversation)
+    session.decide(who="you", kind="value", text="A: 150 (was 100)", change={"input": "a", "label": "A", "from": "100", "to": "150", "runs": {"r1": "r3", "r2": "r4"}, "failed": []})
+    assert figures() == {"350": False, "700": True}                        # 350 did not move; 700 became 800
+    gate.call(session.conn, "double", {"total": "350"}, assumptions=[], expected="as worked out",
+              session_id=session.conversation)
+    session.decide(who="you", kind="value", text="Back again", change={"input": "a", "label": "A", "from": "150", "to": "100", "runs": {"r4": "r5"}, "failed": []})
+    assert figures() == {"350": False, "700": False}                       # the later re-run is followed: 700 again
+    assert problems(session.state()) == []

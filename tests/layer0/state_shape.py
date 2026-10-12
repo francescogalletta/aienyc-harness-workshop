@@ -433,6 +433,8 @@ def problems(state: dict, strict: bool = False) -> list[str]:
             out.append(f"{where}: unknown step")
         for figure in message.get("figures") or []:
             check(figure, FIGURE, f"{where}.figures", out)
+            if "superseded" in figure and not isinstance(figure["superseded"], bool):
+                out.append(f"{where}: figure superseded is not a bool")
             if message["text"][figure["start"]:figure["end"]] != figure["text"]:
                 out.append(f"{where}: figure {figure['text']!r} is not at its offsets")
             if figure["step"] is not None and figure["step"] not in step_ids:
