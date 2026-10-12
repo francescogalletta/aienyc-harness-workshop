@@ -134,3 +134,21 @@ def test_the_legend_names_the_five_principles_and_each_one_colours_something():
         assert title == f"{name}: {statement}"
         assert f"<span>{name}</span>" in legend and f": {statement}</span>" in legend        # read out, not only a tooltip
         assert f'[data-p="{n}"] {{ --p: var(--principle-{n}); --p-ink: var(--principle-{n}-ink);' in page
+
+
+def test_where_a_thing_came_from_is_evidence_and_readable():
+    """design/ui-design-decisions.md "Colour is the principle": provenance is principle 3, whichever layer recorded it."""
+    app = (DESIGN / "page" / "app.js").read_text(encoding="utf-8")
+    assert "var ORIGIN_P = 3;" in app
+    for helper in ("originMark", "originLine"):
+        body = re.search(r"function " + helper + r"\(.*?\n  \}\n", app, re.S).group(0)
+        assert "ORIGIN_P)" in body, helper
+    tag = re.search(r"function tagFor\(.*?\n  \}\n", app, re.S).group(0)
+    assert "originTitle(s.origin), ORIGIN_P" in tag                       # the mark under a step
+    assert "P(el('span', 'dg-say__src'), ORIGIN_P)" in app                # a looked-up source in the chat
+    assert "popHead('Where this came from')" in app                       # its own part of the pop-up
+    for word in ("'your words'", "'looked up'", "'proposed'"):            # a mark and a word, not a lone glyph
+        assert word in app
+    css = (DESIGN / "page" / "page_src.html").read_text(encoding="utf-8")
+    size = int(re.search(r"\.fa-orig \{[^}]*font-size: (\d+)px", css).group(1))
+    assert size >= 13
