@@ -8,6 +8,7 @@ dependencies = []
 
 [project.scripts]
 harness = "harness.__main__:main"   # `uv run harness ...`, same as `python -m harness ...`
+workshop = "workshop.__main__:main" # not built: found through the repository root, so `workshop leave` breaks nothing
 
 [project.optional-dependencies]
 claude = ["anthropic"]      # only for the `anthropic` provider
