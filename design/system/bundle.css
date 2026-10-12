@@ -16,20 +16,40 @@
 @keyframes fah-ring { from { box-shadow: 0 0 0 0 var(--needs-you); } to { box-shadow: 0 0 0 12px rgba(0, 0, 0, 0); } }
 @keyframes fah-slide { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
 
+/* ---- Principle colour ----
+   Colour says which of the five principles (one per harness layer) produced an element.
+   data-p="1".."5" on an element sets, for it and what it holds:
+   --p the principle's fill, --p-ink its small text, marks and thin strokes, --p-tint a faint container ground,
+   --p-line a quiet outline, --p-on text on the fill, --p-hover the fill under the pointer.
+   Components read these with a neutral fallback, so without data-p nothing changes.
+   One rule everywhere: a container takes the tint and a 3px edge in the fill; a mark, tag or label takes the ink;
+   an outline takes the ink; a primary button takes the fill. Body text stays ink. */
+[data-p="1"] { --p: var(--principle-1); --p-ink: var(--principle-1-ink); --p-on: var(--on-principle); }
+[data-p="2"] { --p: var(--principle-2); --p-ink: var(--principle-2-ink); --p-on: var(--on-principle); }
+[data-p="3"] { --p: var(--principle-3); --p-ink: var(--principle-3-ink); --p-on: var(--on-principle-3); }
+[data-p="4"] { --p: var(--principle-4); --p-ink: var(--principle-4-ink); --p-on: var(--on-principle); }
+[data-p="5"] { --p: var(--principle-5); --p-ink: var(--principle-5-ink); --p-on: var(--on-principle); }
+[data-p] {
+  --p-tint: color-mix(in srgb, var(--p) var(--principle-tint), var(--surface));
+  --p-line: color-mix(in srgb, var(--p-ink) 55%, var(--surface));
+  --p-hover: color-mix(in srgb, var(--p) 80%, var(--on-principle-3));
+}
+[data-p="3"] { --p-hover: color-mix(in srgb, var(--p) 85%, var(--on-principle)); }
+
 /* ---- Step ---- */
 .fah-step {
   position: relative; display: flex; flex-direction: column; justify-content: center; gap: 2px;
   width: 184px; min-height: 72px; padding: 8px 12px; margin: 0;
   font: inherit; text-align: left; color: var(--ink); background: var(--surface);
-  border: 0; border-radius: var(--radius-md); box-shadow: inset 0 0 0 1.5px var(--ink);
+  border: 0; border-radius: var(--radius-md); box-shadow: inset 0 0 0 1.5px var(--p-ink, var(--ink));
   cursor: pointer;
   transition: box-shadow var(--dur-fast) var(--ease-out), background-color var(--dur-base) var(--ease-out),
     color var(--dur-base) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
-.fah-step:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1.5px var(--ink), var(--shadow-pop); }
+.fah-step:hover { transform: translateY(-1px); box-shadow: inset 0 0 0 1.5px var(--p-ink, var(--ink)), var(--shadow-pop); }
 .fah-step:active { transform: scale(0.99); }
 .fah-step--from-you { border-radius: var(--radius-step-you); }
-.fah-step--your-call { box-shadow: none; border: 1.5px dashed var(--ink); padding: 6.5px 10.5px; }
+.fah-step--your-call { box-shadow: none; border: 1.5px dashed var(--p-ink, var(--ink)); padding: 6.5px 10.5px; }
 .fah-step--your-call:hover { box-shadow: var(--shadow-pop); }
 .fah-step--selected, .fah-step--selected:hover { box-shadow: inset 0 0 0 3px var(--ink); }
 .fah-step--your-call.fah-step--selected, .fah-step--your-call.fah-step--needs-you { box-shadow: none; border-width: 3px; padding: 5px 9px; }
@@ -42,12 +62,15 @@
 .fah-step--faded.fah-step--your-call { box-shadow: none; border-color: var(--line); }
 .fah-step__name { font-size: 15px; line-height: 20px; font-weight: 600; }
 .fah-step__line { font-size: 13px; line-height: 18px; color: var(--ink-2); }
-.fah-step--faded .fah-step__line { color: var(--muted); }
+.fah-step__line[data-p] { color: var(--p-ink); }   /* the line says what its principle found: built, tested, decided, challenged */
 .fah-step__line--strong { font-weight: 600; color: var(--ink); }
+.fah-step__line--strong[data-p] { color: var(--ink); }   /* on the attention fill: ink */
 .fah-step__line--result { font-size: 15px; line-height: 20px; font-weight: 600; color: var(--ink); }
+.fah-step__line--result[data-p] { color: var(--ink); text-decoration: underline 2px var(--p); text-underline-offset: 4px; }   /* a figure that leads back, as in the chat */
+.fah-step--faded .fah-step__line { color: var(--muted); }
 .fah-step__tick {
   display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: -1px;
-  fill: none; stroke: var(--tested); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  fill: none; stroke: var(--p-ink, var(--tested)); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
   stroke-dasharray: 16; stroke-dashoffset: 0;
 }
 .fah-step.is-arriving .fah-step__line { animation: fah-rise var(--dur-slow) var(--ease-out) both; }
@@ -60,12 +83,13 @@
   color: var(--ink-2); background: var(--surface); border-radius: 12px; box-shadow: inset 0 0 0 1px var(--line);
   transition: box-shadow var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out);
 }
-.fah-pill--used { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+:where(.fah-pills[data-p]) > .fah-pill, .fah-pill:where([data-p]) { box-shadow: inset 0 0 0 1px var(--p-line); }
+.fah-pill--used { color: var(--ink); box-shadow: inset 0 0 0 1px var(--p-ink, var(--ink)); }
 
 /* ---- Flow (a line or arrow between steps) ---- */
 .fah-flow { display: block; overflow: visible; fill: none; stroke: var(--flow); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .fah-flow__head { fill: var(--flow); stroke: none; }
-.fah-flow__pulse { stroke: var(--ink); stroke-dasharray: 10 100; stroke-dashoffset: 10; opacity: 0; }
+.fah-flow__pulse { stroke: var(--p-ink, var(--ink)); stroke-dasharray: 10 100; stroke-dashoffset: 10; opacity: 0; }
 .fah-flow.is-flowing .fah-flow__pulse { opacity: 1; animation: fah-flow var(--dur-draw) var(--ease-in-out) both; }
 
 /* ---- Button, Toggle ---- */
@@ -73,15 +97,16 @@
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   min-height: 44px; padding: 0 16px; margin: 0;
   font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: transparent;
-  border: 0; border-radius: var(--radius-md); box-shadow: inset 0 0 0 1.5px var(--ink); cursor: pointer;
+  border: 0; border-radius: var(--radius-md); box-shadow: inset 0 0 0 1.5px var(--p-ink, var(--ink)); cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
 }
-.fah-btn:hover { background: var(--bubble); }
+.fah-btn:hover { background: var(--p-tint, var(--bubble)); }
 .fah-btn:active { transform: scale(0.98); }
-.fah-btn--primary, .fah-btn[aria-pressed="true"] { color: var(--on-ink); background: var(--ink); box-shadow: none; }
-.fah-btn--primary:hover, .fah-btn[aria-pressed="true"]:hover { background: var(--ink-2); }
+.fah-btn--primary, .fah-btn[aria-pressed="true"] { color: var(--p-on, var(--on-ink)); background: var(--p, var(--ink)); box-shadow: none; }
+.fah-btn--primary:hover, .fah-btn[aria-pressed="true"]:hover { background: var(--p-hover, var(--ink-2)); }
 .fah-btn--block { display: flex; width: 100%; justify-content: flex-start; text-align: left; padding: 10px 12px; }
 .fah-link { padding: 0; margin: 0; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.fah-link[data-p] { color: var(--p-ink); }
 .fah-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* ---- Chat ---- */
@@ -90,10 +115,10 @@
 .fah-msg--you { align-self: flex-end; max-width: 280px; padding: 10px 12px; background: var(--bubble); border-radius: 10px; }
 .fah-chip { display: inline-block; padding: 0 6px; font-size: 12px; line-height: 16px; font-weight: 600; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1.5px var(--ink); }
 .fah-msg--you .fah-chip { display: table; margin-bottom: 6px; }
-.fah-num { padding: 0 1px; font-weight: 600; border-bottom: 2px solid var(--ink); border-radius: 2px 2px 0 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out); }
-.fah-num:hover, .fah-num.is-traced { background: var(--thread); }
+.fah-num { padding: 0 1px; font-weight: 600; border-bottom: 2px solid var(--p, var(--ink)); border-radius: 2px 2px 0 0; cursor: pointer; transition: background-color var(--dur-fast) var(--ease-out); }
+.fah-num:hover, .fah-num.is-traced { background: var(--p-tint, var(--thread)); }
 .fah-working { position: relative; width: 48px; height: 2px; overflow: hidden; background: var(--line); border-radius: 1px; }
-.fah-working::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--ink); animation: fah-slide 1.1s var(--ease-in-out) infinite; }
+.fah-working::after { content: ""; position: absolute; inset: 0; width: 40%; background: var(--p-ink, var(--ink)); animation: fah-slide 1.1s var(--ease-in-out) infinite; }
 
 /* ---- Thread (a side question or a reviewer challenge) ---- */
 .fah-thread { font-size: 13px; line-height: 18px; background: var(--thread); border-radius: var(--radius-lg); }
@@ -107,23 +132,23 @@
 .fah-thread__source { font-size: 12px; color: var(--ink-2); }
 
 /* ---- Decision (a call that is the person's) ---- */
-.fah-decision { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 2px var(--ink); animation: fah-rise var(--dur-base) var(--ease-out) both; }
+.fah-decision { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--p-tint, var(--surface)); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 2px var(--p-ink, var(--ink)); animation: fah-rise var(--dur-base) var(--ease-out) both; }
 .fah-decision__q { margin: 0; font-size: 16px; line-height: 22px; font-weight: 600; }
 .fah-decision__why { margin: 0; font-size: 13px; line-height: 18px; color: var(--ink-2); }
 
 /* ---- Notice (something ran on an unconfirmed assumption) ---- */
-.fah-notice { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border: 1.5px dashed var(--flow); border-radius: var(--radius-lg); animation: fah-rise var(--dur-base) var(--ease-out) both; }
+.fah-notice { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--p-tint, transparent); border: 1.5px dashed var(--p-ink, var(--flow)); border-radius: var(--radius-lg); animation: fah-rise var(--dur-base) var(--ease-out) both; }
 
 /* ---- Composer (the message box) ---- */
 .fah-composer { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 12px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 1.5px var(--ink); transition: box-shadow var(--dur-fast) var(--ease-out), background-color var(--dur-base) var(--ease-out); }
 .fah-composer:focus-within { box-shadow: inset 0 0 0 2.5px var(--ink); }
-.fah-composer--side { background: var(--thread); }
+.fah-composer--side { background: var(--p-tint, var(--thread)); }
 .fah-composer input { flex: 1; min-width: 0; padding: 0; font: inherit; color: var(--ink); background: transparent; border: 0; outline: 0; }
 .fah-composer input::placeholder { color: var(--muted); opacity: 1; }
 .fah-side { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0; font: inherit; font-size: 12px; color: var(--muted); background: none; border: 0; cursor: pointer; white-space: nowrap; }
-.fah-side::after { content: ""; width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--muted); transition: background-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
+.fah-side::after { content: ""; width: 10px; height: 10px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--p-ink, var(--muted)); transition: background-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
 .fah-side[aria-pressed="true"] { color: var(--ink); }
-.fah-side[aria-pressed="true"]::after { background: var(--ink); box-shadow: none; }
+.fah-side[aria-pressed="true"]::after { background: var(--p, var(--ink)); box-shadow: inset 0 0 0 1.5px var(--p-ink, var(--ink)); }
 
 /* ---- Popover (a step's detail) ---- */
 .fah-pop { display: flex; flex-direction: column; gap: 6px; width: 336px; padding: 14px 16px; font-size: 13px; line-height: 18px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 1.5px var(--ink), var(--shadow-pop); transform-origin: top left; animation: fah-pop var(--dur-base) var(--ease-out) both; }
@@ -134,7 +159,7 @@
 .fah-pop__foot { display: flex; gap: 16px; margin-top: 6px; color: var(--ink-2); }
 
 /* =====================================================================
-   Decision graph (dg-): the history beside the plan. Same tokens, no new colours.
+   Decision graph (dg-): the history beside the plan. Same tokens; colour is the principle (data-p).
    Contributors are told apart by shape, never by colour; selection is an outline;
    the attention colour marks only what waits on the person.
    ===================================================================== */
@@ -148,6 +173,10 @@
 .dg-shape--open { fill: var(--surface); stroke: var(--ink-2); }
 .dg-shape--dead { fill: var(--surface); stroke: var(--muted); }
 .dg-shape--needs { fill: var(--needs-you); stroke: var(--ink); stroke-width: 1.75; }
+.dg-shape[data-p] { fill: var(--p); stroke: var(--p-ink); }   /* a decision on the trunk, filled with the principle that made it */
+.dg-shape--open[data-p] { fill: var(--surface); stroke: var(--p-ink); }
+.dg-shape--dead[data-p] { fill: var(--surface); stroke: var(--muted); }
+.dg-shape--needs[data-p] { fill: var(--needs-you); stroke: var(--ink); }
 .dg-shape.is-new { transform-box: fill-box; transform-origin: center; animation: dg-pop var(--dur-base) var(--ease-out) var(--dur-draw) both; }
 
 /* ---- History: rows of a spine. Decisions on the left, branches on the right ---- */
@@ -201,22 +230,22 @@
 .dg-chip, .dg-fig { position: relative; display: inline-flex; vertical-align: baseline; max-width: 100%; }
 .dg-chip__btn { display: inline-flex; align-items: baseline; gap: 4px; max-width: 100%; margin: 0; padding: 1px 7px;
   font: inherit; font-size: 13px; line-height: 18px; color: var(--ink); text-align: left; background: var(--surface);
-  border: 0; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1.5px var(--ink); cursor: pointer; white-space: nowrap;
+  border: 0; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1.5px var(--p-ink, var(--ink)); cursor: pointer; white-space: nowrap;
   transition: background-color var(--dur-fast) var(--ease-out); }
 .dg-chip__v { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .dg-chip__k { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
 .dg-chip__v { flex: none; }
 .dg-chip--wrap .dg-chip__v { flex: 1 1 auto; }
-.dg-chip__g { flex: none; color: var(--ink-2); }
+.dg-chip__g { flex: none; color: var(--p-ink, var(--ink-2)); }
 .dg-chip__g .dg-who { width: 10px; height: 10px; }
 .dg-chip--assumed .dg-chip__g { font-size: 15px; }
-.dg-chip--given .dg-chip__btn { border-radius: 999px; box-shadow: inset 0 0 0 1px var(--ink-2); padding: 1px 9px; }
-.dg-chip--assumed .dg-chip__btn { box-shadow: none; border: 1.5px dashed var(--flow); padding: 0 6px; }
-.dg-chip--decision .dg-chip__btn { box-shadow: inset 0 0 0 2px var(--ink); align-items: center; }
+.dg-chip--given .dg-chip__btn { border-radius: 999px; box-shadow: inset 0 0 0 1px var(--p-line, var(--ink-2)); padding: 1px 9px; }
+.dg-chip--assumed .dg-chip__btn { box-shadow: none; border: 1.5px dashed var(--p-ink, var(--flow)); padding: 0 6px; }
+.dg-chip--decision .dg-chip__btn { box-shadow: inset 0 0 0 2px var(--p-ink, var(--ink)); align-items: center; }
 .dg-chip--wrap .dg-chip__btn { white-space: normal; }
 .dg-chip--wrap .dg-chip__v { font-weight: 400; overflow: visible; }
 .dg-chip--confirmed .dg-chip__btn { border-style: solid; border-color: var(--line); }
-.dg-chip__btn:hover, .dg-chip.is-traced .dg-chip__btn { background: var(--thread); }
+.dg-chip__btn:hover, .dg-chip.is-traced .dg-chip__btn { background: var(--p-tint, var(--thread)); }
 .dg-chip--stale .dg-chip__v, .dg-chip--stale .dg-chip__k { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
 .dg-chip--stale .dg-chip__btn { box-shadow: inset 0 0 0 1px var(--line); }
 .dg-chip--stale.dg-chip--assumed .dg-chip__btn { box-shadow: none; border-color: var(--line); }
@@ -242,10 +271,10 @@
 @media (pointer: coarse) { .dg-menu__btn { width: 44px; height: 44px; } }
 
 /* ---- Branch: a conversation about one thing. Open, joined, or dead ---- */
-.dg-branch { font-size: 13px; line-height: 18px; background: var(--thread); border-radius: var(--radius-lg); min-width: 0; }
+.dg-branch { font-size: 13px; line-height: 18px; background: var(--p-tint, var(--thread)); border-radius: var(--radius-lg); box-shadow: inset 3px 0 0 var(--p, transparent); min-width: 0; }
 .dg-branch > summary { display: flex; gap: 8px; align-items: baseline; padding: 6px 10px; cursor: pointer; list-style: none; border-radius: var(--radius-lg); }
 .dg-branch > summary::-webkit-details-marker { display: none; }
-.dg-branch > summary::before { content: "▸"; flex: none; display: inline-block; color: var(--ink-2); transition: transform var(--dur-base) var(--ease-out); }
+.dg-branch > summary::before { content: "▸"; flex: none; display: inline-block; color: var(--p-ink, var(--ink-2)); transition: transform var(--dur-base) var(--ease-out); }
 .dg-branch[open] > summary::before { transform: rotate(90deg); }
 .dg-branch__title { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
 .dg-branch__state { flex: none; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
@@ -255,7 +284,7 @@
 .dg-branch__end { margin: 0; font-size: 12px; color: var(--ink-2); }
 .dg-branch__acts { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 12px; color: var(--ink-2); }
 .dg-branch .fah-btn { min-height: 36px; padding: 0 12px; }
-.dg-branch--dead { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.dg-branch--dead { background: none; box-shadow: inset 3px 0 0 var(--p-line, var(--line)), inset 0 0 0 1px var(--line); color: var(--muted); }
 .dg-branch--dead .dg-branch__title { font-weight: 400; }
 .dg-branch--dead .dg-branch__state, .dg-branch--dead .dg-branch__end, .dg-branch--dead > summary::before, .dg-branch--dead .dg-say { color: var(--muted); }
 .dg-say { display: flex; gap: 8px; align-items: baseline; margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
@@ -263,14 +292,14 @@
 .dg-say--you { color: var(--ink); }
 .dg-say__src { font-size: 12px; color: var(--ink-2); }
 .dg-reply { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 10px; background: var(--surface); border-radius: var(--radius-md);
-  box-shadow: inset 0 0 0 1px var(--flow); transition: box-shadow var(--dur-fast) var(--ease-out); }
+  box-shadow: inset 0 0 0 1px var(--p-line, var(--flow)); transition: box-shadow var(--dur-fast) var(--ease-out); }
 .dg-reply:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
 .dg-reply input { flex: 1; min-width: 0; padding: 0; font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 0; outline: 0; }
 .fah .dg-reply input:focus-visible { outline: none; }
 .dg-reply input::placeholder { color: var(--muted); opacity: 1; }
 
 /* ---- Join request: the harness proposes; the person says yes or no ---- */
-.dg-propose { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 2px var(--ink); }
+.dg-propose { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 2px var(--p-ink, var(--ink)); }
 .dg-propose__q { margin: 0; display: flex; gap: 8px; align-items: center; font-size: 14px; line-height: 20px; font-weight: 600; }
 .dg-propose__row { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
 .dg-propose__k { min-width: 64px; font-size: 12px; color: var(--ink-2); }
@@ -283,16 +312,18 @@
 .dg-facts dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; min-width: 0; font-size: 12px; color: var(--ink-2); }
 
 /* ---- In the plan: what a branch would touch, what a join changed, a selected input ---- */
-.fah-step.dg-touch, .fah-pill.dg-touch { outline: 1.5px dashed var(--flow); outline-offset: 4px; }
+.fah-step.dg-touch, .fah-pill.dg-touch { outline: 1.5px dashed var(--principle-4-ink); outline-offset: 4px; }   /* a proposal's reach: principle 4 */
 .fah-pill.dg-touch { outline-offset: 3px; }
-.fah-step.dg-touch--far { outline: 1.5px dotted var(--flow); outline-offset: 4px; }
+.fah-step.dg-touch--far { outline: 1.5px dotted var(--principle-4-ink); outline-offset: 4px; }
 .fah-pill.dg-needs { background: var(--needs-you); color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .fah-pill.dg-pill--sel { color: var(--ink); box-shadow: inset 0 0 0 2.5px var(--ink); }
 .fah-pill.dg-pill--changed { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .dg-pill__v { margin-left: 4px; font-weight: 600; }
 .dg-tag { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
 .dg-tag .dg-who { width: 9px; height: 9px; }
-.dg-tag__new { color: var(--ink); font-weight: 600; }
+.dg-tag[data-p] { color: var(--p-ink); }
+.dg-tag[data-p] .dg-shape { fill: var(--p); stroke: var(--p-ink); }
+.dg-tag__new { color: var(--p-ink, var(--ink)); font-weight: 600; }
 .dg-tag__new.is-in { animation: fah-rise var(--dur-slow) var(--ease-out) both; }
 .dg-tag .fah-working { width: 24px; }
 

@@ -10,14 +10,31 @@ The product decisions behind the page. The design system is in `design/system/`,
 - The chat is the channel, not the core experience. It stays reachable everywhere as one panel.
 - One main surface throughout: a flow diagram of the analysis, which gains information at each step.
 - Nothing blocks unless the call is the person's. Anything unconfirmed runs and is visibly marked.
-- One signal for "needs you": a single highlight on the step concerned.
+- One signal for "needs you": a single highlight on the step concerned, in principle 4's attention fill.
+- Colour is the principle: an element takes the colour of the principle (the harness layer) that produced it, so the page reads as the five principles of the workshop. Colour is never the only signal; every mark, shape and word stays.
 
 ## Look
 
 - Product name: Financial Advisor Harness.
-- Palette: Blueprint. Ground `#eef2f7`, surface `#ffffff`, ink `#0f2440`, muted `#4f6078`, line `#bccadb`, needs you `#ffd9b0`, tested `#0b6b6a`, side and reviewer threads `#dde6f2`. One attention colour, one "tested" colour, nothing coloured for decoration.
+- Palette: Blueprint for the neutrals. Ground `#eef2f7`, surface `#ffffff`, ink `#0f2440`, muted `#4f6078`, line `#bccadb`. The only other colours are the five principles, the slide deck's colours (below); "needs you" is principle 4's attention fill and the tested tick is principle 2's ink. Nothing is coloured for decoration.
 - Typeface: IBM Plex Sans.
 - Inputs are their own small boxes, sitting just above the step that uses them, kept quiet so they do not compete with the steps.
+
+## Colour is the principle
+
+Each of the five principles of the workshop has one colour, the deck's (`workshop/slides/src/principles.json`), carried by the design system as `principle-N` (a fill, tint or stroke) and `principle-N-ink` (small text, marks, thin strokes; 4.5:1 or more on surface and ground in both themes). An element takes the colour of the layer that produces it, by one rule: a container takes a faint tint and a 3px edge in the fill; a mark, tag or section heading takes the ink; an outline takes the ink; a principle's primary button takes the fill. Body text stays ink. A step carries several principles at once, so each part of it is coloured, not the box.
+
+| Principle | Layer | On the page |
+| --- | --- | --- |
+| 1 Shared Domain: Agree the plan before any number. | 1 the plan | The goal (edge), each step's outline and name, the input pills, origin marks (❝ ↗ ✎), open questions (●), "Whole plan" and its section, "Accept plan", the "Plan accepted" and plan-revised nodes, the folded interview |
+| 2 Consistency: Numbers come only from tested code. | 2 build | The build button and its working line, a step's build line ("✓ 4 examples · 5/5", "Building", "Stale · rebuild", "Not built") and tick, the plan check mark, the pop-up's Build part (examples, tests, code) |
+| 3 Evidence: Every number can be followed back. | 3 answers | A step's result ("→ 43,000", underlined in the fill), underlined figures in the chat, result and "Rests on" value chips, the pop-up's run and receipt, the pulse along the lines, a withheld reply |
+| 4 Accountability: Ask only where a person must decide. | 4 needs you | The "needs you" fill and line, `◌` marks and the notice with Confirm and Change it, "your call" steps, their decision cards and records, "not in the plan", "Decided", branches and their marks, proposals with Yes and Keep and what they would touch, "re-ran" tags and their nodes, "New branch" |
+| 5 Verification: A reviewer challenges the plan. | 5 review | The Review button and its count, "Reviewing", ▲ counts and "used" tags, the Review view's lines and list, reviewer branches with Use this and Dismiss, the pop-up's Reviewer part, the "used" node |
+
+Neutral: the chat bubbles and plain answers, the message box, the step a message is about, the lines between steps, the trunk, refs, selection (an ink outline).
+
+A legend sits at the foot of the plan: the five principles, each a swatch, its number and name, with its statement as a tooltip and read to screen readers. An entry is quiet until something of its principle is on the page, so an empty page shows five quiet entries and they switch on as the plan, the build, answers, marks and challenges arrive (a short pulse the first time, none under reduced motion). Hovering or focusing an entry spotlights its principle: its elements stay, everything else fades. A click keeps the spotlight; a second click or Escape lets go. On a narrow screen the legend sits at the end of the plan, above the chat.
 
 ## The screen
 

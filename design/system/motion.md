@@ -33,6 +33,8 @@ Motion here does one job: it shows that something changed, and where. It is neve
 | A join is running | The steps being run again show the working line and "running again" under them | `.dg-tag .fah-working` |
 | A hover menu opens | It fades in and settles 3px | automatic on `.dg-chip:hover`, `:focus-within` |
 | A node is selected | A ring round its mark on the spine; what it changed is outlined in the plan | page |
+| A principle first appears | Its legend swatch rings twice, once, the first time anything of it is on the page (not on load) | page |
+| A principle is spotlit | Everything else fades at once to faded tokens; no travel | page |
 
 ## Rules
 

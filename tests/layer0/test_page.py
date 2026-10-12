@@ -71,3 +71,66 @@ def test_the_state_and_an_action_round_trip_through_the_real_server(serve):     
     after = json.loads(request("GET", "/api/state")[1])
     assert after["version"] > before["version"] and problems(after) == []
     assert [(m["who"], m["text"]) for m in after["chat"]][0] == ("you", "hello there")
+
+
+# --- Colour is the principle (design/ui-design-decisions.md): the tokens, the legend, the built page ---
+
+DESIGN = Path(__file__).resolve().parents[2] / "design"
+PRINCIPLES = [("Shared Domain", "Agree the plan before any number."),
+              ("Consistency", "Numbers come only from tested code."),
+              ("Evidence", "Every number can be followed back."),
+              ("Accountability", "Ask only where a person must decide."),
+              ("Verification", "A reviewer challenges the plan.")]
+
+
+def _theme_blocks(css: str) -> dict:
+    light = re.search(r':root, \[data-theme="light"\] \{(.*?)\n\}', css, re.S).group(1)
+    dark = re.search(r'\[data-theme="dark"\] \{(.*?)\n\}', css, re.S).group(1)
+    return {theme: dict(re.findall(r"--([\w-]+):\s*([^;]+);", block)) for theme, block in (("light", light), ("dark", dark))}
+
+
+def _contrast(a: str, b: str) -> float:
+    def lum(hex_colour):
+        channels = [int(hex_colour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        r, g, b = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+    high, low = sorted([lum(a), lum(b)], reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def test_the_built_page_is_its_sources():
+    src = (DESIGN / "page" / "page_src.html").read_text(encoding="utf-8")
+    for marker, path in [("/*@@TOKENS@@*/", DESIGN / "system" / "tokens.css"), ("/*@@BUNDLE_CSS@@*/", DESIGN / "system" / "bundle.css"),
+                         ("/*@@BUNDLE_JS@@*/", DESIGN / "system" / "bundle.js"), ("/*@@APP_JS@@*/", DESIGN / "page" / "app.js")]:
+        src = src.replace(marker, path.read_text(encoding="utf-8").rstrip("\n"))
+    assert PAGE.read_text(encoding="utf-8") == src, "run python design/page/build_page.py"
+
+
+def test_tokens_css_says_what_tokens_json_says_in_both_themes():
+    tokens = json.loads((DESIGN / "system" / "tokens.json").read_text(encoding="utf-8"))
+    css = _theme_blocks((DESIGN / "system" / "tokens.css").read_text(encoding="utf-8"))
+    for token in tokens["color"]["tokens"]:
+        for theme in ("light", "dark"):
+            assert css[theme].get(token["name"]) == token["value"][theme], (token["name"], theme)
+
+
+def test_every_principle_has_a_fill_and_an_ink_that_reads_in_both_themes():
+    css = _theme_blocks((DESIGN / "system" / "tokens.css").read_text(encoding="utf-8"))
+    for theme, colours in css.items():
+        for n in range(1, 6):
+            assert re.fullmatch(r"#[0-9a-f]{6}", colours[f"principle-{n}"])
+            for ground in ("surface", "ground"):
+                assert _contrast(colours[f"principle-{n}-ink"], colours[ground]) >= 4.5, (n, theme, ground)
+            on = colours["on-principle-3" if n == 3 else "on-principle"]
+            assert _contrast(on, colours[f"principle-{n}"]) >= 4.5, (n, theme, "text on the fill")
+
+
+def test_the_legend_names_the_five_principles_and_each_one_colours_something():
+    page = PAGE.read_text(encoding="utf-8")
+    legend = re.search(r'<nav class="fa-legend".*?</nav>', page, re.S).group(0)
+    keys = re.findall(r'<button class="fa-key" type="button" data-p="(\d)" aria-pressed="false" title="([^"]+)">', legend)
+    assert [n for n, _ in keys] == ["1", "2", "3", "4", "5"]
+    for (n, title), (name, statement) in zip(keys, PRINCIPLES):
+        assert title == f"{name}: {statement}"
+        assert f"<span>{name}</span>" in legend and f": {statement}</span>" in legend        # read out, not only a tooltip
+        assert f'[data-p="{n}"] {{ --p: var(--principle-{n}); --p-ink: var(--principle-{n}-ink);' in page

@@ -37,6 +37,12 @@
   function label(s) { return s ? ((s.number != null ? s.number + ' ' : '') + (s.name || s.id)) : ''; }
   function inputName(id) { var i = S && S.inputs && S.inputs[id]; return i && i.name ? i.name : String(id).replace(/^in:/, '').replace(/_/g, ' '); }
   function show(node, on) { node.hidden = !on; }
+  /* Colour is the principle (the harness layer) that produced an element: data-p 1..5 (design/ui-design-decisions.md,
+     "Colour is the principle"). bundle.css turns it into --p, --p-ink and --p-tint; null takes the colour away. */
+  function P(node, n) { if (node) { if (n) { node.setAttribute('data-p', String(n)); } else { node.removeAttribute('data-p'); } } return node; }
+  var NODE_P = { plan_accepted: 1, plan_revised: 1, value: 4, assumption_confirmed: 4, assumption_corrected: 4, call: 4, built: 4, challenge_used: 5 };
+  var MARK_P = { '●': 1, 'plan check': 2, '▲': 5, '◌': 4 };
+  function threadP(t) { return t && t.kind === 'review' ? 5 : 4; }
   function safeUrl(u) { return typeof u === 'string' && /^https?:\/\//i.test(u) ? u : null; }
   function link(title, url) {
     var u = safeUrl(url);
@@ -98,13 +104,13 @@
   }
   function originMark(o) {
     if (!o || !ORIGIN[o.kind]) { return null; }
-    var s = el('span', 'fa-orig', ORIGIN[o.kind][0]);
+    var s = P(el('span', 'fa-orig', ORIGIN[o.kind][0]), 1);
     s.title = originTitle(o); s.setAttribute('aria-label', s.title); s.setAttribute('role', 'img');
     return s;
   }
   function originLine(o) {
     if (!o || !ORIGIN[o.kind]) { return null; }
-    var s = el('span', 'fa-sub');
+    var s = P(el('span', 'fa-sub'), 1);
     if (o.kind === 'person') { add(s, '❝ Your words: “' + (o.quote || '') + '”'); }
     else if (o.kind === 'looked_up') {
       var src = o.source || {};
@@ -318,7 +324,7 @@
     svg.style.left = left + 'px'; svg.style.top = top + 'px';
     svgPath(svg, null, line).setAttribute('pathLength', '100');
     if (head) { svgPath(svg, 'fah-flow__head', hd); }
-    svgPath(svg, 'fah-flow__pulse', line).setAttribute('pathLength', '100');
+    P(svgPath(svg, 'fah-flow__pulse', line), 3).setAttribute('pathLength', '100');   /* the value travelling: evidence */
     return svg;
   }
 
@@ -339,10 +345,21 @@
     if (ui.review && hasReview()) {
       var ch = openChallenges(s);
       if (!ch.length) { return { text: '', kind: null }; }
-      return { text: '▲ ' + (ch[0].title || ch[0].challenge.concern || '') + (ch.length > 1 ? ' +' + (ch.length - 1) : ''), kind: null };
+      return { text: '▲ ' + (ch[0].title || ch[0].challenge.concern || '') + (ch.length > 1 ? ' +' + (ch.length - 1) : ''), kind: null, p: 5 };
     }
     var l = s.line;
-    return l && l.text ? { text: String(l.text), kind: l.kind || null } : { text: '', kind: null };
+    return l && l.text ? { text: String(l.text), kind: l.kind || null, p: linePrinciple(s) } : { text: '', kind: null };
+  }
+  /* The principle behind the step's line, in the order the core picks the line (SPEC 2.4, core/state.py step_line):
+     needs you (4), building (2), a result in the last answer (3), built / stale / not built (2), decided (4). */
+  function linePrinciple(s) {
+    var b = s.build || {}, lr = s.last_run || {};
+    if (s.needs_you) { return 4; }
+    if (b.status === 'building') { return 2; }
+    if (lr.in_last_answer) { return 3; }
+    if (['built', 'stale', 'not_built'].indexOf(b.status) >= 0) { return 2; }
+    if (s.calls && arr(s.calls.records).length) { return 4; }
+    return null;
   }
   function lastAnswerSteps() { return steps().filter(function (s) { return s.last_run && s.last_run.in_last_answer; }); }
   function hasAnswers() { return steps().some(function (s) { return has(s, 'last_run'); }); }
@@ -354,14 +371,14 @@
   function tagFor(s) {
     var parts = [];
     var o = s.origin && ORIGIN[s.origin.kind];
-    if (s.in_plan === false) { parts.push(['not in the plan', 'Added while answering; not in the plan']); }
+    if (s.in_plan === false) { parts.push(['not in the plan', 'Added while answering; not in the plan', 4]); }
     var lineText = (s.line && s.line.text) || '';
     arr(s.marks).forEach(function (m) {
       if (!m || !m.symbol) { return; }
       if (m.symbol === '◌' && lineText.indexOf('◌') >= 0 && !ui.review) { return; }
-      parts.push([m.symbol + (m.count ? ' ' + m.count : ''), m.title || '']);
+      parts.push([m.symbol + (m.count ? ' ' + m.count : ''), m.title || '', MARK_P[m.symbol]]);
     });
-    if (o) { parts.push([o[0], originTitle(s.origin)]); }
+    if (o) { parts.push([o[0], originTitle(s.origin), 1]); }
     return parts;
   }
 
@@ -383,13 +400,14 @@
       b.title = label(s);
       b.classList.toggle('fah-step--from-you', s.kind === 'from_you');
       b.classList.toggle('fah-step--your-call', s.kind === 'your_call');
+      P(b, s.kind === 'your_call' ? 4 : 1);      /* the step itself is the plan; a call that is the person's is principle 4 */
       var tag = b.querySelector('.fa-tag'); tag.textContent = '';
-      tagFor(s).forEach(function (p) { var sp = el('span', null, p[0]); if (p[1]) { sp.title = p[1]; } tag.appendChild(sp); });
+      tagFor(s).forEach(function (p) { var sp = P(el('span', null, p[0]), p[2]); if (p[1]) { sp.title = p[1]; } tag.appendChild(sp); });
       if (pm.running[s.id]) {
-        var rn = el('span', 'dg-tag'), wk = el('span', 'fah-working'); wk.setAttribute('aria-hidden', 'true');
+        var rn = P(el('span', 'dg-tag'), 4), wk = el('span', 'fah-working'); wk.setAttribute('aria-hidden', 'true');
         add(rn, wk, 'running again'); tag.appendChild(rn);
       } else if (pm.changed[s.id] && pm.word) {
-        var tg = el('span', 'dg-tag dg-tag__new'); tg.appendChild(F.mark(pm.who, null, 9)); add(tg, pm.word);
+        var tg = P(el('span', 'dg-tag dg-tag__new'), pm.p); tg.appendChild(F.mark(pm.who, null, 9)); add(tg, pm.word);
         tg.title = pm.title; tag.appendChild(tg);
         if (joinAnim && pm.node === joinAnim) { tg.style.visibility = 'hidden'; ui.joinTags.push(tg); }
       }
@@ -433,7 +451,7 @@
     list.forEach(function (s) {
       if (s.kind === 'from_you') { return; }
       var ins = arr(s.inputs); if (!ins.length) { return; }
-      var row = el('div', 'fah-pills'), p = lay.pos[s.id];
+      var row = P(el('div', 'fah-pills'), 1), p = lay.pos[s.id];
       row.style.left = p.x + 'px'; row.style.top = (p.y - PILLS) + 'px'; row.style.maxWidth = STEP_W + 'px';
       row.setAttribute('aria-label', 'Inputs of ' + label(s));
       canvas.insertBefore(row, canvas.firstChild); pillEls.push(row);
@@ -471,6 +489,7 @@
       pill.setAttribute('data-inputs', ids.join(' '));
       pill.classList.toggle('dg-touch', any(pm.touch));
       pill.classList.toggle('dg-needs', any(pm.needs));
+      P(pill, any(pm.needs) ? 4 : null);
       pill.classList.toggle('dg-pill--changed', any(pm.changed));
       pill.classList.toggle('dg-pill--sel', ids.indexOf(ui.selInput) >= 0);
     }
@@ -519,7 +538,7 @@
     arr(S.activity).forEach(function (a) { if (a.what === 'join' && a.step) { pm.running[a.step] = true; } });
     var n = nodeById(ui.markNode) || nodeById(history().latest);
     if (n && TAG_WORD[n.kind]) {
-      pm.word = TAG_WORD[n.kind]; pm.who = n.who; pm.node = n.id; pm.title = (WHO[n.who] || '') + ': ' + n.text;
+      pm.word = TAG_WORD[n.kind]; pm.who = n.who; pm.node = n.id; pm.p = NODE_P[n.kind] || null; pm.title = (WHO[n.who] || '') + ': ' + n.text;
       if (ui.markNode) {
         arr(n.touched && n.touched.steps).concat(arr(n.touched && n.touched.inputs)).forEach(function (id) { pm.changed[id] = true; });
       } else {
@@ -532,7 +551,16 @@
 
   function setLine(id, d, animate) {
     var b = stepEls[id]; if (!b) { return; }
-    F.setLine(b, d.text, d.kind || undefined);
+    var line = F.setLine(b, d.text, d.kind || undefined);
+    if (line) {
+      P(line, d.p);
+      /* a result that rests on something unconfirmed ends in ◌: the mark is principle 4's, the figure principle 3's */
+      var last = line.lastChild;
+      if (d.p === 3 && last && last.nodeType === 3 && / ◌$/.test(last.nodeValue)) {
+        last.nodeValue = last.nodeValue.replace(/ ◌$/, '');
+        line.appendChild(P(el('span', 'fa-markin', '◌'), 4));
+      }
+    }
     if (!animate) { b.classList.remove('is-arriving'); }
   }
 
@@ -591,46 +619,50 @@
     var head = el('div', 'fah-pop__head');
     add(head, el('span', null, label(s)), linkBtn('✕', function () { closePop(true); }, 'Close'));
     pop.appendChild(head);
+    /* the pop-up in parts, one per principle, in layer order; each part carries its principle's edge */
+    function part(n) { var d = P(el('div', 'fa-part'), n); pop.appendChild(d); return d; }
+    var sec = part(s.kind === 'your_call' ? 4 : 1);
     var kinds = { calculation: 'A calculation', from_you: 'A figure from you', your_call: 'Your call' };
     var kindLine = el('span', 'fa-sub', (kinds[s.kind] || '') + (s.in_plan === false ? ' · not in the plan' : ''));
-    pop.appendChild(kindLine);
-    var o = originLine(s.origin); if (o) { pop.appendChild(o); }
+    sec.appendChild(kindLine);
+    var o = originLine(s.origin); if (o) { sec.appendChild(o); }
 
     if (s.formula || s.method || s.produces) {
-      pop.appendChild(popHead('What it does'));
-      if (s.formula) { pop.appendChild(el('p', 'fa-p', s.formula)); }
-      else if (s.method) { pop.appendChild(el('p', 'fa-p', s.method)); }
-      if (s.produces) { pop.appendChild(popRow('Gives', s.produces)); }
-      if (s.cadence) { pop.appendChild(popRow('How often', s.cadence)); }
+      sec.appendChild(popHead('What it does'));
+      if (s.formula) { sec.appendChild(el('p', 'fa-p', s.formula)); }
+      else if (s.method) { sec.appendChild(el('p', 'fa-p', s.method)); }
+      if (s.produces) { sec.appendChild(popRow('Gives', s.produces)); }
+      if (s.cadence) { sec.appendChild(popRow('How often', s.cadence)); }
     }
     var ins = arr(s.inputs);
-    if (ins.length) { pop.appendChild(popRow('Needs', ins.map(function (id) { var i = S.inputs && S.inputs[id]; return inputName(id) + (i && i.value != null ? ' ' + fmt(i.value) : ''); }).join(', '))); }
+    if (ins.length) { sec.appendChild(popRow('Needs', ins.map(function (id) { var i = S.inputs && S.inputs[id]; return inputName(id) + (i && i.value != null ? ' ' + fmt(i.value) : ''); }).join(', '))); }
 
     if (arr(s.particulars).length) {
-      pop.appendChild(popHead('Particulars'));
+      sec.appendChild(popHead('Particulars'));
       var ul = el('ul', 'fa-list');
       s.particulars.forEach(function (p) { var li = add(el('li'), p.text || p.what || ''); var m = originMark(p.origin); if (m) { li.appendChild(m); } if (p.handling) { li.appendChild(el('span', 'fa-sub', p.handling)); } ul.appendChild(li); });
-      pop.appendChild(ul);
+      sec.appendChild(ul);
     }
     if (arr(s.open_questions).length) {
-      pop.appendChild(popHead('Open questions'));
+      sec.appendChild(popHead('Open questions'));
       var uq = el('ul', 'fa-list');
       s.open_questions.forEach(function (q) { var li = add(el('li'), '● ' + (q.text || '')); var m = originMark(q.origin); if (m) { li.appendChild(m); } uq.appendChild(li); });
-      pop.appendChild(uq);
+      sec.appendChild(uq);
     }
 
     var b = s.build;
     if (b) {
-      pop.appendChild(popHead('Build'));
+      sec = part(2);
+      sec.appendChild(popHead('Build'));
       var st = { none: 'Not built yet', building: 'Building now', built: 'Built and tested', not_built: 'Not built', stale: 'Stale: the step changed, so it must be built again' }[b.status] || '';
-      pop.appendChild(el('p', 'fa-p', st + (b.reason && b.status !== 'stale' ? ': ' + b.reason : '')));
-      if (b.status === 'stale' && b.reason) { pop.appendChild(el('span', 'fa-sub', b.reason)); }
+      sec.appendChild(el('p', 'fa-p', st + (b.reason && b.status !== 'stale' ? ': ' + b.reason : '')));
+      if (b.status === 'stale' && b.reason) { sec.appendChild(el('span', 'fa-sub', b.reason)); }
       if (b.plan_check && arr(b.plan_check.departures).length) {
         var pc = el('div', 'fah-notice');
         pc.appendChild(el('div', null, 'How the calculation departs from the plan:'));
         var ud = el('ul', 'fa-list'); b.plan_check.departures.forEach(function (d) { ud.appendChild(el('li', null, d)); }); pc.appendChild(ud);
         if (!b.plan_check.confirmed) { pc.appendChild(add(el('div', 'fah-row'), btn('These are fine', function () { act('confirm_plan_check', { step: s.id }); }, true))); }
-        pop.appendChild(pc);
+        sec.appendChild(pc);
       }
       arr(b.example_list).forEach(function (ex) {
         var box = el('div', 'fa-ex');
@@ -645,31 +677,32 @@
         if (sh.inputs && (structured(sh.expected) || sh.inputs.some(function (q) { return structured(q[1]); }))) {
           box.appendChild(exactValues({ inputs: ex.inputs, expected: ex.expected }));
         }
-        pop.appendChild(box);
+        sec.appendChild(box);
       });
       arr(b.disagreement).forEach(function (d) {
         var dsh = d.shown || {};
-        pop.appendChild(el('p', 'fa-p', 'Example ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
+        sec.appendChild(el('p', 'fa-p', 'Example ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
       });
       if (b.status !== 'none' || b.module) {
         var foot = el('div', 'fah-pop__foot');
         if (b.tests) { foot.appendChild(el('span', null, b.tests + ' tests, ' + (b.passing === b.tests ? 'all passing' : b.passing + ' passing'))); }
         if (b.code && b.code.module_py) { foot.appendChild(linkBtn(ui.code ? 'Hide code' : (b.code.tests_py ? 'Code and tests' : 'Code'), function () { ui.code = !ui.code; refreshPop(); })); }
         if (b.module) { foot.appendChild(linkBtn('Run tests now', function () { act('run_tests', { step: s.id }); })); }
-        if (foot.childNodes.length) { pop.appendChild(foot); }
-        if (b.tested_at) { pop.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
+        if (foot.childNodes.length) { sec.appendChild(foot); }
+        if (b.tested_at) { sec.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
         if (ui.code && b.code && b.code.module_py) {
-          pop.appendChild(el('pre', 'fa-code', b.code.module_py));
-          if (b.code.tests_py) { pop.appendChild(popHead('Tests')); pop.appendChild(el('pre', 'fa-code', b.code.tests_py)); }
+          sec.appendChild(el('pre', 'fa-code', b.code.module_py));
+          if (b.code.tests_py) { sec.appendChild(popHead('Tests')); sec.appendChild(el('pre', 'fa-code', b.code.tests_py)); }
         }
       }
     }
 
     var r = runShown(s), lr = s.last_run;
     if (r) {
+      sec = part(3);
       var inAnswer = !!(lr && lr.in_last_answer && (r.run === lr.run || (r.message && r.message === lr.message)));
       var runHead = popHead(inAnswer ? 'In the last answer' : (lr && r.run === lr.run ? 'Last run' : 'Run'));
-      runHead.classList.add('fa-runhead'); pop.appendChild(runHead);
+      runHead.classList.add('fa-runhead'); sec.appendChild(runHead);
       var others = arr(s.runs);
       if (others.length > 1) {
         var picker = el('div', 'fa-runs'); picker.setAttribute('aria-label', 'Recent runs');
@@ -679,7 +712,7 @@
           if (o.run === r.run) { b.setAttribute('aria-current', 'true'); }
           picker.appendChild(b);
         });
-        pop.appendChild(picker);
+        sec.appendChild(picker);
       }
       var rc = el('div', 'fa-receipt'), rs = r.shown || {};
       if (rs.inputs) {
@@ -689,27 +722,29 @@
       }
       var out = popRow('Came out', shownText(rs.output, r.output)); out.classList.add('fa-receipt__out'); rc.appendChild(out);
       if (structured(rs.output)) { rc.appendChild(shownNode(rs.output)); }
-      arr(r.assumptions).forEach(function (a) { rc.appendChild(el('span', 'fa-sub', '◌ ' + a)); });
+      arr(r.assumptions).forEach(function (a) { rc.appendChild(P(el('span', 'fa-sub', '◌ ' + a), 4)); });
       rc.appendChild(exactValues({ inputs: r.inputs, output: r.output }));
       rc.appendChild(el('span', 'fa-sub', 'Run ' + (r.run || '') + (r.test_run != null ? ', after test run ' + r.test_run : '') + (r.ts ? ', ' + when(r.ts) : '')));
-      pop.appendChild(rc);
+      sec.appendChild(rc);
     }
 
+    var callsShown = !!(s.calls && (s.calls.open || arr(s.calls.records).length));
+    if (arr(s.unconfirmed).length || callsShown) { sec = s.kind === 'your_call' && !b && !r ? sec : part(4); }
     if (arr(s.unconfirmed).length) {
-      pop.appendChild(popHead('Not confirmed yet'));
-      s.unconfirmed.forEach(function (a) { pop.appendChild(el('p', 'fa-p', '◌ ' + a.text)); });
+      sec.appendChild(popHead('Not confirmed yet'));
+      s.unconfirmed.forEach(function (a) { sec.appendChild(el('p', 'fa-p', '◌ ' + a.text)); });
       var nm = openNoticeFor(s.id);
       if (nm) {
-        pop.appendChild(add(el('div', 'fah-row'),
+        sec.appendChild(add(el('div', 'fah-row'),
           btn('Confirm', function () { act('confirm_assumptions', { message: nm.id }); }, true),
           btn('Change it', function () { changeIt(nm); })));
       }
     }
 
     if (s.calls) {
-      if (s.calls.open) { pop.appendChild(popHead('Your call')); pop.appendChild(el('p', 'fa-p', 'Waiting for your answer in the chat.')); }
+      if (s.calls.open) { sec.appendChild(popHead('Your call')); sec.appendChild(el('p', 'fa-p', 'Waiting for your answer in the chat.')); }
       if (arr(s.calls.records).length) {
-        pop.appendChild(popHead('What you decided'));
+        sec.appendChild(popHead('What you decided'));
         s.calls.records.forEach(function (rec) {
           var li = el('div', 'fa-receipt');
           li.appendChild(el('span', 'fa-sub', rec.question || ''));
@@ -718,15 +753,16 @@
           li.appendChild(el('span', null, chosen ? 'You chose: ' + chosen : 'In your words: ' + (rec.words || '')));
           if (chosen && rec.words) { li.appendChild(el('span', 'fa-sub', '“' + rec.words + '”')); }
           if (rec.ts) { li.appendChild(el('span', 'fa-sub', when(rec.ts))); }
-          pop.appendChild(li);
+          sec.appendChild(li);
         });
       }
     }
 
     var chs = arr(s.challenges).map(threadOfChallenge).filter(Boolean);
     if (chs.length) {
-      pop.appendChild(popHead('Reviewer'));
-      chs.forEach(function (t) { pop.appendChild(challengeBlock(t, true)); });
+      sec = part(5);
+      sec.appendChild(popHead('Reviewer'));
+      chs.forEach(function (t) { sec.appendChild(challengeBlock(t, true)); });
     }
     pop.addEventListener('click', function (ev) { ev.stopPropagation(); });
     return pop;
@@ -742,9 +778,9 @@
   }
 
   function challengeBlock(t, inPop) {
-    var c = t.challenge, wrap = el('div', inPop ? 'fa-receipt' : 'fa-rv');
+    var c = t.challenge, wrap = P(el('div', inPop ? 'fa-receipt' : 'fa-rv'), 5);
     var text = el('div', 'fa-rv__text');
-    add(text, el('span', null, '▲ ' + (t.title || '')));
+    add(text, add(el('span'), el('span', 'fa-glyph', '▲'), ' ' + (t.title || '')));
     if (inPop && c.concern) { text.appendChild(el('span', 'fa-sub', c.concern)); }
     if (inPop && c.proposal) { text.appendChild(el('span', 'fa-sub', 'Proposed: ' + c.proposal)); }
     if (c.status !== 'open') { text.appendChild(el('span', 'fa-sub', c.status === 'used' ? 'Used' : 'Dismissed')); }
@@ -778,7 +814,9 @@
     stepEls[id].after(popEl);
     stepEls[id].setAttribute('aria-expanded', 'true');
     placePop();
-    if (popEl.scrollIntoView) { popEl.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' }); }
+    /* after its entrance (it scales from 97%), so the whole pop-up clears the legend at the foot (scroll-padding) */
+    var mine = popEl;
+    setTimeout(function () { if (popEl === mine && mine.scrollIntoView) { mine.scrollIntoView({ block: 'nearest', behavior: reduced.matches ? 'auto' : 'smooth' }); } }, reduced.matches ? 0 : 220);
   }
   function refreshPop() {
     if (!ui.pop) { return; }
@@ -807,21 +845,22 @@
     if (S.phase === 'interview') { bits.push('The plan is being worked out'); }
     if (g && g.mode) { bits.push(g.mode === 'ongoing' ? 'Kept up to date' : 'A one-off answer'); }
     meta.textContent = bits.join(' · '); show(meta, bits.length > 0);
+    show($('goalbox'), !goal.hidden || !meta.hidden);
 
     var tools = $('tools'); tools.textContent = '';
     if (S.phase === 'accepted' && hasBuild()) { tools.appendChild(buildButton()); }
     if (S.context) {
-      var w = linkBtn('Whole plan', function () { ui.whole = !ui.whole; drawWhole(); if (ui.whole) { $('whole').scrollIntoView({ block: 'start', behavior: reduced.matches ? 'auto' : 'smooth' }); } });
+      var w = P(linkBtn('Whole plan', function () { ui.whole = !ui.whole; drawWhole(); if (ui.whole) { $('whole').scrollIntoView({ block: 'start', behavior: reduced.matches ? 'auto' : 'smooth' }); } }), 1);
       w.setAttribute('aria-expanded', String(ui.whole)); w.setAttribute('aria-controls', 'whole');
       tools.appendChild(w);
     }
     if (hasReview() && S.phase === 'accepted') {
       if (S.review.running) {      /* a bar alone says nothing to a first-time user: name it */
-        var rw = el('span', 'fa-building fa-quiet fa-reviewing'); rw.setAttribute('role', 'status'); rw.title = 'The reviewer is looking at the plan';
+        var rw = P(el('span', 'fa-building fa-quiet fa-reviewing'), 5); rw.setAttribute('role', 'status'); rw.title = 'The reviewer is looking at the plan';
         var wk = el('span', 'fah-working'); wk.setAttribute('aria-hidden', 'true'); add(rw, wk, 'Reviewing'); tools.appendChild(rw);
       }
       var open = S.review.open || 0;
-      var rv = el('button', 'fah-btn', 'Review' + (open ? ' · ' + open : '')); rv.type = 'button';
+      var rv = P(el('button', 'fah-btn', 'Review' + (open ? ' · ' + open : '')), 5); rv.type = 'button';
       rv.setAttribute('aria-pressed', String(ui.review));
       rv.addEventListener('click', function () { ui.review = !ui.review; drawDiagram(); drawReviewList(); rv.setAttribute('aria-pressed', String(ui.review)); });
       tools.appendChild(rv);
@@ -834,7 +873,7 @@
     var running = acts.some(function (a) { return a.what === 'build'; }) || calc.some(function (s) { return s.build.status === 'building'; });
     var built = calc.filter(function (s) { return s.build.status === 'built'; }).length;
     var todo = calc.filter(function (s) { return ['none', 'not_built', 'stale'].indexOf(s.build.status) >= 0; });
-    var b = el('button', 'fah-btn'); b.type = 'button'; b.id = 'build';
+    var b = P(el('button', 'fah-btn'), 2); b.type = 'button'; b.id = 'build';
     if (running) {
       var a = acts.filter(function (x) { return x.what === 'build'; })[0];
       var at = a && a.step ? stepById(a.step) : null;
@@ -1052,6 +1091,9 @@
     var kind = CHIP_CLASS[c.kind] || 'given', stale = !!o.stale || c.status === 'corrected';
     var wrap = el('span', 'dg-chip dg-chip--' + kind + (c.kind === 'assumption' ? ' dg-chip--wrap' : '') +
       (c.status === 'confirmed' ? ' dg-chip--confirmed' : '') + (stale ? ' dg-chip--stale' : ''));
+    /* results and the values they rest on are evidence; an assumption is principle 4; a decision takes its node's */
+    var dn = kind === 'decision' ? nodeById(c.subject && c.subject.node) : null;
+    P(wrap, kind === 'assumed' ? 4 : kind === 'decision' ? (dn && NODE_P[dn.kind]) || 4 : 3);
     var btn = el('button', 'dg-chip__btn'); btn.type = 'button';
     if (o.label && c.label && kind !== 'decision' && kind !== 'assumed') { btn.appendChild(el('span', 'dg-chip__k', c.label)); }
     if (kind === 'assumed') { var g = el('span', 'dg-chip__g', c.status === 'confirmed' ? '✓' : '◌'); g.setAttribute('aria-hidden', 'true'); btn.appendChild(g); }
@@ -1079,7 +1121,7 @@
       if (sp[0] < pos) { return; }
       p.appendChild(document.createTextNode(text.slice(pos, sp[0])));
       var f = sp[2], sid = f.step, word = text.slice(sp[0], sp[1]), old = f.superseded === true;   /* decided in the state: a join ran its run again and the value moved */
-      var host = el('span', 'dg-fig');
+      var host = P(el('span', 'dg-fig'), 3);      /* a figure that leads back to its step: evidence */
       var n = el('span', 'fah-num' + (old ? ' dg-num--stale' : ''), word);
       n.tabIndex = 0; n.setAttribute('role', 'button');
       n.setAttribute('aria-label', word + ', from step ' + label(stepById(sid)) + (old ? ', no longer current' : ''));
@@ -1134,7 +1176,7 @@
     if (kind === 'decision' && m.decision && layerOn(4)) {
       var d = m.decision;
       if (d.status === 'open') {
-        var box = el('div', 'fah-decision'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Your call');
+        var box = P(el('div', 'fah-decision'), 4); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Your call');
         var c = chip(d.step || m.step); if (c) { box.appendChild(add(el('div'), c)); }
         box.appendChild(withFigures(el('p', 'fah-decision__q'), { text: d.question || m.text || '', figures: m.figures }));
         arr(d.options).forEach(function (o, i) {
@@ -1155,13 +1197,14 @@
       var facts = factsOf(m, noticeOpen);
       var lead = withFigures(el('p', facts ? 'fa-ans-lead' + (quiet ? ' fa-muted' : '') : 'fah-msg' + (quiet ? ' fa-muted' : '')), m);
       if (m.step) { var c3 = chip(m.step); if (c3) { lead.insertBefore(el('br'), lead.firstChild); lead.insertBefore(c3, lead.firstChild); } }
+      if (kind === 'withheld') { P(lead, 3); lead.classList.add('fa-withheld'); }   /* a reply held back for a number no step produced */
       if (facts) { var ans = el('div', 'fah-msg dg-answer'); add(ans, lead, facts); nodes.push(ans); } else { nodes.push(lead); }
       if (kind === 'plan' && ctx.acceptHere) {
-        nodes.push(add(el('div', 'fah-row'), btn('Accept plan', function (b) { b.setAttribute('aria-disabled', 'true'); act('accept_plan'); }, true)));
+        nodes.push(add(P(el('div', 'fah-row'), 1), btn('Accept plan', function (b) { b.setAttribute('aria-disabled', 'true'); act('accept_plan'); }, true)));
       }
     }
     if (noticeOpen) {
-      var nt = el('div', 'fah-notice'), as = arr(m.notice.assumptions);
+      var nt = P(el('div', 'fah-notice'), 4), as = arr(m.notice.assumptions);
       var achips = arr(layerOn(3) ? m.chips : null).filter(function (c) { return c && c.kind === 'assumption'; });
       nt.appendChild(el('div', null, '◌ This rests on ' + (as.length === 1 ? 'one thing' : as.length + ' things') + ' you haven\'t confirmed' + (achips.length ? ':' : (as.length === 1 ? ': ' + lower(as[0] && as[0].text) : ':'))));
       if (achips.length) {
@@ -1207,7 +1250,7 @@
     return meta.childNodes.length ? meta : null;
   }
   function nodeEl(n, isNew) {
-    var card = el('div', 'dg-node' + (isNew ? ' is-new' : '')); card.setAttribute('data-node', n.id);
+    var card = P(el('div', 'dg-node' + (isNew ? ' is-new' : '')), NODE_P[n.kind]); card.setAttribute('data-node', n.id);
     var title = el('button', 'dg-node__title'); title.type = 'button'; title.setAttribute('data-anchor', '');
     add(title, el('span', 'dg-sr', (WHO[n.who] || 'You') + ', decided: '), n.text || '');
     title.setAttribute('aria-pressed', String(ui.markNode === n.id));
@@ -1290,7 +1333,7 @@
   }
   function proposeEl(t, p, needs) {
     var ch = p.change || {}, imp = p.impact || {};
-    var box = el('div', 'dg-propose'); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Proposed change');
+    var box = P(el('div', 'dg-propose'), 4); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Proposed change');
     var q = el('p', 'dg-propose__q'); q.appendChild(F.mark('harness', needs ? 'needs' : 'open', 12));
     var target = ch.input && S.inputs && S.inputs['in:' + ch.input] ? 'in:' + ch.input : null;
     if (ch.kind === 'value') { add(q, 'Change ' + lower(ch.label || keyWords(ch.input)) + ' to ' + plainNum(ch.to) + '?'); }
@@ -1326,7 +1369,7 @@
     var oc = outcome(t), who = opener(t), prop = pendingOf(t), dead = oc === 'dead';
     ctx.needs = !!prop && !decisionWaits();
     ctx.joining = !!(t.proposal && t.proposal.status === 'accepted' && oc !== 'joined');
-    var d = el('details', 'dg-branch dg-branch--' + (dead ? 'dead' : oc === 'joined' ? 'joined' : 'open') + (ctx.needs ? ' dg-branch--needs' : ''));
+    var d = P(el('details', 'dg-branch dg-branch--' + (dead ? 'dead' : oc === 'joined' ? 'joined' : 'open') + (ctx.needs ? ' dg-branch--needs' : '')), threadP(t));
     d.id = 'thread-' + t.id; d.setAttribute('data-branch', t.id);
     var isOpen = has(ui.branchOpen, t.id) ? ui.branchOpen[t.id] : ctx.defaultOpen;
     if (isOpen) { d.open = true; }
@@ -1377,7 +1420,7 @@
   }
   function draftEl() {
     var dr = ui.draft, fix = dr.mode === 'fix';
-    var d = el('details', 'dg-branch dg-branch--open'); d.open = true; d.id = 'thread-draft';
+    var d = P(el('details', 'dg-branch dg-branch--open'), 4); d.open = true; d.id = 'thread-draft';
     var sum = el('summary'), title = el('span', 'dg-branch__title'); title.setAttribute('data-anchor', '');
     add(title, el('span', 'dg-sr', 'You, a new branch: '), (fix ? 'Correct ' : 'About ') + dr.name);
     add(sum, title, el('span', 'dg-branch__state', 'new'));
@@ -1475,7 +1518,7 @@
     path('M' + X + ' ' + firstY + 'V' + nowY, 'dg-l--trunk');
     path('M' + (X - 6) + ' ' + nowY + 'H' + (X + 6), 'dg-l--trunk');
     graphRows.forEach(function (r) {
-      if (r.kind === 'trunk') { marks.push([r.n.who, X, trunkY[r.id], null, 7, anim === r.id]); return; }
+      if (r.kind === 'trunk') { marks.push([r.n.who, X, trunkY[r.id], null, 7, anim === r.id, NODE_P[r.n.kind]]); return; }
       if (r.kind !== 'branch' && r.kind !== 'draft') { return; }
       var t = r.t, oc = t ? outcome(t) : 'open', dead = oc === 'dead';
       var det = r.el.querySelector('details'), card = rel(det, box);
@@ -1494,12 +1537,12 @@
         if (anim === t.node) { out.line = jl; }
       }
       if (dead) { path('M' + x1 + ' ' + (ey + 6) + 'V' + (ey + 16), 'dg-l--dead'); path('M' + (x1 - 5) + ' ' + (ey + 17) + 'H' + (x1 + 5), 'dg-l--cap'); }
-      marks.push([t ? opener(t) : 'you', x1, by, dead ? 'dead' : 'open', 5.5]);
-      if (t && prop && pendingOf(t)) { marks.push(['harness', x1, ey, decisionWaits() ? 'open' : 'needs', 6]); }
+      marks.push([t ? opener(t) : 'you', x1, by, dead ? 'dead' : 'open', 5.5, false, t ? threadP(t) : 4]);
+      if (t && prop && pendingOf(t)) { marks.push(['harness', x1, ey, decisionWaits() ? 'open' : 'needs', 6, false, 4]); }
     });
     if (ui.markNode && trunkY[ui.markNode] != null) { svg.appendChild(svgEl('circle', { class: 'dg-l dg-l--sel', cx: X, cy: trunkY[ui.markNode], r: 12 })); }
     marks.forEach(function (m) {
-      var p = svgEl('path', { d: F.shape(m[0], m[1], m[2], m[4]), class: 'dg-shape' + (m[3] ? ' dg-shape--' + m[3] : '') });
+      var p = P(svgEl('path', { d: F.shape(m[0], m[1], m[2], m[4]), class: 'dg-shape' + (m[3] ? ' dg-shape--' + m[3] : '') }), m[6]);
       svg.appendChild(p);
       if (m[5]) { out.mark = p; }
     });
@@ -1659,6 +1702,7 @@
     ui.side = !!on;
     sideBtn.setAttribute('aria-pressed', String(ui.side));
     composer.classList.toggle('fah-composer--side', ui.side);
+    P(composer, ui.side ? 4 : null);
   }
   function drawComposer() {
     var canSide = !!S && layerOn(4);
@@ -1706,7 +1750,7 @@
   function fit() { input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px'; }
   input.addEventListener('input', fit);
   input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); } });
-  sideBtn.addEventListener('click', function () { var on = F.sideToggle(sideBtn); ui.side = on; drawComposer(); input.focus(); });
+  sideBtn.addEventListener('click', function () { var on = F.sideToggle(sideBtn); ui.side = on; P(composer, on ? 4 : null); drawComposer(); input.focus(); });
 
   /* ---------- empty plan ---------- */
   function drawEmpty() {
@@ -1740,9 +1784,54 @@
     first = false;
   }
 
+  /* ---------- the legend: which principle is on the page, and a spotlight on one ---------- */
+  var app = $('app'), keys = Array.prototype.slice.call(document.querySelectorAll('.fa-key'));
+  var spot = { pin: null, hover: null }, everOn = {}, legendInit = false, legendQueued = false;
+  function applySpot() {
+    var n = spot.hover || spot.pin;
+    if (n) { app.setAttribute('data-spot', n); } else { app.removeAttribute('data-spot'); }
+    keys.forEach(function (k) { k.setAttribute('aria-pressed', String(k.getAttribute('data-p') === spot.pin)); });
+  }
+  /* An entry is on while an element of its principle shows (the moving pulse along a line does not count). */
+  function updateLegend() {
+    legendQueued = false;
+    var on = {};
+    Array.prototype.forEach.call(app.querySelectorAll('[data-p]'), function (n) {
+      var k = n.getAttribute('data-p');
+      if (on[k] || n.classList.contains('fa-key') || n.classList.contains('fah-flow__pulse')) { return; }
+      if (n === sideBtn && n.getAttribute('aria-pressed') !== 'true') { return; }   /* the toggle alone is not principle 4 at work */
+      if (n.getClientRects().length) { on[k] = true; }
+    });
+    var quietly = !legendInit; legendInit = !!S;
+    keys.forEach(function (k) {
+      var n = k.getAttribute('data-p'), isOn = !!on[n];
+      if (k.classList.contains('is-off') === isOn || !k.querySelector('.fa-key__state').textContent) {
+        k.classList.toggle('is-off', !isOn);
+        k.querySelector('.fa-key__state').textContent = isOn ? ' On the page.' : ' Not on the page yet.';
+      }
+      if (isOn && !everOn[n]) { everOn[n] = true; if (!quietly) { F.restart(k, 'is-new'); } }
+    });
+  }
+  function queueLegend() { if (!legendQueued) { legendQueued = true; requestAnimationFrame(updateLegend); } }
+  if (window.MutationObserver) {
+    new MutationObserver(function (list) {
+      if (list.some(function (m) { return !m.target.closest || !m.target.closest('#legend'); })) { queueLegend(); }
+    }).observe(app, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden', 'open', 'data-p', 'aria-pressed'] });
+  }
+  keys.forEach(function (k) {
+    var n = k.getAttribute('data-p');
+    k.addEventListener('mouseenter', function () { spot.hover = n; applySpot(); });
+    k.addEventListener('mouseleave', function () { if (spot.hover === n && document.activeElement !== k) { spot.hover = null; applySpot(); } });
+    k.addEventListener('focus', function () { spot.hover = n; applySpot(); });
+    k.addEventListener('blur', function () { if (spot.hover === n) { spot.hover = null; applySpot(); } });
+    k.addEventListener('click', function () { spot.pin = spot.pin === n ? null : n; if (!spot.pin) { spot.hover = null; } applySpot(); });
+  });
+  queueLegend();
+
   /* ---------- page-level keys and clicks ---------- */
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && ui.pop) { ev.preventDefault(); closePop(true); }
+    if (ev.key === 'Escape' && (spot.pin || spot.hover) && (!ui.pop || (ev.target.closest && ev.target.closest('#legend')))) { ev.preventDefault(); spot.pin = null; spot.hover = null; applySpot(); }
+    else if (ev.key === 'Escape' && ui.pop) { ev.preventDefault(); closePop(true); }
     else if (ev.key === 'Escape' && (ui.selInput || ui.markNode)) { ui.selInput = null; ui.markNode = null; markPills(); drawDiagram(); markNodeSel(); }
   });
   document.addEventListener('click', function (ev) {

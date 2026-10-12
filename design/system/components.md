@@ -4,6 +4,22 @@ Every component is plain HTML with `fah-` classes from `bundle.css`. State chang
 
 ---
 
+## Principle colour
+
+Colour says which of the five principles (one per harness layer) produced an element. Put `data-p="1"` … `data-p="5"` on the element; for it and everything it holds, `bundle.css` sets
+
+| Property | Is | Used for |
+| --- | --- | --- |
+| `--p` | `principle-N` | A primary button's fill, a container's 3px edge, a figure's underline, a mark on the trunk |
+| `--p-ink` | `principle-N-ink` | Marks, tags, section headings, a step's line, outlines |
+| `--p-tint` | `principle-tint` of `--p` in surface | A container's ground: notice, decision, branch; hover |
+| `--p-line` | `--p-ink` half into surface | A quiet outline: pills, value chips, a reply box |
+| `--p-on`, `--p-hover` | `on-principle(-3)`, the fill lightened (3: darkened) | Text on the fill; the fill under the pointer |
+
+Components read these with their neutral colour as the fallback, so without `data-p` nothing changes, and a button or chip inside a coloured container takes the container's principle. One rule everywhere: a container takes the tint and an edge, a mark or label the ink, an outline the ink, a primary button the fill; body text stays ink. A step is several principles at once: the step (outline, name) is 1, or 4 for a call that is the person's; its line carries its own `data-p`; each mark under it its own. Colour never replaces a shape, a glyph or a word.
+
+---
+
 ## Step
 
 One node of the plan: a name and at most one more line. A step is a `<button>`, because clicking it selects it and attaches it to the next chat message.
@@ -35,8 +51,8 @@ One node of the plan: a name and at most one more line. A step is a `<button>`, 
 
 | Class | Use |
 | --- | --- |
-| `fah-step__line` | A quiet fact: an origin mark, a test count, a challenge |
-| `fah-step__line--result` | What came out of the step, starting with `→` |
+| `fah-step__line` | A quiet fact: an origin mark, a test count, a challenge. With `data-p` it is in that principle's ink |
+| `fah-step__line--result` | What came out of the step, starting with `→`. With `data-p` (3) underlined in the fill, like a figure in the chat |
 | `fah-step__line--strong` | "Needs you", with the reason |
 
 Set it with `FAH.setLine(step, text, kind)` so the arrival plays. Kind `'tested'` adds the tick. Pass empty text to remove the line.
@@ -58,7 +74,7 @@ An input the plan needs from the person, shown as a small pill just above the st
 </div>
 ```
 
-Add `fah-pill--used` when the input took part in the last answer; its outline and text darken to ink.
+Add `fah-pill--used` when the input took part in the last answer; its text darkens to ink and its outline to the principle's ink (ink without one). On the page the row carries `data-p="1"`: an input is part of the plan.
 
 Rules:
 
@@ -195,7 +211,7 @@ A note under an answer saying it rests on something the person has not confirmed
 
 Rules:
 
-- The dashed outline marks it as provisional. It is not a warning and never uses the attention colour.
+- The dashed outline marks it as provisional. It is not a warning and never uses the attention colour; on the page it is principle 4 (`data-p="4"`): a dashed ink outline on the faint tint.
 - State each assumption as one plain sentence. With more than one, list them and keep a single pair of buttons.
 - The step whose result depends on it shows a small `◌` after its result, with no words.
 - "Confirm" removes the notice and the mark. "Change it" puts the step in the message box so the person can say what is different.
@@ -289,7 +305,7 @@ One pop-up open at a time, and it never covers the step it belongs to.
 
 ## Decision graph
 
-The panel beside the plan is the decision history: a vertical spine (the trunk) of confirmed decisions, with branches forking sideways that fold open to their conversation. Everything below uses `dg-` classes from the same `bundle.css`, the same tokens and no new colours. Two rules change: a branch (a side thread) **can** change the plan, once the person says yes; and the Hover menu is the one place with icon buttons.
+The panel beside the plan is the decision history: a vertical spine (the trunk) of confirmed decisions, with branches forking sideways that fold open to their conversation. Everything below uses `dg-` classes from the same `bundle.css` and the same tokens; colour is the principle (`data-p`): a trunk node and its mark take the principle of what was decided, a branch takes 4 (5 when the reviewer opened it), a join request 4. Two rules change: a branch (a side thread) **can** change the plan, once the person says yes; and the Hover menu is the one place with icon buttons.
 
 ### Contributor mark
 
@@ -304,7 +320,7 @@ Who said or decided something. The shape says who, the fill says where it stands
 
 | Class on the path | Meaning |
 | --- | --- |
-| `dg-shape` | Filled with ink: a decision on the trunk |
+| `dg-shape` | Filled with ink, or with `--p` under `data-p`: a decision on the trunk |
 | `dg-shape--open` | Hollow: said on a branch |
 | `dg-shape--dead` | Hollow and muted: on a dead branch |
 | `dg-shape--needs` | The attention fill: a proposal waits for the person's yes (not while a call waits) |
@@ -350,7 +366,7 @@ A conversation about one thing in the plan, a native `<details>`. It ends one of
 
 | Class | Looks | State word |
 | --- | --- | --- |
-| `dg-branch--open` | `thread` tint, open | "open", "answering", "challenge", "question"; "needs you" (semibold, `dg-branch--needs`) with a pending proposal |
+| `dg-branch--open` | its principle's tint and edge (`thread` without one), open | "open", "answering", "challenge", "question"; "needs you" (semibold, `dg-branch--needs`) with a pending proposal |
 | `dg-branch--joined` | tinted, folded | "joined" |
 | `dg-branch--dead` | no tint, 1px `line` outline, muted | "no change", "dismissed" |
 
@@ -374,7 +390,7 @@ While it is pending the plan shows its impact: `dg-touch` (dashed, outside the b
 
 ### Chip
 
-A value in place of a sentence. Kinds are told apart by shape and a glyph, never colour.
+A value in place of a sentence. Kinds are told apart by shape and a glyph, never by colour alone; the colour is the principle (results and values 3, assumptions 4, a decision its node's).
 
 | Class | Kind | Shape |
 | --- | --- | --- |
@@ -383,7 +399,7 @@ A value in place of a sentence. Kinds are told apart by shape and a glyph, never
 | `dg-chip--result` | What a step produced ("Total cost → **43,000**") | 4px corners, 1.5px ink |
 | `dg-chip--decision` | A decision (the decider's mark, then the node's text) | 4px corners, 2px ink |
 | `dg-chip--stale` | No longer current after a join: struck and muted | |
-| `is-traced` | Its place is selected in the plan | `thread` tint |
+| `is-traced` | Its place is selected in the plan | its principle's tint |
 
 ```html
 <span class="dg-chip dg-chip--given">
@@ -409,7 +425,7 @@ Three icon buttons on a chip or an underlined figure (`dg-fig`): **See in graph*
 
 | Class | On | Meaning |
 | --- | --- | --- |
-| `dg-touch` | step, pill | A pending proposal (or a running join) changes it |
+| `dg-touch` | step, pill | A pending proposal (or a running join) changes it: dashed `principle-4-ink` |
 | `dg-touch--far` | step | Further on: touched, not re-run |
 | `dg-needs` | pill | The input a pending proposal is about |
 | `dg-pill--sel` | pill | A selected input: 2.5px ink inside |
