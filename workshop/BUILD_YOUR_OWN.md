@@ -1,16 +1,6 @@
 # Build your own harness
 
-This guide is for someone who wants a harness like ours in their own domain, built from an empty folder with the coding agent of their choice. It follows the five principles of the session, in order. It does not follow our file layout.
-
-You end with a small program that agrees a plan with a person, computes every number in tested code, shows where each number came from, asks the person only where the call is theirs, and has a reviewer challenge the plan.
-
-What this is not:
-
-- It is not the main path of the session. In the session you follow the finished harness in this repository.
-- It is not a two-hour job. A real build takes days.
-- It only fits a domain where the numbers can come from code: amounts, dates, rates, counts. If the answer is mostly judgement, most of this does not apply.
-
-The one message behind all of it: show how the numbers ran. Nothing generic. Design to increase trust, never assume it.
+This guide is for someone who wants a harness like ours in their own domain, built from an empty folder with the coding agent of their choice. It follows the five principles of the session, in order. It does not follow our file layout or specific implementation details. 
 
 ## Before principle 1: the skeleton
 
