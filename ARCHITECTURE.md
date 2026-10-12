@@ -602,6 +602,18 @@ migration history. After a schema change, delete `my/var/harness.db` (and
 Choices the contract leaves open, and known limits. The contract wins where
 they differ.
 
+- **Model provider.** `HARNESS_MODEL_PROVIDER` forces `claude_code`,
+  `anthropic` (needs `uv run --extra claude`), `openrouter` or `scripted`
+  (prepared replies, used by every test); `auto` picks as SPEC 2.2 says.
+  `HARNESS_MODEL` picks the model (default `claude-sonnet-5-5`); with
+  OpenRouter it takes any OpenRouter model id. To add a provider, add one file
+  under `harness/model/` with a `complete` method and one entry in
+  `harness/model/providers.py`.
+- **Lookups.** The research desk checks `reference/terms.json` first and asks
+  Wikipedia only for terms the file does not know, sending only a short
+  general term, never the person's figures. `HARNESS_RESEARCHER=reference`
+  stays offline. The reviewer's outside lookups also need Wikipedia.
+
 - **Session memory.** `Session.memory` is a dict the layers share for the life
   of the Session. Each layer uses its own keys: `plan` and `plan_file` (layer 1,
   the interview and the cached brief), `calc` (layer 2, the step being built),

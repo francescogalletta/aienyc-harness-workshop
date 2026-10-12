@@ -75,7 +75,7 @@ template = "divider"
 principle = true
 id = "s-p{n}"
 name = "Principle {n} · {name}"
-fields = []
+fields = ["hide_statement"]   # hide_statement = true drops the statement line under the name
 
 [layouts.placeholder]
 template = "placeholder"
