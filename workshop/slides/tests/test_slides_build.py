@@ -394,9 +394,9 @@ def test_marks_overlay(deck):
 
 
 def test_kit_and_libraries_only_when_used(deck, tmp_path):
-    src0 = copy_src(tmp_path / "plain")  # the deck itself draws a flow; take its visuals out
+    src0 = copy_src(tmp_path / "plain")  # the deck itself draws a flow and a mark; take its visuals out
     trust = src0 / "slides" / "trust.toml"
-    trust.write_text("\n".join(l for l in trust.read_text(encoding="utf-8").split("\n") if "viz = " not in l), encoding="utf-8")
+    trust.write_text("\n".join(l for l in trust.read_text(encoding="utf-8").split("\n") if "viz = " not in l and not l.startswith("marks = ")), encoding="utf-8")
     plain = build.build(build.Deck(src0), "blueprint", False)
     assert "var viz = (function" not in plain and "--viz-series-1" not in plain and "vendor:" not in plain
     src = copy_src(tmp_path)

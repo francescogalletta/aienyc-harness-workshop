@@ -83,22 +83,29 @@ id = "s-principles"
 name = "What we cover"
 layout = "statement"
 blocks = [
-  { display = "The design principles of a harness that works for money." },
+  { label = "TODAY IS ABOUT" },
+  { display = "[Design principles]{hook}" },
+  { headline = "for a harness that works for money." },
   { lines = [
       { sub = "No specific technologies.", step = 1 },
       { sub = "We assume you know the concepts we just listed.", step = 2 },
       { sub = "The focus: what makes a harness raise ==trust== significantly.", step = 3 },
   ] },
 ]
+marks = [ { target = ".display .hook", kind = "underline" } ]
 
 [[slide]]
 id = "s-one-take"
-name = "One interpretation"
+name = "One implementation"
 layout = "statement"
 blocks = [
-  { display = "We already built a harness." },
-  { sub = "ONE interpretation of many. Simple on purpose.", step = 1 },
-  { headline = "Instead of watching us ship code, feel what it is like when ==trust== is the priority.", step = 2 },
+  { display = "We want you to feel these principles work." },
+  { lines = [
+      { sub = "So we built a harness for today, around a very simple example.", step = 1 },
+      { sub = "It is ONE implementation of the principles.", step = 2 },
+      { sub = "The repo has everything we used, so you can do it too.", step = 3 },
+      { sub = "They scale to enterprise. [no secret sauce today]{aside step=5}", step = 4 },
+  ] },
 ]
 
 [[slide]]
