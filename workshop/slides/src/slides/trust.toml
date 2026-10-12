@@ -77,9 +77,8 @@ blocks = [
   { display = "[Design principles]{hook}" },
   { headline = "for a harness that works for money." },
   { lines = [
-      { sub = "No specific technologies.", step = 1 },
-      { sub = "We assume you know the concepts we just listed.", step = 2 },
-      { sub = "The focus: what makes a harness raise ==trust== significantly.", step = 3 },
+      { sub = "🚫 No specific technologies.", step = 1 },
+      { sub = "🧠 We assume you know the concepts we just listed.", step = 2 },
   ] },
 ]
 marks = [ { target = ".display .hook", kind = "underline" } ]
