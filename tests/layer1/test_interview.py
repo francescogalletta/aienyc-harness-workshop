@@ -255,26 +255,27 @@ def test_a_proposed_plan_survives_a_restart_and_can_still_be_accepted(open_sessi
     assert second.settle(SETTLE)["phase"] == "accepted"
 
 
-def test_an_example_brief_in_the_brief_folder_is_an_accepted_plan(open_session, moving_brief, monkeypatch, tmp_path):
+def test_an_example_brief_in_the_brief_folder_is_an_accepted_plan(open_session, wedding_brief, monkeypatch, tmp_path):
     folder = tmp_path / "example"
     folder.mkdir()
-    (folder / "domain_brief.json").write_text(json.dumps(moving_brief), encoding="utf-8")
+    (folder / "domain_brief.json").write_text(json.dumps(wedding_brief), encoding="utf-8")
     monkeypatch.setenv("HARNESS_BRIEF_DIR", str(folder))
     state = open_session().state()
-    assert state["phase"] == "accepted" and [step["id"] for step in state["steps"]] == ["m1", "m2", "m3", "m4"]
+    assert state["phase"] == "accepted"
+    assert [step["id"] for step in state["steps"]] == ["s1", "s2", "s3", "s4", "s5", "s6", "s7"]
     assert state["context"]["glossary"] and state["goal"]["mode"] == "ongoing"
     assert state["chat"] == []                                          # not an example: nothing is said
 
 
-def test_a_seeded_example_opens_with_one_harness_message_naming_what_the_plan_covers(open_session, moving_brief,
+def test_a_seeded_example_opens_with_one_harness_message_naming_what_the_plan_covers(open_session, wedding_brief,
                                                                                     monkeypatch, tmp_path):
     folder = tmp_path / "example"
     folder.mkdir()
-    (folder / "domain_brief.json").write_text(json.dumps(moving_brief), encoding="utf-8")
+    (folder / "domain_brief.json").write_text(json.dumps(wedding_brief), encoding="utf-8")
     monkeypatch.setenv("HARNESS_BRIEF_DIR", str(folder))
-    monkeypatch.setenv("HARNESS_EXAMPLE", "moving")
+    monkeypatch.setenv("HARNESS_EXAMPLE", "wedding")
     (message,) = open_session().state()["chat"]
-    goal = moving_brief["goal"]["text"].split(". ")[0].rstrip(".")
+    goal = wedding_brief["goal"]["text"].split(". ")[0].rstrip(".")
     assert message["who"] == "harness" and message["kind"] == "text"
     assert message["text"] == PREPARED.format(goal=goal[0].lower() + goal[1:])
     assert len(open_session().state()["chat"]) == 1                    # said once, not on every start
@@ -311,13 +312,13 @@ def test_ground_exits_1_when_input_ends_before_the_plan_is_accepted(open_session
     assert run_ground(session, read=read, write=lambda text: None) == 1
 
 
-def test_a_confirmed_plan_found_on_load_with_an_empty_trunk_gets_its_node_once_after_prepared(open_session, moving_brief,
+def test_a_confirmed_plan_found_on_load_with_an_empty_trunk_gets_its_node_once_after_prepared(open_session, wedding_brief,
                                                                                             monkeypatch, tmp_path):
     folder = tmp_path / "example"
     folder.mkdir()
-    (folder / "domain_brief.json").write_text(json.dumps(moving_brief), encoding="utf-8")
+    (folder / "domain_brief.json").write_text(json.dumps(wedding_brief), encoding="utf-8")
     monkeypatch.setenv("HARNESS_BRIEF_DIR", str(folder))
-    monkeypatch.setenv("HARNESS_EXAMPLE", "moving")
+    monkeypatch.setenv("HARNESS_EXAMPLE", "wedding")
     state = open_session().state()
     [node] = state["history"]["trunk"]
     assert (node["who"], node["kind"], node["after"]) == ("you", "plan_accepted", state["chat"][0]["id"])

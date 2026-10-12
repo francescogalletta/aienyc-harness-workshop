@@ -1,7 +1,6 @@
 """SPEC 3.1: the version 2 brief, its checks, how it is drawn as state, and written out."""
 import json
 
-import pytest
 from layer1_helpers import EXAMPLES, PROPOSED, item, small_brief
 
 from harness.grounding import (ResearchDesk, draw, input_ids, load_brief, person_quotes, save_brief,
@@ -15,10 +14,8 @@ def errors(brief, words=WORDS, lookups=LOOKUPS):
     return validate_brief(brief, lookups, words)
 
 
-@pytest.mark.parametrize("name", ["wedding", "moving"])
-def test_the_example_briefs_are_valid_version_2_briefs(name):
-    brief = json.loads((EXAMPLES / name / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
-    found = validate_brief(brief, brief["meta"]["lookups"], person_quotes(brief))
+def test_the_example_brief_is_a_valid_version_2_brief(wedding_brief):
+    found = validate_brief(wedding_brief, wedding_brief["meta"]["lookups"], person_quotes(wedding_brief))
     assert found == []
 
 
@@ -79,24 +76,24 @@ def test_version_1_checks_are_kept():
     assert errors(brief)
 
 
-def test_draw_gives_the_layer_1_part_of_the_state_document(moving_brief):
-    part = draw(moving_brief, moving_brief["meta"]["lookups"])
+def test_draw_gives_the_layer_1_part_of_the_state_document(wedding_brief):
+    part = draw(wedding_brief, wedding_brief["meta"]["lookups"])
     assert set(part) == {"goal", "context", "inputs", "steps", "edges"}
-    assert part["goal"]["mode"] == "ongoing" and part["goal"]["origin"] == PROPOSED
-    first, second, _third, last = part["steps"]
-    assert (first["id"], first["number"], first["kind"], first["in_plan"]) == ("m1", 1, "calculation", True)
-    assert last["kind"] == "your_call"
-    assert second["needs"] == ["m1", "in:savings_so_far", "in:months_until_the_move"]
-    assert second["inputs"] == ["in:savings_so_far", "in:months_until_the_move"]
-    assert {"from": "m1", "to": "m2"} in part["edges"]
+    assert part["goal"]["mode"] == "ongoing" and part["goal"]["origin"] == {
+        "kind": "person", "quote": "saving to pay for the wedding"}
+    first, second, third, fourth, fifth, _sixth, last = part["steps"]
+    assert (first["id"], first["number"], first["kind"], first["in_plan"]) == ("s1", 1, "calculation", True)
+    assert fourth["kind"] == "from_you" and last["kind"] == "your_call"
+    assert second["needs"] == ["s1", "in:payment_schedule", "in:wedding_date"]
+    assert second["inputs"] == ["in:payment_schedule", "in:wedding_date"]
+    assert {"from": "s1", "to": "s2"} in part["edges"]
     assert not any(edge["from"].startswith("in:") for edge in part["edges"])
-    assert second["origin"] == {"kind": "looked_up", "source": {
-        "title": "Sinking fund (Wikipedia)", "url": "https://en.wikipedia.org/wiki/Sinking_fund"}}
-    assert [each["origin"]["kind"] for each in first["particulars"]] == ["proposed", "person"]
-    assert first["particulars"][0].keys() == {"text", "handling", "origin"}
-    assert len(first["open_questions"]) == 3
-    assert part["inputs"]["in:deposit"]["steps"] == ["m1"]
-    assert set(part["inputs"]["in:deposit"]) == {"id", "name", "description", "origin", "steps"}
+    assert first["origin"] == PROPOSED and fifth["origin"] == {"kind": "person", "quote": "projections and estimations"}
+    assert [each["origin"]["kind"] for each in third["particulars"]] == ["person", "person", "proposed"]
+    assert third["particulars"][0].keys() == {"text", "handling", "origin"}
+    assert len(first["open_questions"]) == 2
+    assert part["inputs"]["in:wedding_date"]["steps"] == ["s2"]
+    assert set(part["inputs"]["in:wedding_date"]) == {"id", "name", "description", "origin", "steps"}
 
 
 def test_whole_plan_particulars_and_questions_go_to_the_context():

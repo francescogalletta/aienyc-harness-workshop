@@ -276,4 +276,4 @@ You will see how a layer adds a check that scenarios can use.
 2. Add a brand-new term of your own to `reference/terms.json` and make the interview look it up.
 3. Write a module folder by hand in `my/var/examples/wedding/modules/` (spec, golden, code, tests) and see the harness adopt it on load.
 4. Add a provider adapter stub under `harness/model/` and one line in `providers.py`, then run `uv run python -m harness check` with it.
-5. Write a `moving` scenario of your own with `confirm` and `correct` actions, and replay it.
+5. Write a `wedding` scenario of your own with `confirm` and `correct` actions, and replay it.
