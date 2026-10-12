@@ -1,7 +1,7 @@
 # Notes for coding agents working in this repository
 
 This is a small agent harness for personal finance (the Financial Advisor
-Harness), built contract-first for a two-hour workshop. Read this file first,
+Harness), built contract-first for a workshop. Read this file first,
 then `SPEC.md` and `ARCHITECTURE.md` for the part you are changing.
 
 ## What the repository must serve
@@ -47,7 +47,7 @@ plug into it, each one package, each importing only the layers below it.
 | `SPEC.md`, `ARCHITECTURE.md`, `design/` | The contract, how it is built, the product design and the page source (`design/page/`) | The maintainers, contract first |
 | `harness/`, `tests/`, `reference/`, `examples/` | The harness, its tests (`tests/layer0` to `tests/layer5`), saved terms and seeded examples | You, following the contract |
 | `my/` | A person's plan, modules and working files | Only the person. Never write here from a build task |
-| `workshop/` | Teaching material | Only the maintainers |
+| `README.md`, `workshop/` | The workshop an attendee follows (`README.md`); speaker notes, slides and the build-your-own guide (`workshop/`) | Only the maintainers |
 
 ## Rules that hold everywhere
 
@@ -81,10 +81,11 @@ uv run pytest -q                              # all offline tests
 uv run pytest tests/layer3 -q                 # one layer's tests (run each folder on its own)
 uv run python -m harness check                # model access works
 uv run python -m harness ui                   # the page: plan diagram and chat
-uv run python -m harness ground               # the interview, in the terminal
+uv run python -m harness ground               # the interview, in the terminal; /accept, /wrap, /quit
 uv run python -m harness build                # build the calculation steps of the accepted plan
-uv run python -m harness ask "..."            # ask about the plan, in the terminal
+uv run python -m harness ask "..."            # ask, in the terminal; /confirm, /side TEXT, /reply TEXT, /yes, /no, /close, /quit
 uv run python -m harness replay wedding       # play the scripted scenarios against the real model
+uv run python -m harness replay wedding cover_each_payment   # one scenario; --keep keeps the scratch copy
 uv run python -m harness events               # print the recorded events
 HARNESS_EXAMPLE=wedding uv run python -m harness ui      # play with a seeded example
 ```

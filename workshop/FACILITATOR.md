@@ -1,27 +1,13 @@
-# Facilitator notes
+# Speaker notes
 
-Times are what the room waits, measured against the real model, driving the page in a browser. "n/n" is how often a moment came out as written in rehearsal. `harness ...` is `uv run python -m harness ...`. The slides are in `workshop/slides/`: open the built deck `workshop/slides/deck.html` in a browser (`workshop/slides/README.md` says how to rebuild it).
+The root [`README.md`](../README.md) is the workshop: every step, prepared sentence and expected result is there, one section per principle. Drive the page from it. These notes hold only what a speaker needs beyond it. Times are what the room waits, measured against the real model in rehearsal; "n/n" is how often a moment came out as written. `harness ...` is `uv run python -m harness ...`. The slides are `workshop/slides/deck.html` (`workshop/slides/README.md` says how to rebuild them).
 
-Every block runs the whole harness, all five layers, and shows one principle: what its layer adds. Four rules worth knowing before you start:
+Four rules worth knowing:
 
-- **The reviewer runs on its own.** When the example opens or a plan is accepted, the reviewer (layer 5) looks at the plan in the background; its challenges appear as branches after 10 to 13 s. Leave them until block 5.
-- **The example copy keeps your last run** (`my/var/examples/wedding`), the decision history included. Delete it, then start the page, to begin a block clean. The page without an example keeps its interview in `my/var/harness.db` and `my/var/grounding_state.json`: delete both for an empty page.
-- **Spotlight one principle with the legend.** On the example, everything but Evidence is already on the page when it opens, so the page shows four principles at once. Click a principle's entry in the legend at the foot of the plan: everything else fades until you click it again or press Escape. That is how you show one principle at a time.
-- **The page uses the real date.** "Due 21 days from today" is true on any day, but the dates and shortfalls that follow from it move by a few hundred with the day. Read them off the screen.
-
-## Run order
-
-| Block | Principle | Command | The one thing to show |
-| --- | --- | --- | --- |
-| 0 Setup | core | `harness --help`; `harness check`; `harness ui` | `Setup works`; the empty page |
-| 1 The plan | Shared Domain | `harness ui`; then `HARNESS_EXAMPLE=wedding harness ui` | Live interview to a plan you correct; then the seeded plan, step 3's origin |
-| 2 Build | Consistency | delete `modules/monthly_surplus`; `HARNESS_EXAMPLE=wedding harness ui` | `Stale · rebuild`, click, step 3 built and tested |
-| 3 Answers | Evidence | the prepared sentence | A short reply with chips; click an underlined number or the 54,500 chip, its step lights up |
-| 4 Needs you | Accountability | a fresh copy; the 120-guest sentence | Chip, "no fewer than 150", Yes: 43,000 and 18,500 re-run, a trunk node; a dead branch; Confirm; your call |
-| 5 Review | Verification | a fresh copy; `HARNESS_EXAMPLE=wedding harness ui` | The reviewer's challenges are branches: Use this joins the trunk, Dismiss is dead |
-| Wrap | – | none | What they take home |
-
-If short on time, cut in this order: the live interview in block 1 (use the seeded plan), the live rebuild in block 2 (use `replay`), the call in block 4, then the dead branch.
+- **The reviewer runs on its own.** When the example opens or a plan is accepted, the reviewer looks at the plan in the background; its challenges appear as branches after 10 to 13 s. Leave them until principle 5.
+- **The example copy keeps your last run** (`my/var/examples/wedding`), the decision history included. Reset (README, "Open the example") to begin a principle clean. The page without an example keeps its interview in `my/var/harness.db` and `my/var/grounding_state.json`: delete both for an empty page.
+- **Spotlight one principle with the legend.** On the example, everything but Evidence is on the page when it opens. Click the principle's legend entry and keep it while you talk; click again or press Escape to let go.
+- **The page uses the real date.** "Due 21 days from today" is true on any day, but the dates and shortfalls that follow move by a few hundred with the day. Read them off the screen.
 
 ## Before the day (paste in order; each line says what you should see)
 
@@ -36,78 +22,25 @@ rm -rf my/var/examples/wedding my/var/harness.db* my/var/grounding_state.json my
 
 Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a spare. Close other Claude Code sessions (they share the plan's usage).
 
-## Run of show
+## Per principle
 
-### Block 0: setup
+What to say and point at that the README does not. The steps are in the README section named.
 
-- Core: one core owns the conversation, three lanes and the plan state; the model is one swappable interface.
-- `harness --help`: `check, events, ui, replay` come with the core; `ground`, `build` and `ask` with layers 1 to 3. `harness check` (a few seconds, up to a minute on a first run or a slow link), then `harness events`: one line, `core.check`.
-- Page: `harness ui`. Empty: no plan, nothing to draw yet. Do not type: a message starts the interview, which is block 1. Ctrl+C.
-- Attendees: all run `harness check`.
-- If it goes wrong: sign-in (`claude auth status`, `claude update`), `ANTHROPIC_API_KEY` set by mistake (unset it).
+**Setup** (README 1 and 2). One core owns the conversation, three lanes and the plan state; the model is one swappable interface. `harness --help`: `check`, `events`, `ui`, `replay` come with the core; `ground`, `build` and `ask` with layers 1 to 3. After `harness check`, `harness events` shows one line, `core.check`. `harness ui` without the example is empty: no plan, nothing to draw. Do not type there yet.
 
-### Block 1: Shared Domain (the plan)
+**1 Shared Domain** (README 3). Legend entry 1. Do the interview live first (action 3; first question after 10 to 14 s, the plan after 28 to 46 s, the correction 18 to 26 s, 2/2), then open the example. The research ("reading up on: sinking fund, ...") is printed only by the terminal command `harness ground`, not on the page: say it, do not look for it. During each wait, say what the interview, the proposal and the correction are for. On the example, say the trunk's one node, "Plan accepted", is where the history of decisions starts.
 
-- Principle: *Agree the plan before any number.* An interview turns a vague goal into a plan everyone agrees on.
-- Click legend entry 1 to keep this principle spotlighted while you talk.
-- Delete `my/var/harness.db*` and `my/var/grounding_state.json`, `harness ui`. Empty page. Type `I want to pay for my wedding`. First question after 10 to 14 s (2/2). The research ("reading up on: sinking fund, ...") is printed only in the terminal command `harness ground`, not in the page: say it, do not look for it.
-- Click the link under the question, **Propose the plan now**: a 4 to 5 step plan appears after 28 to 46 s (2/2). Click step 2 and type `This should also include 3,000 for the honeymoon.` The plan redraws after 18 to 26 s (2/2): a new input "Honeymoon cost", and "The plan is revised: changed steps ...". Do not accept; Ctrl+C. During each wait: say what the interview, the proposal and the correction are for.
-- Then: `HARNESS_EXAMPLE=wedding harness ui`. Seven plan steps, and an eighth added in a conversation, marked "not in the plan"; `●` with a number is an open question, `✎` proposed by the assistant, `❝` the person's words; step 4 is a figure from the person, step 7 (dashed) their call. Click step 3: among other things the pop-up shows its formula, particulars with origins and the open question. The trunk on the right has one node, "Plan accepted"; say it is where the history of decisions starts.
-- Attendees: open the example and click steps. The Try it slides for this principle: step origins, and correcting the plan.
-- If it goes wrong: a slow interview, press Propose the plan now after the first question.
+**2 Consistency** (README 4). Legend entry 2. Bridge: "The shared plan says which parts never change." The model never adds up; a calculation runs only if its module's tests pass now. Step 8, "not in the plan", is the step the seed added in a conversation. The rebuild of step 3 (action 2) takes 33 to 35 s (3/3); talk during the wait: the code writer never sees the examples, a second pass checks them. Take one example and work it out on a calculator in front of the room; examples differ per build, and nobody has confirmed them. A whole 4-step build took 200 s (1/1).
 
-### Block 2: Consistency (build)
+**3 Evidence** (README 5). Legend entry 3; it lights up with the first answer. Bridge: "Tested code (and everything else) leaves a trail we can follow." The prepared sentence (action 3) takes 30 to 50 s; the spending of 8,500 makes a shortfall on any day. Say what the analyst did: it ran the modules, and the number check holds back anything no step made. Clicking an underlined shortfall selects step 5 and opens its pop-up. The `◌` on the reply belongs to principle 4. "What if my families give nothing?" takes 17 to 60 s.
 
-- Principle: *Numbers come only from tested code.* The bridge from block 1: "The shared plan says which parts never change." The model never adds up; a calculation runs only if its module's tests pass now.
-- Click legend entry 2 to keep this principle spotlighted while you talk.
-- On the example page: `All 6 built` and on each calculation step `N examples · P/P`: 4/4, 3/3, 4/4, 5/5, 5/5 (the counts differ per step; steps 4 and 7 are the person's, no tag). Step 8, "not in the plan", is the step the seed added in a conversation; say so.
-- Live: Ctrl+C, `rm -rf my/var/examples/wedding/modules/monthly_surplus`, restart (the copy must have run once, as it has after block 1). Step 3 shows `Stale · rebuild`; the button says **Rebuild 1 step**. Click: it says "Building" for 33 to 35 s (3/3), not minutes, and makes only step 3, which then reads `4 examples · 5/5` (counts differ per build). Talk during the wait: the code writer never sees the examples; a second pass checks them.
-- Open step 3: Examples marked "checked by a second pass", "4 tests, all passing", Code and tests. Take the first example, read its inputs, work it out on a calculator in front of them. Examples differ per build; say that nobody has confirmed them.
-- Attendees: open steps, read examples. The Try it slides for this principle: run the tests, and break a module. A whole 4-step build took 200 s (1/1), about 50 s a step.
-- If it goes wrong: `harness replay wedding build_monthly_surplus` (20 to 28 s, PASS) does the same in a scratch copy.
+**4 Accountability** (README 6). Legend entry 4. Bridge: "The evidence is what you decide with." Point at the right panel first: the trunk is only confirmed decisions; the conversation is below. The 120-guest reply takes 30 to 35 s (3/3): say "less prose, more objects". The proposal comes after 4 to 6 s (4/4): steps 1, 2 and 5 are outlined dashed, 6 and 7 faded; say that anything that touches your figures needs your yes. The join takes 1.5 to 4.5 s (3/3); `harness events` shows a `calc.run` for each re-run step. The sinking fund answer (5 to 6 s, 2/2) comes from the plan's glossary and offers a lookup it does not make. The call takes about 10 s (1/1); its trunk node shows the start of the question, not the choice.
 
-### Block 3: Evidence (answers)
+**5 Verification** (README 7). Legend entry 5. Bridge: "Each challenge is yours to use or dismiss." Reset first so the room sees the reviewer start: `Review · 2` or `Review · 3` after 10 to 13 s (3/3). Someone other than the analyst looks at how the problem is being thought about. After Use this the analyst replies in 4 to 6 s (2/2) and asks for inputs not saved yet.
 
-- Principle: *Every number can be followed back.* The bridge from block 2: "Tested code (and everything else) leaves a trail we can follow." Every number in an answer leads to the step that produced it; a number no step produced is never shown.
-- Click legend entry 3 to keep this principle spotlighted while you talk. It lights up once the first answer is on the page.
-- Paste this into the chat (spending of 8,500, so there is a shortfall on any day):
+**Wrap.** What they take home: `harness/` and their `my/`. `workshop/` is teaching material; deleting it leaves a harness whose tests pass. Repeat the limits from README 8: a variation of the example with their own figures and dates works; a very different plan, or a new harness, is for `workshop/BUILD_YOUR_OWN.md`.
 
-  `Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due 21 days from today, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 8,500 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027.`
-
-- Wait 30 to 50 s. The reply is short: "Not fully, in either case", with the shortfalls in the sentence. On 12 October: 150 guests, payment 2 short by 4,000 and payment 3 by 2,500; 200 guests, 9,750 and 14,000. Under it are chips: the totals 43,000 and 54,500 and the surplus 1,500 (results), the values it used and what it assumed (a `◌` mark on it is block 4). Say what the analyst did: it ran the modules, and the number check holds back anything no step made.
-- Click an underlined number (9,750): step 5 is selected and its pop-up opens; click the chip `Estimate total wedding cost 54,500` and step 1 is selected (2/2). Steps not used fade. Then type `What if my families give nothing?`: 17 to 60 s, payment 3 now short by 22,500 and 34,000.
-- Attendees: ask it, change the guest range. The Try it slides for this principle: ask, and follow a number back.
-- If it goes wrong: `replay wedding cover_each_payment` (30 to 35 s, PASS; fixes its date so 5,250 shows).
-
-### Block 4: Accountability (needs you)
-
-- Principle: *Ask only where a person must decide.* The bridge from block 3: "The evidence is what you decide with." Assumptions run and are marked; only a call that is the person's stops; a branch joins the trunk only with your yes.
-- Click legend entry 4 to keep this principle spotlighted while you talk.
-- Restart the page on a fresh copy (`rm -rf my/var/examples/wedding`). Point at the right panel: the trunk, with "Plan accepted" at the top, is only confirmed decisions; below it the conversation. The reviewer's branches come back too; leave them for block 5. Paste (120 guests, so a branch can change it):
-
-  `Can I cover the three payments if we invite 120 guests? The wedding is on 12 June 2027. Dinner is 230 a guest, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due 21 days from today, and it counts toward the total. The second and third payments are each half of what remains, due 30 and 14 days before the wedding.`
-
-- After 30 to 35 s (3/3) a two-sentence reply: with 120 guests the fund covers all three payments. Chips under it, step 1 reading 36,100, and a dashed `◌ This rests on 2 things you haven't confirmed` with **Confirm** and **Change it** (the two assumptions differ per run). Say: less prose, more objects.
-- The join. Hover the chip `Guest count 120` (under "Rests on"): three small icons, the middle one is "challenge or correct". Click it and type `We will get no fewer than 150 guests.` A branch opens at the top of the panel. After 4 to 6 s (4/4) it proposes `Change guest count to 150?`: `120 → 150`, `Re-runs 1 2 5`, `Further on 6 7`. On the plan the Guest count pill turns orange, steps 1, 2 and 5 are outlined dashed, 6 and 7 are faded. Say: anything that touches your figures needs your yes. Click **Yes, change it**.
-- It takes 1.5 to 4.5 s (3/3): "Decided on a branch: Guest count is 150 (was 120). Run again: steps 1, 2 and 5." Step 1 reads 43,000, steps 1, 2 and 5 carry `re-ran`, the pill reads 150, the trunk has a node `Guest count: 150 (was 120)` with the chips `43,000 (was 36,100)`, `18,500 (was 15,050)` and `22,000 (was 28,900)`. In the old reply the figures that moved are struck through; 4,000 and the dates are not. Say: the join re-runs through the same test gate, with no model call (`harness events` shows a `calc.run` for each step).
-- The branch that dies. Click step 5, then **New branch** (bottom right of the box), type `What is a sinking fund?`. It answers in 5 to 6 s (2/2) from the plan's glossary, now with a sourced definition, and offers to look up more; it does not. Click **Close branch**: the branch is dimmed, `no change`; the trunk and the plan are as they were. Say: a branch with no consequence stays dead.
-- Confirm. Scroll down, click **Confirm** (instant): a trunk node `Confirmed: ... and 1 more`. Say: the trunk is only confirmed decisions. Optional: instead of Confirm click **Change it** and type `On second thought, the second payment is 40% of what remains, and the third is the other 60%.` for a node `Corrected: ...`, 14,800 and 22,200 (2/2).
-- Your call. Type `Now help me decide what to update first.` After 10 s (1/1) step 7 asks with four buttons, the words differ each time; pick one: a trunk node appears at once and step 7 reads "Decided", the reply follows in 5 s. The node shows the start of the question, not your choice; open step 7 for "You chose: ...".
-- Attendees: as shown; change 150 to 180 from a branch. The Try it slides for this principle: change a figure from a chip, and a branch that changes nothing.
-- If it goes wrong: no proposal after 15 s, say it plainly again (`Change the guest count to 150.`); the side assistant may ask a question first. No buttons after 90 s: move on; `harness replay wedding decide_what_to_update` plays the call in a scratch copy.
-
-### Block 5: Verification (review)
-
-- Principle: *A reviewer challenges the plan.* The bridge from block 4: "Each challenge is yours to use or dismiss." Someone other than the analyst looks at how the problem is being thought about.
-- Click legend entry 5 to keep this principle spotlighted while you talk.
-- Restart the page on a fresh copy (`rm -rf my/var/examples/wedding`) so the room sees the reviewer start. It runs on open: `Review · 2` or `Review · 3` after 10 to 13 s (3/3). Each challenge is a branch off the trunk, tagged `challenge` or `question`; steps carry `▲`. Click one to open it: **Use this**, **Dismiss**, a reply box. A question has no Use this: pick another.
-- Click **Use this** on a challenge: the branch joins the trunk as `Reviewer's suggestion used on step 5` and the analyst replies in 4 to 6 s (2/2; it asks for inputs not saved yet). Open another and click **Dismiss**: instant, the branch is dimmed, `dismissed`. Say: the reviewer's challenges are branches; Use this joins, Dismiss is dead.
-- Attendees: as shown. The Try it slides for this principle: use a challenge, and dismiss one.
-- If it goes wrong: nothing raised, send the block 4 sentence for a second pass. Outside lookups need Wikipedia; challenges then carry no source.
-
-### Wrap
-
-What they take home: `harness/` and their `my/`. `workshop/` is teaching material; deleting it by hand leaves a harness whose tests pass. Repeat the limitation from "Read this first" in `workshop/README.md`: the session is not made for building an entirely different harness, or a very different plan, from scratch; a variation of the example with their own figures and dates is what it supports.
+If short on time, cut in this order: the live interview in principle 1 (use the seeded plan), the live rebuild in principle 2 (use `replay`), the call in principle 4, then the dead branch.
 
 ## Known rough edges
 
