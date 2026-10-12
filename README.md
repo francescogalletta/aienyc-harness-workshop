@@ -1,8 +1,20 @@
-# Financial Analyst Harness
+# Financial Analyst Harness Workshop
 
-A small agent harness for (personal) finance, built one layer at a time, and extensible. 
+This repo hosts the code to run a workshop for AI Engineer NYC 2026 about building agentic harnesses for financial analysis that you can trust. It contains the presentation for the speakers, a demo harness to showcase the design principles applied, and a toy example of solving a problem with said demo harness.
 
-You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and answers your questions with every number traced to a step. 
+## Personal Finance Harness
+
+
+
+
+Harness Building
+
+
+
+
+A small agent harness for (personal) finance.
+
+You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and answers your questions with every number traced to a step.
 
 The running example is a plan to pay for a wedding on time (`examples/wedding/`)
 
@@ -30,17 +42,17 @@ Whichever you choose, you leave with a working harness: the code in `harness/`, 
 
 ## What is here
 
-| Path | What it is |
-| --- | --- |
-| `SPEC.md`, `ARCHITECTURE.md` | The contract (behaviour, state document, actions) and how it is built |
-| `HISTORY.md` | Notes made while the harness was built: history, not contract |
-| `design/` | The product design, the design system and the source of the page (`design/page/`) |
-| `harness/` | The harness: the core, and one package per layer |
-| `tests/` | Offline tests, one folder per layer (`tests/layer0` to `tests/layer5`) |
-| `reference/` | Saved finance terms with checked sources, for offline lookups |
-| `examples/` | Two seeded examples, `wedding` and `moving`: plan, built modules, scenarios. See `examples/README.md` |
-| `my/` | Yours: `my/brief/` (your plan), `my/modules/` (your tested calculations) and `my/var/` (database and working files, never committed) |
-| `workshop/` | The workshop guides, exercises, build prompts and slides. Optional: the harness never uses it |
+| Path                         | What it is                                                                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `SPEC.md`, `ARCHITECTURE.md` | The contract (behaviour, state document, actions) and how it is built                                                                |
+| `HISTORY.md`                 | Notes made while the harness was built: history, not contract                                                                        |
+| `design/`                    | The product design, the design system and the source of the page (`design/page/`)                                                    |
+| `harness/`                   | The harness: the core, and one package per layer                                                                                     |
+| `tests/`                     | Offline tests, one folder per layer (`tests/layer0` to `tests/layer5`)                                                               |
+| `reference/`                 | Saved finance terms with checked sources, for offline lookups                                                                        |
+| `examples/`                  | Two seeded examples, `wedding` and `moving`: plan, built modules, scenarios. See `examples/README.md`                                |
+| `my/`                        | Yours: `my/brief/` (your plan), `my/modules/` (your tested calculations) and `my/var/` (database and working files, never committed) |
+| `workshop/`                  | The workshop guides, exercises, build prompts and slides. Optional: the harness never uses it                                        |
 
 ## Set up
 

@@ -64,6 +64,6 @@ def open_session(researcher):
 
 
 @pytest.fixture
-def moving_brief():
-    return json.loads((EXAMPLES / "moving" / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
+def wedding_brief():
+    return json.loads((EXAMPLES / "wedding" / "brief" / "domain_brief.json").read_text(encoding="utf-8"))
 

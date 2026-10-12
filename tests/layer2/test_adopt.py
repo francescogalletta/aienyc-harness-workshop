@@ -43,16 +43,17 @@ def test_the_seeded_modules_are_adopted_on_load_and_run_through_the_gate(monkeyp
 
 
 def test_a_folder_whose_tests_fail_here_leaves_its_step_not_built(monkeypatch, tmp_path, open_session, build):
-    seeded(monkeypatch, tmp_path, "moving")
-    broken = tmp_path / "moving" / "modules" / "move_upfront_cost" / "module.py"
+    seeded(monkeypatch, tmp_path)
+    broken = tmp_path / "wedding" / "modules" / "wedding_total_cost" / "module.py"
     broken.write_text(broken.read_text() + "\n\ndef calculate(**anything):\n    return '0'\n")
     session = open_session([])
-    found = step_of(session.state(), "m1")["build"]
+    found = step_of(session.state(), "s1")["build"]
     assert (found["status"], found["reason"]) == ("not_built", builder.REASON_TESTS)
-    assert registry.get_module(session.conn, "move_upfront_cost") is None
-    assert step_of(session.state(), "m2")["build"]["status"] == "built"
-    build(session)                                         # the model has nothing to say: m1 stays not built
-    assert events(session, "build.finished")[-1]["steps"] == {"m1": "not_built", "m2": "kept", "m3": "kept"}
+    assert registry.get_module(session.conn, "wedding_total_cost") is None
+    assert step_of(session.state(), "s2")["build"]["status"] == "built"
+    build(session)                                         # the model has nothing to say: s1 stays not built
+    assert events(session, "build.finished")[-1]["steps"] == {"s1": "not_built", "s2": "kept", "s3": "kept",
+                                                             "s5": "kept", "s6": "kept", "added_1": "kept"}
 
 
 def test_folders_are_adopted_when_a_plan_is_accepted(tmp_path, open_session):

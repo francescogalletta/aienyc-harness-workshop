@@ -1,5 +1,5 @@
 """SPEC 2.6 at layer 5: the `use` and `dismiss` acts and the `challenges` expectation, and the seeded scenarios
-of both examples (which together need every layer)."""
+of the example (which together need every layer)."""
 import json
 from pathlib import Path
 
@@ -29,7 +29,7 @@ def test_every_seeded_scenario_validates_and_together_they_exercise_every_layer(
         brief = replay.read_brief(path.parents[1])
         assert replay.validate_scenario(value, stem=path.stem, brief=brief, layers=5) == [], path
         layers.add(value["layer"])
-    assert {path.parts[-3] for path in SEEDED} == {"wedding", "moving"}
+    assert {path.parts[-3] for path in SEEDED} == {"wedding"}
     assert layers >= {2, 3, 4, 5}
 
 
