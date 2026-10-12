@@ -1586,7 +1586,8 @@ body { min-height: 100vh; }
       var toApprove = exs.filter(function (ex) { return ex.checked_by === 'second_pass'; });
       var leftOut = exs.some(function (ex) { return !ex.checked_by; });
       var departs = !!(b.plan_check && arr(b.plan_check.departures).length);
-      var testsNeedYou = b.status === 'not_built' || arr(b.disagreement).length > 0 || leftOut;
+      var examplesNeedYou = b.status === 'not_built' || arr(b.disagreement).length > 0 || leftOut;
+      var unitTestsFail = b.status === 'not_built' && b.tests > 0 && (b.passing || 0) < b.tests;
       if (b.status === 'stale') { bb.appendChild(el('p', 'fa-p', 'The step changed, so it must be built again.')); if (b.reason) { bb.appendChild(el('span', 'fa-sub', b.reason)); } }
       else if (b.reason) { bb.appendChild(el('p', 'fa-p', (BUILD_WORDS[b.status] || '') + ': ' + b.reason)); }
       if (departs) {
@@ -1598,26 +1599,19 @@ body { min-height: 100vh; }
       }
       arr(b.disagreement).forEach(function (d) {
         var dsh = d.shown || {};
-        bb.appendChild(el('p', 'fa-p', 'Test ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
+        bb.appendChild(el('p', 'fa-p', 'Example ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
       });
-      if (b.status !== 'none' || b.module) {
-        var foot = el('div', 'fah-pop__foot');
-        if (b.tests) { foot.appendChild(el('span', null, b.tests + ' tests, ' + (b.passing === b.tests ? 'all passing' : b.passing + ' passing'))); }
-        if (b.module) { foot.appendChild(linkBtn('Run tests now', function () { act('run_tests', { step: s.id }); })); }
-        if (foot.childNodes.length) { bb.appendChild(foot); }
-        if (b.tested_at) { bb.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
-      }
-      /* the worked examples are the unit tests: the person approves them, one by one or all at once */
+      /* golden examples: worked by hand before the code, checked by a second pass; the person approves them */
       if (exs.length) {
-        var ut = el('div');
-        ut.appendChild(el('span', 'fa-sub', 'Worked examples the code must reproduce.'));
-        if (toApprove.length) { ut.appendChild(add(el('div', 'fah-row'), btn('Approve all unit tests', function (bt) { bt.setAttribute('aria-disabled', 'true'); act('confirm_examples', { step: s.id }); }))); }
-        else if (exs.every(function (ex) { return ex.checked_by === 'you'; })) { ut.appendChild(el('span', 'fa-sub', '✓ All approved by you')); }
+        var ge = el('div');
+        ge.appendChild(el('span', 'fa-sub', 'Worked by hand before the code was written; the code must reproduce them.'));
+        if (toApprove.length) { ge.appendChild(add(el('div', 'fah-row'), btn('Approve all examples', function (bt) { bt.setAttribute('aria-disabled', 'true'); act('confirm_examples', { step: s.id }); }))); }
+        else if (exs.every(function (ex) { return ex.checked_by === 'you'; })) { ge.appendChild(el('span', 'fa-sub', '✓ All approved by you')); }
         exs.forEach(function (ex) {
           var box = el('div', 'fa-ex');
           var right = ex.checked_by === 'you' ? el('span', null, '✓ approved by you')
-            : linkBtn('Approve', function () { act('confirm_example', { step: s.id, n: ex.n }); }, 'Approve test ' + ex.n);
-          box.appendChild(popRow('Test ' + ex.n, right));
+            : linkBtn('Approve', function () { act('confirm_example', { step: s.id, n: ex.n }); }, 'Approve example ' + ex.n);
+          box.appendChild(popRow('Example ' + ex.n, right));
           var sh = ex.shown || {};
           var io = sh.inputs ? sh.inputs.map(function (q) { return q[0] + ' ' + shownText(q[1]); }).join(', ')
             : Object.keys(ex.inputs || {}).map(function (k) { return k.replace(/_/g, ' ') + ' ' + fmt(ex.inputs[k]); }).join(', ');
@@ -1629,20 +1623,38 @@ body { min-height: 100vh; }
           if (sh.inputs && (structured(sh.expected) || sh.inputs.some(function (q) { return structured(q[1]); }))) {
             box.appendChild(exactValues({ inputs: ex.inputs, expected: ex.expected }));
           }
-          ut.appendChild(box);
+          ge.appendChild(box);
         });
-        fold(bb, s.id, 'tests', 'Unit tests (' + exs.length + ')', toApprove.length ? plural(toApprove.length, 'to approve', 'to approve') : '', testsNeedYou, ut, true);
+        fold(bb, s.id, 'examples', 'Golden examples (' + exs.length + ')', toApprove.length ? plural(toApprove.length, 'to approve', 'to approve') : '', examplesNeedYou, ge, true);
+      }
+      /* unit tests: written by the code writer with the module; nobody approves them. "Run tests now" runs them
+         and the golden examples together, and sits here under the pass count (in the header) it refreshes. */
+      var tpy = b.code && b.code.tests_py;
+      if (b.tests || tpy) {
+        var ut = el('div');
+        ut.appendChild(el('span', 'fa-sub', 'Written with the code; they check the code itself.'));
+        var foot = el('div', 'fah-pop__foot');
+        if (b.module) { foot.appendChild(linkBtn('Run tests now', function () { act('run_tests', { step: s.id }); })); }
+        if (foot.childNodes.length) { ut.appendChild(foot); }
+        if (b.tested_at) { ut.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
+        if (tpy) { ut.appendChild(el('pre', 'fa-code', tpy)); }
+        fold(bb, s.id, 'unit_tests', 'Unit tests (' + (b.tests || 0) + ')', b.tests ? (b.passing === b.tests ? 'all passing' : (b.passing || 0) + ' of ' + b.tests + ' passing') : '', unitTestsFail, ut, true);
+      } else if (b.module) {
+        bb.appendChild(add(el('div', 'fah-pop__foot'), linkBtn('Run tests now', function () { act('run_tests', { step: s.id }); })));
       }
       if (b.code && b.code.module_py) {
         var cd = el('div');
         cd.appendChild(el('pre', 'fa-code', b.code.module_py));
-        if (b.code.tests_py) { cd.appendChild(popHead('Tests')); cd.appendChild(el('pre', 'fa-code', b.code.tests_py)); }
-        fold(bb, s.id, 'code', 'Code', b.code.tests_py ? 'module and tests' : '', false, cd, true);
+        fold(bb, s.id, 'code', 'Code', '', false, cd, true);
       }
-      var bsum = [BUILD_WORDS[b.status] || b.status || ''];
-      if (exs.length) { bsum.push(plural(exs.length, 'unit test', 'unit tests') + (b.tests ? ', ' + (b.passing || 0) + '/' + b.tests + ' passing' : '')); }
-      else if (b.tests) { bsum.push((b.passing || 0) + '/' + b.tests + ' passing'); }
-      fold(sec, s.id, 'build', 'Build', bsum.join(' · '), testsNeedYou || (departs && !b.plan_check.confirmed), bb);
+      var bsum = [BUILD_WORDS[b.status] || b.status || ''], counts = [];
+      if (b.tests) {        /* a test run exists: what passed of each kind */
+        if (b.examples) { counts.push((b.examples_passing || 0) + '/' + b.examples + ' examples'); }
+        counts.push((b.passing || 0) + '/' + b.tests + ' unit tests');
+      } else if (exs.length) { counts.push(plural(exs.length, 'example', 'examples')); }
+      /* built: the counts say it, and the line stays short enough to read whole */
+      if (counts.length) { if (b.status === 'built') { bsum = []; } bsum.push(counts.join(', ')); }
+      fold(sec, s.id, 'build', 'Build', bsum.join(' · '), examplesNeedYou || unitTestsFail || (departs && !b.plan_check.confirmed), bb);
     }
 
     /* Evidence: where the step and its inputs came from, then the run */
