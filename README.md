@@ -1,8 +1,12 @@
-# Financial Advisor Harness
+# Financial Analyst Harness
 
-A small agent harness for personal finance, built one layer at a time. You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and answers your questions with every number traced to a step. It shows you what it assumed, asks only where the call is yours, and has a reviewer challenge the plan.
+A small agent harness for (personal) finance, built one layer at a time, and extensible. 
 
-The running example is a plan to pay for a wedding on time (`examples/wedding/`). The harness itself knows nothing about weddings.
+You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and answers your questions with every number traced to a step. 
+
+The running example is a plan to pay for a wedding on time (`examples/wedding/`)
+
+This was built for a workshop for AI Engineer NYC 2026.
 
 **Taking part in the workshop?** Start at [`workshop/README.md`](workshop/README.md): what to install before you arrive, the six steps and the three ways to follow along. Get the code first:
 
@@ -13,68 +17,15 @@ cd aienyc-harness-workshop
 
 The rest of this page describes the harness itself.
 
-## Who this is for
+## What this is for
 
-The repository serves four uses. They are listed in order of how well a two-hour workshop fits them.
+The repository serves three uses.
 
 1. **Presenting.** Show the harness being built one layer at a time on the main example, and what each layer adds.
 2. **Following along.** Run each layer on the main example as it is presented, change figures and choices, and see what changes. If you fall behind, you catch up.
-3. **A variation of the main example.** Keep the same kind of plan (saving towards dated payments) with your own figures and dates. This follows along well.
-4. **Your own plan, or your own harness, from scratch.** Possible, and the contract and tests are there for it, but building an entirely different harness or a very different plan from scratch will likely not fit a two-hour session. The plan must be a money question that arithmetic on amounts and dates can answer.
+3. **Your own plan from scratch.** Building an entirely different harness or to a different (financial) use case.
 
 Whichever you choose, you leave with a working harness: the code in `harness/`, your own plan in `my/`, and nothing from the workshop mixed in. Everyone needs model access on their own machine.
-
-## How it fits together
-
-```mermaid
-flowchart TB
-    person([You])
-
-    subgraph page["The page: one screen"]
-        diagram["The plan as a diagram<br/>steps, inputs, marks, evidence"]
-        chat["Chat<br/>main thread, side threads, review threads"]
-    end
-
-    subgraph core["Core: knows no layer"]
-        direction TB
-        state[("Plan state document<br/>the only thing the page draws from")]
-        main["Main lane<br/>interview, build, answers"]
-        side["Side lane<br/>side and review replies"]
-        review["Review lane<br/>reviewer passes"]
-    end
-
-    subgraph layers["Five layers plug into the core"]
-        l1["1 The plan<br/>interview, research, brief you accept"]
-        l2["2 Build<br/>unattended build, second-pass check of examples"]
-        l3["3 Answers<br/>each number leads to the step that made it"]
-        l4["4 Needs you<br/>marks, your calls, side threads"]
-        l5["5 Review<br/>a reviewer challenges the plan"]
-    end
-
-    subgraph fixed["Fixed code, no model"]
-        modules[("Tested modules<br/>code, tests, worked examples")]
-        gate{"Test gate<br/>a module runs only if its tests pass now"}
-        numcheck{"Number check<br/>every number needs a source"}
-    end
-
-    db[("Database<br/>every message, run, decision, challenge")]
-
-    person --> page
-    page -->|"POST /api/act"| core
-    state -->|"GET /api/state"| page
-    core --- layers
-    l2 --> modules
-    l3 -->|"run a module"| gate
-    modules --> gate
-    gate --> numcheck
-    numcheck -->|"answer with evidence"| chat
-    l4 -. "missing calculation: built automatically" .-> l2
-    l5 -->|"challenge on a step"| chat
-    core --> db
-    gate --> db
-```
-
-The model talks, asks and explains. Everything that produces or admits a number is fixed code: the tested modules, the test gate and the number check. The five layers are what the workshop adds, in order.
 
 ## What is here
 
