@@ -9,12 +9,12 @@ then `SPEC.md` and `ARCHITECTURE.md` for the part you are changing.
 Every change is judged against these four uses. Do not make one better by
 breaking another.
 
-1. **Presenting.** The facilitator builds the harness live, one principle at a
-   time, on the main example (`examples/wedding`), showing what each step
-   adds. Each step must run on its own, without the later ones.
-2. **Following along.** An attendee runs each step on the main example,
-   changes figures and choices, and sees the consequences. They can catch up
-   to the current step at any time.
+1. **Presenting.** The facilitator shows the complete harness, one principle
+   at a time, on the main example (`examples/wedding`), showing what each
+   layer adds.
+2. **Following along.** An attendee runs the complete harness on the main
+   example from a fresh clone, changes figures and choices, and sees the
+   consequences.
 3. **A variation of the main example.** An attendee keeps the same kind of
    plan with their own figures and dates. Their work lives in
    `my/` and nothing we ship may overwrite it.
@@ -47,7 +47,7 @@ plug into it, each one package, each importing only the layers below it.
 | `SPEC.md`, `ARCHITECTURE.md`, `design/` | The contract, how it is built, the product design and the page source (`design/page/`) | The maintainers, contract first |
 | `harness/`, `tests/`, `reference/`, `examples/` | The harness, its tests (`tests/layer0` to `tests/layer5`), saved terms and seeded examples | You, following the contract |
 | `my/` | A person's plan, modules and working files | Only the person. Never write here from a build task |
-| `workshop/` | Teaching material and the `workshop` command | Only the maintainers |
+| `workshop/` | Teaching material | Only the maintainers |
 
 ## Rules that hold everywhere
 
@@ -61,8 +61,8 @@ plug into it, each one package, each importing only the layers below it.
   or the number check.
 - Layer N imports only layers below N. A test of layer K sets `HARNESS_LAYERS=K`
   and must pass with every later layer off or absent, and never asserts that a
-  later layer's key, tool, table or event is missing. Check with
-  `uv run python -m workshop check`.
+  later layer's key, tool, table or event is missing. Check by running each
+  `tests/layerN` folder on its own, and `uv run pytest -q`.
 - Nothing under `harness/` names an example domain (no "wedding").
 - Only `harness/model/` imports a provider SDK. Standard library first.
 - `harness/` never imports `workshop/`. The harness writes only under `my/`.
@@ -86,7 +86,4 @@ uv run python -m harness ask "..."            # ask about the plan, in the termi
 uv run python -m harness replay wedding       # play the scripted scenarios against the real model
 uv run python -m harness events               # print the recorded events
 HARNESS_EXAMPLE=wedding uv run python -m harness ui      # play with a seeded example
-HARNESS_LAYERS=3 uv run python -m harness ui             # the harness with layers above 3 off
-uv run python -m workshop at 3                # the same, saved in my/var/layers
-uv run python -m workshop check               # every step's tests with later layers off (about five minutes)
 ```

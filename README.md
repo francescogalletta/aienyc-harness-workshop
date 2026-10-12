@@ -8,7 +8,7 @@ The running example is a plan to pay for a wedding on time (`examples/wedding/`)
 
 This was built for a workshop for AI Engineer NYC 2026.
 
-**Taking part in the workshop?** Start at [`workshop/README.md`](workshop/README.md): what to install before you arrive, the six steps and the three ways to follow along. Get the code first:
+**Taking part in the workshop?** Start at [`workshop/README.md`](workshop/README.md): what to install before you arrive, the five layers and the two ways to follow along. Get the code first:
 
 ```
 git clone https://github.com/francescogalletta/aienyc-harness-workshop
@@ -21,8 +21,8 @@ The rest of this page describes the harness itself.
 
 The repository serves three uses.
 
-1. **Presenting.** Show the harness being built one layer at a time on the main example, and what each layer adds.
-2. **Following along.** Run each layer on the main example as it is presented, change figures and choices, and see what changes. If you fall behind, you catch up.
+1. **Presenting.** Show the complete harness on the main example, one layer at a time, and what each layer adds.
+2. **Following along.** Run the harness on the main example as each layer is presented, change figures and choices, and see what changes.
 3. **Your own plan from scratch.** Building an entirely different harness or to a different (financial) use case.
 
 Whichever you choose, you leave with a working harness: the code in `harness/`, your own plan in `my/`, and nothing from the workshop mixed in. Everyone needs model access on their own machine.
@@ -38,7 +38,7 @@ Whichever you choose, you leave with a working harness: the code in `harness/`, 
 | `reference/` | Saved finance terms with checked sources, for offline lookups |
 | `examples/` | Two seeded examples, `wedding` and `moving`: plan, built modules, scenarios. See `examples/README.md` |
 | `my/` | Yours: `my/brief/` (your plan), `my/modules/` (your tested calculations) and `my/var/` (database and working files, never committed) |
-| `workshop/` | The workshop guides, build prompts and the `workshop` command. Optional: the harness never uses it |
+| `workshop/` | The workshop guides, exercises, build prompts and slides. Optional: the harness never uses it |
 
 ## Set up
 
@@ -91,7 +91,7 @@ uv run python -m harness ask "..."       # ask; /confirm, /side TEXT, /reply TEX
 uv run python -m harness events          # everything recorded
 ```
 
-Which commands exist depends on the layers on (below). `ground`, `build` and `ask` come with layers 1, 2 and 3.
+`ground`, `build` and `ask` come with layers 1, 2 and 3.
 
 **Lookups.** The harness checks `reference/terms.json` first and asks Wikipedia only for terms the file does not know. Only a short general term is sent, never your figures. Set `HARNESS_RESEARCHER=reference` to stay offline. The reviewer's outside lookups also need Wikipedia to be reachable.
 
@@ -108,14 +108,10 @@ uv run python -m harness replay wedding cover_each_payment    # one; add --keep 
 
 It prints a line per expectation and exits 0 only when all pass. A scenario takes 30 seconds to two minutes, a whole example 2 to 7 minutes. The model varies between runs, so run a failure twice before believing it. `examples/README.md` lists the scenarios.
 
-## Moving through the steps
-
-The workshop builds the harness in six steps, 0 (the core) and 1 to 5 (the layers). The `workshop` command moves your copy between them (`uv run python -m workshop at N`) and never overwrites your work in `my/`. `workshop/README.md` is the guide, `workshop/STEPS.md` the table of steps and `workshop/DESIGN.md` every command.
-
 ## The three places
 
 - `harness/` is the product. Nothing under it names an example, and it never imports `workshop/`.
 - `my/` is yours. The harness writes only there. Nothing we ship overwrites it.
-- `workshop/` is teaching material and the `workshop` command. Delete it and the harness's tests still pass.
+- `workshop/` is teaching material. Delete it and the harness's tests still pass.
 
 To add another model provider, add one file under `harness/model/` and one line in `harness/model/providers.py`.

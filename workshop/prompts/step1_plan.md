@@ -51,6 +51,6 @@ uv run pytest tests/layer1 -q
 uv run pytest tests/layer0 -q
 ```
 
-Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. `HARNESS_EXAMPLE=wedding uv run python -m harness ui` draws the seeded plan. If you are stuck, `uv run python -m workshop finish 1` restores the finished layer from git (your files are set aside first).
+Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. `HARNESS_EXAMPLE=wedding uv run python -m harness ui` draws the seeded plan.
 
 When you think you are done, report briefly: the files you created, the test results, and anything in the contract you found unclear or had to guess.
