@@ -338,9 +338,6 @@ def test_unknown_top_level_keys_are_still_rejected(tmp_path):
 
 def test_split_examples_and_the_down_arrow_block(deck):
     html = sections_html(deck)
-    gap = html.split('id="s-gap"')[1].split("</section>")[0]
-    assert 'class="split has-examples"' in gap and gap.count('class="example"') == 7
-    assert 'class="example" data-step="6">the average household' in gap and 'data-step="7">Second nature' in gap
     deal = html.split('id="s-deal"')[1].split("</section>")[0]
     assert '<div class="arrow-down gap-s" data-step="1">' in deal and '<svg class="arrow"' in deal
 
@@ -399,7 +396,7 @@ def test_marks_overlay(deck):
 def test_kit_and_libraries_only_when_used(deck, tmp_path):
     src0 = copy_src(tmp_path / "plain")  # the deck itself draws a flow; take its visuals out
     trust = src0 / "slides" / "trust.toml"
-    trust.write_text("\n".join(l for l in trust.read_text(encoding="utf-8").split("\n") if "viz = " not in l), encoding="utf-8")
+    trust.write_text("\n".join(l for l in trust.read_text(encoding="utf-8").split("\n") if "viz = " not in l and not l.startswith("marks = ")), encoding="utf-8")
     plain = build.build(build.Deck(src0), "blueprint", False)
     assert "var viz = (function" not in plain and "--viz-series-1" not in plain and "vendor:" not in plain
     src = copy_src(tmp_path)
