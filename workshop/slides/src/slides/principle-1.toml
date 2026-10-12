@@ -3,6 +3,7 @@ principle = 1
 
 [[slide]]
 layout = "divider"
+hide_statement = true
 
 [[slide]]
 id = "s-p1-why"
@@ -12,33 +13,6 @@ blocks = [
   { label = "WHY" },
   { display = "What is obvious to you is not what the model learned." },
   { sub = "Start from the goal. Work backwards, together.", step = 1 },
-]
-
-[[slide]]
-id = "s-p1-without"
-name = "P1 · Without it"
-layout = "statement"
-blocks = [
-  { label = "WITHOUT IT" },
-  { lines = [
-      { headline = "One shot.", step = 1 },
-      { headline = "A vague goal.", step = 2 },
-      { headline = "Your reality, assumed to be everyone's.", step = 3 },
-  ] },
-]
-
-[[slide]]
-id = "s-p1-examples"
-name = "P1 · Examples"
-layout = "statement"
-blocks = [
-  { label = "EXAMPLES" },
-  { heads = ["YOU SAY", "THE MODEL HAS TO GUESS"], guesses = [
-      { said = "“I make 10k”", doubts = ["net or gross?", "a month or a year?"] },
-      { said = "“I can save 2k”", doubts = ["every month?", "before investing?"], step = 1 },
-      { said = "“The wedding is 40k”", doubts = ["all in?", "how many guests?"], step = 2 },
-  ] },
-  { sub = "So it guesses, or it keeps asking.", step = 3 },
 ]
 
 [[slide]]
@@ -55,7 +29,7 @@ blocks = [
   { label = "YOU SEE", gap = "s" },
   { sub = "Each item says where it came from: ❝ your words, ✎ proposed. ● is still open.", gap = "xs" },
   { label = "WHY", gap = "m" },
-  { sub = "The plan is agreed item by item, before any number.", gap = "xs" },
+  { sub = "You can tell how the plan is being built, and where decisions are coming from.", gap = "xs" },
 ]
 
 [[slide]]
@@ -64,11 +38,10 @@ name = "P1 · Try it 2"
 layout = "statement"
 blocks = [
   { label = "TRY IT · 2 OF 2" },
-  { headline = "Click step 2. Type:" },
-  { command = "The plan is wrong: there should be two payments, not three.", gap = "s" },
+  { headline = "Click step 2, then tell the agent:" },
+  { command = "I already made the 1st payment, do we need to change the plan?", gap = "s" },
   { label = "YOU SEE", gap = "s" },
   { sub = "A new trunk node. Step 2: Stale · rebuild.", gap = "xs" },
   { label = "WHY", gap = "m" },
   { sub = "Only your words change the plan. Its numbers wait for a rebuild.", gap = "xs" },
 ]
-footnote = { text = "Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again." }

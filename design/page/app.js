@@ -15,10 +15,9 @@
   var canvas = $('canvas'), scroller = $('scroll'), input = $('say'), sideBtn = $('sidebtn'), composer = $('composer');
 
   var S = null, drawnVersion = -1, first = true, timer = null, failing = false;
-  var ui = { selected: null, selInput: null, attached: null, notice: null, side: false, pop: null, popRun: null, code: false,
+  var ui = { selected: null, selInput: null, attached: null, notice: null, side: false, pop: null, popRun: null, popOpen: {},
              review: false, whole: false, openThread: null, knownThreads: null, wantNewThread: false,
-             markNode: null, draft: null, replies: {}, branchOpen: {}, showEarlier: false, focusKey: null, moreFacts: {} };
-  var VALUES_SHOWN = 5;
+             markNode: null, draft: null, replies: {}, branchOpen: {}, showEarlier: false, focusKey: null, factsOpen: {}, msgOpen: {} };
   var stepEls = {}, lineShown = {}, needShown = {}, lay = null, layKey = '', edgeSegs = {}, pillEls = [];
   var answerKey = null, animating = {}, animRun = 0, popEl = null;
 
@@ -633,7 +632,30 @@
   function popHead(text) { return el('p', 'fa-sec-h', text); }
   function linkBtn(text, fn, aria) { var b = el('button', 'fah-link', text); b.type = 'button'; if (aria) { b.setAttribute('aria-label', aria); } b.addEventListener('click', function (ev) { ev.stopPropagation(); fn(); }); return b; }
   function btn(text, fn, primary) { var b = el('button', 'fah-btn' + (primary ? ' fah-btn--primary' : ''), text); b.type = 'button'; b.addEventListener('click', function (ev) { ev.stopPropagation(); fn(b); }); return b; }
-  var CHECKED = { second_pass: 'checked by a second pass', you: 'confirmed by you' };
+  var BUILD_WORDS = { none: 'Not built yet', building: 'Building now', built: 'Built and tested', not_built: 'Not built', stale: 'Stale' };
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+  /* A section of the pop-up that folds: a header button with its name and a one-line summary, then its body.
+     Whether it is open lives in ui.popOpen by step and section: its default the first time it is drawn after
+     openPop, then whatever the person chose, so the redraw on each poll keeps it. A section with nothing in it
+     is a plain heading. */
+  function fold(parent, sid, key, name, summary, dflt, body, sub) {
+    var k = sid + ':' + key;
+    if (!body.childNodes.length) {
+      parent.appendChild(add(el('p', 'fa-fold fa-fold--still' + (sub ? ' fa-fold--sub' : '')), el('span', 'fa-fold__name', name), summary ? el('span', 'fa-fold__sum', summary) : null));
+      return null;
+    }
+    if (!has(ui.popOpen, k)) { ui.popOpen[k] = !!dflt; }
+    var h = el('button', 'fa-fold' + (sub ? ' fa-fold--sub' : '')); h.type = 'button';
+    add(h, el('span', 'fa-fold__name', name), summary ? el('span', 'fa-fold__sum', summary) : null);
+    if (summary) { h.title = name + ' · ' + summary; }
+    body.classList.add('fa-fold__body'); body.id = 'fold-' + k.replace(/[^\w-]/g, '_');
+    h.setAttribute('aria-controls', body.id);
+    function set() { h.setAttribute('aria-expanded', String(!!ui.popOpen[k])); body.hidden = !ui.popOpen[k]; }
+    h.addEventListener('click', function (ev) { ev.stopPropagation(); ui.popOpen[k] = !ui.popOpen[k]; set(); placePop(); });
+    set();
+    add(parent, h, body);
+    return h;
+  }
 
   function popContent(s) {
     var pop = el('div', 'fah-pop'); pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', label(s)); pop.id = 'pop';
@@ -673,48 +695,67 @@
     var b = s.build;
     if (b) {
       sec = part(2);
-      sec.appendChild(popHead('Build'));
-      var st = { none: 'Not built yet', building: 'Building now', built: 'Built and tested', not_built: 'Not built', stale: 'Stale: the step changed, so it must be built again' }[b.status] || '';
-      sec.appendChild(el('p', 'fa-p', st + (b.reason && b.status !== 'stale' ? ': ' + b.reason : '')));
-      if (b.status === 'stale' && b.reason) { sec.appendChild(el('span', 'fa-sub', b.reason)); }
-      if (b.plan_check && arr(b.plan_check.departures).length) {
+      var bb = el('div'), exs = arr(b.example_list);
+      var toApprove = exs.filter(function (ex) { return ex.checked_by === 'second_pass'; });
+      var leftOut = exs.some(function (ex) { return !ex.checked_by; });
+      var departs = !!(b.plan_check && arr(b.plan_check.departures).length);
+      var testsNeedYou = b.status === 'not_built' || arr(b.disagreement).length > 0 || leftOut;
+      if (b.status === 'stale') { bb.appendChild(el('p', 'fa-p', 'The step changed, so it must be built again.')); if (b.reason) { bb.appendChild(el('span', 'fa-sub', b.reason)); } }
+      else if (b.reason) { bb.appendChild(el('p', 'fa-p', (BUILD_WORDS[b.status] || '') + ': ' + b.reason)); }
+      if (departs) {
         var pc = el('div', 'fah-notice');
         pc.appendChild(el('div', null, 'How the calculation departs from the plan:'));
         var ud = el('ul', 'fa-list'); b.plan_check.departures.forEach(function (d) { ud.appendChild(el('li', null, d)); }); pc.appendChild(ud);
         if (!b.plan_check.confirmed) { pc.appendChild(add(el('div', 'fah-row'), btn('These are fine', function () { act('confirm_plan_check', { step: s.id }); }, true))); }
-        sec.appendChild(pc);
+        bb.appendChild(pc);
       }
-      arr(b.example_list).forEach(function (ex) {
-        var box = el('div', 'fa-ex');
-        box.appendChild(popRow('Example ' + ex.n, ex.checked_by ? CHECKED[ex.checked_by] || ex.checked_by : 'left out: the passes disagreed', ex.checked_by === 'you'));
-        var sh = ex.shown || {};
-        var io = sh.inputs ? sh.inputs.map(function (q) { return q[0] + ' ' + shownText(q[1]); }).join(', ')
-          : Object.keys(ex.inputs || {}).map(function (k) { return k.replace(/_/g, ' ') + ' ' + fmt(ex.inputs[k]); }).join(', ');
-        var sub = el('span', 'fa-sub', io + ' → ' + shownText(sh.expected, ex.expected) + (ex.second_pass != null && ex.checked_by == null ? ' (second pass: ' + shownText(sh.second_pass, ex.second_pass) + ')' : ''));
-        if (ex.checked_by !== 'you') { sub.appendChild(linkBtn('Confirm', function () { act('confirm_example', { step: s.id, n: ex.n }); }, 'Confirm example ' + ex.n)); }
-        box.appendChild(sub);
-        if (structured(sh.expected)) { box.appendChild(shownNode(sh.expected)); }
-        if (sh.inputs && (structured(sh.expected) || sh.inputs.some(function (q) { return structured(q[1]); }))) {
-          box.appendChild(exactValues({ inputs: ex.inputs, expected: ex.expected }));
-        }
-        sec.appendChild(box);
-      });
       arr(b.disagreement).forEach(function (d) {
         var dsh = d.shown || {};
-        sec.appendChild(el('p', 'fa-p', 'Example ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
+        bb.appendChild(el('p', 'fa-p', 'Test ' + d.n + ': expected ' + shownText(dsh.expected, d.expected) + ', the code gives ' + shownText(dsh.code_gives, d.code_gives) + '.'));
       });
       if (b.status !== 'none' || b.module) {
         var foot = el('div', 'fah-pop__foot');
         if (b.tests) { foot.appendChild(el('span', null, b.tests + ' tests, ' + (b.passing === b.tests ? 'all passing' : b.passing + ' passing'))); }
-        if (b.code && b.code.module_py) { foot.appendChild(linkBtn(ui.code ? 'Hide code' : (b.code.tests_py ? 'Code and tests' : 'Code'), function () { ui.code = !ui.code; refreshPop(); })); }
         if (b.module) { foot.appendChild(linkBtn('Run tests now', function () { act('run_tests', { step: s.id }); })); }
-        if (foot.childNodes.length) { sec.appendChild(foot); }
-        if (b.tested_at) { sec.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
-        if (ui.code && b.code && b.code.module_py) {
-          sec.appendChild(el('pre', 'fa-code', b.code.module_py));
-          if (b.code.tests_py) { sec.appendChild(popHead('Tests')); sec.appendChild(el('pre', 'fa-code', b.code.tests_py)); }
-        }
+        if (foot.childNodes.length) { bb.appendChild(foot); }
+        if (b.tested_at) { bb.appendChild(el('span', 'fa-sub', 'Last tested ' + when(b.tested_at))); }
       }
+      /* the worked examples are the unit tests: the person approves them, one by one or all at once */
+      if (exs.length) {
+        var ut = el('div');
+        ut.appendChild(el('span', 'fa-sub', 'Worked examples the code must reproduce.'));
+        if (toApprove.length) { ut.appendChild(add(el('div', 'fah-row'), btn('Approve all unit tests', function (bt) { bt.setAttribute('aria-disabled', 'true'); act('confirm_examples', { step: s.id }); }))); }
+        else if (exs.every(function (ex) { return ex.checked_by === 'you'; })) { ut.appendChild(el('span', 'fa-sub', '✓ All approved by you')); }
+        exs.forEach(function (ex) {
+          var box = el('div', 'fa-ex');
+          var right = ex.checked_by === 'you' ? el('span', null, '✓ approved by you')
+            : linkBtn('Approve', function () { act('confirm_example', { step: s.id, n: ex.n }); }, 'Approve test ' + ex.n);
+          box.appendChild(popRow('Test ' + ex.n, right));
+          var sh = ex.shown || {};
+          var io = sh.inputs ? sh.inputs.map(function (q) { return q[0] + ' ' + shownText(q[1]); }).join(', ')
+            : Object.keys(ex.inputs || {}).map(function (k) { return k.replace(/_/g, ' ') + ' ' + fmt(ex.inputs[k]); }).join(', ');
+          box.appendChild(el('span', 'fa-sub', io + ' → ' + shownText(sh.expected, ex.expected)));
+          if (!ex.checked_by) {      /* left out: the one exception worth a line */
+            box.appendChild(el('span', 'fa-sub fa-ex__out', ex.second_pass != null ? 'Left out: a second working gave ' + shownText(sh.second_pass, ex.second_pass) : 'Left out: the two workings disagreed'));
+          }
+          if (structured(sh.expected)) { box.appendChild(shownNode(sh.expected)); }
+          if (sh.inputs && (structured(sh.expected) || sh.inputs.some(function (q) { return structured(q[1]); }))) {
+            box.appendChild(exactValues({ inputs: ex.inputs, expected: ex.expected }));
+          }
+          ut.appendChild(box);
+        });
+        fold(bb, s.id, 'tests', 'Unit tests (' + exs.length + ')', toApprove.length ? plural(toApprove.length, 'to approve', 'to approve') : '', testsNeedYou, ut, true);
+      }
+      if (b.code && b.code.module_py) {
+        var cd = el('div');
+        cd.appendChild(el('pre', 'fa-code', b.code.module_py));
+        if (b.code.tests_py) { cd.appendChild(popHead('Tests')); cd.appendChild(el('pre', 'fa-code', b.code.tests_py)); }
+        fold(bb, s.id, 'code', 'Code', b.code.tests_py ? 'module and tests' : '', false, cd, true);
+      }
+      var bsum = [BUILD_WORDS[b.status] || b.status || ''];
+      if (exs.length) { bsum.push(plural(exs.length, 'unit test', 'unit tests') + (b.tests ? ', ' + (b.passing || 0) + '/' + b.tests + ' passing' : '')); }
+      else if (b.tests) { bsum.push((b.passing || 0) + '/' + b.tests + ' passing'); }
+      fold(sec, s.id, 'build', 'Build', bsum.join(' · '), testsNeedYou || (departs && !b.plan_check.confirmed), bb);
     }
 
     /* Evidence: where the step and its inputs came from, then the run */
@@ -723,8 +764,7 @@
     if (whence) { sec.appendChild(popHead('Where this came from')); sec.appendChild(whence); }
     if (r) {
       var inAnswer = !!(lr && lr.in_last_answer && (r.run === lr.run || (r.message && r.message === lr.message)));
-      var runHead = popHead(inAnswer ? 'In the last answer' : (lr && r.run === lr.run ? 'Last run' : 'Run'));
-      runHead.classList.add('fa-runhead'); sec.appendChild(runHead);
+      var rb = el('div'), rs = r.shown || {};
       var others = arr(s.runs);
       if (others.length > 1) {
         var picker = el('div', 'fa-runs'); picker.setAttribute('aria-label', 'Recent runs');
@@ -734,9 +774,9 @@
           if (o.run === r.run) { b.setAttribute('aria-current', 'true'); }
           picker.appendChild(b);
         });
-        sec.appendChild(picker);
+        rb.appendChild(picker);
       }
-      var rc = el('div', 'fa-receipt'), rs = r.shown || {};
+      var rc = el('div', 'fa-receipt');
       if (rs.inputs) {
         rs.inputs.forEach(function (q) { rc.appendChild(popRow(q[0], shownText(q[1]))); if (structured(q[1])) { rc.appendChild(shownNode(q[1])); } });
       } else {
@@ -747,7 +787,10 @@
       arr(r.assumptions).forEach(function (a) { rc.appendChild(P(el('span', 'fa-sub', '◌ ' + a), 4)); });
       rc.appendChild(exactValues({ inputs: r.inputs, output: r.output }));
       rc.appendChild(el('span', 'fa-sub', 'Run ' + (r.run || '') + (r.test_run != null ? ', after test run ' + r.test_run : '') + (r.ts ? ', ' + when(r.ts) : '')));
-      sec.appendChild(rc);
+      rb.appendChild(rc);
+      /* open when a figure or a result chip opened the pop-up: that run is what the person asked to see */
+      var rh = fold(sec, s.id, 'run', inAnswer ? 'In the last answer' : (lr && r.run === lr.run ? 'Last run' : 'Run'), '→ ' + shownText(rs.output, r.output), !!ui.popRun, rb);
+      if (rh) { rh.classList.add('fa-runhead'); }
     }
 
     var callsShown = !!(s.calls && (s.calls.open || arr(s.calls.records).length));
@@ -783,8 +826,9 @@
     var chs = arr(s.challenges).map(threadOfChallenge).filter(Boolean);
     if (chs.length) {
       sec = part(5);
-      sec.appendChild(popHead('Reviewer'));
-      chs.forEach(function (t) { sec.appendChild(challengeBlock(t, true)); });
+      var rvb = el('div'), nOpen = chs.filter(function (t) { return t.challenge.status === 'open'; }).length;
+      chs.forEach(function (t) { rvb.appendChild(challengeBlock(t, true)); });
+      fold(sec, s.id, 'review', 'Reviewer', plural(chs.length, 'challenge', 'challenges') + (nOpen ? ' (' + nOpen + ' open)' : ''), nOpen > 0, rvb);
     }
     pop.addEventListener('click', function (ev) { ev.stopPropagation(); });
     return pop;
@@ -844,7 +888,7 @@
   function openPop(id) {
     closePop(false);
     var s = stepById(id); if (!s) { return; }
-    ui.pop = id; ui.code = false;
+    ui.pop = id; ui.popOpen = {};
     popEl = popContent(s);
     stepEls[id].after(popEl);
     stepEls[id].setAttribute('aria-expanded', 'true');
@@ -1177,26 +1221,57 @@
   }
   function chip(stepId) { var s = stepById(stepId); return s ? el('span', 'fah-chip', label(s)) : null; }
 
-  /* An answer's chips as facts: results with their labels, then what they rest on and assume. */
+  /* An answer's chips as facts: results with their labels stay in view; what they rest on and assume folds
+     behind one quiet line, open per message in ui.factsOpen. */
   function factsOf(m, skipAssumptions) {
     var list = layerOn(3) ? arr(m.chips).filter(function (c) { return c && c.text != null; }) : [];
     if (!list.length) { return null; }
-    var stale = staleRuns(), dl = el('dl', 'dg-facts'), any = false;
+    var stale = staleRuns(), box = el('div', 'fa-facts'), top = el('dl', 'dg-facts'), rest = el('dl', 'dg-facts');
     function old(c) { return chipStale(c, stale); }
-    function row(t, kids) { if (!kids.length) { return; } any = true; var dd = el('dd'), dt = el('dt', null, t); dt.title = t; kids.forEach(function (k) { dd.appendChild(k); }); dl.appendChild(dt); dl.appendChild(dd); }
+    function row(dl, t, kids) { if (!kids.length) { return; } var dd = el('dd'), dt = el('dt', null, t); dt.title = t; kids.forEach(function (k) { dd.appendChild(k); }); dl.appendChild(dt); dl.appendChild(dd); }
     function of(kind) { return list.filter(function (c) { return c.kind === kind; }); }
-    of('decision').forEach(function (c) { row('Decided', [chipEl(c)]); });
-    of('result').forEach(function (c) { row(c.label || 'Result', [chipEl(c, { stale: old(c) })]); });
-    /* a long list of values folds after the first few: the answer stays short (12.7) */
-    var vals = of('value').map(function (c) { return chipEl(c, { label: true, stale: old(c) }); });
-    if (vals.length > VALUES_SHOWN + 1 && !ui.moreFacts[m.id]) {
-      var more = linkBtn('+' + (vals.length - VALUES_SHOWN) + ' more', function () { ui.moreFacts[m.id] = true; drawPanel(true); }, 'Show all ' + vals.length + ' values');
-      more.classList.add('fa-more');
-      vals = vals.slice(0, VALUES_SHOWN).concat([more]);
+    of('decision').forEach(function (c) { row(top, 'Decided', [chipEl(c)]); });
+    of('result').forEach(function (c) { row(top, c.label || 'Result', [chipEl(c, { stale: old(c) })]); });
+    var vals = of('value'), asm = skipAssumptions ? [] : of('assumption');
+    row(rest, 'Rests on', vals.map(function (c) { return chipEl(c, { label: true, stale: old(c) }); }));
+    row(rest, 'Assumes', asm.map(function (c) { return chipEl(c, { stale: old(c) }); }));
+    if (top.childNodes.length) { box.appendChild(top); }
+    if (rest.childNodes.length) {
+      var words = [];
+      if (vals.length) { words.push(plural(vals.length, 'value', 'values')); }
+      if (asm.length) { words.push(plural(asm.length, 'assumption', 'assumptions')); }
+      var tg = el('button', 'fa-factsbtn', 'Rests on ' + words.join(' · ')); tg.type = 'button';
+      rest.id = 'facts-' + m.id; tg.setAttribute('aria-controls', rest.id);
+      var set = function () { var on = !!ui.factsOpen[m.id]; tg.setAttribute('aria-expanded', String(on)); rest.hidden = !on; };
+      tg.addEventListener('click', function (ev) { ev.stopPropagation(); ui.factsOpen[m.id] = !ui.factsOpen[m.id]; set(); drawGraph(null); });
+      set();
+      add(box, tg, rest);
     }
-    row('Rests on', vals);
-    if (!skipAssumptions) { row('Assumes', of('assumption').map(function (c) { return chipEl(c, { stale: old(c) }); })); }
-    return any ? dl : null;
+    return box.childNodes.length ? box : null;
+  }
+
+  /* A reply longer than about four lines is clamped, with "Show more" when it overflows (fitClamps measures it
+     once it is on the page); the person's choice is kept per message in ui.msgOpen. */
+  function clampable(lead, m) {
+    var open = !!ui.msgOpen[m.id];
+    lead.id = 'msg-' + m.id; lead.setAttribute('data-clamp', m.id);
+    lead.classList.toggle('fa-clamp', !open);
+    var tg = linkBtn(open ? 'Show less' : 'Show more', function () {
+      ui.msgOpen[m.id] = !ui.msgOpen[m.id];
+      var on = ui.msgOpen[m.id];
+      lead.classList.toggle('fa-clamp', !on); tg.textContent = on ? 'Show less' : 'Show more'; tg.setAttribute('aria-expanded', String(on));
+      drawGraph(null);
+    });
+    tg.classList.add('fa-clampbtn'); tg.setAttribute('aria-controls', lead.id); tg.setAttribute('aria-expanded', String(open));
+    tg.hidden = true;
+    return tg;
+  }
+  function fitClamps(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('[data-clamp]'), function (p) {
+      var tg = p.nextElementSibling;
+      if (!tg || !tg.classList.contains('fa-clampbtn')) { return; }
+      tg.hidden = ui.msgOpen[p.getAttribute('data-clamp')] ? false : !(p.scrollHeight > p.clientHeight + 1);
+    });
   }
 
   /* ---------- messages of the main chat ---------- */
@@ -1234,10 +1309,10 @@
     } else {
       var quiet = kind === 'withheld' || m.who === 'harness';
       var facts = factsOf(m, noticeOpen);
-      var lead = withFigures(el('p', facts ? 'fa-ans-lead' + (quiet ? ' fa-muted' : '') : 'fah-msg' + (quiet ? ' fa-muted' : '')), m);
+      var lead = withFigures(el('p', 'fa-ans-lead' + (quiet ? ' fa-muted' : '')), m);
       if (m.step) { var c3 = chip(m.step); if (c3) { lead.insertBefore(el('br'), lead.firstChild); lead.insertBefore(c3, lead.firstChild); } }
       if (kind === 'withheld') { P(lead, 3); lead.classList.add('fa-withheld'); }   /* a reply held back for a number no step produced */
-      if (facts) { var ans = el('div', 'fah-msg dg-answer'); add(ans, lead, facts); nodes.push(ans); } else { nodes.push(lead); }
+      nodes.push(add(el('div', 'fah-msg dg-answer'), lead, clampable(lead, m), facts));
       if (kind === 'plan' && ctx.acceptHere) {
         nodes.push(add(P(el('div', 'fah-row'), 1), btn('Accept plan', function (b) { b.setAttribute('aria-disabled', 'true'); act('accept_plan'); }, true)));
       }
@@ -1698,6 +1773,7 @@
       latest.forEach(function (m) { render(m, foot); });
       tailNodes().forEach(function (n) { foot.appendChild(n); });
     }
+    fitClamps($('log'));
     if (fresh.length) { var lm = fresh[fresh.length - 1]; $('live').textContent = (WHO[lm.who] || '') + ': ' + (lm.text || ''); }
 
     /* keep what the person was doing */
@@ -1877,7 +1953,8 @@
     if (ui.pop && popEl && !popEl.contains(ev.target)) { closePop(false); }
   });
   var resizeTimer = null;
-  window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { if (S) { drawDiagram(); placePop(); drawGraph(null); } }, 120); });
+  window.addEventListener('resize', function () { clearTimeout(resizeTimer); resizeTimer = setTimeout(function () { if (S) { drawDiagram(); placePop(); fitClamps($('log')); drawGraph(null); } }, 120); });
+  $('before').addEventListener('toggle', function () { fitClamps($('beforemsgs')); });
 
   drawComposer();
   poll();

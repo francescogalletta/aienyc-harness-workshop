@@ -317,8 +317,8 @@ def test_setup_check_fields_are_optional_and_the_note_is_quiet(deck):
 
 def test_repo_slide_mutes_the_rest(deck):
     out = slide_html(deck.src, "s-repo")
-    assert out.count('class="tree-row"') == 8 and out.count('data-step-mute="1"') == 4
-    for path in ("harness/", "examples/wedding/", "my/", "workshop/", "tests/", "reference/", "design/", "SPEC.md"):
+    assert out.count('class="tree-row"') == 4 and out.count('data-step-mute="1"') == 2
+    for path in ("README.md", "examples/wedding/", "harness/", "my/"):
         assert f">{path}</code>" in out
     assert 'class="tree-line' not in out
 

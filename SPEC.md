@@ -469,7 +469,9 @@ One model call per step with `checker.md` and the tool `answer_examples`
   `checked_by: null` and `second_pass` set to the checker's answer (or null).
   Left-out examples are kept in `build_steps.examples` and shown in the pop-up.
 - Known trade-off: a mistake both passes make gets through. The person can
-  still confirm or correct any example.
+  still confirm or correct any example. `confirm_examples {step}` confirms, as
+  you, every example of the step the second pass agreed with; a left-out
+  example is never confirmed that way.
 
 ### 4.6 Adoption on load
 
@@ -510,7 +512,7 @@ out."`
 ### 4.8 What it registers
 
 `contribute`: `build` on calculation steps. Actions `build`,
-`confirm_example`, `confirm_plan_check`, `run_tests`. Command `build`. Expects
+`confirm_example`, `confirm_examples`, `confirm_plan_check`, `run_tests`. Command `build`. Expects
 `steps` (`{step id: built | reused | kept | not_built}`). Events:
 `build.started`, `build.spec_proposed`, `build.spec_rejected`,
 `build.examples_proposed`, `build.examples_rejected`, `build.second_pass`,

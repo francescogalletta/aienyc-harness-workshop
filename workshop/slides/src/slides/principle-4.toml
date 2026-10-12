@@ -60,13 +60,14 @@ name = "P4 · Try it 1"
 layout = "statement"
 blocks = [
   { label = "TRY IT · 1 OF 2" },
-  { headline = "Hover the chip Guest count 100. Click Challenge or correct. Type:" },
+  { headline = "Hover the chip Guest count 120 (under Rests on). Click Challenge or correct. Type:" },
   { command = "We will get no fewer than 150 guests.", gap = "s" },
   { label = "YOU SEE", gap = "s" },
   { sub = "“Change guest count to 150?” Nothing moves until Yes, change it.", gap = "xs" },
   { label = "WHY", gap = "m" },
   { sub = "Your figures change only with your yes.", gap = "xs" },
 ]
+footnote = { text = "First, after a reset, paste the 120-guest question: README, principle 4, action 1." }
 
 [[slide]]
 id = "s-p4-try-2"
@@ -81,3 +82,4 @@ blocks = [
   { label = "WHY", gap = "m" },
   { sub = "Nothing to decide, so nothing is asked and nothing changes.", gap = "xs" },
 ]
+footnote = { text = "Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again." }
