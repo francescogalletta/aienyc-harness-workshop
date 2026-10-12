@@ -94,29 +94,40 @@
     return out;
   }
 
-  /* ---------- origins: quiet marks ---------- */
-  var ORIGIN = { person: ['❝', 'Your words'], looked_up: ['↗', 'Looked up'], proposed: ['✎', 'Proposed by the assistant'] };
+  /* ---------- origins: where a thing came from is Evidence (principle 3), whichever layer recorded it ---------- */
+  var ORIGIN = { person: ['❝', 'Your words', 'your words'], looked_up: ['↗', 'Looked up', 'looked up'], proposed: ['✎', 'Proposed by the assistant', 'proposed'] };
+  var ORIGIN_P = 3;
+  function originSource(o) {
+    var src = o.source || {};
+    if (typeof src === 'string') { src = { url: src, title: src }; }
+    return src;
+  }
   function originTitle(o) {
     if (!o || !ORIGIN[o.kind]) { return ''; }
     if (o.kind === 'person' && o.quote) { return 'Your words: “' + o.quote + '”'; }
-    if (o.kind === 'looked_up' && o.source) { return 'Looked up: ' + (typeof o.source === 'string' ? o.source : (o.source.title || o.source.url || '')); }
+    if (o.kind === 'looked_up' && o.source) { var src = originSource(o); return 'Looked up: ' + (src.title || src.url || ''); }
+    if (o.kind === 'proposed') { return 'Proposed by the assistant, not confirmed by you'; }
     return ORIGIN[o.kind][1];
   }
+  /* A mark and a short word ("❝ your words"), for a place with little room; the full origin is its tooltip and its spoken name. */
   function originMark(o) {
     if (!o || !ORIGIN[o.kind]) { return null; }
-    var s = P(el('span', 'fa-orig', ORIGIN[o.kind][0]), 1);
+    var s = P(el('span', 'fa-orig'), ORIGIN_P);
+    add(s, el('span', 'fa-orig__m', ORIGIN[o.kind][0]), el('span', 'fa-orig__w', ORIGIN[o.kind][2]));
     s.title = originTitle(o); s.setAttribute('aria-label', s.title); s.setAttribute('role', 'img');
     return s;
   }
-  function originLine(o) {
+  /* The full origin, readable without hovering: the person's quoted words, the source as a titled link, or "proposed". */
+  function originLine(o, tagName, full) {
     if (!o || !ORIGIN[o.kind]) { return null; }
-    var s = P(el('span', 'fa-sub'), 1);
-    if (o.kind === 'person') { add(s, '❝ Your words: “' + (o.quote || '') + '”'); }
-    else if (o.kind === 'looked_up') {
-      var src = o.source || {};
-      if (typeof src === 'string') { src = { url: src, title: src }; }
-      add(s, '↗ Looked up: ', link(src.title || src.url, src.url));
-    } else { add(s, '✎ Proposed by the assistant'); }
+    var s = P(el(tagName || 'span', 'fa-origline'), ORIGIN_P);
+    s.appendChild(el('span', 'fa-orig__m', ORIGIN[o.kind][0]));
+    if (o.kind === 'person') {
+      if (o.quote) { add(s, el('span', 'fa-sr', 'Your words: '), el('q', 'fa-quote', o.quote)); } else { add(s, 'Your words'); }
+    } else if (o.kind === 'looked_up') {
+      var src = originSource(o);
+      add(s, 'Looked up: ', link(src.title || src.url, src.url));
+    } else { add(s, full ? 'Proposed by the assistant, not confirmed by you' : 'Proposed by the assistant'); }   /* the full words where it is said once */
     return s;
   }
 
@@ -378,7 +389,7 @@
       if (m.symbol === '◌' && lineText.indexOf('◌') >= 0 && !ui.review) { return; }
       parts.push([m.symbol + (m.count ? ' ' + m.count : ''), m.title || '', MARK_P[m.symbol]]);
     });
-    if (o) { parts.push([o[0], originTitle(s.origin), 1]); }
+    if (o) { parts.push([o[0] + ' ' + o[2], originTitle(s.origin), ORIGIN_P, originMark(s.origin)]); }   /* where it came from: Evidence, mark and word */
     return parts;
   }
 
@@ -397,12 +408,12 @@
       var b = stepEls[s.id];
       if (!b) { b = stepEls[s.id] = makeStep(s); canvas.appendChild(b); }
       b.querySelector('.fah-step__name').textContent = label(s);
-      b.title = label(s);
+      b.title = label(s) + (s.origin && ORIGIN[s.origin.kind] ? '\n' + originTitle(s.origin) : '');   /* the tag row takes no pointer: the step carries the full origin */
       b.classList.toggle('fah-step--from-you', s.kind === 'from_you');
       b.classList.toggle('fah-step--your-call', s.kind === 'your_call');
       P(b, s.kind === 'your_call' ? 4 : 1);      /* the step itself is the plan; a call that is the person's is principle 4 */
       var tag = b.querySelector('.fa-tag'); tag.textContent = '';
-      tagFor(s).forEach(function (p) { var sp = P(el('span', null, p[0]), p[2]); if (p[1]) { sp.title = p[1]; } tag.appendChild(sp); });
+      tagFor(s).forEach(function (p) { var sp = p[3] || P(el('span', null, p[0]), p[2]); if (p[1]) { sp.title = p[1]; } tag.appendChild(sp); });
       if (pm.running[s.id]) {
         var rn = P(el('span', 'dg-tag'), 4), wk = el('span', 'fah-working'); wk.setAttribute('aria-hidden', 'true');
         add(rn, wk, 'running again'); tag.appendChild(rn);
@@ -445,6 +456,8 @@
     }
     /* keep keyboard order = plan order */
     list.forEach(function (s) { canvas.appendChild(stepEls[s.id]); });
+    /* a tag row with too many marks for its step: the origin keeps its glyph, the word goes */
+    list.forEach(function (s) { var b = stepEls[s.id], t = b.querySelector('.fa-tag'); t.classList.remove('fa-tag--tight'); t.classList.toggle('fa-tag--tight', t.offsetWidth > b.offsetWidth); });
 
     /* pills: inputs above the step that uses them */
     pillEls.forEach(function (n) { n.remove(); }); pillEls = [];
@@ -456,9 +469,12 @@
       row.setAttribute('aria-label', 'Inputs of ' + label(s));
       canvas.insertBefore(row, canvas.firstChild); pillEls.push(row);
       /* the design's rule: more than three inputs show two and "+N"; fewer if they do not fit the step's width */
-      for (var n = ins.length > 3 ? 2 : ins.length; n >= 1; n--) {
-        fillPills(row, ins, n, pm);
-        if (row.scrollWidth <= STEP_W + 1) { break; }
+      /* each pill leads with its origin mark (Evidence); where the marks would cost an input, the pills go without them */
+      fit: for (var n = ins.length > 3 ? 2 : ins.length; n >= 1; n--) {
+        for (var wm = 1; wm >= 0; wm--) {
+          fillPills(row, ins, n, pm, !!wm);
+          if (row.scrollWidth <= STEP_W + 1) { break fit; }
+        }
       }
     });
 
@@ -482,7 +498,7 @@
     }
   }
 
-  function fillPills(row, ins, n, pm) {
+  function fillPills(row, ins, n, pm, withMarks) {
     row.textContent = '';
     function marks(pill, ids) {
       var any = function (o) { return ids.some(function (id) { return o[id]; }); };
@@ -495,7 +511,12 @@
     }
     ins.slice(0, n).forEach(function (id) {
       var i = S.inputs && S.inputs[id];
-      var pill = el('span', 'fah-pill' + (i && i.used ? ' fah-pill--used' : ''), inputName(id));
+      var pill = el('span', 'fah-pill' + (i && i.used ? ' fah-pill--used' : ''));
+      if (withMarks && i && i.origin && ORIGIN[i.origin.kind]) {
+        var om = P(el('span', 'fa-pillorig', ORIGIN[i.origin.kind][0]), ORIGIN_P);
+        om.setAttribute('role', 'img'); om.setAttribute('aria-label', originTitle(i.origin)); pill.appendChild(om);
+      }
+      add(pill, inputName(id));
       if (pm.changed[id] && i && i.value != null && String(i.value).length <= 12) { pill.appendChild(el('span', 'dg-pill__v', fmt(i.value))); }
       pill.title = inputName(id) + (i && i.value != null ? ' ' + fmt(i.value) : '') + (i && i.description && i.description !== i.name ? ': ' + i.description : '') + (i && i.origin ? ' (' + originTitle(i.origin) + ')' : '');
       marks(pill, [id]);
@@ -625,7 +646,6 @@
     var kinds = { calculation: 'A calculation', from_you: 'A figure from you', your_call: 'Your call' };
     var kindLine = el('span', 'fa-sub', (kinds[s.kind] || '') + (s.in_plan === false ? ' · not in the plan' : ''));
     sec.appendChild(kindLine);
-    var o = originLine(s.origin); if (o) { sec.appendChild(o); }
 
     if (s.formula || s.method || s.produces) {
       sec.appendChild(popHead('What it does'));
@@ -640,13 +660,13 @@
     if (arr(s.particulars).length) {
       sec.appendChild(popHead('Particulars'));
       var ul = el('ul', 'fa-list');
-      s.particulars.forEach(function (p) { var li = add(el('li'), p.text || p.what || ''); var m = originMark(p.origin); if (m) { li.appendChild(m); } if (p.handling) { li.appendChild(el('span', 'fa-sub', p.handling)); } ul.appendChild(li); });
+      s.particulars.forEach(function (p) { var li = add(el('li'), p.text || p.what || ''); if (p.handling) { li.appendChild(el('span', 'fa-sub', p.handling)); } add(li, originLine(p.origin)); ul.appendChild(li); });
       sec.appendChild(ul);
     }
     if (arr(s.open_questions).length) {
       sec.appendChild(popHead('Open questions'));
       var uq = el('ul', 'fa-list');
-      s.open_questions.forEach(function (q) { var li = add(el('li'), '● ' + (q.text || '')); var m = originMark(q.origin); if (m) { li.appendChild(m); } uq.appendChild(li); });
+      s.open_questions.forEach(function (q) { uq.appendChild(add(el('li'), '● ' + (q.text || ''), originLine(q.origin))); });
       sec.appendChild(uq);
     }
 
@@ -697,9 +717,11 @@
       }
     }
 
-    var r = runShown(s), lr = s.last_run;
+    /* Evidence: where the step and its inputs came from, then the run */
+    var r = runShown(s), lr = s.last_run, whence = whereFrom(s);
+    if (r || whence) { sec = part(3); }
+    if (whence) { sec.appendChild(popHead('Where this came from')); sec.appendChild(whence); }
     if (r) {
-      sec = part(3);
       var inAnswer = !!(lr && lr.in_last_answer && (r.run === lr.run || (r.message && r.message === lr.message)));
       var runHead = popHead(inAnswer ? 'In the last answer' : (lr && r.run === lr.run ? 'Last run' : 'Run'));
       runHead.classList.add('fa-runhead'); sec.appendChild(runHead);
@@ -729,7 +751,7 @@
     }
 
     var callsShown = !!(s.calls && (s.calls.open || arr(s.calls.records).length));
-    if (arr(s.unconfirmed).length || callsShown) { sec = s.kind === 'your_call' && !b && !r ? sec : part(4); }
+    if (arr(s.unconfirmed).length || callsShown) { sec = s.kind === 'your_call' && !b && !r && !whence ? sec : part(4); }
     if (arr(s.unconfirmed).length) {
       sec.appendChild(popHead('Not confirmed yet'));
       s.unconfirmed.forEach(function (a) { sec.appendChild(el('p', 'fa-p', '◌ ' + a.text)); });
@@ -766,6 +788,19 @@
     }
     pop.addEventListener('click', function (ev) { ev.stopPropagation(); });
     return pop;
+  }
+
+  /* The step's origin and its inputs' origins, each readable in full. */
+  function whereFrom(s) {
+    var box = el('div', 'fa-whence'), o = originLine(s.origin, 'p', true);
+    if (o) { box.appendChild(o); }
+    var rows = arr(s.inputs).map(function (id) { var i = S.inputs && S.inputs[id]; return i && i.origin && ORIGIN[i.origin.kind] ? [id, i.origin] : null; }).filter(Boolean);
+    if (rows.length) {
+      var ul = el('ul', 'fa-list');
+      rows.forEach(function (x) { ul.appendChild(add(el('li'), el('span', 'fa-sub', inputName(x[0])), originLine(x[1]))); });
+      box.appendChild(ul);
+    }
+    return box.childNodes.length ? box : null;
   }
 
   /* The run the pop-up shows: the one a clicked figure named, else the step's run of the last answer or latest. */
@@ -839,12 +874,15 @@
   function drawTop() {
     var g = S.goal, goal = $('goal'), meta = $('goalmeta');
     show(goal, !!(g && g.text));
-    if (g && g.text) { goal.textContent = g.text; goal.title = g.text; var m = originMark(g.origin); if (m) { goal.appendChild(m); } }
+    if (g && g.text) { goal.textContent = g.text; goal.title = g.text; }
     var bits = [];
     if (S.phase === 'proposed') { bits.push('Proposed plan, not accepted yet'); }
     if (S.phase === 'interview') { bits.push('The plan is being worked out'); }
     if (g && g.mode) { bits.push(g.mode === 'ongoing' ? 'Kept up to date' : 'A one-off answer'); }
-    meta.textContent = bits.join(' · '); show(meta, bits.length > 0);
+    meta.textContent = bits.join(' · ');
+    var go = g && g.text ? originLine(g.origin) : null;     /* the goal's origin, readable: Evidence */
+    if (go) { if (bits.length) { add(meta, ' · '); } meta.appendChild(go); }
+    show(meta, bits.length > 0 || !!go);
     show($('goalbox'), !goal.hidden || !meta.hidden);
 
     var tools = $('tools'); tools.textContent = '';
@@ -896,8 +934,8 @@
   /* ---------- whole-plan context (off screen until asked for) ---------- */
   function itemLi(it, extra) {
     var li = add(el('li'), it.text || it.what || it.term || '');
-    var m = originMark(it.origin); if (m) { li.appendChild(m); }
     if (extra) { li.appendChild(el('span', 'fa-sub', extra)); }
+    add(li, originLine(it.origin));
     return li;
   }
   function drawWhole() {
@@ -909,7 +947,7 @@
     var head = el('div', 'fa-section__head');
     add(head, el('h2', 'fah-question', 'Whole plan'), linkBtn('Close', function () { ui.whole = false; drawWhole(); }));
     w.appendChild(head);
-    if (S.goal && S.goal.text) { w.appendChild(add(el('p', 'fa-p'), S.goal.text, originMark(S.goal.origin))); }
+    if (S.goal && S.goal.text) { w.appendChild(add(el('p', 'fa-p'), S.goal.text, originLine(S.goal.origin))); }
     function part(title, items, fn) {
       if (!arr(items).length) { return; }
       w.appendChild(el('h3', null, title));
@@ -922,13 +960,14 @@
     part('Open questions', c.open_questions, function (it) { return itemLi({ text: '● ' + (it.text || ''), origin: it.origin }); });
     part('Terms', c.glossary, function (g) {
       var li = add(el('li'), el('b', null, g.term || ''), ': ' + (g.definition || ''));
-      var m = originMark(g.origin); if (m) { li.appendChild(m); }
-      if (g.person_says) { li.appendChild(el('span', 'fa-sub', 'You say “' + g.person_says + '”')); }
+      if (g.person_says) { li.appendChild(add(P(el('span', 'fa-origline'), ORIGIN_P), el('span', 'fa-orig__m', '❝'), 'You say ', el('q', 'fa-quote', g.person_says))); }
+      add(li, originLine(g.origin));
       return li;
     });
     part('Changes', c.revisions, function (r) {
       var s = r.step ? stepById(r.step) : null;
-      return add(el('li'), (r.by === 'reviewer' ? 'From the reviewer' : 'You') + (s ? ', on ' + label(s) : '') + ': “' + (r.words || '') + '”', el('span', 'fa-sub', when(r.ts)));
+      var said = add(P(el('span', 'fa-origline'), ORIGIN_P), r.by === 'reviewer' ? null : el('span', 'fa-orig__m', '❝'), el('q', 'fa-quote', r.words || ''));   /* whose words changed the plan: Evidence */
+      return add(el('li'), (r.by === 'reviewer' ? 'From the reviewer' : 'You') + (s ? ', on ' + label(s) : ''), said, el('span', 'fa-sub', when(r.ts)));
     });
   }
 
@@ -1306,7 +1345,7 @@
     var body = add(el('span'), el('span', 'dg-sr', (WHO[who] || '') + ': '), m.text || '');
     var srcs = arr(m.sources).filter(function (x) { return x && safeUrl(x.url); });
     if (srcs.length) {
-      var sp = el('span', 'dg-say__src'); add(sp, ' ');
+      var sp = P(el('span', 'dg-say__src'), ORIGIN_P); add(sp, ' ');      /* a looked-up source: Evidence */
       srcs.forEach(function (x, i) { if (i) { add(sp, ', '); } add(sp, '↗ ', link(x.title || x.url, x.url)); });
       body.appendChild(sp);
     }

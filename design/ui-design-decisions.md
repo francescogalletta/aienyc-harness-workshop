@@ -22,19 +22,19 @@ The product decisions behind the page. The design system is in `design/system/`,
 
 ## Colour is the principle
 
-Each of the five principles of the workshop has one colour, the deck's (`workshop/slides/src/principles.json`), carried by the design system as `principle-N` (a fill, tint or stroke) and `principle-N-ink` (small text, marks, thin strokes; 4.5:1 or more on surface and ground in both themes). An element takes the colour of the layer that produces it, by one rule: a container takes a faint tint and a 3px edge in the fill; a mark, tag or section heading takes the ink; an outline takes the ink; a principle's primary button takes the fill. Body text stays ink. A step carries several principles at once, so each part of it is coloured, not the box.
+Each of the five principles of the workshop has one colour, the deck's (`workshop/slides/src/principles.json`), carried by the design system as `principle-N` (a fill, tint or stroke) and `principle-N-ink` (small text, marks, thin strokes; 4.5:1 or more on surface and ground in both themes). An element takes the colour of the layer that produces it, with one exception: provenance (where a thing came from) is always principle 3, whichever layer recorded it, because it is what lets a number be followed back. The colour follows one rule: a container takes a faint tint and a 3px edge in the fill; a mark, tag or section heading takes the ink; an outline takes the ink; a principle's primary button takes the fill. Body text stays ink. A step carries several principles at once, so each part of it is coloured, not the box.
 
 | Principle | Layer | On the page |
 | --- | --- | --- |
-| 1 Shared Domain: Agree the plan before any number. | 1 the plan | The goal (edge), each step's outline and name, the input pills, origin marks (❝ ↗ ✎), open questions (●), "Whole plan" and its section, "Accept plan", the "Plan accepted" and plan-revised nodes, the folded interview |
+| 1 Shared Domain: Agree the plan before any number. | 1 the plan | The goal (edge), each step's outline and name, the input pills, open questions (●), "Whole plan" and its section, "Accept plan", the "Plan accepted" and plan-revised nodes, the folded interview |
 | 2 Consistency: Numbers come only from tested code. | 2 build | The build button and its working line, a step's build line ("✓ 4 examples · 5/5", "Building", "Stale · rebuild", "Not built") and tick, the plan check mark, the pop-up's Build part (examples, tests, code) |
-| 3 Evidence: Every number can be followed back. | 3 answers | A step's result ("→ 43,000", underlined in the fill), underlined figures in the chat, result and "Rests on" value chips, the pop-up's run and receipt, the pulse along the lines, a withheld reply |
+| 3 Evidence: Every number can be followed back. | 3 answers | Origin marks (❝ ↗ ✎) and their labels, the person's quoted words, looked-up sources and their links (on steps, inputs, the goal, the Whole plan, and in chat messages), the pop-up's "Where this came from" part, a step's result ("→ 43,000", underlined in the fill), underlined figures in the chat, result and "Rests on" value chips, the pop-up's run and receipt, the pulse along the lines, a withheld reply |
 | 4 Accountability: Ask only where a person must decide. | 4 needs you | The "needs you" fill and line, `◌` marks and the notice with Confirm and Change it, "your call" steps, their decision cards and records, "not in the plan", "Decided", branches and their marks, proposals with Yes and Keep and what they would touch, "re-ran" tags and their nodes, "New branch" |
 | 5 Verification: A reviewer challenges the plan. | 5 review | The Review button and its count, "Reviewing", ▲ counts and "used" tags, the Review view's lines and list, reviewer branches with Use this and Dismiss, the pop-up's Reviewer part, the "used" node |
 
 Neutral: the chat bubbles and plain answers, the message box, the step a message is about, the lines between steps, the trunk, refs, selection (an ink outline).
 
-A legend sits at the foot of the plan: the five principles, each a swatch, its number and name, with its statement as a tooltip and read to screen readers. An entry is quiet until something of its principle is on the page, so an empty page shows five quiet entries and they switch on as the plan, the build, answers, marks and challenges arrive (a short pulse the first time, none under reduced motion). Hovering or focusing an entry spotlights its principle: its elements stay, everything else fades. A click keeps the spotlight; a second click or Escape lets go. On a narrow screen the legend sits at the end of the plan, above the chat.
+A legend sits at the foot of the plan: the five principles, each a swatch, its number and name, with its statement as a tooltip and read to screen readers. An entry is quiet until something of its principle is on the page, so an empty page shows five quiet entries and they switch on as the plan (with its origins, which are Evidence), the build, answers, marks and challenges arrive (a short pulse the first time, none under reduced motion). Hovering or focusing an entry spotlights its principle: its elements stay, everything else fades. A click keeps the spotlight; a second click or Escape lets go. On a narrow screen the legend sits at the end of the plan, above the chat.
 
 ## The screen
 
@@ -44,7 +44,7 @@ Two parts that never change: the plan as a diagram, and the chat, drawn as a dec
 
 - The brief is shown as a flow diagram: the steps, what each needs, what comes out. The goal sits above it.
 - Each step shows its kind (calculation, a figure from the person, the person's call) and a mark for an open question.
-- Origin is a quiet annotation on every item, traceable to source: the person's quote, a looked-up source, or proposed by the assistant.
+- Origin is shown on every item, readable without hovering: a mark and a short label in the diagram (the glyph alone only where a step's marks would not fit), a mark on each input pill that has room, the full quote or source in the pop-up and the Whole plan; coloured as Evidence. It is the person's quote, a looked-up source, or proposed by the assistant.
 - Particulars and open questions attach to the step they concern. Whole-plan context (assumptions, scope, what counts as done) has its own section, off screen by default.
 - Correcting: click a step and say what is wrong; it goes to the chat with that step attached. No direct editing.
 - The diagram first appears when the brief is proposed and redraws on each correction.
@@ -63,6 +63,7 @@ Two parts that never change: the plan as a diagram, and the chat, drawn as a dec
 
 - An answer is one run through the diagram. Steps used for the last answer show what went in and what came out.
 - Every number in a chat answer leads to the step that produced it. A number no step produced is never shown.
+- Everything that says where a thing came from (origin marks, the person's quoted words, sources) is Evidence, and is on the page from the first plan, before any question is asked.
 - No scenario comparison. A step keeps its last few runs, one click away in its pop-up.
 
 ## 4. When the harness needs the person

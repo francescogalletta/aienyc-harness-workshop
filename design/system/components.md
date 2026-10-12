@@ -16,7 +16,7 @@ Colour says which of the five principles (one per harness layer) produced an ele
 | `--p-line` | `--p-ink` half into surface | A quiet outline: pills, value chips, a reply box |
 | `--p-on`, `--p-hover` | `on-principle(-3)`, the fill lightened (3: darkened) | Text on the fill; the fill under the pointer |
 
-Components read these with their neutral colour as the fallback, so without `data-p` nothing changes, and a button or chip inside a coloured container takes the container's principle. One rule everywhere: a container takes the tint and an edge, a mark or label the ink, an outline the ink, a primary button the fill; body text stays ink. A step is several principles at once: the step (outline, name) is 1, or 4 for a call that is the person's; its line carries its own `data-p`; each mark under it its own. Colour never replaces a shape, a glyph or a word.
+Components read these with their neutral colour as the fallback, so without `data-p` nothing changes, and a button or chip inside a coloured container takes the container's principle. One rule everywhere: a container takes the tint and an edge, a mark or label the ink, an outline the ink, a primary button the fill; body text stays ink. A step is several principles at once: the step (outline, name) is 1, or 4 for a call that is the person's; its line carries its own `data-p`; each mark under it its own. Provenance (an origin mark, a quote, a source) is always 3, inside whatever container holds it. Colour never replaces a shape, a glyph or a word.
 
 ---
 
@@ -51,7 +51,7 @@ One node of the plan: a name and at most one more line. A step is a `<button>`, 
 
 | Class | Use |
 | --- | --- |
-| `fah-step__line` | A quiet fact: an origin mark, a test count, a challenge. With `data-p` it is in that principle's ink |
+| `fah-step__line` | A quiet fact: an origin mark, a test count, a challenge. With `data-p` it is in that principle's ink; an origin mark is always `data-p="3"` |
 | `fah-step__line--result` | What came out of the step, starting with `→`. With `data-p` (3) underlined in the fill, like a figure in the chat |
 | `fah-step__line--strong` | "Needs you", with the reason |
 
@@ -74,7 +74,7 @@ An input the plan needs from the person, shown as a small pill just above the st
 </div>
 ```
 
-Add `fah-pill--used` when the input took part in the last answer; its text darkens to ink and its outline to the principle's ink (ink without one). On the page the row carries `data-p="1"`: an input is part of the plan.
+Add `fah-pill--used` when the input took part in the last answer; its text darkens to ink and its outline to the principle's ink (ink without one). On the page the row carries `data-p="1"`: an input is part of the plan. An origin mark on a pill carries `data-p="3"`.
 
 Rules:
 

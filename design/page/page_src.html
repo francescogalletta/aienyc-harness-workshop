@@ -77,9 +77,19 @@ body { min-height: 100vh; }
 .fa-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .fa-list li { display: block; }
 .fa-sub { display: block; font-size: 12px; line-height: 16px; color: var(--muted); }
-.fa-orig { margin-left: 6px; font-size: 12px; color: var(--muted); }
+/* Where a thing came from is Evidence (principle 3) and stays readable: a mark and a word, or the full quote or source */
+.fa-orig { font-size: 13px; color: var(--p-ink, var(--ink-2)); }
 .fa-orig[data-p], .fa-sub[data-p], .fa-glyph { color: var(--p-ink); }
-.fa-orig a, .fa-src a { color: inherit; }
+.fa-orig__m { margin-right: 4px; }
+.fa-tag--tight .fa-orig__w { display: none; }
+.fa-origline { display: block; color: var(--p-ink, var(--ink-2)); overflow-wrap: anywhere; }
+.fa-goalmeta .fa-origline { display: inline; }
+.fa-quote { font-style: normal; }
+.fa-whence { display: flex; flex-direction: column; gap: 6px; }
+.fa-whence p { margin: 0; }
+.fa-pillorig { margin-right: 4px; color: var(--p-ink); }
+.dg-say__src[data-p] { font-size: 13px; color: var(--p-ink); }
+.fa-orig a, .fa-src a, .fa-origline a, .dg-say__src a { color: inherit; }
 .fa-receipt { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; background: var(--ground); border-radius: var(--radius-sm); }
 .fa-receipt .fah-pop__row > :last-child { color: var(--ink); }
 .fa-receipt__out { padding-top: 4px; box-shadow: inset 0 1px 0 var(--line); font-weight: 600; }

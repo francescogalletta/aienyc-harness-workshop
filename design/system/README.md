@@ -40,7 +40,7 @@ Positioning steps and drawing the lines between them is the page's job. The syst
 - **Selection is an outline.** A selected step gets a 3px ink outline drawn inside its box, so nothing moves.
 - **Nothing blocks unless the call is the person's.** Anything unconfirmed runs and carries a mark.
 - **Every figure leads somewhere.** A number in the chat is underlined and selects the step that produced it.
-- **Quiet by default.** Pills, origin marks and threads are small and low contrast until they are used.
+- **Quiet by default.** Pills and threads are small and low contrast until they are used. Origin marks are the exception: they are Evidence (principle 3) and stay readable, a mark and a short word, never a lone glyph in muted text.
 - **The chat is a decision history.** A trunk of confirmed decisions, branches that join it with the person's yes or die dimmed, and values as chips rather than sentences. Contributors (you, the assistant, the harness, the reviewer) are told apart by shape. See "Decision graph" in `components.md`.
 
 ## Colour
