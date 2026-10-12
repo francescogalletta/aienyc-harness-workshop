@@ -488,7 +488,9 @@ body { min-height: 100vh; }
 .dg-facts .fa-more { font-size: 12px; line-height: 20px; color: var(--ink-2); }
 .fa-compose { padding: 8px 16px 16px; background: var(--surface); }
 .fa-compose .fah-composer { flex-wrap: wrap; row-gap: 4px; }
-.fa-compose .fah-composer input { flex: 1 1 170px; min-height: 32px; }
+.fa-compose .fah-composer textarea { flex: 1 1 170px; min-width: 0; min-height: 32px; max-height: 160px; padding: 6px 0; font: inherit; line-height: 20px; color: var(--ink); background: transparent; border: 0; outline: 0; resize: none; overflow-y: auto; overflow-wrap: anywhere; }
+.fa-compose .fah-composer textarea::placeholder { color: var(--muted); opacity: 1; }
+.fa-compose .fah-composer { align-items: flex-end; }
 .fa-chiprow { flex: 1 0 100%; min-width: 0; padding-top: 4px; }
 .fa-chiprow .fah-chip { max-width: 100%; }
 .fa-hint { margin: 0 0 6px; font-size: 13px; line-height: 18px; color: var(--ink-2); }
@@ -539,7 +541,7 @@ body { min-height: 100vh; }
     <div class="fa-compose">
       <p class="fa-hint" id="hint" role="status"></p>
       <div class="fah-composer" id="composer">
-        <input type="text" id="say" autocomplete="off" aria-label="Message">
+        <textarea id="say" rows="1" autocomplete="off" aria-label="Message"></textarea>
         <button class="fah-side" type="button" id="sidebtn" aria-pressed="false" hidden>New branch</button>
       </div>
     </div>
@@ -2387,13 +2389,16 @@ body { min-height: 100vh; }
       var b2 = { text: text }; if (ui.attached) { b2.step = ui.attached; } if (ui.notice) { b2.notice = ui.notice; }
       p = act('say', b2);
     }
-    input.value = '';
+    input.value = ''; fit();
     p.then(function (ok) {
-      if (!ok) { if (!input.value) { input.value = text; } return; }
+      if (!ok) { if (!input.value) { input.value = text; fit(); } return; }
       ui.attached = null; ui.notice = null; setSide(false); drawComposer();
       if (ui.selected && !ui.pop) { F.select(null, document); ui.selected = null; }   /* the step went with the message */
     });
   }
+  /* The message box grows with what is typed, up to its max-height, then scrolls. */
+  function fit() { input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px'; }
+  input.addEventListener('input', fit);
   input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); } });
   sideBtn.addEventListener('click', function () { var on = F.sideToggle(sideBtn); ui.side = on; drawComposer(); input.focus(); });
 

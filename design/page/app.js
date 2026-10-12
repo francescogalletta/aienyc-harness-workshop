@@ -1695,13 +1695,16 @@
       var b2 = { text: text }; if (ui.attached) { b2.step = ui.attached; } if (ui.notice) { b2.notice = ui.notice; }
       p = act('say', b2);
     }
-    input.value = '';
+    input.value = ''; fit();
     p.then(function (ok) {
-      if (!ok) { if (!input.value) { input.value = text; } return; }
+      if (!ok) { if (!input.value) { input.value = text; fit(); } return; }
       ui.attached = null; ui.notice = null; setSide(false); drawComposer();
       if (ui.selected && !ui.pop) { F.select(null, document); ui.selected = null; }   /* the step went with the message */
     });
   }
+  /* The message box grows with what is typed, up to its max-height, then scrolls. */
+  function fit() { input.style.height = 'auto'; input.style.height = input.scrollHeight + 'px'; }
+  input.addEventListener('input', fit);
   input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && !ev.shiftKey && !ev.isComposing) { ev.preventDefault(); send(); } });
   sideBtn.addEventListener('click', function () { var on = F.sideToggle(sideBtn); ui.side = on; drawComposer(); input.focus(); });
 
