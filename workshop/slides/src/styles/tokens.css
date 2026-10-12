@@ -113,6 +113,7 @@
   --headline-leading: 1.1;
   --sub-size: var(--fs-xl);
   --sub-leading: 1.25;
+  --sub-compact-size: var(--fs-l);  /* a long list of subs (lines with compact) */
   --label-size: var(--fs-xs);
   --code-size: var(--fs-m);
   --hero-size: var(--fs-7xl);
