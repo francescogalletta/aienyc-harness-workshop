@@ -1,4 +1,4 @@
-"""Values that cross between the harness and a calculation module (SPEC 5.1).
+"""Values that cross between the harness and a calculation module (SPEC 4.1).
 
 Everything travels as JSON. Money and other exact numbers travel as text, so
 that 0.1 + 0.2 is never 0.30000000000000004 on the way.

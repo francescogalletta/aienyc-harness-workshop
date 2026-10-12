@@ -134,12 +134,9 @@ sub      = { tag = "p", class = "sub" }
 command  = { tag = "code", class = "mono step command xl" }               # a shell command, large
 mega     = { tag = "heading", class = "mega", template = "mega" }         # + emoji = "…" or chip = "…" beside it
 hero     = { tag = "heading", class = "mega xl" }                         # one huge word
-pause    = { tag = "p", class = "mega dots", aria = "pause" }
-big_emoji = { tag = "p", class = "big-emoji" }                            # + say = "aria label"
 ask      = { tag = "p", class = "display step from-you ask" }
 who      = { tag = "p", class = "hand-aside ask-who" }                    # handwritten line below the ask, outside its oval
 lines    = { class = "stack-tight", template = "lines" }                  # [ { headline = "…", step = 1 }, … ]; or soft
-swap     = { class = "swap", template = "swap" }                          # blocks shown one after another in one place
 tally    = { class = "hands", template = "tally" }                        # numbers that appear one by one, the previous one muting; + grow = true makes each larger than the last
 tracks   = { class = "tracks", template = "tracks" }
 guesses  = { class = "says", template = "guesses" }                       # + heads = ["YOU SAY", "…"]

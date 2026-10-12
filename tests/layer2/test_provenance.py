@@ -1,4 +1,4 @@
-"""SPEC 5.8: every number the agent sends out must already be known."""
+"""SPEC 1 rule 1 and 4.1: every number the agent sends out must already be known."""
 from harness.calc import provenance
 
 

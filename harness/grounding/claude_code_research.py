@@ -1,4 +1,4 @@
-"""Web lookups through the person's own signed-in Claude Code (SPEC 4.2 and 4.6).
+"""Web lookups through the person's own signed-in Claude Code (SPEC 3.4).
 
 Each lookup runs Claude Code once, with web search as its only tool. It is
 sent the term and nothing else, so nothing the person said reaches the web.

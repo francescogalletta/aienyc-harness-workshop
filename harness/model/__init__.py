@@ -1,4 +1,4 @@
-"""The harness talks to a model only through this package (SPEC 3.2).
+"""The harness talks to a model only through this package (SPEC 2.2).
 
 Importing it loads no provider SDK.
 """

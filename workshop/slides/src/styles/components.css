@@ -115,7 +115,7 @@
 .hands.grow .num:nth-child(3) { font-size: calc(var(--tally-size) * var(--tally-grow-3)); }
 .hands.grow .num:nth-child(4) { font-size: calc(var(--tally-size) * var(--tally-grow-4)); }
 
-/* ---------- Swap (one line replaces another) and the big ask ---------- */
+/* ---------- Swap (a display line's `cycle`: one ending replaces another) and the big ask ---------- */
 .swap { display: grid; place-items: center; }
 .swap > * { grid-area: 1 / 1; }
 .swap-left { place-items: start; text-align: left; }
@@ -128,7 +128,6 @@
   max-width: var(--ask-max);
 }
 
-.dots { letter-spacing: 0.12em; }
 .ask-us { font-size: var(--stress-scale); line-height: 0.8; text-decoration: underline; text-decoration-thickness: var(--stress-underline); text-underline-offset: var(--stress-underline-offset); }
 
 /* ---------- Mega with an emoji ---------- */
@@ -152,7 +151,6 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 /* Handwritten asides pop in even while deck motion is off (author's request). */
 @keyframes aside-pop { from { opacity: 0; transform: rotate(-12deg) scale(0.6); } 60% { opacity: 1; transform: rotate(-2deg) scale(1.08); } to { opacity: 1; transform: rotate(-4deg) scale(1); } }
 @media (prefers-reduced-motion: no-preference) { .hand-aside.shown { animation: aside-pop var(--dur-pop) var(--ease-out) both; } }
-.big-emoji { font-family: var(--emoji-font); font-size: var(--big-emoji-size); line-height: 1; }
 .hand-aside { display: inline-block; font-family: var(--aside-font); font-weight: var(--weight-hand-strong); font-size: var(--aside-scale); line-height: 0.8; color: var(--hand-text); transform: rotate(-4deg); margin-left: var(--aside-indent); }
 
 /* ---------- Setup ---------- */

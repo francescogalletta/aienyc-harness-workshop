@@ -203,12 +203,12 @@ def test_a_message_with_a_calculation_step_goes_to_the_helper_and_others_are_not
         assert harness_lines(state)[-1] == NO_ROUTE_PLAN and len(model.inner.calls) == before
 
 
-def test_a_message_about_an_accepted_plan_with_no_layer_to_take_it_says_what_is_true_at_this_step(plan, open_session):
+def test_a_message_about_an_accepted_plan_with_no_layer_to_take_it_says_what_is_true_here(plan, open_session):
     state = say(open_session([]), "is this enough?", None)
     reply = harness_lines(state)[-1]
     assert reply == NO_ROUTE_PLAN
-    assert reply.startswith("Nothing here can answer that yet.") and "can be read, but not changed or questioned" in reply
-    assert "step 3" in reply
+    assert reply.startswith("Nothing here can answer that yet.") and "not changed or questioned" in reply
+    assert "the answers layer is off" in reply
 
 
 def test_wants_is_true_for_not_built_left_out_and_unconfirmed_steps_only(plan, open_session, build):

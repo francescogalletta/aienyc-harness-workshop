@@ -1,4 +1,4 @@
-"""Added steps (SPEC 5.5): calculations the person needed that the brief has no step for."""
+"""Added steps (SPEC 4.1): calculations the person needed that the brief has no step for."""
 import re
 import sqlite3
 from datetime import datetime, timezone
@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from .. import db
 
 ADDED_PREFIX = "added_"
-NOT_IN_BRIEF = "(not in the brief)"
 ADDED_ID = re.compile(r"^added_([1-9][0-9]*)$")
 
 
@@ -20,7 +19,7 @@ def add_step(conn: sqlite3.Connection, *, name: str, formula: str, needs: str, p
              reason: str, session_id: str, step_id: str | None = None) -> dict:
     """Add a step to the process. Returns it as a dict.
 
-    With `step_id` (`added_<n>`) the step keeps that id, as when a module is adopted (SPEC 5.5).
+    With `step_id` (`added_<n>`) the step keeps that id, as when a module is adopted (SPEC 4.6).
     """
     values = [text.strip() for text in (name, formula, needs, produces, reason)]
     number = None
@@ -50,8 +49,3 @@ def list_added_steps(conn: sqlite3.Connection) -> list[dict]:
 def process_steps(conn: sqlite3.Connection, brief: dict) -> list[dict]:
     """The process: the brief's steps in order, then the added steps."""
     return [*brief["process"], *list_added_steps(conn)]
-
-
-def step_label(step_id: str) -> str:
-    """A step id as the person sees it: an added step is marked as not in the brief."""
-    return f"{step_id} {NOT_IN_BRIEF}" if step_id.startswith(ADDED_PREFIX) else step_id

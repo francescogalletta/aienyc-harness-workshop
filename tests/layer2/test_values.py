@@ -1,4 +1,4 @@
-"""SPEC 5.1: values travel as JSON, and exact numbers travel as text."""
+"""SPEC 4.1: values travel as JSON, and exact numbers travel as text."""
 from datetime import date
 from decimal import Decimal
 

@@ -1,4 +1,4 @@
-"""Looking up standard definitions (SPEC 4.2 and 4.6).
+"""Looking up standard definitions (SPEC 3.4).
 
 The interviewer never reads the web itself. It hands a short term to a
 researcher, and gets back a definition and its sources. The researcher is
@@ -10,7 +10,6 @@ answer in the database, and it starts from a plan made up front.
 """
 import json
 import re
-import threading
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -35,11 +34,6 @@ class Lookup:
     definition: str = ""
     sources: tuple[dict, ...] = ()      # each {"title": ..., "url": ...}
     origin: str = ""                    # the researcher that answered
-
-    def as_dict(self) -> dict:
-        return {"query": self.query, "found": self.found, "name": self.name,
-                "definition": self.definition, "sources": list(self.sources),
-                "origin": self.origin}
 
 
 class Researcher(Protocol):
@@ -70,9 +64,9 @@ USER_AGENT = "finance-harness-workshop/0.1 (local research tool)"
 
 
 class WikipediaResearcher:
-    """Looks a term up on Wikipedia: one request, no model (SPEC 4.6).
+    """Looks a term up on Wikipedia: one request, no model (SPEC 3.4).
 
-    Only the query is sent, which keeps ground rule 6: nothing else the
+    Only the query is sent, which keeps ground rule 4: nothing else the
     person said reaches the web.
     """
 
@@ -102,7 +96,7 @@ class WikipediaResearcher:
 
 
 class ChainResearcher:
-    """Asks each researcher in turn and returns the first lookup that is found (SPEC 4.6)."""
+    """Asks each researcher in turn and returns the first lookup that is found (SPEC 3.4)."""
 
     def __init__(self, researchers):
         self.researchers = list(researchers)
@@ -170,7 +164,7 @@ def get_researcher(name: str | None = None) -> Researcher:
 
 
 class ResearchDesk:
-    """What the interview talks to: a researcher with a memory (SPEC 4.6).
+    """What the interview talks to: a researcher with a memory (SPEC 3.4).
 
     Every found lookup is kept in the table `lookups`, so a term is fetched
     once, whichever interview asks for it. Answers are research entries:
@@ -184,8 +178,6 @@ class ResearchDesk:
     def __init__(self, researcher, conn):
         self.researcher = researcher
         self.conn = conn
-        self._lock = threading.Lock()
-        self._looking: list[str] = []       # queries with the researcher right now
 
     def look_up(self, query: str) -> dict:
         return self.look_up_many([query])[0]
@@ -224,22 +216,12 @@ class ResearchDesk:
                              f"{MAX_GENERAL_WORDS} words and {MAX_QUERY_LENGTH} characters"}
         return self.look_up(query)
 
-    def looking(self) -> list[str]:
-        """The queries being looked up at this moment. Safe to call from any thread."""
-        with self._lock:
-            return list(self._looking)
-
     def _ask(self, query: str) -> dict:
         """Ask the researcher. Runs on a worker thread, so it stays away from the database."""
-        with self._lock:
-            self._looking.append(query)
         try:
             lookup = self.researcher.look_up(query)
         except Exception as error:
             return {**_entry(Lookup(query, False)), "status": "failed", "error": _one_line(error)}
-        finally:
-            with self._lock:
-                self._looking.remove(query)
         return _entry(lookup)
 
     def _remembered(self, query: str) -> dict | None:
@@ -289,7 +271,7 @@ PLAN_RESEARCH = ToolSpec(
 
 
 def plan_research(model, desk: ResearchDesk, opening: str, say=print) -> list[dict]:
-    """Read up on the terms the person's request depends on, before the first question (SPEC 4.6).
+    """Read up on the terms the person's request depends on, before the first question (SPEC 3.2).
 
     One model call picks the terms; the desk looks them all up at once.
     Returns their research entries, marked as planned. A model that names

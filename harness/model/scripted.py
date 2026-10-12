@@ -1,4 +1,4 @@
-"""A stand-in model that replays prepared responses, for offline runs (SPEC 3.3)."""
+"""A stand-in model that replays prepared responses, for offline runs (SPEC 2.2)."""
 import json
 from collections.abc import Sequence
 from pathlib import Path

@@ -263,7 +263,6 @@
   --tally-grow-leading: 0.72;
   --mega-row-gap: 48px;
   --mega-emoji-size: calc(160px * var(--type-scale));
-  --big-emoji-size: var(--fs-7xl);
 
   /* Tracks, setup, grid */
   --tracks-gap: 64px;

@@ -454,14 +454,6 @@ class SlideRenderer:
             lines.append({"cls": self.line_roles[r], "text": item[r], "attrs": reveal(item)})
         return {"lines": lines}
 
-    def prep_swap(self, block):
-        kids = block["swap"]
-        children = []
-        for child, seq in zip(kids, self.sequence(len(kids))):
-            child = {**{k: v for k, v in seq.items() if v is not None}, **child}
-            children.append(self.render_block(child, self.role_of(child, self.roles), None))
-        return {"children": children}
-
     def prep_tally(self, block):
         items = block["tally"]
         seq = self.sequence(len(items), block.get("from", 1), "mute")

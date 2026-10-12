@@ -1,4 +1,4 @@
-"""Every test here checks the harness at step 5 (ARCHITECTURE.md section 7). Automatic passes are off unless a
+"""Every test here checks the harness up to layer 5 (ARCHITECTURE.md section 7). Automatic passes are off unless a
 test turns them on with `review="auto"`."""
 import shutil
 
@@ -12,7 +12,7 @@ from layer5_helpers import SETTLE, FakeResearcher, SplitModel, small_plan, write
 
 
 @pytest.fixture(autouse=True)
-def harness_at_step_5(monkeypatch, tmp_path):
+def harness_up_to_layer_5(monkeypatch, tmp_path):
     monkeypatch.setenv("HARNESS_LAYERS", "5")
     monkeypatch.setenv("HARNESS_REVIEW", "off")
     monkeypatch.setenv("HARNESS_DB", str(tmp_path / "harness.db"))
@@ -25,7 +25,7 @@ def harness_at_step_5(monkeypatch, tmp_path):
 
 @pytest.fixture(scope="session")
 def built_world(tmp_path_factory):
-    """The small plan and its two modules, adopted once (at step 4: the registry is layer 2's)."""
+    """The small plan and its two modules, adopted once (at layer 4: the registry is layer 2's)."""
     folder = tmp_path_factory.mktemp("built")
     write_world(folder)
     with pytest.MonkeyPatch.context() as patch:
@@ -50,7 +50,7 @@ def world(tmp_path, built_world):
 
 @pytest.fixture
 def open_session(world, monkeypatch):
-    """Open a Session at step 5 on the small world. `make(analyst, reviewer, review=, researcher=)` gives it a
+    """Open a Session up to layer 5 on the small world. `make(analyst, reviewer, review=, researcher=)` gives it a
     `SplitModel` (`session.model_double`) and a fake researcher (`session.researcher`). Closed after."""
     opened = []
 

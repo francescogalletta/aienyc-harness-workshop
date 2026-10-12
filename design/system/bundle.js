@@ -83,7 +83,7 @@
     if (step && step.scrollIntoView) { step.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
   }
 
-  /* Flip the "On the side" toggle inside a composer. Returns true when side mode is on. */
+  /* Flip the "New branch" toggle inside a composer. Returns true when side mode is on. */
   function sideToggle(button) {
     var on = button.getAttribute('aria-pressed') !== 'true';
     button.setAttribute('aria-pressed', String(on));

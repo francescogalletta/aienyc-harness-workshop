@@ -1,4 +1,4 @@
-"""Notes (SPEC 5.5): what the person said about their real situation during a build, kept for later."""
+"""Notes (SPEC 4.1): what the person said about their real situation during a build, kept for later."""
 import sqlite3
 from datetime import datetime, timezone
 

@@ -1,4 +1,4 @@
-"""SPEC 1.1 and 5.1: the number check on replies and on tool inputs; the tools."""
+"""SPEC 1 rule 1 and 5.1: the number check on replies and on tool inputs; the tools."""
 import json
 
 from harness.answers import agent

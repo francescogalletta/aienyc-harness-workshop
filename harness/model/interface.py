@@ -1,4 +1,4 @@
-"""The neutral model interface every provider adapter speaks (SPEC 3.2)."""
+"""The neutral model interface every provider adapter speaks (SPEC 2.2)."""
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol

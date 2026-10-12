@@ -20,8 +20,8 @@ from . import state as plan_state
 from .lanes import LANES, Job, Lane
 
 NO_ROUTE = "Nothing here can answer that yet."
-NO_ROUTE_PLAN = (NO_ROUTE + " At this step the plan can be read, but not changed or questioned."
-                 " Asking about it arrives at step 3.")
+NO_ROUTE_PLAN = (NO_ROUTE + " The plan can be read here, but not changed or questioned:"
+                 " the answers layer is off.")
 NOTHING_WAITS = "Nothing is waiting for an answer."
 ACTORS = {"you": "person", "assistant": "agent", "reviewer": "agent", "harness": "harness"}
 WHO = tuple(ACTORS)

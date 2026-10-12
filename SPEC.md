@@ -1,7 +1,8 @@
 # Contract: Financial Advisor Harness
 
 This is the contract. `ARCHITECTURE.md` sections 3 (the plan state document),
-4 (the core and its extension points) and 5 (actions) are part of it. The
+4 (the core and its extension points) and 5 (actions) are part of it, and so
+is section 12 (the decision history) where this file cites it. The
 product design is in `design/`. Change the contract first, then the tests,
 then the code.
 
@@ -31,22 +32,22 @@ Sections follow the layers. A layer's section holds only what that layer adds.
    Assumptions run and are marked. Only a decision (`ask_decision`) and the plan
    awaiting acceptance wait for the person. A change proposed on a branch waits
    for the person's yes and blocks nothing.
-12. **Decisions are recorded.** Every decision that changes the analysis is a
-    trunk node (ARCHITECTURE.md section 12), recorded by the layer that made
-    it. Nothing changes a figure of the person's or the plan's shape without
-    their yes; the harness's own rebuilds join by themselves.
-7. **Provider-agnostic.** Only `harness/model/` imports a provider SDK.
-8. **Standard library only** for the harness. The page is one self-contained
+7. **Decisions are recorded.** Every decision that changes the analysis is a
+   trunk node (ARCHITECTURE.md section 12), recorded by the layer that made
+   it. Nothing changes a figure of the person's or the plan's shape without
+   their yes; the harness's own rebuilds join by themselves.
+8. **Provider-agnostic.** Only `harness/model/` imports a provider SDK.
+9. **Standard library only** for the harness. The page is one self-contained
    HTML file: the design system's three files inlined, no web font, no network.
-9. **Nothing under `harness/` names an example domain.**
-10. **The harness writes only under `my/`** with its default settings, and
+10. **Nothing under `harness/` names an example domain.**
+11. **The harness writes only under `my/`** with its default settings, and
     never uses `workshop/`. Deleting `workshop/` leaves a harness whose tests
     pass.
-11. **Layers.** Layer N imports only layers below N. A test of layer K sets
+12. **Layers.** Layer N imports only layers below N. A test of layer K sets
     `HARNESS_LAYERS=K` and asserts nothing about later layers
     (ARCHITECTURE.md section 7).
 
-## 2. Layer 0: the base
+## 2. Layer 0: the core
 
 ### 2.1 Settings: `harness/config.py`
 
@@ -123,7 +124,7 @@ in ARCHITECTURE.md section 4. Rules the code must keep:
 
 ```
 NO_ROUTE = "Nothing here can answer that yet."
-NO_ROUTE_PLAN = NO_ROUTE + " At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3."
+NO_ROUTE_PLAN = NO_ROUTE + " The plan can be read here, but not changed or questioned: the answers layer is off."
 WITHHELD = "(The answer was held back, because it held numbers that no tested module produced: {numbers}.)"
 TOO_MANY = "(The harness stopped working on this, because it took too many steps. Try asking in a simpler way.)"
 ```
@@ -243,7 +244,7 @@ CSS and JS inlined; no web font). It draws the state document and nothing
 else, polls as ARCHITECTURE.md 4.2 says, and sends actions. It follows the
 design: the goal above the diagram; steps laid out by `edges` in columns,
 inputs as pills above their steps; one pop-up at a time; the chat panel with
-the composer, step chip, "On the side" toggle and placeholders; decisions,
+the composer, step chip, "New branch" toggle and placeholders; decisions,
 notices and threads; the Review toggle (top right, after acceptance, with the
 open count); "Whole plan" opening the context section. Once an answer exists,
 steps not in it are faded and the inputs it used are darkened; a number with a

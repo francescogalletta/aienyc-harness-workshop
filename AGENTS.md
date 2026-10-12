@@ -45,6 +45,7 @@ plug into it, each one package, each importing only the layers below it.
 | Place | Holds | Who changes it |
 | --- | --- | --- |
 | `SPEC.md`, `ARCHITECTURE.md`, `design/` | The contract, how it is built, the product design and the page source (`design/page/`) | The maintainers, contract first |
+| `HISTORY.md` | Notes made while the harness was built (labels A0, D3a, ...): history, not contract | The maintainers |
 | `harness/`, `tests/`, `reference/`, `examples/` | The harness, its tests (`tests/layer0` to `tests/layer5`), saved terms and seeded examples | You, following the contract |
 | `my/` | A person's plan, modules and working files | Only the person. Never write here from a build task |
 | `workshop/` | Teaching material | Only the maintainers |
@@ -52,7 +53,8 @@ plug into it, each one package, each importing only the layers below it.
 ## Rules that hold everywhere
 
 - `SPEC.md` is the contract, with `ARCHITECTURE.md` sections 3 to 5 (state
-  document, core, actions). Change the contract first, then tests, then code.
+  document, core, actions) and section 12 (decision history) where `SPEC.md`
+  cites it. Change the contract first, then tests, then code.
   Where the design in `design/` differs, the design wins; tell the maintainer.
 - The plan state document is the only thing the page and the terminal draw
   from. A feature a layer adds reaches the screen as keys in that document.

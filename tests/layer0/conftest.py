@@ -1,4 +1,4 @@
-"""Every test here checks the harness at step 0 (ARCHITECTURE.md section 7).
+"""Every test here checks the harness up to layer 0 (ARCHITECTURE.md section 7).
 
 The core is tested with made-up layers (`layer0_helpers.fake_layer`), so these tests rely on
 nothing a real layer registers.
@@ -16,7 +16,7 @@ SETTINGS = ("HARNESS_DB", "HARNESS_MODEL_PROVIDER", "HARNESS_MODEL", "HARNESS_SC
 
 
 @pytest.fixture(autouse=True)
-def harness_at_step_0(monkeypatch, tmp_path):
+def harness_up_to_layer_0(monkeypatch, tmp_path):
     """No harness setting from outside; layer 0 only; a database and folders of the test's own."""
     for name in SETTINGS:
         monkeypatch.delenv(name, raising=False)
