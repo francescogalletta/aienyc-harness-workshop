@@ -8,7 +8,6 @@ layout = "centred"
 blocks = [
   { label = "THE GOAL IS" },
   { hero = "==Trust.==", step = 1 },
-  { sub = "Money is never decided lightly. Not by a company, not by you.", step = 2 },
 ]
 
 [[slide]]
@@ -55,37 +54,6 @@ blocks = [
 ]
 
 [[slide]]
-id = "s-gap"
-name = "The gap"
-layout = "split"
-left = { label = "YOU", headline = "know your situation", examples = [
-  { text = "the venue wants 30% up front", step = 1 },
-  { text = "my bonus lands in March", step = 2 },
-  { text = "her parents may chip in", step = 3 },
-  { text = "we never stick to a budget", step = 4 },
-] }
-right = { label = "THE MODEL", headline = "knows the field", step = 5, examples = [
-  { text = "the average wedding", step = 6 },
-  { text = "the average couple", step = 6 },
-  { text = "the average budget", step = 6 },
-] }
-foot = { text = "Second nature to you. Averaged out in the training data.", step = 7 }
-
-[[slide]]
-id = "s-caveats"
-name = "Caveats"
-layout = "converge"
-inputs = [
-  { text = "guest count not final", x = 440, y = 400, step = 1 },
-  { text = "three payment dates", x = 700, y = 290, step = 2 },
-  { text = "family money, maybe", x = 960, y = 180, step = 3 },
-  { text = "gross or net?", x = 1220, y = 290, step = 4 },
-  { text = "what we really spend", x = 1480, y = 400, step = 5 },
-]
-question = "Can we pay for the wedding?"
-sub = { text = "Simple question. Then the caveats.", step = 6 }
-
-[[slide]]
 id = "s-deal"
 name = "The deal"
 layout = "statement"
@@ -103,21 +71,34 @@ blocks = [
   { display = "None of this is new." },
   { lines = [
       { sub = "Unit tests [decades old]{aside step=1}", step = 1 },
-      { sub = "Evals [everyone knows]{aside step=2}", step = 2 },
-      { sub = "Traces and observability [not new either]{aside step=3}", step = 3 },
-      { sub = "Loops and graphs [this season's fashion]{aside step=4}", step = 4 },
-      { sub = "Planning with your agent [the most obvious one]{aside step=5}", step = 5 },
+      { sub = "Planning with your agent [the most obvious one]{aside step=2}", step = 2 },
+      { sub = "Evals [everyone knows]{aside step=3}", step = 3 },
+      { sub = "Traces and observability [not new either]{aside step=4}", step = 4 },
+      { sub = "Loops and graphs [this season's fashion]{aside step=5}", step = 5 },
   ] },
 ]
 
 [[slide]]
-id = "s-not-tools"
-name = "Not tools"
+id = "s-principles"
+name = "What we cover"
 layout = "statement"
 blocks = [
-  { display = "Not which tools to use." },
-  { display = "The design framework that makes them work.", step = 1 },
-  { sub = "Closing the distance between knowing it should be done, and knowing WHY.", step = 2 },
+  { display = "The design principles of a harness that works for money." },
+  { lines = [
+      { sub = "No specific technologies.", step = 1 },
+      { sub = "We assume you know the concepts we just listed.", step = 2 },
+      { sub = "The focus: what makes a harness raise ==trust== significantly.", step = 3 },
+  ] },
+]
+
+[[slide]]
+id = "s-one-take"
+name = "One interpretation"
+layout = "statement"
+blocks = [
+  { display = "We already built a harness." },
+  { sub = "ONE interpretation of many. Simple on purpose.", step = 1 },
+  { headline = "Instead of watching us ship code, feel what it is like when ==trust== is the priority.", step = 2 },
 ]
 
 [[slide]]

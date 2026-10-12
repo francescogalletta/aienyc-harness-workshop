@@ -338,9 +338,6 @@ def test_unknown_top_level_keys_are_still_rejected(tmp_path):
 
 def test_split_examples_and_the_down_arrow_block(deck):
     html = sections_html(deck)
-    gap = html.split('id="s-gap"')[1].split("</section>")[0]
-    assert 'class="split has-examples"' in gap and gap.count('class="example"') == 7
-    assert 'class="example" data-step="6">the average wedding' in gap and 'data-step="7">Second nature' in gap
     deal = html.split('id="s-deal"')[1].split("</section>")[0]
     assert '<div class="arrow-down gap-s" data-step="1">' in deal and '<svg class="arrow"' in deal
 

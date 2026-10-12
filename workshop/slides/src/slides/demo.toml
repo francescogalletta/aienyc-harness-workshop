@@ -31,7 +31,6 @@ id = "s-demo"
 name = "The demo"
 layout = "statement"
 blocks = [
-  { label = "TODAY'S DEMO" },
   { mega = "My wedding.", emoji = "💍" },
   { sub = "Figuring out the finances around it, to be exact.", step = 1 },
 ]
