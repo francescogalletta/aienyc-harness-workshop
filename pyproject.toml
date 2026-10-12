@@ -6,14 +6,23 @@ license = "MIT"
 requires-python = ">=3.11"
 dependencies = []
 
+[project.scripts]
+harness = "harness.__main__:main"   # `uv run harness ...`, same as `python -m harness ...`
+workshop = "workshop.__main__:main" # not built: found through the repository root, so `workshop leave` breaks nothing
+
 [project.optional-dependencies]
 claude = ["anthropic"]      # only for the `anthropic` provider
 
 [dependency-groups]
 dev = ["pytest"]
 
-[tool.uv]
-package = false             # run from the repository root; nothing to build
+[build-system]
+requires = ["uv_build>=0.11,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "harness"
+module-root = ""            # the package sits at the repository root, not under src/
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
