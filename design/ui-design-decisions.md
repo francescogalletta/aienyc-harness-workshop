@@ -27,7 +27,7 @@ Each of the five principles of the workshop has one colour, the deck's (`worksho
 | Principle | Layer | On the page |
 | --- | --- | --- |
 | 1 Shared Domain: Agree the plan before any number. | 1 the plan | The goal (edge), each step's outline and name, the input pills, origin marks (❝ ↗ ✎), open questions (●), "Whole plan" and its section, "Accept plan", the "Plan accepted" and plan-revised nodes, the folded interview |
-| 2 Consistency: Numbers come only from tested code. | 2 build | The build button and its working line, a step's build line ("✓ 4 examples · 5/5", "Building", "Stale · rebuild", "Not built") and tick, the plan check mark, the pop-up's Build part (examples, tests, code) |
+| 2 Consistency: Numbers come only from tested code. | 2 build | The build button and its working line, a step's build line ("✓ 4 examples · 5/5", "Building", "Stale · rebuild", "Not built") and tick, the plan check mark, the pop-up's Build part (unit tests, code) |
 | 3 Evidence: Every number can be followed back. | 3 answers | A step's result ("→ 43,000", underlined in the fill), underlined figures in the chat, result and "Rests on" value chips, the pop-up's run and receipt, the pulse along the lines, a withheld reply |
 | 4 Accountability: Ask only where a person must decide. | 4 needs you | The "needs you" fill and line, `◌` marks and the notice with Confirm and Change it, "your call" steps, their decision cards and records, "not in the plan", "Decided", branches and their marks, proposals with Yes and Keep and what they would touch, "re-ran" tags and their nodes, "New branch" |
 | 5 Verification: A reviewer challenges the plan. | 5 review | The Review button and its count, "Reviewing", ▲ counts and "used" tags, the Review view's lines and list, reviewer branches with Use this and Dismiss, the pop-up's Reviewer part, the "used" node |
@@ -39,6 +39,8 @@ A legend sits at the foot of the plan: the five principles, each a swatch, its n
 ## The screen
 
 Two parts that never change: the plan as a diagram, and the chat, drawn as a decision graph (a trunk of decisions, branches, chips; ARCHITECTURE.md section 12). Clicking a step attaches it to the next chat message. Each step can open a pop-up with its detail.
+
+The pop-up has one part per principle, in layer order. The plan part is always open. Build, the run and Reviewer each fold to one line, their name and a summary ("Build · Built and tested · 4 unit tests, 6/6 passing", "Last run · → 43,000", "Reviewer · 2 challenges (1 open)"), and open on click; inside Build, the unit tests and the code fold the same way. What needs the person is never folded: unconfirmed assumptions and the person's calls stay open; Build opens by itself when the step is not built, a test disagrees or was left out, or a plan check waits; Reviewer opens when a challenge is open; and the run opens when the person came from a figure or a result.
 
 ## 1. Grounding
 
@@ -54,8 +56,8 @@ Two parts that never change: the plan as a diagram, and the chat, drawn as a dec
 
 - One action starts the build; it runs through every calculation step without stopping.
 - Per step, one indicator: number of golden examples, number of tests, how many pass. The same indicator shows a module that has gone stale.
-- Examples, tests and code are hidden, opened on demand in the step's pop-up.
-- Examples are checked by a second independent model pass, not by the person as a requirement. Each example carries its origin: "checked by a second pass" or "confirmed by you". Known trade-off: a mistake both passes make gets through.
+- The worked examples are shown as the step's unit tests: the examples the code must reproduce. Unit tests and code are folded in the step's pop-up, opened on demand.
+- Examples are checked by a second independent model pass, not by the person as a requirement. A test shows its origin only when it says something: "approved by you", or a test left out with what the second working gave. One button approves every test the second pass checked; each can also be approved alone. Known trade-off: a mistake both passes make gets through.
 - The plan check appears only when the detailed plan departs from the brief, as a mark on the step.
 - When code and an example disagree, the step shows "not built"; the person resolves it through the chat on that step.
 
@@ -63,6 +65,7 @@ Two parts that never change: the plan as a diagram, and the chat, drawn as a dec
 
 - An answer is one run through the diagram. Steps used for the last answer show what went in and what came out.
 - Every number in a chat answer leads to the step that produced it. A number no step produced is never shown.
+- Replies stay short on screen: a reply longer than about four lines is clamped, with "Show more". Under an answer its results stay in view; what it rests on and assumes folds behind one line ("Rests on 5 values · 1 assumption"). The notice of things not yet confirmed is never folded.
 - No scenario comparison. A step keeps its last few runs, one click away in its pop-up.
 
 ## 4. When the harness needs the person

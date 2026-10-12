@@ -510,6 +510,7 @@ every action.
 | `wrap` | | 1 | the interview waits for an answer | Asks the interviewer to propose the plan now |
 | `build` | | 2 | `phase` is `accepted`, no build queued or running | Queues the unattended build |
 | `confirm_example` | `step`, `n` | 2 | that example exists and is not yours already, and its step is not being built | Records "confirmed by you" |
+| `confirm_examples` | `step` | 2 | the step is a calculation step with an example checked by the second pass, and is not being built | Records "confirmed by you" for each example checked by the second pass, as `confirm_example` does one at a time; left-out examples stay as they are |
 | `confirm_plan_check` | `step` | 2 | the step has departures not yet confirmed | Clears the plan-check mark |
 | `run_tests` | `step` | 2 | the step has a registered module | Queues a test run |
 | `choose` | `decision`, `option` | 4 | that decision is the one waiting | Posts the option's text as the person's message (`who` "you", the decision's step), then answers the decision with the option number; trunk node `call` (an answer in words records it too) |

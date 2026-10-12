@@ -62,7 +62,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Click legend entry 2 to keep this principle spotlighted while you talk.
 - On the example page: `All 6 built` and on each calculation step `N examples · P/P`: 4/4, 3/3, 4/4, 5/5, 5/5 (the counts differ per step; steps 4 and 7 are the person's, no tag). Step 8, "not in the plan", is the step the seed added in a conversation; say so.
 - Live: Ctrl+C, `rm -rf my/var/examples/wedding/modules/monthly_surplus`, restart (the copy must have run once, as it has after block 1). Step 3 shows `Stale · rebuild`; the button says **Rebuild 1 step**. Click: it says "Building" for 33 to 35 s (3/3), not minutes, and makes only step 3, which then reads `4 examples · 5/5` (counts differ per build). Talk during the wait: the code writer never sees the examples; a second pass checks them.
-- Open step 3: Examples marked "checked by a second pass", "4 tests, all passing", Code and tests. Take the first example, read its inputs, work it out on a calculator in front of them. Examples differ per build; say that nobody has confirmed them.
+- Open step 3, then Build: "4 tests, all passing", then Unit tests (each with Approve, and "Approve all unit tests") and Code. Take Test 1, read its inputs, work it out on a calculator in front of them. Examples differ per build; say that nobody has approved them.
 - Attendees: open steps, read examples. The Try it slides for this principle: run the tests, and break a module. A whole 4-step build took 200 s (1/1), about 50 s a step.
 - If it goes wrong: `harness replay wedding build_monthly_surplus` (20 to 28 s, PASS) does the same in a scratch copy.
 

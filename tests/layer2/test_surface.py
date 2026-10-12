@@ -145,6 +145,45 @@ def test_confirm_example_is_refused_when_it_is_already_yours_or_does_not_exist(p
         session.act("confirm_example", {"n": 1})
 
 
+def test_confirm_examples_confirms_every_second_pass_example_and_leaves_the_left_out_one(plan, open_session, build):
+    session = built(open_session, build, left_out=True)
+    calls, runs = len(session.script.calls), len(events(session, "build.tests_run"))
+    assert session.act("confirm_examples", {"step": "c1"})[0]
+    state = session.settle(SETTLE)
+    assert checked_by(state) == ["you", "you", None]
+    assert step_of(state, "c1")["build"]["examples"] == 2 and state["error"] is None
+    assert [each["n"] for each in events(session, "build.example_confirmed")] == [1, 2]
+    assert len(session.script.calls) == calls and len(events(session, "build.tests_run")) == runs   # no rebuild
+    refused, reason = session.act("confirm_examples", {"step": "c1"})     # only the left-out one remains
+    assert not refused and reason
+
+
+def test_confirm_examples_skips_examples_that_are_already_yours(plan, open_session, build):
+    session = built(open_session, build)
+    assert session.act("confirm_example", {"step": "c1", "n": 1})[0]
+    session.settle(SETTLE)
+    assert session.act("confirm_examples", {"step": "c1"})[0]
+    assert checked_by(session.settle(SETTLE)) == ["you", "you", "you"]
+    assert [each["n"] for each in events(session, "build.example_confirmed")] == [1, 2, 3]
+
+
+def test_confirm_examples_is_refused_when_nothing_is_left_or_the_step_is_wrong_or_being_built(plan, open_session, build):
+    session = built(open_session, build)
+    building = builder._memory(session.memory)
+    building["building"] = "c1"
+    refused, reason = session.act("confirm_examples", {"step": "c1"})
+    assert not refused and reason == "That step is being built right now."
+    building["building"] = None
+    assert session.act("confirm_examples", {"step": "c1"})[0]
+    session.settle(SETTLE)
+    refused, reason = session.act("confirm_examples", {"step": "c1"})
+    assert not refused and reason == "Step 'c1' has no examples left to confirm."
+    assert not session.act("confirm_examples", {"step": "j1"})[0]
+    assert not session.act("confirm_examples", {"step": "nothing"})[0]
+    with pytest.raises(BadAction):
+        session.act("confirm_examples", {})
+
+
 def test_confirming_the_plan_check_clears_its_mark_once(plan, open_session, build):
     session = built(open_session, build, departures=["Takes a list of costs"])
     assert session.act("confirm_plan_check", {"step": "c1"})[0]
