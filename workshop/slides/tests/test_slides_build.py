@@ -295,9 +295,10 @@ def test_structure_variants_render_and_default_to_stairs(deck, tmp_path):
     assert 'class="stairs' in slide_html(src, "s-map")
 
 
-def test_timeline_spacing_follows_the_minutes(deck):
+def test_timeline_has_one_equal_segment_per_principle(deck):
     out = build.SlideRenderer(deck).render_slide(1, {**next(x for x in deck.slides if x["id"] == "s-map"), "variant": "timeline"})
-    assert re.findall(r"flex-grow:(\d+)", out) == [str(p["minutes"]) for p in deck.principles]
+    assert out.count('class="tl-seg"') == len(deck.principles)
+    assert "flex-grow" not in out and " min" not in out
 
 
 def test_unknown_structure_variant_is_rejected(tmp_path):
@@ -491,8 +492,3 @@ def test_principle_ink_is_used_for_text_and_checked(deck, tmp_path, capsys):
     t.write_text(t.read_text(encoding="utf-8").replace("--principle-1-ink: var(--nord10);", "--principle-1-ink: var(--nord5);"), encoding="utf-8")
     assert build.check(build.Deck(src)) == 1
     assert "nord alternate: --principle-1-ink on --slide-bg" in capsys.readouterr().out
-
-
-def test_minutes_match_the_facilitator_plan(deck):
-    assert [p["minutes"] for p in deck.principles] == [18, 20, 17, 25, 12]
-    assert '<span class="chip">8 min</span>' in build.SlideRenderer(deck).render_all()

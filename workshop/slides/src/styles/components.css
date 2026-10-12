@@ -34,7 +34,6 @@
   padding: var(--panel-pad-y) var(--panel-pad-x);
 }
 .panel.from-you { border-radius: var(--panel-open-radius); padding: var(--panel-open-pad-y) var(--panel-open-pad-x); }
-.row { display: flex; align-items: center; gap: var(--row-gap); }
 
 /* arrow (inline SVG; its viewBox matches its CSS size, so 1 unit = 1px) */
 .arrow { flex: none; overflow: visible; fill: none; stroke: var(--connector); stroke-width: var(--connector-width); stroke-linecap: round; }
@@ -222,7 +221,6 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .tl-dot { position: relative; height: var(--tl-dot); }
 .tl-dot::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: var(--tl-line); transform: translateY(-50%); background: var(--hairline); }
 .tl-dot::after { content: ""; position: absolute; left: 0; top: 0; width: var(--tl-dot); height: var(--tl-dot); border-radius: var(--radius-round); background: var(--ci, var(--c)); }
-.tl-min { margin-top: var(--tl-gap); font-size: var(--tl-min-size); line-height: 1; color: var(--text-muted); font-variant-numeric: tabular-nums; }
 .bar-emoji { font-family: var(--emoji-font); font-size: var(--bar-emoji-size); line-height: 1; visibility: hidden; }
 .bar.filled .bar-emoji { visibility: inherit; }
 .p-emoji { font-family: var(--emoji-font); font-size: var(--divider-emoji-size); line-height: 1; align-self: center; }

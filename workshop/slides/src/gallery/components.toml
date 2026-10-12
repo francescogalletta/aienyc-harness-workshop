@@ -13,7 +13,7 @@ html = '''
     <div class="gal-cell"><div class="panel ph gal-box" data-placeholder><p class="label">PLACEHOLDER</p></div><code class="gal-name">.panel.ph</code></div>
     <div class="gal-cell"><span class="pill">Claude Code</span><code class="gal-name">.pill</code></div>
     <div class="gal-cell"><span class="pill ph" data-placeholder>to confirm</span><code class="gal-name">.pill.ph</code></div>
-    <div class="gal-cell"><span class="chip">10 min</span><code class="gal-name">.chip</code></div>
+    <div class="gal-cell"><span class="chip">tested</span><code class="gal-name">.chip</code></div>
     <div class="gal-cell"><span class="doubt">net or gross?</span><code class="gal-name">.doubt</code></div>
   </div>
   <div class="row gap-l"><code class="mono step command">uv run harness check</code><p class="hand-note">Handwritten note (.hand-note)</p></div>

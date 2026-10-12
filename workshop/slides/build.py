@@ -1162,7 +1162,7 @@ def check(deck: Deck) -> int:
     if ns != list(range(1, len(ns) + 1)):
         problems.append(f"principles.json: n must run 1..{len(ns)} in order, got {ns}")
     for p in deck.principles:
-        for key in ("n", "name", "emoji", "color", "minutes", "statement", "builds_on"):
+        for key in ("n", "name", "emoji", "color", "statement", "builds_on"):
             if key not in p:
                 problems.append(f"principles.json: principle {p.get('n')} has no {key!r}")
 

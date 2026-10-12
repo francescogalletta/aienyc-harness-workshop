@@ -34,7 +34,6 @@ id = "g-setup"
 name = "Setup"
 layout = "setup"
 label = "LAYOUT · SETUP"
-minutes = 10
 url = "https://github.com/francescogalletta/aienyc-harness-workshop"
 needs_label = "YOU NEED ONE OF"
 needs = ["Claude Code", "Codex", "an API key"]
@@ -90,7 +89,7 @@ name = "Structure (timeline)"
 layout = "structure"
 variant = "timeline"
 label = "LAYOUT · STRUCTURE · TIMELINE"
-headline = "Spacing follows the minutes."
+headline = "Five dots on one line."
 start = "Setup"
 end = "Wrap"
 

@@ -1,12 +1,12 @@
-{# Structure, variant "timeline": one thin line, five dots in the principle colours; the space after each dot is that
-   principle's minutes (from principles.json). Setup at the start, Wrap at the end. #}
+{# Structure, variant "timeline": one thin line, five dots in the principle colours; the five segments are equal width.
+   Setup at the start, Wrap at the end. #}
   <p class="label">{{ label }}</p>
   <h2 class="headline gap-xs">{{ headline|text }}</h2>
   <div class="timeline gap-l">
     <span class="flow-node pill timeline-start">{{ start }}</span>
     <div class="timeline-track">
 {% for p in principles %}
-      <div class="tl-seg" style="--c:var({{ p.color }}); --ci:var({{ p.ink }}); flex-grow:{{ p.minutes }}"><span class="tl-above"><span class="tl-head"><span class="tl-num">{{ p.n }}</span><span class="tl-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="tl-name">{{ p.name }}</span></span><span class="tl-dot"></span><span class="tl-min">{{ p.minutes }} min</span></div>
+      <div class="tl-seg" style="--c:var({{ p.color }}); --ci:var({{ p.ink }})"><span class="tl-above"><span class="tl-head"><span class="tl-num">{{ p.n }}</span><span class="tl-emoji" aria-hidden="true">{{ p.emoji }}</span></span><span class="tl-name">{{ p.name }}</span></span><span class="tl-dot"></span></div>
 {% endfor %}
     </div>
     <span class="flow-node pill timeline-end">{{ end }}</span>
