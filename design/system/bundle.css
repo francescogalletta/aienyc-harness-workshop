@@ -133,6 +133,169 @@
 .fah-pop__row--you > :last-child { color: var(--ink); font-weight: 600; }
 .fah-pop__foot { display: flex; gap: 16px; margin-top: 6px; color: var(--ink-2); }
 
+/* =====================================================================
+   Decision graph (dg-): the history beside the plan. Same tokens, no new colours.
+   Contributors are told apart by shape, never by colour; selection is an outline;
+   the attention colour marks only what waits on the person.
+   ===================================================================== */
+.dg-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@keyframes dg-pop { from { transform: scale(0); } to { transform: none; } }
+@keyframes dg-draw { to { stroke-dashoffset: 0; } }
+
+/* ---- Contributor mark: circle you, diamond assistant, square harness, triangle reviewer ---- */
+.dg-who { display: inline-block; flex: none; width: 12px; height: 12px; overflow: visible; vertical-align: -1px; }
+.dg-shape { fill: var(--ink); stroke: var(--ink); stroke-width: 1.5; stroke-linejoin: round; }
+.dg-shape--open { fill: var(--surface); stroke: var(--ink-2); }
+.dg-shape--dead { fill: var(--surface); stroke: var(--muted); }
+.dg-shape--needs { fill: var(--needs-you); stroke: var(--ink); stroke-width: 1.75; }
+.dg-shape.is-new { transform-box: fill-box; transform-origin: center; animation: dg-pop var(--dur-base) var(--ease-out) var(--dur-draw) both; }
+
+/* ---- History: rows of a spine. Decisions on the left, branches on the right ---- */
+.dg-graph { position: relative; padding: 18px 14px 6px; }
+.dg-svg { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+.dg-l { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.dg-l--trunk { stroke: var(--ink); stroke-width: 2.5; }
+.dg-l--branch { stroke: var(--flow); stroke-width: 1.75; }
+.dg-l--dead { stroke: var(--flow); stroke-width: 1.5; stroke-dasharray: 1 4; opacity: 0.8; }
+.dg-l--cap { stroke: var(--muted); stroke-width: 1.75; }
+.dg-l--sel { fill: none; stroke: var(--ink); stroke-width: 2; }
+.dg-l.is-drawing { stroke-dasharray: 100; stroke-dashoffset: 100; animation: dg-draw var(--dur-draw) var(--ease-out) forwards; }
+.dg-row { display: grid; grid-template-columns: minmax(0, 0.8fr) 40px minmax(0, 1.2fr); align-items: start; padding: 5px 0; }
+.dg-row__l, .dg-row__s, .dg-row__r { grid-row: 1; min-width: 0; }
+.dg-row__l { grid-column: 1; }
+.dg-row__s { grid-column: 2; }
+.dg-row__r { grid-column: 3; padding-left: 14px; }
+.dg-row--trunk .dg-node { align-items: flex-end; text-align: right; }
+.dg-row--trunk .dg-node__meta, .dg-row--trunk .dg-node__results { justify-content: flex-end; }
+.dg-now { display: block; text-align: right; font-size: 12px; line-height: 16px; color: var(--muted); }
+.dg-graph--narrow .dg-row { grid-template-columns: 30px minmax(0, 1fr); }
+.dg-graph--narrow .dg-row__s { grid-column: 1; }
+.dg-graph--narrow .dg-row__l, .dg-graph--narrow .dg-row__r { grid-column: 2; }
+.dg-graph--narrow .dg-row--trunk .dg-node { align-items: flex-start; text-align: left; }
+.dg-graph--narrow .dg-row--trunk .dg-node__meta, .dg-graph--narrow .dg-row--trunk .dg-node__results { justify-content: flex-start; }
+.dg-graph--narrow .dg-row__r { padding-left: 22px; }
+.dg-graph--narrow .dg-now { text-align: left; }
+
+/* ---- Trunk node: one confirmed decision ---- */
+.dg-node { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dg-node__title { margin: 0; padding: 0; font: inherit; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--ink); text-align: inherit;
+  background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; overflow-wrap: anywhere; }
+.dg-node__title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.dg-node__meta { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 5px; align-items: center; font-size: 12px; line-height: 20px; color: var(--ink-2); }
+.dg-node__results { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.dg-node__fail { margin: 0; font-size: 12px; line-height: 16px; color: var(--ink-2); }
+.dg-node.is-new { animation: fah-rise var(--dur-slow) var(--ease-out) var(--dur-draw) both; }
+
+/* ---- Ref: a step or input named in a node, branch or proposal. The plan's shapes at 20px ---- */
+.dg-ref { position: relative; display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; margin: 0;
+  font: inherit; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ink); background: var(--surface);
+  border: 0; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1.5px var(--ink); cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out); }
+.dg-ref::after { content: ""; position: absolute; inset: -8px -2px; }
+.dg-ref:hover { background: var(--bubble); }
+.dg-ref--you { border-radius: 10px; }
+.dg-ref--call { box-shadow: none; border: 1.5px dashed var(--ink); }
+.dg-ref--input { border-radius: 10px; box-shadow: inset 0 0 0 1px var(--ink-2); font-weight: 400; padding: 0 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Chip: a value in place of a sentence. Shape and glyph say the kind ---- */
+.dg-chip, .dg-fig { position: relative; display: inline-flex; vertical-align: baseline; max-width: 100%; }
+.dg-chip__btn { display: inline-flex; align-items: baseline; gap: 4px; max-width: 100%; margin: 0; padding: 1px 7px;
+  font: inherit; font-size: 13px; line-height: 18px; color: var(--ink); text-align: left; background: var(--surface);
+  border: 0; border-radius: var(--radius-sm); box-shadow: inset 0 0 0 1.5px var(--ink); cursor: pointer; white-space: nowrap;
+  transition: background-color var(--dur-fast) var(--ease-out); }
+.dg-chip__v { font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.dg-chip__k { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink-2); }
+.dg-chip__v { flex: none; }
+.dg-chip--wrap .dg-chip__v { flex: 1 1 auto; }
+.dg-chip__g { flex: none; color: var(--ink-2); }
+.dg-chip__g .dg-who { width: 10px; height: 10px; }
+.dg-chip--assumed .dg-chip__g { font-size: 15px; }
+.dg-chip--given .dg-chip__btn { border-radius: 999px; box-shadow: inset 0 0 0 1px var(--ink-2); padding: 1px 9px; }
+.dg-chip--assumed .dg-chip__btn { box-shadow: none; border: 1.5px dashed var(--flow); padding: 0 6px; }
+.dg-chip--decision .dg-chip__btn { box-shadow: inset 0 0 0 2px var(--ink); align-items: center; }
+.dg-chip--wrap .dg-chip__btn { white-space: normal; }
+.dg-chip--wrap .dg-chip__v { font-weight: 400; overflow: visible; }
+.dg-chip--confirmed .dg-chip__btn { border-style: solid; border-color: var(--line); }
+.dg-chip__btn:hover, .dg-chip.is-traced .dg-chip__btn { background: var(--thread); }
+.dg-chip--stale .dg-chip__v, .dg-chip--stale .dg-chip__k { text-decoration: line-through; text-decoration-thickness: 1.5px; color: var(--muted); }
+.dg-chip--stale .dg-chip__btn { box-shadow: inset 0 0 0 1px var(--line); }
+.dg-chip--stale.dg-chip--assumed .dg-chip__btn { box-shadow: none; border-color: var(--line); }
+.fah-num.dg-num--stale { color: var(--muted); border-bottom-color: var(--line); text-decoration: line-through; text-decoration-thickness: 1.5px; }
+
+/* ---- Hover menu: three icon buttons on a chip or figure; the focused one is named in words ---- */
+.dg-menu { position: absolute; left: -5px; bottom: calc(100% + 6px); z-index: 30; display: flex; flex-direction: column; padding: 3px;
+  background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 1.5px var(--ink), var(--shadow-pop);
+  opacity: 0; visibility: hidden; transform: translateY(3px); white-space: nowrap; text-decoration: none; font-weight: 400;
+  transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), visibility 0s linear var(--dur-fast); }
+.dg-menu::before { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 10px; }
+.dg-below .dg-menu { bottom: auto; top: calc(100% + 6px); transform: translateY(-3px); }
+.dg-below .dg-menu::before { top: auto; bottom: 100%; }
+.dg-end .dg-menu { left: auto; right: -5px; }
+.dg-chip:hover .dg-menu, .dg-chip:focus-within .dg-menu, .dg-fig:hover .dg-menu, .dg-fig:focus-within .dg-menu { opacity: 1; visibility: visible; transform: none; transition-delay: 0s; }
+.dg-chip.is-shut .dg-menu, .dg-fig.is-shut .dg-menu { opacity: 0; visibility: hidden; }
+.dg-menu__row { display: flex; gap: 2px; }
+.dg-menu__btn { display: grid; place-items: center; width: 32px; height: 32px; margin: 0; padding: 0; color: var(--ink); background: none; border: 0; border-radius: var(--radius-md); cursor: pointer; }
+.dg-menu__btn:hover, .dg-menu__btn:focus-visible { background: var(--bubble); }
+.fah .dg-menu__btn:focus-visible { outline-offset: -2px; }
+.dg-menu__btn svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.dg-menu__label { padding: 1px 6px 2px; font-size: 11px; line-height: 14px; color: var(--ink-2); }
+@media (pointer: coarse) { .dg-menu__btn { width: 44px; height: 44px; } }
+
+/* ---- Branch: a conversation about one thing. Open, joined, or dead ---- */
+.dg-branch { font-size: 13px; line-height: 18px; background: var(--thread); border-radius: var(--radius-lg); min-width: 0; }
+.dg-branch > summary { display: flex; gap: 8px; align-items: baseline; padding: 6px 10px; cursor: pointer; list-style: none; border-radius: var(--radius-lg); }
+.dg-branch > summary::-webkit-details-marker { display: none; }
+.dg-branch > summary::before { content: "▸"; flex: none; display: inline-block; color: var(--ink-2); transition: transform var(--dur-base) var(--ease-out); }
+.dg-branch[open] > summary::before { transform: rotate(90deg); }
+.dg-branch__title { flex: 1; min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
+.dg-branch__state { flex: none; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.dg-branch--needs .dg-branch__state { color: var(--ink); font-weight: 600; }
+.dg-branch__body { display: flex; flex-direction: column; gap: 6px; padding: 0 10px 10px 26px; }
+.dg-branch__on { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 12px; color: var(--ink-2); }
+.dg-branch__end { margin: 0; font-size: 12px; color: var(--ink-2); }
+.dg-branch__acts { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 12px; color: var(--ink-2); }
+.dg-branch .fah-btn { min-height: 36px; padding: 0 12px; }
+.dg-branch--dead { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+.dg-branch--dead .dg-branch__title { font-weight: 400; }
+.dg-branch--dead .dg-branch__state, .dg-branch--dead .dg-branch__end, .dg-branch--dead > summary::before, .dg-branch--dead .dg-say { color: var(--muted); }
+.dg-say { display: flex; gap: 8px; align-items: baseline; margin: 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.dg-say .dg-who { width: 10px; height: 10px; transform: translateY(1px); }
+.dg-say--you { color: var(--ink); }
+.dg-say__src { font-size: 12px; color: var(--ink-2); }
+.dg-reply { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 10px; background: var(--surface); border-radius: var(--radius-md);
+  box-shadow: inset 0 0 0 1px var(--flow); transition: box-shadow var(--dur-fast) var(--ease-out); }
+.dg-reply:focus-within { box-shadow: inset 0 0 0 2px var(--ink); }
+.dg-reply input { flex: 1; min-width: 0; padding: 0; font: inherit; font-size: 13px; color: var(--ink); background: transparent; border: 0; outline: 0; }
+.fah .dg-reply input:focus-visible { outline: none; }
+.dg-reply input::placeholder { color: var(--muted); opacity: 1; }
+
+/* ---- Join request: the harness proposes; the person says yes or no ---- */
+.dg-propose { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface); border-radius: var(--radius-lg); box-shadow: inset 0 0 0 2px var(--ink); }
+.dg-propose__q { margin: 0; display: flex; gap: 8px; align-items: center; font-size: 14px; line-height: 20px; font-weight: 600; }
+.dg-propose__row { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.dg-propose__k { min-width: 64px; font-size: 12px; color: var(--ink-2); }
+.dg-propose__row s { color: var(--muted); }
+
+/* ---- Answer: a short lead, then the facts as chips ---- */
+.dg-answer { display: flex; flex-direction: column; gap: 8px; }
+.dg-facts { margin: 0; display: grid; grid-template-columns: fit-content(40%) minmax(0, 1fr); gap: 7px 12px; align-items: baseline; }
+.dg-facts dt { font-size: 12px; line-height: 20px; color: var(--ink-2); }
+.dg-facts dd { margin: 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; min-width: 0; font-size: 12px; color: var(--ink-2); }
+
+/* ---- In the plan: what a branch would touch, what a join changed, a selected input ---- */
+.fah-step.dg-touch, .fah-pill.dg-touch { outline: 1.5px dashed var(--flow); outline-offset: 4px; }
+.fah-pill.dg-touch { outline-offset: 3px; }
+.fah-step.dg-touch--far { outline: 1.5px dotted var(--flow); outline-offset: 4px; }
+.fah-pill.dg-needs { background: var(--needs-you); color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.fah-pill.dg-pill--sel { color: var(--ink); box-shadow: inset 0 0 0 2.5px var(--ink); }
+.fah-pill.dg-pill--changed { color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.dg-pill__v { margin-left: 4px; font-weight: 600; }
+.dg-tag { display: inline-flex; gap: 4px; align-items: center; color: var(--muted); }
+.dg-tag .dg-who { width: 9px; height: 9px; }
+.dg-tag__new { color: var(--ink); font-weight: 600; }
+.dg-tag__new.is-in { animation: fah-rise var(--dur-slow) var(--ease-out) both; }
+.dg-tag .fah-working { width: 24px; }
+
 @media (prefers-reduced-motion: reduce) {
   .fah *, .fah *::before, .fah *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }

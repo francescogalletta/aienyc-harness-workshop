@@ -77,7 +77,7 @@ def test_a_side_thread_is_answered_and_follows_the_last_main_message(routed):
     state = open_thread(session, "What does this step do?", step="c1")
     (thread,) = threads(state)
     assert (thread["kind"], thread["step"], thread["title"], thread["after"], thread["status"]) == (
-        "side", "c1", "Total", last, "open")
+        "side", "c1", "What does this step do?", last, "open")
     assert [(m["who"], m["text"]) for m in thread["messages"]] == [
         ("you", "What does this step do?"), ("assistant", "It adds the two amounts.")]
     assert all(m["sources"] == [] for m in thread["messages"]) and thread["challenge"] is None
@@ -183,7 +183,7 @@ def test_neither_conversation_sees_the_other(routed):
     sent = session.models.side.calls[0]
     assert [m["content"] for m in sent["messages"]] == ["A purple elephant question"]
     assert "Main one." in sent["system"] and "My first main question" in sent["system"]      # last chat lines, as text
-    assert sent["tools"][0].name == "look_up" and len(sent["tools"]) == 1
+    assert {tool.name for tool in sent["tools"]} == {"look_up", "propose_change"}          # it proposes, never runs
 
 
 def test_what_is_said_in_a_thread_is_not_a_source_for_the_main_analyst(routed):

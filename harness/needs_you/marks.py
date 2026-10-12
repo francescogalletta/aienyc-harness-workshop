@@ -34,6 +34,16 @@ def key_of(text: str) -> str:
     return one_line(text).casefold()
 
 
+def node_text(prefix: str, texts: list[str]) -> str:
+    """`Confirmed: <first sentence>` with ` and <n> more` when there are others, within the node's 80 characters."""
+    first = re.split(r"(?<=[.!?])\s", one_line(texts[0]), maxsplit=1)[0] if texts else ""
+    more = f" and {len(texts) - 1} more" if len(texts) > 1 else ""
+    room = 80 - len(prefix) - len(more)
+    if len(first) > room:
+        first = first[:max(room - 1, 0)].rstrip() + "…"
+    return f"{prefix}{first}{more}"
+
+
 def _assumption(row) -> dict:
     return {"id": f"a{row['id']}", "text": row["text"], "status": row["status"], "words": row["words"]}
 
@@ -144,6 +154,9 @@ def confirm(core, message_id: str) -> None:
     set_status(core.conn, ids, CONFIRMED)
     core.update_message(message_id, {"notice": {**notice, "status": "confirmed"}})
     core.record("you.assumptions_confirmed", {"message": message_id, "assumptions": ids}, "person")
+    core.decide(who="you", kind="assumption_confirmed",
+                text=node_text("Confirmed: ", [each["text"] for each in notice["assumptions"]]),
+                change={"assumptions": ids}, touched={"inputs": [], "steps": list(notice["steps"])})
 
 
 def correct(work, message_id: str, words: str) -> list[str]:
@@ -157,6 +170,9 @@ def correct(work, message_id: str, words: str) -> list[str]:
     set_status(work.conn, ids, CORRECTED, words)
     work.session.update_message(message_id, {"notice": {**notice, "status": "changed"}})
     work.record("you.assumptions_corrected", {"message": message_id, "assumptions": ids, "words": words}, "person")
+    work.decide(who="you", kind="assumption_corrected",
+                text=node_text("Corrected: ", [row["text"] for row in targets]),
+                change={"assumptions": ids, "words": words}, touched={"inputs": [], "steps": list(notice["steps"])})
     return [row["text"] for row in targets]
 
 

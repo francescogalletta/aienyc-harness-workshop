@@ -96,6 +96,7 @@
         "harness/answers/agent.py",
         "harness/answers/figures.py",
         "harness/answers/layer.py",
+        "harness/answers/rerun.py",
         "harness/answers/schema.sql"
       ],
       "given": [
@@ -111,6 +112,7 @@
       "built": [
         "harness/needs_you/__init__.py",
         "harness/needs_you/calls.py",
+        "harness/needs_you/join.py",
         "harness/needs_you/layer.py",
         "harness/needs_you/marks.py",
         "harness/needs_you/requests.py",

@@ -14,7 +14,7 @@ This system holds the tokens, the component styles and a small script for motion
 | `bundle.css` | Styles for every component |
 | `bundle.js` | `window.FAH`: helpers for state and motion |
 | `index.d.ts` | The helpers' signatures, as documentation |
-| `components.md` | Markup and rules for each component, and a full demo |
+| `components.md` | Markup and rules for each component (the decision graph's `dg-` components included), and a full demo |
 | `motion.md` | Timings, the moments that move, and the rules |
 
 The agreed product behaviour is in `design/ui-design-decisions.md`.
@@ -40,6 +40,7 @@ Positioning steps and drawing the lines between them is the page's job. The syst
 - **Nothing blocks unless the call is the person's.** Anything unconfirmed runs and carries a mark.
 - **Every figure leads somewhere.** A number in the chat is underlined and selects the step that produced it.
 - **Quiet by default.** Pills, origin marks and threads are small and low contrast until they are used.
+- **The chat is a decision history.** A trunk of confirmed decisions, branches that join it with the person's yes or die dimmed, and values as chips rather than sentences. Contributors (you, the assistant, the harness, the reviewer) are told apart by shape. See "Decision graph" in `components.md`.
 
 ## Colour
 
@@ -82,4 +83,4 @@ See the Motion section. In short: things respond in 120ms, enter in 200ms, and t
 
 ## Voice
 
-Plain and short. Name things the way the person would: "the plan", "a step", "needs you", "on the side". Buttons say what happens: "Accept plan", "Use this", "Dismiss". The interface never apologises and never explains itself in the diagram.
+Plain and short. Name things the way the person would: "the plan", "a step", "needs you", "a branch". Buttons say what happens: "Accept plan", "Use this", "Dismiss". The interface never apologises and never explains itself in the diagram.

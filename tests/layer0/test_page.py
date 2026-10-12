@@ -37,9 +37,11 @@ def test_the_page_loads_nothing_from_outside():
     assert set(re.findall(r"['\"](/[a-z/]*api/[a-z]+)['\"]", page)) == {"/api/state", "/api/act"}
 
 
-def test_there_are_five_sample_states():
-    assert [path.stem for path in SAMPLES] == ["answer_with_mark", "built_one_not_built", "call_waiting",
-                                               "plan_proposed", "review_challenges"]
+def test_there_are_six_sample_states_and_the_decision_graph_stories():
+    stories = [path.stem for path in SAMPLES if path.stem.startswith("dg_story_")]       # B3's mock, the two stories of 12.10
+    assert [path.stem for path in SAMPLES if path.stem not in stories] == [
+        "answer_with_mark", "built_one_not_built", "call_waiting", "decision_graph", "plan_proposed", "review_challenges"]
+    assert {"dg_story_proposal", "dg_story_joined", "dg_story_dead"} <= set(stories)
 
 
 @pytest.mark.parametrize("path", SAMPLES, ids=lambda path: path.stem)

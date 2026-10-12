@@ -148,8 +148,12 @@ def request_module(turn: Turn, call) -> dict:
         result = {"outcome": built["outcome"], "step": built["step"], "module": built["module"],
                   "spec": get_module(conn, built["module"])["spec"]}
         told = BUILT_NOT_IN_PLAN if case == "new" else BUILT_STEP
-    work.post(told.format(number=number_of_step(conn, brief, step["id"]), name=step["name"]),
-              who="harness", step=step["id"])
+    number = number_of_step(conn, brief, step["id"])
+    work.post(told.format(number=number, name=step["name"]), who="harness", step=step["id"])
+    if built["outcome"] != "not_built":
+        work.decide(who="assistant", kind="built", text=f"Built step {number} {step['name']}",
+                    change={"steps": {step["id"]: built["outcome"]}, "why": case},
+                    touched={"inputs": [], "steps": [step["id"]]})
     turn.record("you.module_requested", {"case": case, "target": target, "step": step["id"], "arguments": arguments,
                                          "outcome": result["outcome"], "seconds": seconds,
                                          "near": asked_from(turn, steps, step["id"])}, "agent")

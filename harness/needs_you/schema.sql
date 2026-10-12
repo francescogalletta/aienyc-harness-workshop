@@ -30,3 +30,17 @@ CREATE TABLE IF NOT EXISTS decisions (   -- calls that are the person's (SPEC 6.
     message      TEXT,                   -- the decision message in the chat
     status       TEXT NOT NULL DEFAULT 'open'   -- "open" | "answered" | "dropped" (its process ended unanswered)
 );
+
+CREATE TABLE IF NOT EXISTS proposals (   -- a change proposed on a side branch (SPEC 6.6, ARCHITECTURE.md 12.8)
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,   -- shown as "p<id>"
+    ts            TEXT NOT NULL,
+    conversation  TEXT NOT NULL,
+    thread        INTEGER NOT NULL,
+    kind          TEXT NOT NULL,                       -- "value" | "plan"
+    change        TEXT NOT NULL,                       -- JSON, the Proposal's change
+    words         TEXT NOT NULL,
+    impact        TEXT NOT NULL,                       -- JSON Impact, as proposed
+    status        TEXT NOT NULL,                       -- "pending" | "accepted" | "declined" | "replaced" | "failed"
+    reason        TEXT NOT NULL DEFAULT '',
+    node          INTEGER                              -- trunk.id once joined
+);

@@ -203,6 +203,9 @@ def ask_decision(turn: Turn, call) -> dict:
     work.session.update_message(message, {"decision": {**shape, "status": "answered", "choice": choice}})
     turn.record("you.decision", {"decision": decision_id, "step": step_id, "choice": choice, "words": words,
                                  "runs": runs}, "person")
+    work.decide(who="you", kind="call", text=f"{question} {words}",
+                change={"decision": decision_id, "step": step_id, "choice": choice, "words": words},
+                touched={"inputs": [], "steps": [step_id]})
     decided = {row["step_id"] for row in rows_of(conn, turn.conversation) if row["status"] == "answered"}
     result = {"outcome": "decided", "decision": decision_id, "choice": choice,
               "option": None if choice == SOMETHING_ELSE else options[int(choice) - 1], "said": words,

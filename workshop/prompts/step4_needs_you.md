@@ -8,12 +8,12 @@ You are building layer 4 of a small agent harness, the Financial Advisor Harness
 
 What this layer does:
 
-Nothing blocks unless the call is the person's. An assumption is run and marked; the person confirms or changes it. A call that is the person's stops and asks, with options. A calculation the plan lacks is built automatically and shown as not in the plan. Side threads answer questions on the side and never change anything.
+Nothing blocks unless the call is the person's. An assumption is run and marked; the person confirms or changes it. A call that is the person's stops and asks, with options. A calculation the plan lacks is built automatically and shown as not in the plan. A side thread is a branch about one thing in the plan: the side assistant answers there and may propose a change to a figure or to the plan, but nothing changes until the person says yes. Then the branch joins the trunk of decisions, the runs the value reaches are run again through the gate, and the analyst is told. A branch that changes nothing dies and stays on the page, dimmed.
 
 Read these first, in this order:
 
-1. `SPEC.md`: section 1 (ground rules), then section 6 (when the harness needs the person, 6.1 to 6.5). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 and 3.4 (`unconfirmed`, `calls`, decisions, threads), 4 and the notes marked A4a, A4b and B2 in section 9.
+1. `SPEC.md`: section 1 (ground rules), then section 6 (when the harness needs the person, 6.1 to 6.6). Follow its names, signatures, templates and behaviour exactly.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 to 3.5 (`unconfirmed`, `calls`, decisions, threads, the decision history and proposals), 4, 12.2, 12.3, 12.5 and 12.6, and the notes marked A4a, A4b, B2, D4a and D4b in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer4/`. These tests are the definition of done.
 
@@ -21,11 +21,12 @@ Build these files, all in `harness/needs_you/`:
 
 - `__init__.py`: a docstring only
 - `calls.py`: decisions that wait for the person
-- `layer.py`: `LAYER`: the state contribution, the tools, the actions `choose`, `confirm_assumptions` and `side`, hooks, replay expectations
+- `join.py`: proposals and their checks, the actions `accept_proposal`, `decline_proposal` and `close_branch`, the join job and the death of a branch
+- `layer.py`: `LAYER`: the state contribution, the tools, the actions `choose`, `confirm_assumptions`, `side` and the three of `join.py`, hooks, replay expectations
 - `marks.py`: assumptions, notices, confirm and correct
 - `requests.py`: `request_module`, the automatic build of a missing calculation
-- `schema.sql`: the `assumptions`, `run_assumptions` and `decisions` tables
-- `side.py`: the side assistant and the `side` action
+- `schema.sql`: the `assumptions`, `run_assumptions`, `decisions` and `proposals` tables
+- `side.py`: the side assistant, the `side` action and the tool `propose_change`
 
 Given files (do not edit; read them):
 
@@ -52,6 +53,6 @@ uv run pytest tests/layer1 -q
 uv run pytest tests/layer0 -q
 ```
 
-Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. An answer on an unsaid split is marked `◌`; confirm it, then change it to 40/60. If you are stuck, `uv run python -m workshop finish 4` restores the finished layer from git (your files are set aside first).
+Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. An answer on an unsaid split is marked `◌`; confirm it, then change it to 40/60. Then open a branch from the Guest count chip, say "We will get no fewer than 150 guests", and say yes to the proposal; `examples/wedding/scenarios/branch_that_joins.json` is that run. If you are stuck, `uv run python -m workshop finish 4` restores the finished layer from git (your files are set aside first).
 
 When you think you are done, report briefly: the files you created, the test results, and anything in the contract you found unclear or had to guess.

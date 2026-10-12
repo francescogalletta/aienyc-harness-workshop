@@ -1,0 +1,24 @@
+{
+  "name": "branch_that_dies",
+  "layer": 4,
+  "kind": "ask",
+  "description": "The person opens a branch on step 5 to ask what a sinking fund is. It is answered from the plan and the standard terms, nothing is proposed, and closing it leaves it dead: no decision is recorded and the plan is as it was.",
+  "today": "2026-10-12",
+  "lines": [
+    {
+      "act": "branch",
+      "step": "s5",
+      "text": "What is a sinking fund?"
+    },
+    {
+      "act": "close"
+    }
+  ],
+  "expect": {
+    "side_threads": 1,
+    "branches": {
+      "joined": 0,
+      "dead": 1
+    }
+  }
+}

@@ -7,13 +7,13 @@ Which run belongs to which answer is kept on the message that ended the turn, in
 import json
 from pathlib import Path
 
-from ..calc.provenance import _produced, _read, unbacked
-from ..calc.registry import module_for_step
+from ..calc.provenance import _near, _produced, _read, unbacked
+from ..calc.registry import get_module, module_for_step
 from ..core import Session
-from ..core.state import display, display_inputs
+from ..core.state import display, display_inputs, show_value
 from ..grounding.layer import phase_of
 from ..layers import Command, Expect, Layer
-from .agent import answer, saved_inputs, tools
+from .agent import answer, saved_inputs, step_of_module, today_of, tools
 
 NO_PLAN = "There is no agreed plan yet. Agree one first with: python -m harness ground"
 INTRO = "Ask about your plan, in your own words. Type /quit to stop."
@@ -89,8 +89,8 @@ def last_run(conn, conversation: str, module: str | None, replies: dict, in_answ
 
 
 def contribute(view, state: dict) -> None:
-    """`last_run` and `runs` on every step, edges and inputs of added steps from the runs that fed them, and
-    `used` and `value` on every input (SPEC 5.2)."""
+    """`last_run` and `runs` on every step, edges and inputs of added steps from the runs that fed them, `used`
+    and `value` on every input (SPEC 5.2), and `chips` on every message (SPEC 5.4)."""
     conn = view.conn
     accepted = state["phase"] == "accepted"
     _, in_answer, cited = latest_answer(conn, view.conversation) if accepted else (None, set(), set())
@@ -113,6 +113,116 @@ def contribute(view, state: dict) -> None:
         value = found["value"] if found else None
         entry["value"] = value if value is None or isinstance(value, str) else json.dumps(value, ensure_ascii=False)
         entry["used"] = any(step in lit for step in entry.get("steps", []))
+    add_chips(view, state)
+    mark_superseded(view, state)
+
+
+def mark_superseded(view, state: dict) -> None:
+    """`superseded` on every figure of a message that names a run: true only when a join ran that run again (and
+    that re-run again, if a later join did) and the run that came last no longer produces the figure's value.
+    A re-run that gave the same value, a date or a payment that did not move, leaves it current."""
+    replaced = {}
+    for node in (state.get("history") or {}).get("trunk", []):
+        runs = (node.get("change") or {}).get("runs")
+        if isinstance(runs, dict):
+            replaced.update({old: new for old, new in runs.items() if isinstance(old, str) and isinstance(new, str)})
+    made = {}
+
+    def produced(run: str):
+        if run not in made:
+            row = view.conn.execute("SELECT inputs, output FROM calc_runs WHERE id = ?", (int(run[1:]),)).fetchone() \
+                if run[1:].isdigit() else None
+            made[run] = _produced(json.loads(row["output"]), json.loads(row["inputs"])) if row else None
+        return made[run]
+
+    for message in state["chat"]:
+        for figure in message.get("figures") or []:
+            figure["superseded"] = False
+            run, seen = figure.get("run"), set()
+            while run in replaced and run not in seen:
+                seen.add(run)
+                run = replaced[run]
+            if run == figure.get("run") or not isinstance(run, str) or (found := produced(run)) is None:
+                continue
+            numbers, dates = found
+            for item in _read(figure["text"]):
+                if item["parts"] and item["written"] not in dates \
+                        or not item["parts"] and not _near(numbers, item["value"], item["precision"]):
+                    figure["superseded"] = True
+
+
+# --- Chips (SPEC 5.4, ARCHITECTURE.md 12.7): built from the harness's own records, never by the model ---
+
+def _words(key: str) -> str:
+    text = key.replace("_", " ").strip()
+    return text[:1].upper() + text[1:]
+
+
+def _written(value) -> str:
+    return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
+
+
+def _made_by_earlier(value, made: tuple[list, set]) -> bool:
+    """Whether every number and date in the value was produced by an earlier run (a value with none: no)."""
+    items = _read(_written(value))
+    return bool(items) and all(item["written"] in made[1] if item["parts"] else item["value"] in made[0]
+                               for item in items)
+
+
+def run_chips(runs: list[int], rows: dict, state: dict, conn, today: str) -> list[dict]:
+    """The chips of the given runs, oldest first: values, then assumptions, then results (12.7). A layer
+    that knows more (layer 4: assumption status, a decision chip first) changes the list afterwards."""
+    steps = {step["id"]: step for step in state["steps"]}
+    values, assumptions, results, seen = [], [], [], set()
+    made_numbers, made_dates = [], set()
+    for run_id in sorted(set(runs)):
+        row = rows.get(run_id)
+        if row is None:
+            continue
+        inputs, output = json.loads(row["inputs"]), json.loads(row["output"])
+        step = step_of_module(conn, row["module"], set(steps))
+        for key, value in (inputs.items() if isinstance(inputs, dict) else []):
+            input_id = f"in:{key}" if f"in:{key}" in state["inputs"] else None
+            if value is None or value == today or (key, _written(value)) in seen \
+                    or _made_by_earlier(value, (made_numbers, made_dates)):
+                continue
+            seen.add((key, _written(value)))
+            values.append({"kind": "value", "label": state["inputs"][input_id]["name"] if input_id else _words(key),
+                           "text": display(value)["text"], "status": None,
+                           "subject": {"kind": "value", "run": f"r{run_id}", "key": key, "value": _written(value),
+                                       "input": input_id, "step": step}})
+        for sentence in json.loads(row["assumptions"]):
+            folded = " ".join(sentence.casefold().split())
+            if folded not in seen:
+                seen.add(folded)
+                assumptions.append({"kind": "assumption", "label": "", "text": sentence, "status": None,
+                                    "subject": {"kind": "assumption", "run": f"r{run_id}", "step": step,
+                                                "text": sentence, "assumption": None}})
+        if step:
+            registered = get_module(conn, row["module"])
+            results.append({"kind": "result", "label": steps[step]["name"], "status": None,
+                            "text": show_value(output, ((registered or {}).get("spec") or {}).get("output")),
+                            "subject": {"kind": "result", "run": f"r{run_id}", "step": step,
+                                        "value": _written(output)}})
+        made = _produced(output, inputs)
+        made_numbers += made[0]
+        made_dates |= made[1]
+    return values + assumptions + results
+
+
+def add_chips(view, state: dict) -> None:
+    """`chips` on every message of the main chat: from the private `_chip_runs` of a message (a join notice), else
+    its `_runs`; `[]` when it has neither (a withheld reply keeps the chips of the runs it made)."""
+    conn, today = view.conn, today_of(view.memory).isoformat()
+    private = dict(_answers(conn, view.conversation))
+    wanted = {message: data.get("_chip_runs", data.get("_runs")) or [] for message, data in private.items()}
+    rows = {}
+    if any(wanted.values()):
+        rows = {row["id"]: row for row in conn.execute("SELECT * FROM calc_runs WHERE session_id = ?",
+                                                      (view.conversation,))}
+    for message in state["chat"]:
+        runs = wanted.get(message["id"], [])
+        message["chips"] = run_chips(runs, rows, state, conn, today) if runs else []
 
 
 def connect_added(conn, conversation: str, state: dict) -> None:
@@ -275,15 +385,25 @@ def _check_runs(value, context) -> dict:
             "seen": "; ".join(f"{row['module']} {row['inputs']}" for row in rows) or "no runs"}
 
 
+def _shown_texts(state: dict) -> list[str]:
+    """What a person reads in the main chat, one text per message: an assistant reply or decision question, and a
+    harness message (a join notice), each with the text of its chips (the figures the reply no longer repeats)."""
+    texts = []
+    for message in state["chat"]:
+        if message["who"] == "assistant" and message["kind"] in ("text", "decision") \
+                or message["who"] == "harness" and (message["kind"] == "text" or message.get("chips")):
+            texts.append(" ".join([message["text"], *(chip["text"] for chip in message.get("chips") or [])]))
+    return texts
+
+
 def _check_shown(wanted: bool):
     def check(value, context) -> dict:
-        replies = [message["text"] for message in context.state()["chat"]
-                   if message["who"] == "assistant" and message["kind"] in ("text", "decision")]
+        replies = _shown_texts(context.state())
         found = [item for item in value if any(not unbacked(item, [text]) for text in replies)]
         shown = [item for item in value if item in found]
         passed = len(found) == len(value) if wanted else not found
         return {"what": ("shows " if wanted else "does not show ") + ", ".join(value), "passed": passed,
-                "seen": f"{', '.join(shown) or 'none'} of {len(replies)} replies"}
+                "seen": f"{', '.join(shown) or 'none'} of {len(replies)} messages"}
     return check
 
 

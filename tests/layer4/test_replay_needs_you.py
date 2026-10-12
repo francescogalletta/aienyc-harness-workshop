@@ -120,3 +120,116 @@ def test_a_side_thread_can_be_opened_while_the_main_answer_is_still_being_worked
     result = replay.run_scenario(found, example_dir=example, model_factory=Staged, write=lambda text: None)
     assert result["passed"], result
     assert finished[0] == "side"                  # answered while the main lane was still busy
+
+
+# --- The acts of the decision history: branch, accept, decline, close (SPEC 2.6) ---
+
+CHIP = {"kind": "value", "label": "A", "text": "10"}
+JOIN_LINES = [ASK, {"act": "branch", "chip": CHIP, "text": "Make it: a is 15, not 10."}, {"act": "accept"}]
+
+
+def _chat(*chips):
+    return {"chat": [{"id": "m1", "chips": []}, {"id": "m2", "chips": list(chips)}]}
+
+
+def test_the_branch_acts_are_checked_when_the_scenario_is_read():
+    for change, expected in [({"lines": [{"act": "branch", "text": "why", "chip": {"kind": "number"}}]}, "chip kind"),
+                             ({"lines": [{"act": "branch", "text": "why", "chip": {"kind": "value", "size": 1}}]},
+                              "does not take 'size'"),
+                             ({"lines": [{"act": "branch", "text": "why", "chip": "A"}]}, "chip must be an object"),
+                             ({"lines": [{"act": "branch", "text": "why", "step": "c1", "chip": CHIP}]}, "not both"),
+                             ({"lines": [{"act": "branch", "step": "c1"}]}, "needs 'text'"),
+                             ({"lines": [{"act": "branch", "text": "why", "step": "zz"}]}, "'zz' is not a step"),
+                             ({"lines": [{"act": "accept", "text": "yes"}]}, "does not take 'text'"),
+                             ({"expect": {"branches": {"joined": -1}}}, "expect.branches"),
+                             ({"expect": {"branches": {"nodes": ["nothing"]}}}, "expect.branches")]:
+        errors = replay.validate_scenario(scenario(**change), stem="s", brief=small_plan(), layers=4)
+        assert any(expected in error for error in errors), (change, errors)
+    for act in ("branch", "accept", "decline", "close"):
+        errors = replay.validate_scenario(scenario(layer=3, lines=[{"act": act, "text": "x"}]),
+                                          stem="s", brief=small_plan(), layers=4)
+        assert any("needs layer 4 or above" in error for error in errors), act
+    good = scenario(lines=[ASK, {"act": "branch", "chip": CHIP, "text": "Why?"}, {"act": "decline"},
+                           {"act": "branch", "step": "c1", "text": "What is a total?"}, {"act": "close"}],
+                    expect={"branches": {"joined": 0, "dead": 2}})
+    assert replay.validate_scenario(good, stem="s", brief=small_plan(), layers=4) == []
+
+
+def test_the_branch_acts_are_resolved_from_the_state_never_from_a_fixed_id():
+    act = replay._action_for
+    older = {"id": "m1", "chips": [{"kind": "value", "label": "A", "text": "10", "subject": {"kind": "value", "run": "r1"}}]}
+    newer = {"id": "m3", "chips": [{"kind": "value", "label": "A", "text": "10", "subject": {"kind": "value", "run": "r3"}},
+                                   {"kind": "result", "label": "Total", "text": "30", "subject": {"kind": "result"}}]}
+    state = {"chat": [older, newer], "threads": [
+        {"id": "t2", "kind": "review", "outcome": "open", "proposal": None},
+        {"id": "t9", "kind": "side", "outcome": "open", "proposal": {"id": "p3", "status": "pending"}},
+        {"id": "t10", "kind": "side", "outcome": "dead", "proposal": {"id": "p4", "status": "declined"}},
+        {"id": "t11", "kind": "side", "outcome": "open", "proposal": {"id": "p5", "status": "pending"}}]}
+    chip = {"kind": "value", "label": " a ", "text": "10"}                        # case and spacing do not matter
+    assert act({"act": "branch", "chip": chip, "text": "No"}, state) == (
+        "side", {"text": "No", "subject": {"kind": "value", "run": "r3"}})        # the newest chip that matches
+    assert act({"act": "branch", "chip": {"kind": "result"}, "text": "No"}, state)[1]["subject"] == {"kind": "result"}
+    assert act({"act": "branch", "step": "c1", "text": "Why"}, state) == ("side", {"text": "Why", "step": "c1"})
+    assert act({"act": "branch", "text": "Why"}, state) == ("side", {"text": "Why"})
+    assert act({"act": "accept"}, state) == ("accept_proposal", {"proposal": "p5"})     # p5 is ahead of p3, though t9 < t11
+    assert act({"act": "decline"}, state) == ("decline_proposal", {"proposal": "p5"})
+    assert act({"act": "close"}, state) == ("close_branch", {"thread": "t11"})         # t10 is dead, t2 is a review
+    for line, state in [({"act": "branch", "chip": {"kind": "value", "label": "B"}, "text": "No"}, state),
+                        ({"act": "branch", "chip": {"kind": "decision"}, "text": "No"}, state),
+                        ({"act": "accept"}, {"threads": [{"id": "t1", "kind": "side", "outcome": "open", "proposal": None}]}),
+                        ({"act": "decline"}, {"threads": []}),
+                        ({"act": "close"}, {"threads": [{"id": "t1", "kind": "side", "outcome": "dead", "proposal": None}]})]:
+        with pytest.raises(replay.ReplayError):
+            act(line, state)
+
+
+class Routed:
+    """The side assistant's calls go to `side`, every other call to `main`."""
+
+    def __init__(self, main, side):
+        self.main, self.side = ScriptedModel(list(main)), ScriptedModel(list(side))
+
+    def complete(self, *, system, messages, tools=()):
+        target = self.side if system.startswith(SIDE_PROMPT) else self.main
+        return target.complete(system=system, messages=messages, tools=tools)
+
+
+def play_routed(found, example, main, side):
+    return replay.run_scenario(found, example_dir=example, model_factory=lambda: Routed(main, side),
+                               write=lambda text: None)
+
+
+PROPOSE = {"tool_calls": [{"name": "propose_change", "arguments": {
+    "kind": "value", "input": "a", "value": "15", "step": "", "words": "a is 15, not 10"}}]}
+
+
+def test_a_branch_from_a_chip_is_accepted_and_joins_the_trunk(example):
+    found = scenario(lines=JOIN_LINES, expect={
+        "runs": [{"module": "total", "inputs": {"a": "10", "b": "20"}}, {"module": "total", "inputs": {"a": "15", "b": "20"}}],
+        "branches": {"joined": 1, "dead": 0, "nodes": ["value"]}})
+    result = play_routed(found, example, TOTAL, [PROPOSE, reply("I proposed 15 for a.")])
+    assert result["passed"], result
+
+
+def test_a_declined_proposal_leaves_the_branch_dead_and_runs_nothing_again(example):
+    found = scenario(lines=[ASK, {"act": "branch", "chip": CHIP, "text": "Make it: a is 15, not 10."}, {"act": "decline"}],
+                     expect={"branches": {"joined": 0, "dead": 1}, "side_threads": 1})
+    result = play_routed(found, example, TOTAL, [PROPOSE, reply("I proposed 15 for a.")])
+    assert result["passed"], result
+    assert [check["passed"] for check in result["checks"]] == [True, True]
+
+
+def test_a_branch_on_a_step_that_is_closed_is_dead_with_no_decision(example):
+    found = scenario(lines=[{"act": "branch", "step": "c1", "text": "What is a total?"}, {"act": "close"}],
+                     expect={"side_threads": 1, "branches": {"joined": 0, "dead": 1, "nodes": []}})
+    result = play_routed(found, example, [], [reply("A total is the sum of the amounts.")])
+    assert result["passed"], result
+
+
+def test_an_act_with_nothing_to_act_on_stops_the_scenario_with_that_reason(example):
+    for lines, reason in [([ASK, {"act": "accept"}], "no pending proposal"),
+                          ([ASK, {"act": "close"}], "no open side branch"),
+                          ([ASK, {"act": "branch", "chip": {"kind": "value", "label": "Nothing"}, "text": "Why?"}],
+                           "no value chip")]:
+        result = play_routed(scenario(lines=lines), example, TOTAL, [])
+        assert not result["passed"] and reason in result["error"], (lines, result["error"])

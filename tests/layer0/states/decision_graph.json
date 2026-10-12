@@ -1,0 +1,1752 @@
+{
+  "version": 31,
+  "layers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "product": "Financial Advisor Harness",
+  "phase": "accepted",
+  "error": null,
+  "lanes": {
+    "main": "idle",
+    "side": "idle",
+    "review": "idle"
+  },
+  "activity": [],
+  "waiting": {
+    "kind": "message"
+  },
+  "goal": {
+    "text": "Cover each wedding payment on its due date from income, savings and the family contribution",
+    "mode": "ongoing",
+    "origin": {
+      "kind": "person",
+      "quote": "can I cover each payment"
+    }
+  },
+  "context": {
+    "scope_in": [
+      {
+        "text": "The three venue payments and their due dates",
+        "origin": {
+          "kind": "person",
+          "quote": "three payments to the venue"
+        }
+      }
+    ],
+    "scope_out": [
+      {
+        "text": "Where to hold the money, and the wider budget",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
+    ],
+    "assumptions": [
+      {
+        "text": "Monthly spending stays about the same",
+        "handling": "used as a flat 5,000 a month",
+        "origin": {
+          "kind": "person",
+          "quote": "I spend about 5k a month"
+        }
+      }
+    ],
+    "done": [
+      {
+        "text": "Each payment date shows a balance that covers it, or the saving needed",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
+    ],
+    "open_questions": [
+      {
+        "text": "Are there costs apart from the venue, such as attire, travel or rings?",
+        "origin": {
+          "kind": "proposed"
+        }
+      }
+    ],
+    "glossary": [
+      {
+        "term": "Sinking fund",
+        "definition": "money set aside regularly for a known future cost",
+        "person_says": "the wedding pot",
+        "origin": {
+          "kind": "looked_up",
+          "source": {
+            "title": "Sinking fund",
+            "url": "https://en.wikipedia.org/wiki/Sinking_fund"
+          }
+        }
+      }
+    ],
+    "revisions": []
+  },
+  "inputs": {
+    "in:guest_count": {
+      "id": "in:guest_count",
+      "name": "Guest count",
+      "description": "Guest count",
+      "origin": {
+        "kind": "person",
+        "quote": "about 120 guests"
+      },
+      "steps": [
+        "s1"
+      ],
+      "used": true,
+      "value": "150",
+      "changed_by": "n2"
+    },
+    "in:cost_per_guest": {
+      "id": "in:cost_per_guest",
+      "name": "Cost per guest",
+      "description": "Cost per guest",
+      "origin": {
+        "kind": "proposed"
+      },
+      "steps": [
+        "s1"
+      ],
+      "used": true,
+      "value": "230",
+      "changed_by": null
+    },
+    "in:payment_schedule": {
+      "id": "in:payment_schedule",
+      "name": "Payment schedule",
+      "description": "Payment schedule",
+      "origin": {
+        "kind": "person",
+        "quote": "three payments to the venue"
+      },
+      "steps": [
+        "s2"
+      ],
+      "used": true,
+      "value": "three payments",
+      "changed_by": null
+    },
+    "in:wedding_date": {
+      "id": "in:wedding_date",
+      "name": "Wedding date",
+      "description": "Wedding date",
+      "origin": {
+        "kind": "proposed"
+      },
+      "steps": [
+        "s2",
+        "s5"
+      ],
+      "used": true,
+      "value": "2027-06-12",
+      "changed_by": null
+    },
+    "in:net_monthly_income": {
+      "id": "in:net_monthly_income",
+      "name": "Net monthly income",
+      "description": "Net monthly income",
+      "origin": {
+        "kind": "person",
+        "quote": "I take home 5.8k"
+      },
+      "steps": [
+        "s3"
+      ],
+      "used": false,
+      "value": "5800",
+      "changed_by": null
+    },
+    "in:monthly_spending": {
+      "id": "in:monthly_spending",
+      "name": "Monthly spending",
+      "description": "Monthly spending",
+      "origin": {
+        "kind": "person",
+        "quote": "I spend about 5k a month"
+      },
+      "steps": [
+        "s3"
+      ],
+      "used": false,
+      "value": "5000",
+      "changed_by": null
+    },
+    "in:current_wedding_savings": {
+      "id": "in:current_wedding_savings",
+      "name": "Current wedding savings",
+      "description": "Current wedding savings",
+      "origin": {
+        "kind": "proposed"
+      },
+      "steps": [
+        "s5"
+      ],
+      "used": false,
+      "value": "4000",
+      "changed_by": null
+    },
+    "in:family_contribution": {
+      "id": "in:family_contribution",
+      "name": "Family contribution",
+      "description": "Family contribution",
+      "origin": {
+        "kind": "person",
+        "quote": "my parents will give 20k"
+      },
+      "steps": [
+        "s4"
+      ],
+      "used": false,
+      "value": "20000",
+      "changed_by": null
+    },
+    "in:extras_estimate": {
+      "id": "in:extras_estimate",
+      "name": "Extras estimate",
+      "description": "attire, rings, travel",
+      "origin": {
+        "kind": "proposed"
+      },
+      "steps": [
+        "added_1"
+      ],
+      "used": false,
+      "value": null,
+      "changed_by": null
+    }
+  },
+  "steps": [
+    {
+      "id": "s1",
+      "number": 1,
+      "name": "Total cost",
+      "kind": "calculation",
+      "in_plan": true,
+      "method": "arithmetic",
+      "formula": "guest count x cost per guest, plus fixed costs",
+      "produces": "the estimated total cost",
+      "cadence": "",
+      "needs": [
+        "in:guest_count",
+        "in:cost_per_guest"
+      ],
+      "inputs": [
+        "in:guest_count",
+        "in:cost_per_guest"
+      ],
+      "origin": {
+        "kind": "person",
+        "quote": "can I cover each payment"
+      },
+      "particulars": [],
+      "open_questions": [
+        {
+          "text": "What is the cost per guest? The size of any shortfall depends on it.",
+          "origin": {
+            "kind": "proposed"
+          }
+        }
+      ],
+      "line": {
+        "text": "→ 43,000",
+        "kind": "result"
+      },
+      "marks": [],
+      "needs_you": false,
+      "build": {
+        "status": "built",
+        "module": "total_cost",
+        "examples": 4,
+        "tests": 6,
+        "passing": 6,
+        "examples_passing": 4,
+        "reason": "",
+        "plan_check": null,
+        "spec": null,
+        "example_list": [
+          {
+            "n": 1,
+            "inputs": {
+              "guest_count": 125,
+              "cost_per_guest": 230
+            },
+            "expected": 28750,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 2,
+            "inputs": {
+              "guest_count": 150,
+              "cost_per_guest": 230
+            },
+            "expected": 34500,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 3,
+            "inputs": {
+              "guest_count": 175,
+              "cost_per_guest": 230
+            },
+            "expected": 40250,
+            "working": "multiply",
+            "checked_by": "you",
+            "second_pass": null
+          },
+          {
+            "n": 4,
+            "inputs": {
+              "guest_count": 200,
+              "cost_per_guest": 230
+            },
+            "expected": 46000,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          }
+        ],
+        "disagreement": [],
+        "code": {
+          "module_py": "def run(guest_count, cost_per_guest, fixed_costs=0):\n    \"\"\"Estimated total cost.\"\"\"\n    return round(guest_count * cost_per_guest + fixed_costs, 2)\n",
+          "tests_py": "def test_example_1():\n    assert run(125, 230) == 28750\n"
+        },
+        "tested_at": "2026-10-10T10:00:00+00:00"
+      },
+      "last_run": {
+        "run": "r3",
+        "message": "m13",
+        "inputs": {
+          "guest_count": 150,
+          "cost_per_guest": 230,
+          "fixed_costs": 8500
+        },
+        "output": "43000.00",
+        "assumptions": [],
+        "ts": "2026-10-11T10:00:00+00:00",
+        "test_run": 11,
+        "shown": {
+          "inputs": [
+            [
+              "guest count",
+              {
+                "text": "150"
+              }
+            ],
+            [
+              "cost per guest",
+              {
+                "text": "230"
+              }
+            ],
+            [
+              "fixed costs",
+              {
+                "text": "8,500"
+              }
+            ]
+          ],
+          "output": {
+            "text": "43,000"
+          }
+        },
+        "in_last_answer": true
+      },
+      "unconfirmed": [],
+      "calls": null,
+      "challenges": [],
+      "runs": [
+        {
+          "run": "r1",
+          "message": "m12",
+          "inputs": {
+            "guest_count": 120,
+            "cost_per_guest": 230,
+            "fixed_costs": 8500
+          },
+          "output": "36100.00",
+          "assumptions": [],
+          "ts": "2026-10-11T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "guest count",
+                {
+                  "text": "120"
+                }
+              ],
+              [
+                "cost per guest",
+                {
+                  "text": "230"
+                }
+              ],
+              [
+                "fixed costs",
+                {
+                  "text": "8,500"
+                }
+              ]
+            ],
+            "output": {
+              "text": "36,100"
+            }
+          }
+        },
+        {
+          "run": "r3",
+          "message": "m13",
+          "inputs": {
+            "guest_count": 150,
+            "cost_per_guest": 230,
+            "fixed_costs": 8500
+          },
+          "output": "43000.00",
+          "assumptions": [],
+          "ts": "2026-10-11T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "guest count",
+                {
+                  "text": "150"
+                }
+              ],
+              [
+                "cost per guest",
+                {
+                  "text": "230"
+                }
+              ],
+              [
+                "fixed costs",
+                {
+                  "text": "8,500"
+                }
+              ]
+            ],
+            "output": {
+              "text": "43,000"
+            }
+          }
+        }
+      ],
+      "changed_by": "n2"
+    },
+    {
+      "id": "s2",
+      "number": 2,
+      "name": "Three payments",
+      "kind": "calculation",
+      "in_plan": true,
+      "method": "arithmetic",
+      "formula": "payment 1 = 6,000; payments 2 and 3 split the rest equally",
+      "produces": "the three payment amounts and dates",
+      "cadence": "",
+      "needs": [
+        "s1",
+        "in:payment_schedule",
+        "in:wedding_date"
+      ],
+      "inputs": [
+        "in:payment_schedule",
+        "in:wedding_date"
+      ],
+      "origin": {
+        "kind": "person",
+        "quote": "three payments to the venue"
+      },
+      "particulars": [
+        {
+          "text": "The first payment is a fixed 6k",
+          "handling": "taken as 6,000 on booking",
+          "origin": {
+            "kind": "person",
+            "quote": "the first payment is a fixed 6k"
+          }
+        }
+      ],
+      "open_questions": [],
+      "line": {
+        "text": "→ 3 values ◌",
+        "kind": "result"
+      },
+      "marks": [
+        {
+          "symbol": "◌",
+          "count": null,
+          "title": "rests on something unconfirmed"
+        }
+      ],
+      "needs_you": false,
+      "build": {
+        "status": "built",
+        "module": "three_payments",
+        "examples": 3,
+        "tests": 5,
+        "passing": 5,
+        "examples_passing": 3,
+        "reason": "",
+        "plan_check": null,
+        "spec": null,
+        "example_list": [
+          {
+            "n": 1,
+            "inputs": {
+              "guest_count": 125,
+              "cost_per_guest": 230
+            },
+            "expected": 28750,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 2,
+            "inputs": {
+              "guest_count": 150,
+              "cost_per_guest": 230
+            },
+            "expected": 34500,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 3,
+            "inputs": {
+              "guest_count": 175,
+              "cost_per_guest": 230
+            },
+            "expected": 40250,
+            "working": "multiply",
+            "checked_by": "you",
+            "second_pass": null
+          }
+        ],
+        "disagreement": [],
+        "code": {
+          "module_py": "def run(guest_count, cost_per_guest, fixed_costs=0):\n    \"\"\"Estimated total cost.\"\"\"\n    return round(guest_count * cost_per_guest + fixed_costs, 2)\n",
+          "tests_py": "def test_example_1():\n    assert run(125, 230) == 28750\n"
+        },
+        "tested_at": "2026-10-10T10:00:00+00:00"
+      },
+      "last_run": {
+        "run": "r4",
+        "message": "m13",
+        "inputs": {
+          "total_cost": "43000.00",
+          "first_payment": 6000
+        },
+        "output": [
+          6000,
+          18500,
+          18500
+        ],
+        "assumptions": [
+          "The second and third payments are equal."
+        ],
+        "ts": "2026-10-11T10:00:00+00:00",
+        "test_run": 11,
+        "shown": {
+          "inputs": [
+            [
+              "total cost",
+              {
+                "text": "43000.00"
+              }
+            ],
+            [
+              "first payment",
+              {
+                "text": "6,000"
+              }
+            ]
+          ],
+          "output": {
+            "text": "3 values",
+            "rows": [
+              [
+                "1",
+                "6,000"
+              ],
+              [
+                "2",
+                "18,500"
+              ],
+              [
+                "3",
+                "18,500"
+              ]
+            ]
+          }
+        },
+        "in_last_answer": true
+      },
+      "unconfirmed": [
+        {
+          "id": "a1",
+          "text": "The second and third payments are equal."
+        }
+      ],
+      "calls": null,
+      "challenges": [],
+      "runs": [
+        {
+          "run": "r2",
+          "message": "m12",
+          "inputs": {
+            "total_cost": "36100.00",
+            "first_payment": 6000
+          },
+          "output": [
+            6000,
+            15050,
+            15050
+          ],
+          "assumptions": [
+            "The second and third payments are equal."
+          ],
+          "ts": "2026-10-11T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "total cost",
+                {
+                  "text": "36100.00"
+                }
+              ],
+              [
+                "first payment",
+                {
+                  "text": "6,000"
+                }
+              ]
+            ],
+            "output": {
+              "text": "3 values",
+              "rows": [
+                [
+                  "1",
+                  "6,000"
+                ],
+                [
+                  "2",
+                  "15,050"
+                ],
+                [
+                  "3",
+                  "15,050"
+                ]
+              ]
+            }
+          }
+        },
+        {
+          "run": "r4",
+          "message": "m13",
+          "inputs": {
+            "total_cost": "43000.00",
+            "first_payment": 6000
+          },
+          "output": [
+            6000,
+            18500,
+            18500
+          ],
+          "assumptions": [
+            "The second and third payments are equal."
+          ],
+          "ts": "2026-10-11T10:00:00+00:00",
+          "test_run": 11,
+          "shown": {
+            "inputs": [
+              [
+                "total cost",
+                {
+                  "text": "43000.00"
+                }
+              ],
+              [
+                "first payment",
+                {
+                  "text": "6,000"
+                }
+              ]
+            ],
+            "output": {
+              "text": "3 values",
+              "rows": [
+                [
+                  "1",
+                  "6,000"
+                ],
+                [
+                  "2",
+                  "18,500"
+                ],
+                [
+                  "3",
+                  "18,500"
+                ]
+              ]
+            }
+          }
+        }
+      ],
+      "changed_by": "n2"
+    },
+    {
+      "id": "s3",
+      "number": 3,
+      "name": "Monthly surplus",
+      "kind": "calculation",
+      "in_plan": true,
+      "method": "arithmetic",
+      "formula": "net monthly income - monthly spending",
+      "produces": "what is left each month",
+      "cadence": "monthly",
+      "needs": [
+        "in:net_monthly_income",
+        "in:monthly_spending"
+      ],
+      "inputs": [
+        "in:net_monthly_income",
+        "in:monthly_spending"
+      ],
+      "origin": {
+        "kind": "proposed"
+      },
+      "particulars": [],
+      "open_questions": [],
+      "line": null,
+      "marks": [],
+      "needs_you": false,
+      "build": {
+        "status": "built",
+        "module": "monthly_surplus",
+        "examples": 3,
+        "tests": 4,
+        "passing": 4,
+        "examples_passing": 3,
+        "reason": "",
+        "plan_check": null,
+        "spec": null,
+        "example_list": [
+          {
+            "n": 1,
+            "inputs": {
+              "guest_count": 125,
+              "cost_per_guest": 230
+            },
+            "expected": 28750,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 2,
+            "inputs": {
+              "guest_count": 150,
+              "cost_per_guest": 230
+            },
+            "expected": 34500,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 3,
+            "inputs": {
+              "guest_count": 175,
+              "cost_per_guest": 230
+            },
+            "expected": 40250,
+            "working": "multiply",
+            "checked_by": "you",
+            "second_pass": null
+          }
+        ],
+        "disagreement": [],
+        "code": {
+          "module_py": "def run(guest_count, cost_per_guest, fixed_costs=0):\n    \"\"\"Estimated total cost.\"\"\"\n    return round(guest_count * cost_per_guest + fixed_costs, 2)\n",
+          "tests_py": "def test_example_1():\n    assert run(125, 230) == 28750\n"
+        },
+        "tested_at": "2026-10-10T10:00:00+00:00"
+      },
+      "last_run": null,
+      "unconfirmed": [],
+      "calls": null,
+      "challenges": [],
+      "runs": [],
+      "changed_by": null
+    },
+    {
+      "id": "s4",
+      "number": 4,
+      "name": "Family contribution",
+      "kind": "from_you",
+      "in_plan": true,
+      "method": "",
+      "formula": "",
+      "produces": "the contribution and when it arrives",
+      "cadence": "",
+      "needs": [
+        "in:family_contribution"
+      ],
+      "inputs": [
+        "in:family_contribution"
+      ],
+      "origin": {
+        "kind": "person",
+        "quote": "my parents will give 20k"
+      },
+      "particulars": [],
+      "open_questions": [
+        {
+          "text": "How firm is the 20k, and will it arrive two weeks before the wedding?",
+          "origin": {
+            "kind": "proposed"
+          }
+        }
+      ],
+      "line": null,
+      "marks": [],
+      "needs_you": false,
+      "build": null,
+      "last_run": null,
+      "unconfirmed": [],
+      "calls": null,
+      "challenges": [],
+      "runs": [],
+      "changed_by": null
+    },
+    {
+      "id": "s5",
+      "number": 5,
+      "name": "Fund balance at each payment date",
+      "kind": "calculation",
+      "in_plan": true,
+      "method": "arithmetic",
+      "formula": "opening balance + monthly saving + contribution - payments due, month by month",
+      "produces": "the balance on each payment date",
+      "cadence": "",
+      "needs": [
+        "s2",
+        "s3",
+        "s4",
+        "in:current_wedding_savings",
+        "in:wedding_date"
+      ],
+      "inputs": [
+        "in:current_wedding_savings",
+        "in:wedding_date"
+      ],
+      "origin": {
+        "kind": "looked_up",
+        "source": {
+          "title": "Cash flow forecasting",
+          "url": "https://en.wikipedia.org/wiki/Cash_flow_forecasting"
+        }
+      },
+      "particulars": [],
+      "open_questions": [],
+      "line": null,
+      "marks": [],
+      "needs_you": false,
+      "build": {
+        "status": "built",
+        "module": "fund_balance",
+        "examples": 4,
+        "tests": 7,
+        "passing": 7,
+        "examples_passing": 4,
+        "reason": "",
+        "plan_check": null,
+        "spec": null,
+        "example_list": [
+          {
+            "n": 1,
+            "inputs": {
+              "guest_count": 125,
+              "cost_per_guest": 230
+            },
+            "expected": 28750,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 2,
+            "inputs": {
+              "guest_count": 150,
+              "cost_per_guest": 230
+            },
+            "expected": 34500,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 3,
+            "inputs": {
+              "guest_count": 175,
+              "cost_per_guest": 230
+            },
+            "expected": 40250,
+            "working": "multiply",
+            "checked_by": "you",
+            "second_pass": null
+          },
+          {
+            "n": 4,
+            "inputs": {
+              "guest_count": 200,
+              "cost_per_guest": 230
+            },
+            "expected": 46000,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          }
+        ],
+        "disagreement": [],
+        "code": {
+          "module_py": "def run(guest_count, cost_per_guest, fixed_costs=0):\n    \"\"\"Estimated total cost.\"\"\"\n    return round(guest_count * cost_per_guest + fixed_costs, 2)\n",
+          "tests_py": "def test_example_1():\n    assert run(125, 230) == 28750\n"
+        },
+        "tested_at": "2026-10-10T10:00:00+00:00"
+      },
+      "last_run": null,
+      "unconfirmed": [],
+      "calls": null,
+      "challenges": [],
+      "runs": [],
+      "changed_by": null
+    },
+    {
+      "id": "s6",
+      "number": 6,
+      "name": "Monthly saving needed",
+      "kind": "calculation",
+      "in_plan": true,
+      "method": "arithmetic",
+      "formula": "shortfall before a payment date / months until that payment",
+      "produces": "the extra saving needed each month",
+      "cadence": "monthly",
+      "needs": [
+        "s5"
+      ],
+      "inputs": [],
+      "origin": {
+        "kind": "proposed"
+      },
+      "particulars": [],
+      "open_questions": [],
+      "line": null,
+      "marks": [],
+      "needs_you": false,
+      "build": {
+        "status": "built",
+        "module": "monthly_saving_needed",
+        "examples": 3,
+        "tests": 4,
+        "passing": 4,
+        "examples_passing": 3,
+        "reason": "",
+        "plan_check": null,
+        "spec": null,
+        "example_list": [
+          {
+            "n": 1,
+            "inputs": {
+              "guest_count": 125,
+              "cost_per_guest": 230
+            },
+            "expected": 28750,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 2,
+            "inputs": {
+              "guest_count": 150,
+              "cost_per_guest": 230
+            },
+            "expected": 34500,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 3,
+            "inputs": {
+              "guest_count": 175,
+              "cost_per_guest": 230
+            },
+            "expected": 40250,
+            "working": "multiply",
+            "checked_by": "you",
+            "second_pass": null
+          }
+        ],
+        "disagreement": [],
+        "code": {
+          "module_py": "def run(guest_count, cost_per_guest, fixed_costs=0):\n    \"\"\"Estimated total cost.\"\"\"\n    return round(guest_count * cost_per_guest + fixed_costs, 2)\n",
+          "tests_py": "def test_example_1():\n    assert run(125, 230) == 28750\n"
+        },
+        "tested_at": "2026-10-10T10:00:00+00:00"
+      },
+      "last_run": null,
+      "unconfirmed": [],
+      "calls": null,
+      "challenges": [],
+      "runs": [],
+      "changed_by": null
+    },
+    {
+      "id": "s7",
+      "number": 7,
+      "name": "Review and decide",
+      "kind": "your_call",
+      "in_plan": true,
+      "method": "",
+      "formula": "",
+      "produces": "what to change, if anything",
+      "cadence": "",
+      "needs": [
+        "s5",
+        "s6"
+      ],
+      "inputs": [],
+      "origin": {
+        "kind": "person",
+        "quote": "tell me if I need to change anything"
+      },
+      "particulars": [],
+      "open_questions": [],
+      "line": null,
+      "marks": [],
+      "needs_you": false,
+      "build": null,
+      "last_run": null,
+      "unconfirmed": [],
+      "calls": {
+        "open": null,
+        "records": []
+      },
+      "challenges": [],
+      "runs": [],
+      "changed_by": null
+    },
+    {
+      "id": "added_1",
+      "number": 8,
+      "name": "Attire and rings",
+      "kind": "calculation",
+      "in_plan": false,
+      "method": "arithmetic",
+      "formula": "sum of the extras",
+      "produces": "the cost of extras",
+      "cadence": "",
+      "needs": [
+        "in:extras_estimate"
+      ],
+      "inputs": [
+        "in:extras_estimate"
+      ],
+      "origin": {
+        "kind": "proposed"
+      },
+      "particulars": [],
+      "open_questions": [],
+      "line": null,
+      "marks": [],
+      "needs_you": false,
+      "build": {
+        "status": "built",
+        "module": "attire_and_rings",
+        "examples": 3,
+        "tests": 3,
+        "passing": 3,
+        "examples_passing": 3,
+        "reason": "",
+        "plan_check": null,
+        "spec": null,
+        "example_list": [
+          {
+            "n": 1,
+            "inputs": {
+              "guest_count": 125,
+              "cost_per_guest": 230
+            },
+            "expected": 28750,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 2,
+            "inputs": {
+              "guest_count": 150,
+              "cost_per_guest": 230
+            },
+            "expected": 34500,
+            "working": "multiply",
+            "checked_by": "second_pass",
+            "second_pass": null
+          },
+          {
+            "n": 3,
+            "inputs": {
+              "guest_count": 175,
+              "cost_per_guest": 230
+            },
+            "expected": 40250,
+            "working": "multiply",
+            "checked_by": "you",
+            "second_pass": null
+          }
+        ],
+        "disagreement": [],
+        "code": {
+          "module_py": "def run(guest_count, cost_per_guest, fixed_costs=0):\n    \"\"\"Estimated total cost.\"\"\"\n    return round(guest_count * cost_per_guest + fixed_costs, 2)\n",
+          "tests_py": "def test_example_1():\n    assert run(125, 230) == 28750\n"
+        },
+        "tested_at": "2026-10-10T10:00:00+00:00"
+      },
+      "last_run": null,
+      "unconfirmed": [],
+      "calls": null,
+      "challenges": [],
+      "runs": [],
+      "changed_by": null
+    }
+  ],
+  "edges": [
+    {
+      "from": "s1",
+      "to": "s2"
+    },
+    {
+      "from": "s2",
+      "to": "s5"
+    },
+    {
+      "from": "s3",
+      "to": "s5"
+    },
+    {
+      "from": "s4",
+      "to": "s5"
+    },
+    {
+      "from": "s5",
+      "to": "s6"
+    },
+    {
+      "from": "s5",
+      "to": "s7"
+    },
+    {
+      "from": "s6",
+      "to": "s7"
+    }
+  ],
+  "chat": [
+    {
+      "id": "m1",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "you",
+      "text": "Can I cover each wedding payment on its due date? About 120 guests, three payments to the venue, and my parents will give 20k.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m2",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "assistant",
+      "text": "What is your take-home pay each month, and roughly what do you spend?",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m3",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "you",
+      "text": "I take home 5.8k and I spend about 5k a month.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m4",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "assistant",
+      "text": "Does the 6k count toward the total cost?",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m5",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "you",
+      "text": "Yes, the first payment is a fixed 6k.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m6",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "harness",
+      "text": "This is the plan as I understand it. Click a step to say what is wrong, or accept it.",
+      "step": null,
+      "queued": false,
+      "kind": "plan",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m7",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "harness",
+      "text": "The plan is accepted.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m9",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "harness",
+      "text": "5 of 5 calculation steps are built and tested.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m10",
+      "ts": "2026-10-10T10:00:00+00:00",
+      "who": "harness",
+      "text": "A calculation that is not in the plan was needed: Attire and rings. It is built and tested.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m11",
+      "ts": "2026-10-11T10:00:00+00:00",
+      "who": "you",
+      "text": "Can I cover the three payments if we invite 120 guests?",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": []
+    },
+    {
+      "id": "m12",
+      "ts": "2026-10-11T10:00:00+00:00",
+      "who": "assistant",
+      "text": "With 120 guests the total is 36,100 and the three payments are 6,000, 15,050 and 15,050.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [
+        {
+          "start": 5,
+          "end": 8,
+          "text": "120",
+          "step": null,
+          "run": null,
+          "input": null
+        },
+        {
+          "start": 29,
+          "end": 35,
+          "text": "36,100",
+          "step": "s1",
+          "run": "r1",
+          "input": null
+        },
+        {
+          "start": 63,
+          "end": 68,
+          "text": "6,000",
+          "step": "s2",
+          "run": "r2",
+          "input": null
+        },
+        {
+          "start": 70,
+          "end": 76,
+          "text": "15,050",
+          "step": "s2",
+          "run": "r2",
+          "input": null
+        },
+        {
+          "start": 81,
+          "end": 87,
+          "text": "15,050",
+          "step": "s2",
+          "run": "r2",
+          "input": null
+        }
+      ],
+      "decision": null,
+      "notice": {
+        "assumptions": [
+          {
+            "id": "a1",
+            "text": "The second and third payments are equal."
+          }
+        ],
+        "steps": [
+          "s2"
+        ],
+        "status": "open"
+      },
+      "chips": [
+        {
+          "kind": "value",
+          "label": "Guest count",
+          "text": "120",
+          "status": null,
+          "subject": {
+            "kind": "value",
+            "run": "r1",
+            "key": "guest_count",
+            "value": "120",
+            "input": "in:guest_count",
+            "step": "s1"
+          }
+        },
+        {
+          "kind": "value",
+          "label": "Cost per guest",
+          "text": "230",
+          "status": null,
+          "subject": {
+            "kind": "value",
+            "run": "r1",
+            "key": "cost_per_guest",
+            "value": "230",
+            "input": "in:cost_per_guest",
+            "step": "s1"
+          }
+        },
+        {
+          "kind": "value",
+          "label": "Fixed costs",
+          "text": "8,500",
+          "status": null,
+          "subject": {
+            "kind": "value",
+            "run": "r1",
+            "key": "fixed_costs",
+            "value": "8500",
+            "input": null,
+            "step": "s1"
+          }
+        },
+        {
+          "kind": "value",
+          "label": "First payment",
+          "text": "6,000",
+          "status": null,
+          "subject": {
+            "kind": "value",
+            "run": "r2",
+            "key": "first_payment",
+            "value": "6000",
+            "input": null,
+            "step": "s2"
+          }
+        },
+        {
+          "kind": "assumption",
+          "label": "",
+          "text": "The second and third payments are equal.",
+          "status": "unconfirmed",
+          "subject": {
+            "kind": "assumption",
+            "run": "r2",
+            "step": "s2",
+            "text": "The second and third payments are equal.",
+            "assumption": "a1"
+          }
+        },
+        {
+          "kind": "result",
+          "label": "Total cost",
+          "text": "36,100",
+          "status": null,
+          "subject": {
+            "kind": "result",
+            "run": "r1",
+            "step": "s1",
+            "value": "36100"
+          }
+        },
+        {
+          "kind": "result",
+          "label": "Three payments",
+          "text": "3 values",
+          "status": null,
+          "subject": {
+            "kind": "result",
+            "run": "r2",
+            "step": "s2",
+            "value": "[6000, 15050, 15050]"
+          }
+        }
+      ]
+    },
+    {
+      "id": "m13",
+      "ts": "2026-10-11T10:00:00+00:00",
+      "who": "harness",
+      "text": "Decided on a branch: Guest count is 150 (was 120). Run again: steps 1, 2.",
+      "step": null,
+      "queued": false,
+      "kind": "text",
+      "figures": [],
+      "decision": null,
+      "notice": null,
+      "chips": [
+        {
+          "kind": "decision",
+          "label": "Decided",
+          "text": "Guest count: 120 → 150",
+          "status": null,
+          "subject": {
+            "kind": "decision",
+            "node": "n2"
+          }
+        },
+        {
+          "kind": "value",
+          "label": "Guest count",
+          "text": "150",
+          "status": null,
+          "subject": {
+            "kind": "value",
+            "run": "r3",
+            "key": "guest_count",
+            "value": "150",
+            "input": "in:guest_count",
+            "step": "s1"
+          }
+        },
+        {
+          "kind": "assumption",
+          "label": "",
+          "text": "The second and third payments are equal.",
+          "status": "unconfirmed",
+          "subject": {
+            "kind": "assumption",
+            "run": "r4",
+            "step": "s2",
+            "text": "The second and third payments are equal.",
+            "assumption": "a1"
+          }
+        },
+        {
+          "kind": "result",
+          "label": "Total cost",
+          "text": "43,000",
+          "status": null,
+          "subject": {
+            "kind": "result",
+            "run": "r3",
+            "step": "s1",
+            "value": "43000"
+          }
+        },
+        {
+          "kind": "result",
+          "label": "Three payments",
+          "text": "3 values",
+          "status": null,
+          "subject": {
+            "kind": "result",
+            "run": "r4",
+            "step": "s2",
+            "value": "[6000, 18500, 18500]"
+          }
+        }
+      ]
+    }
+  ],
+  "history": {
+    "trunk": [
+      {
+        "id": "n1",
+        "ts": "2026-10-11T10:00:00+00:00",
+        "who": "you",
+        "kind": "plan_accepted",
+        "text": "Plan accepted",
+        "change": {},
+        "touched": {
+          "inputs": [],
+          "steps": []
+        },
+        "branch": null,
+        "after": "m7"
+      },
+      {
+        "id": "n2",
+        "ts": "2026-10-11T10:00:00+00:00",
+        "who": "you",
+        "kind": "value",
+        "text": "Guest count: 120 → 150",
+        "change": {
+          "input": "guest_count",
+          "label": "Guest count",
+          "from": "120",
+          "to": "150",
+          "runs": {
+            "r1": "r3",
+            "r2": "r4"
+          },
+          "failed": []
+        },
+        "touched": {
+          "inputs": [
+            "in:guest_count"
+          ],
+          "steps": [
+            "s1",
+            "s2"
+          ]
+        },
+        "branch": "t1",
+        "after": "m13"
+      }
+    ],
+    "latest": "n2"
+  },
+  "threads": [
+    {
+      "id": "t1",
+      "kind": "side",
+      "step": "s1",
+      "after": "m12",
+      "title": "Guest count may be higher",
+      "status": "open",
+      "messages": [
+        {
+          "who": "you",
+          "text": "We will get no fewer than 150 guests.",
+          "sources": []
+        },
+        {
+          "who": "assistant",
+          "text": "I can run this again with 150 guests: the total and the three payments change.",
+          "sources": []
+        }
+      ],
+      "challenge": null,
+      "origin": "you",
+      "subject": {
+        "kind": "value",
+        "run": "r1",
+        "key": "guest_count",
+        "value": "120",
+        "input": "in:guest_count",
+        "step": "s1"
+      },
+      "from": "n1",
+      "outcome": "joined",
+      "node": "n2",
+      "proposal": {
+        "id": "p1",
+        "status": "accepted",
+        "change": {
+          "kind": "value",
+          "input": "guest_count",
+          "label": "Guest count",
+          "from": "120",
+          "to": "150"
+        },
+        "words": "no fewer than 150 guests",
+        "text": "Guest count: 120 → 150",
+        "impact": {
+          "inputs": [
+            "in:guest_count"
+          ],
+          "runs": [
+            "r1",
+            "r2"
+          ],
+          "steps": [
+            "s1",
+            "s2"
+          ],
+          "downstream": [
+            "s5",
+            "s6",
+            "s7"
+          ]
+        },
+        "node": "n2",
+        "reason": ""
+      }
+    },
+    {
+      "id": "t2",
+      "kind": "side",
+      "step": "s5",
+      "after": "m13",
+      "title": "What is a cash flow forecast?",
+      "status": "open",
+      "messages": [
+        {
+          "who": "you",
+          "text": "What does cash flow forecast mean here?",
+          "sources": []
+        },
+        {
+          "who": "assistant",
+          "text": "It is the month by month balance of the fund against the payments, as in the plan's glossary.",
+          "sources": []
+        }
+      ],
+      "challenge": null,
+      "origin": "you",
+      "subject": {
+        "kind": "step",
+        "step": "s5"
+      },
+      "from": "n2",
+      "outcome": "dead",
+      "node": null,
+      "proposal": null
+    },
+    {
+      "id": "t3",
+      "kind": "side",
+      "step": "s1",
+      "after": "m13",
+      "title": "Cost per guest may be 250",
+      "status": "open",
+      "messages": [
+        {
+          "who": "you",
+          "text": "The caterer now quotes 250 a head.",
+          "sources": []
+        },
+        {
+          "who": "assistant",
+          "text": "I can run this again with 250 per guest. Yes or no?",
+          "sources": []
+        }
+      ],
+      "challenge": null,
+      "origin": "you",
+      "subject": {
+        "kind": "value",
+        "run": "r3",
+        "key": "cost_per_guest",
+        "value": "230",
+        "input": "in:cost_per_guest",
+        "step": "s1"
+      },
+      "from": "n2",
+      "outcome": "open",
+      "node": null,
+      "proposal": {
+        "id": "p2",
+        "status": "pending",
+        "change": {
+          "kind": "value",
+          "input": "cost_per_guest",
+          "label": "Cost per guest",
+          "from": "230",
+          "to": "250"
+        },
+        "words": "250 a head",
+        "text": "Cost per guest: 230 → 250",
+        "impact": {
+          "inputs": [
+            "in:cost_per_guest"
+          ],
+          "runs": [
+            "r3",
+            "r4"
+          ],
+          "steps": [
+            "s1",
+            "s2"
+          ],
+          "downstream": [
+            "s5",
+            "s6",
+            "s7"
+          ]
+        },
+        "node": null,
+        "reason": ""
+      }
+    }
+  ],
+  "review": {
+    "open": 0,
+    "running": false
+  }
+}

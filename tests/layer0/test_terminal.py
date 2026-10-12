@@ -119,3 +119,50 @@ def test_activity_text_is_printed_when_it_changes(open_session):
 def test_stop_ends_the_driver_without_reading(open_session):
     person, _ = drive(open_session(), "never read", stop=lambda state: True)
     assert person.prompts == []
+
+
+# --- /yes, /no and /close act on the newest pending proposal and the newest open side branch ---
+
+class Recorded:
+    def __init__(self):
+        self.acts = []
+
+    def act(self, action, payload):
+        self.acts.append((action, payload))
+        return True, ""
+
+
+def _threads():
+    return {"threads": [
+        {"id": "t2", "kind": "side", "outcome": "open", "proposal": {"id": "p1", "status": "pending", "text": "A: 1 → 2"}},
+        {"id": "t3", "kind": "review", "outcome": "open", "proposal": None},
+        {"id": "t10", "kind": "side", "outcome": "open", "proposal": {"id": "p9", "status": "pending", "text": "B: 3 → 4"}},
+        {"id": "t11", "kind": "side", "outcome": "dead", "proposal": {"id": "p10", "status": "declined", "text": ""}}]}
+
+
+@pytest.mark.parametrize("typed, expected", [
+    ("/yes", ("accept_proposal", {"proposal": "p9"})),
+    ("/no", ("decline_proposal", {"proposal": "p9"})),
+    ("/close", ("close_branch", {"thread": "t10"}))])
+def test_yes_no_and_close_go_to_the_newest_one_by_number(typed, expected):
+    session, person = Recorded(), Person()
+    Terminal(session, read=person.read, write=person.write).send(typed, _threads())
+    assert session.acts == [expected] and person.printed == []
+
+
+def test_yes_no_and_close_with_nothing_to_act_on_say_so_and_apply_nothing():
+    session, person = Recorded(), Person()
+    terminal = Terminal(session, read=person.read, write=person.write)
+    for typed in ("/yes", "/no", "/close"):
+        terminal.send(typed, {"threads": [{"id": "t1", "kind": "side", "outcome": "dead", "proposal": None}]})
+    assert session.acts == [] and len(person.printed) == 3
+
+
+def test_a_pending_proposal_is_printed_once_with_how_to_answer_it():
+    person = Person()
+    terminal = Terminal(Recorded(), read=person.read, write=person.write)
+    state = {"chat": [], "activity": [], "error": None,
+             "threads": [{**each, "messages": []} for each in _threads()["threads"]]}
+    terminal.show(state)
+    terminal.show(state)
+    assert [line for line in person.printed if "proposal |" in line] == ["  proposal | A: 1 → 2", "  proposal | B: 3 → 4"]

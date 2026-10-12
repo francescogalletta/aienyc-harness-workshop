@@ -21,8 +21,11 @@ MARK_TITLES = {
 }
 
 
-def start(*, version: int, layers: list[int], error, lanes: dict, activity: list, waiting, chat: list) -> dict:
-    """The top level of the state document, before any layer has contributed."""
+def start(*, version: int, layers: list[int], error, lanes: dict, activity: list, waiting, chat: list,
+          trunk: list | None = None) -> dict:
+    """The top level of the state document, before any layer has contributed. `trunk` is the Nodes of the
+    conversation, oldest first (ARCHITECTURE.md 3.5)."""
+    trunk = list(trunk or [])
     return {
         "version": version,
         "layers": layers,
@@ -38,17 +41,32 @@ def start(*, version: int, layers: list[int], error, lanes: dict, activity: list
         "steps": [],
         "edges": [],
         "chat": chat,
+        "history": {"trunk": trunk, "latest": trunk[-1]["id"] if trunk else None},
     }
 
 
 def finish(state: dict) -> dict:
     """Work out `needs_you`, `line` and `marks` on every step, after every layer has contributed."""
     steps = state.get("steps", [])
+    _changed_by(state)
     _needs_you(steps)
     for step in steps:
         step["line"] = step_line(step)
         step["marks"] = step_marks(step)
     return state
+
+
+def _changed_by(state: dict) -> None:
+    """`changed_by` on every step and input: the newest trunk node whose `touched` names it, else None."""
+    newest: dict[str, str] = {}
+    for node in (state.get("history") or {}).get("trunk", []):
+        touched = node.get("touched") or {}
+        for name in [*touched.get("inputs", []), *touched.get("steps", [])]:
+            newest[name] = node["id"]
+    for step in state.get("steps", []):
+        step["changed_by"] = newest.get(step["id"])
+    for key, entry in state.get("inputs", {}).items():
+        entry["changed_by"] = newest.get(key)
 
 
 def _needs_you(steps: list[dict]) -> None:

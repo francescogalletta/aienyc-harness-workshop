@@ -21,11 +21,13 @@ NO_PLAN = "there is no accepted plan to change"
 PLAN_CHANGED = "The plan is changed: {changes}."
 
 
-def revise_plan(work, *, words: str, step: str | None = None, by: str = "person") -> dict:
-    """Make one change to the accepted plan. Returns {"changed": [step ids]} or {"error": one line}.
+def revise_plan(work, *, words: str, step: str | None = None, by: str = "person", branch: str | None = None) -> dict:
+    """Make one change to the accepted plan. Returns {"changed": [step ids], "node": "n<id>"} or {"error": one line}.
 
     `changed` lists the steps added, removed, or whose fingerprint (SPEC 4.4) changed. The new brief is
-    saved as confirmed with a new `revisions` entry, and hook `plan_changed(work, changed)` is called.
+    saved as confirmed with a new `revisions` entry, the trunk node `plan_revised` is recorded (who `you`, or
+    `reviewer` when `by` is the reviewer; `branch`, a thread id, joins that branch), and hook
+    `plan_changed(work, changed)` is called.
     """
     path = work.config.brief_dir
     accepted = load_brief(path)
@@ -70,7 +72,7 @@ def revise_plan(work, *, words: str, step: str | None = None, by: str = "person"
                 new = candidate
                 results.append({"role": "tool", "tool_call_id": call.id, "content": "Saved as confirmed."})
         if new is not None:
-            return _save(work, accepted, new, state, words, step, by)
+            return _save(work, accepted, new, state, words, step, by, branch)
         if rejected >= MAX_ATTEMPTS:
             return {"error": "the plan was not changed: the new plan did not pass the checks"}
         messages.append({"role": "assistant", "content": response.text, "tool_calls": [
@@ -87,7 +89,7 @@ def changed_steps(old: dict, new: dict) -> list[str]:
         gone for gone in before if gone not in after]
 
 
-def _save(work, accepted: dict, new: dict, state: dict, words: str, step, by: str) -> dict:
+def _save(work, accepted: dict, new: dict, state: dict, words: str, step, by: str, branch: str | None) -> dict:
     meta = accepted["meta"]
     seen = {each["query"] for each in meta.get("lookups") or []}
     revision = {"ts": datetime.now(timezone.utc).isoformat(timespec="seconds"), "words": words, "step": step, "by": by}
@@ -99,8 +101,12 @@ def _save(work, accepted: dict, new: dict, state: dict, words: str, step, by: st
     changed = changed_steps(old, new)
     work.record("plan.revised", {"words": words, "step": step, "by": by, "changed": changed},
                 "person" if by == "person" else "agent")
-    work.post(PLAN_CHANGED.format(changes=describe_changes(old, new)), who="harness")
-    work.changed()
+    changes = describe_changes(old, new)
+    work.post(PLAN_CHANGED.format(changes=changes), who="harness")
+    node = work.decide(who="reviewer" if by == "reviewer" else "you", kind="plan_revised",
+                       text=f"Plan changed: {changes}", branch=branch,
+                       change={"step": step, "words": words, "changed": changed},
+                       touched={"inputs": [], "steps": changed})
     work.hook("plan_changed", work, changed)
-    return {"changed": changed}
+    return {"changed": changed, "node": node}
 

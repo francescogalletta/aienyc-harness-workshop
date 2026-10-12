@@ -8,10 +8,14 @@ working.
 from .core import BadAction
 
 ACTIONS = {"/accept": "accept_plan", "/wrap": "wrap", "/build": "build"}
+PROPOSAL_ACTIONS = {"/yes": "accept_proposal", "/no": "decline_proposal"}
 NOTICE_PROMPT = "Type /confirm, or say what is different."
 NOT_HERE = "That is not available here."
 NO_THREAD = "There is no side thread to reply in. Start one with /side TEXT."
 NOTHING_TO_CONFIRM = "There is nothing to confirm."
+PROPOSAL_PROMPT = "Type /yes to decide it, or /no."
+NO_PROPOSAL = "There is no proposal waiting for a yes or a no."
+NO_BRANCH = "There is no open side branch to close."
 PROMPT = "> "
 
 
@@ -31,6 +35,7 @@ class Terminal:
         self.session, self.read, self.write, self.wait = session, read, write, wait
         self._printed: set[str] = set()         # message ids
         self._notices: set[str] = set()         # message ids whose open notice was shown
+        self._proposals: set[str] = set()       # proposal ids whose pending state was shown
         self._thread_counts: dict[str, int] = {}
         self._activity: list[str] = []
         self._error = None
@@ -65,6 +70,20 @@ class Terminal:
                 self.write(NOTHING_TO_CONFIRM)
                 return
             action, payload = "confirm_assumptions", {"message": notice}
+        elif line in PROPOSAL_ACTIONS:
+            pending = [thread["proposal"] for thread in state.get("threads", [])
+                       if (thread.get("proposal") or {}).get("status") == "pending"]
+            if not pending:
+                self.write(NO_PROPOSAL)
+                return
+            action, payload = PROPOSAL_ACTIONS[line], {"proposal": max(pending, key=lambda each: int(each["id"][1:]))["id"]}
+        elif line == "/close":
+            open_ones = [thread for thread in state.get("threads", [])
+                         if thread["kind"] == "side" and thread.get("outcome") == "open"]
+            if not open_ones:
+                self.write(NO_BRANCH)
+                return
+            action, payload = "close_branch", {"thread": max(open_ones, key=lambda each: int(each["id"][1:]))["id"]}
         elif line == "/reply" or line.startswith("/reply "):
             latest = next((thread["id"] for thread in reversed(state.get("threads", []))
                            if thread["kind"] == "side"), None)
@@ -101,6 +120,11 @@ class Terminal:
             for message in thread["messages"][shown:]:
                 self.write(f"  {thread['kind']} | {message['who']}: {message['text']}")
             self._thread_counts[thread["id"]] = len(thread["messages"])
+            proposal = thread.get("proposal") or {}
+            if proposal.get("status") == "pending" and proposal["id"] not in self._proposals:
+                self._proposals.add(proposal["id"])
+                self.write(f"  proposal | {proposal['text']}")
+                self.write(PROPOSAL_PROMPT)
         activity = [entry["text"] for entry in state["activity"] if entry["text"]]
         if activity != self._activity:
             self._activity = activity

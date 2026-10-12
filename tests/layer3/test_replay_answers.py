@@ -109,3 +109,20 @@ def test_the_command_prints_a_line_per_expectation_and_exits_by_the_result(monke
     script.write_text(json.dumps([reply("Nothing to run.")]), encoding="utf-8")
     assert command("ex", scenario_name="good") == 1
     assert "  FAIL" in capsys.readouterr().out
+
+
+def test_shown_and_not_shown_also_read_a_harness_message_and_its_chips():
+    class Context:
+        def state(self):
+            return {"chat": [
+                {"who": "you", "kind": "text", "text": "ask 999"},
+                {"who": "assistant", "kind": "text", "text": "Total is 30.", "chips": [{"kind": "result", "text": "61,000"}]},
+                {"who": "harness", "kind": "text", "text": "Decided on a branch: A is 20 (was 10).",
+                 "chips": [{"kind": "result", "text": "43,000 (was 36,100)"}]},
+                {"who": "harness", "kind": "text", "text": "Step 2 is built.", "chips": []}]}
+
+    shown, not_shown = (replay.expectations(3)[key].check for key in ("shown", "not_shown"))
+    assert shown(["30", "43,000", "36,100", "61,000"], Context())["passed"]     # the reply, its chip, a join chip, its old value
+    found = shown(["30", "17,000"], Context())
+    assert not found["passed"] and found["seen"] == "30 of 3 messages"
+    assert not not_shown(["43,000"], Context())["passed"] and not_shown(["17,000", "999"], Context())["passed"]

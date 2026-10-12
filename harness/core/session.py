@@ -123,16 +123,26 @@ def _message(row) -> dict:
 
 
 def add_thread(conn, conversation: str, *, kind: str, title: str, step: str | None = None,
-               after: str | None = None) -> str:
-    """Store a thread. It follows the main-chat message `after`; by default the last one there is now."""
+               after: str | None = None, origin: str = "you", subject: dict | None = None) -> str:
+    """Store a thread (a branch, ARCHITECTURE.md 4.4). It follows the main-chat message `after`; by default the
+    last one there is now. It leaves the trunk at its newest node (`from`, or none yet). `subject` defaults to
+    the step, else the whole plan."""
+    if origin not in WHO:
+        raise ValueError(f"origin must be one of {', '.join(WHO)}, not {origin!r}")
+    if subject is None:
+        subject = {"kind": "step", "step": step} if step else {"kind": "plan"}
+    if not isinstance(subject, dict) or not isinstance(subject.get("kind"), str):
+        raise ValueError("subject must be an object with a kind")
     if after is None:
         last = conn.execute("SELECT MAX(id) FROM messages WHERE conversation = ? AND thread IS NULL",
                             (conversation,)).fetchone()[0]
     else:
         last = number_of(after, "m")
     cursor = conn.execute(
-        "INSERT INTO threads (ts, conversation, kind, step, after, title, status)"
-        " VALUES (?, ?, ?, ?, ?, ?, 'open')", (db.now(), conversation, kind, step, last, title))
+        "INSERT INTO threads (ts, conversation, kind, step, after, title, status, origin, subject, from_node)"
+        " VALUES (?, ?, ?, ?, ?, ?, 'open', ?, ?, ?)",
+        (db.now(), conversation, kind, step, last, title, origin, json.dumps(subject),
+         _newest_node(conn, conversation)))
     conn.commit()
     return f"t{cursor.lastrowid}"
 
@@ -142,8 +152,19 @@ def set_thread_status(conn, thread: str, status: str) -> None:
     conn.commit()
 
 
+def set_outcome(conn, thread: str, outcome: str) -> None:
+    """A branch is `open` or `dead`. `joined` is set only by `decide(branch=...)`, which also names its node."""
+    if outcome not in ("open", "dead"):
+        raise ValueError("outcome must be 'open' or 'dead' ('joined' only through decide)")
+    cursor = conn.execute("UPDATE threads SET outcome = ? WHERE id = ?", (outcome, number_of(thread, "t")))
+    if cursor.rowcount == 0:
+        raise ValueError(f"there is no thread {thread}")
+    conn.commit()
+
+
 def list_threads(conn, conversation: str) -> list[dict]:
-    """The threads of a conversation with their messages ({"who", "text", and the keys of data})."""
+    """The threads of a conversation with their messages ({"who", "text", and the keys of data}) and the keys of a
+    branch: `origin`, `subject`, `from`, `outcome`, `node`."""
     threads = []
     for row in conn.execute("SELECT * FROM threads WHERE conversation = ? ORDER BY id", (conversation,)):
         thread_id = f"t{row['id']}"
@@ -152,8 +173,70 @@ def list_threads(conn, conversation: str) -> list[dict]:
                     for message in list_messages(conn, conversation, thread_id)]
         threads.append({"id": thread_id, "kind": row["kind"], "step": row["step"],
                         "after": f"m{row['after']}" if row["after"] is not None else None,
-                        "title": row["title"], "status": row["status"], "messages": messages})
+                        "title": row["title"], "status": row["status"], "messages": messages,
+                        "origin": row["origin"], "subject": json.loads(row["subject"]),
+                        "from": f"n{row['from_node']}" if row["from_node"] is not None else None,
+                        "outcome": row["outcome"],
+                        "node": f"n{row['node']}" if row["node"] is not None else None})
     return threads
+
+
+# --- The trunk: decisions of a conversation (ARCHITECTURE.md 3.5, 4.4, 12) ---
+
+NODE_KINDS = ("plan_accepted", "plan_revised", "value", "assumption_confirmed", "assumption_corrected", "call",
+              "built", "challenge_used")
+NODE_TEXT_LENGTH = 80
+
+
+def _newest_node(conn, conversation: str) -> int | None:
+    return conn.execute("SELECT MAX(id) FROM trunk WHERE conversation = ?", (conversation,)).fetchone()[0]
+
+
+def _node(row) -> dict:
+    return {"id": f"n{row['id']}", "ts": row["ts"], "who": row["who"], "kind": row["kind"], "text": row["text"],
+            "change": json.loads(row["change"]), "touched": json.loads(row["touched"]),
+            "branch": f"t{row['thread']}" if row["thread"] is not None else None,
+            "after": f"m{row['after']}" if row["after"] is not None else None}
+
+
+def decide(conn, conversation: str, *, who: str, kind: str, text: str, change: dict | None = None,
+           touched: dict | None = None, branch: str | None = None) -> str:
+    """Store a trunk node of the conversation and return its id, 'n<id>'. It follows the last main-chat message.
+    `text` is cut to 80 characters. Records `core.decided`. With `branch` (a thread id) that thread's outcome becomes
+    `joined` and its node this one."""
+    if who not in WHO:
+        raise ValueError(f"who must be one of {', '.join(WHO)}, not {who!r}")
+    if kind not in NODE_KINDS:
+        raise ValueError(f"kind must be one of {', '.join(NODE_KINDS)}, not {kind!r}")
+    touched = {"inputs": list((touched or {}).get("inputs") or []), "steps": list((touched or {}).get("steps") or [])}
+    text = " ".join(str(text).split())
+    if len(text) > NODE_TEXT_LENGTH:
+        text = text[:NODE_TEXT_LENGTH - 1] + "…"
+    thread = None
+    if branch is not None:
+        thread = number_of(branch, "t")
+        if conn.execute("SELECT 1 FROM threads WHERE id = ? AND conversation = ?",
+                        (thread, conversation)).fetchone() is None:
+            raise ValueError(f"there is no thread {branch} in this conversation")
+    after = conn.execute("SELECT MAX(id) FROM messages WHERE conversation = ? AND thread IS NULL",
+                         (conversation,)).fetchone()[0]
+    cursor = conn.execute(
+        "INSERT INTO trunk (ts, conversation, who, kind, text, change, touched, thread, after)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (db.now(), conversation, who, kind, text, json.dumps(change or {}), json.dumps(touched), thread, after))
+    node = f"n{cursor.lastrowid}"
+    if thread is not None:
+        conn.execute("UPDATE threads SET outcome = 'joined', node = ? WHERE id = ?", (cursor.lastrowid, thread))
+    conn.commit()
+    db.record_event(conn, session_id=conversation, kind="core.decided", actor=ACTORS[who],
+                    payload={"node": node, "kind": kind, "who": who, "branch": branch, "touched": touched})
+    return node
+
+
+def list_trunk(conn, conversation: str) -> list[dict]:
+    """The Nodes of a conversation, oldest first."""
+    return [_node(row) for row in conn.execute("SELECT * FROM trunk WHERE conversation = ? ORDER BY id",
+                                               (conversation,))]
 
 
 # --- The session ---
@@ -209,7 +292,8 @@ class Session:
         with self._connection() as conn:
             document = plan_state.start(version=version, layers=[layer.number for layer in self.layers],
                                         error=error, lanes=lanes, activity=activity, waiting=waiting,
-                                        chat=list_messages(conn, conversation))
+                                        chat=list_messages(conn, conversation),
+                                        trunk=list_trunk(conn, conversation))
             view = View(conn=conn, config=self.config, conversation=conversation, session=self,
                         memory=self.memory)
             for layer in self.layers:
@@ -335,6 +419,12 @@ class Session:
     def update_message(self, message_id: str, changes: dict) -> None:
         update_message(self.conn, message_id, changes)
         self.changed()
+
+    def decide(self, **options) -> str:
+        """Record a trunk node of the current conversation (see `decide`). Returns its id."""
+        node = decide(self.conn, self.conversation, **options)
+        self.changed()
+        return node
 
     def new_conversation(self) -> str:
         """Start a new conversation (layer 1 does, when an interview starts). Returns its id."""
@@ -550,6 +640,12 @@ class Work:
 
     def changed(self) -> None:
         self.session.changed()
+
+    def decide(self, **options) -> str:
+        """Record a trunk node on this job's connection (see `decide`). Returns its id."""
+        node = decide(self.conn, self.conversation, **options)
+        self.session.changed()
+        return node
 
     def desk(self):
         """The research desk on this job's connection, or None when the session was given none."""

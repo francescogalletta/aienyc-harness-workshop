@@ -2,14 +2,15 @@
 
 This file says how the harness is built: the core, the plan state document,
 the layers and what each owns, the actions, how long work is reported, how
-"the harness at step N" is produced, and the database. Section 9 keeps the
-notes made while each part was built.
+"the harness at step N" is produced, and the database. Section 12 is the
+decision history the right-hand panel draws. Section 9 keeps the notes made
+while each part was built.
 `SPEC.md` is the contract for behaviour; it relies on sections 3 to 5 here,
 which are part of the contract too. The product design is in `design/`
 (`design/ui-design-decisions.md` and `design/system/`). Where this file and the
 design differ, the design wins; tell the maintainer.
 
-## 1. In ten lines
+## 1. In brief
 
 1. One **core** (`harness/core/`) owns the conversation, the waiting slot, three
    work lanes and the plan state document. It knows no layer by name.
@@ -32,6 +33,9 @@ design differ, the design wins; tell the maintainer.
    registry, test gate, number check. Models sit behind `harness/model/`.
 10. Not here: reading account files, checking against the person's own data,
     stored copies of earlier steps.
+11. The chat is a **decision history** (section 12): a trunk of decisions that
+    changed the analysis, and branches, each about one thing in the plan, that
+    join the trunk with the person's yes or die without a consequence.
 
 ## 2. Files and layers
 
@@ -75,13 +79,15 @@ page hides what they feed. IDs are strings so the page never mixes kinds.
   "steps": [Step, ...],                   plan order; added steps last
   "edges": [{"from": "<step id>", "to": "<step id>"}, ...],
   "chat": [Message, ...],                 the main chat, oldest first
-  "threads": [Thread, ...],               (layer 4 and 5) side and reviewer threads
+  "history": {"trunk": [Node, ...],       the decisions of this conversation, oldest first (3.5)
+              "latest": "n5" | null},     the newest node
+  "threads": [Thread, ...],               (layer 4 and 5) the branches: side, reviewer and harness threads
   "review": {"open": int, "running": bool}   (layer 5)
 }
 
 Lane     = "idle" | "working" | "waiting"
 Activity = {"lane": "main" | "side" | "review", "what": "interview" | "build" | "answer"
-            | "helper" | "tests" | "side" | "review", "step": "<step id>" | null,
+            | "helper" | "tests" | "side" | "review" | "join", "step": "<step id>" | null,
             "thread": "<thread id>" | null,         the thread a side job is answering
             "text": "writing the code, attempt 2", "since": "<ISO time>"}
 Waiting  = {"kind": "message"}                     the person may type; nothing else waits
@@ -114,7 +120,8 @@ Context = {
 Input = {"id": "in:guest_count", "name": "Guest count", "description": str, "origin": Origin,
          "steps": ["s1"],             steps whose needs name it; the page draws one pill above each
          "used": bool,                (layer 3) it took part in the last answer
-         "value": null | str}         (layer 3) its saved value as written; null: none saved yet
+         "value": null | str,         (layer 3) its saved value as written; null: none saved yet
+         "changed_by": null | "n5"}   the newest trunk node whose `touched.inputs` names it (core, 3.5)
 ```
 
 Assumption items carry an extra key `"handling"`. An input id is `in:` plus
@@ -137,6 +144,7 @@ Step = {
   "line": null | {"text": "4 examples · 6/6", "kind": null | "tested" | "result" | "strong"},
   "marks": [{"symbol": "●" | "▲" | "◌" | "plan check", "count": int | null, "title": str}],
   "needs_you": bool,              true for at most one step in the document
+  "changed_by": null | "n5",      the newest trunk node whose `touched.steps` names it (core, 3.5)
 
   "build": null | Build,          (layer 2) calculation steps only
   "last_run": null | LastRun,     (layer 3)
@@ -197,20 +205,31 @@ Message = {
   "kind": "text" | "plan" | "decision" | "notice" | "withheld",
   "figures": [Figure],            (layer 3, 4) assistant messages; a decision's question too
   "decision": null | Decision,    kind "decision" (layer 4); `text` is its `question`
-  "notice": null | Notice         (layer 4) set on the assistant reply it belongs to
+  "notice": null | Notice,        (layer 4) set on the assistant reply it belongs to
+  "chips": [Chip]                 (layer 3, 4) on a message that ended a turn with runs, and on a join
+                                  notice; [] on every other message once layer 3 is on (3.5)
 }
 Figure   = {"start": 13, "end": 19, "text": "43,000",
-            "step": "s1" | null, "run": "r17" | null, "input": "in:guest_count" | null}
+            "step": "s1" | null, "run": "r17" | null, "input": "in:guest_count" | null,
+            "superseded": false}     (layer 3) true only when a join ran its run again and the run that
+                                     came last no longer produces this value; an unchanged one stays false
 Decision = {"id": "d4", "step": "s7", "question": str, "options": [str], "suggested": 2 | null,
             "why": str, "status": "open" | "answered", "choice": null | "2" | "something else"}
 Notice   = {"assumptions": [Assumption], "steps": ["s5"], "status": "open" | "confirmed" | "changed"}
-Thread   = {"id": "t3", "kind": "side" | "review", "step": "s5" | null, "title": str (≤45 chars),
+Thread   = {"id": "t3", "kind": "side" | "review" | "harness", "step": "s5" | null, "title": str (≤45 chars),
             "after": "m12" | null,    the main-chat message it follows: drawn right after it; the core
                                       sets it to the last main message when the thread starts
-            "status": "open" | "used" | "dismissed",
-            "messages": [{"who": "you" | "assistant" | "reviewer", "text": str,
+            "status": "open" | "used" | "dismissed",      kept for the current page; `outcome` replaces it
+            "messages": [{"who": "you" | "assistant" | "reviewer" | "harness", "text": str,
                           "sources": [{"title", "url"}]}],
-            "challenge": null | Challenge}
+            "challenge": null | Challenge,
+            -- a thread is a branch (3.5):
+            "origin": "you" | "assistant" | "reviewer" | "harness",   who opened it
+            "subject": Subject,       what in the plan it is about
+            "from": "n3" | null,      the trunk node it left from: the newest when it opened
+            "outcome": "open" | "joined" | "dead",
+            "node": "n5" | null,      the trunk node it joined as
+            "proposal": null | Proposal}               (layer 4) its newest proposal, whatever its status
 Challenge = {"id": "c3", "step": "s5", "kind": "challenge" | "question", "concern": str,
              "proposal": str, "change": "plan" | "assumption" | "input" | "build_step"
              | "replace_step" | "none", "impact": "high" | "medium" | "low", "rank": 1,
@@ -233,7 +252,83 @@ character offsets in `text`. Only figures with a `step` are drawn as
 `fah-num` and select their step when clicked. A decision message is the same:
 its `text` is the decision's `question`, and its `figures` index that text.
 
-### 3.5 A small example
+### 3.5 Decision history, subjects, chips and proposals
+
+The mechanics are in section 12; these are the shapes.
+
+```
+Node     = {"id": "n5", "ts": ISO time,
+            "who": "you" | "assistant" | "harness" | "reviewer",       who decided
+            "kind": "plan_accepted" | "plan_revised" | "value" | "assumption_confirmed"
+                    | "assumption_corrected" | "call" | "built" | "challenge_used",
+            "text": str,              one line the harness writes from the change (≤ 80 chars), never a model's
+            "change": Change,         typed by kind, below
+            "touched": {"inputs": ["in:guest_count"], "steps": ["s1", "s2"]},   what it changed in the plan
+            "branch": "t4" | null,    the branch it joined from; null: decided in the main chat
+            "after": "m19" | null}    the main-chat message it follows (the last one when it was recorded)
+
+Change, by kind:
+  plan_accepted         {}
+  plan_revised          {"step": "s2" | null, "words": str, "changed": ["s2"]}
+  value                 {"input": "guest_count", "label": "Guest count", "from": "120" | null, "to": "150",
+                         "runs": {"r3": "r9", "r4": "r10"},        each re-run: old run -> new run
+                         "failed": [{"run": "r5", "step": "s5", "reason": str}]}
+  assumption_confirmed  {"assumptions": ["a3"]}
+  assumption_corrected  {"assumptions": ["a3"], "words": str}
+  call                  {"decision": "d4", "step": "s7", "choice": "2" | "something else", "words": str}
+  built                 {"steps": {"s5": "built" | "reused"}, "why": "build" | "step" | "new" | "replace"
+                         | "rebuilt" | "files_changed"}
+  challenge_used        {"challenge": "c3", "step": "s5", "change": Challenge.change}
+
+Subject  = {"kind": "plan"}                                            the whole plan
+         | {"kind": "step", "step": "s5"}
+         | {"kind": "input", "input": "in:guest_count", "step": "s1" | null}     a plan input (a pill)
+         | {"kind": "value", "run": "r3", "key": "guest_count", "value": "120",   a value that went into a run
+            "input": "in:guest_count" | null, "step": "s1" | null}
+         | {"kind": "result", "run": "r3", "step": "s1" | null, "value": "36100"}  what a run produced
+         | {"kind": "assumption", "run": "r4", "step": "s2" | null, "text": str,
+            "assumption": "a3" | null}                                 (the id once layer 4 is on)
+         | {"kind": "decision", "node": "n5"}                          a trunk node
+
+Chip     = {"kind": "value" | "assumption" | "result" | "decision",
+            "label": str,             "Guest count", a step's name, "" for an assumption
+            "text": str,              the value as shown ("120", "43,000", "3 values"), an assumption's sentence,
+                                      a node's text
+            "status": null | "unconfirmed" | "confirmed" | "corrected",   assumptions, once layer 4 is on
+            "subject": Subject}
+
+Proposal = {"id": "p2", "status": "pending" | "accepted" | "declined" | "replaced" | "failed",
+            "change": {"kind": "value", "input": "guest_count", "label": "Guest count",
+                       "from": "120" | null, "to": "150"}
+                    | {"kind": "plan", "step": "s1" | null, "words": str},
+            "words": str,             the person's words in the branch it rests on
+            "text": "Guest count: 120 → 150",          one line the harness writes
+            "impact": Impact,
+            "node": "n5" | null,      once joined
+            "reason": str}            why it failed; "" otherwise
+Impact   = {"inputs": ["in:guest_count"],  plan inputs it changes
+            "runs": ["r3", "r4"],          runs of the last answer that will run again, in order
+            "steps": ["s1", "s2"],         their steps: these re-run
+            "downstream": ["s5", "s6"]}    steps the plan's edges reach from them that are not in the last answer:
+                                           touched, not re-run
+```
+
+**What every chip carries.** A chip's `subject` is enough for the three
+actions of its hover menu, with nothing else looked up: *see it in the graph*
+selects `subject.input` when there is one, else `subject.step`, and opens the
+step's pop-up on `subject.run` when there is one (a decision chip selects the
+node's `touched` steps); *challenge or correct it* and *talk about it* both
+send `side` with `subject` (section 5), the first with the composer of the new
+branch focused for a correction. A computed number is never edited: a result
+chip's branch is about the run's inputs or its step.
+
+**Figures and subjects.** A Figure (3.4) is a subject without the word: a figure
+with `run` and `step` is `{"kind": "result", "run", "step", "value": text}`,
+a figure with `input` is `{"kind": "input", "input"}`. The page builds that
+subject for a figure's hover menu; nothing new is stored. Clicking a figure
+still selects its step, as today.
+
+### 3.6 A small example
 
 ```
 {"version": 9, "layers": [0,1,2,3,4], "product": "Financial Advisor Harness", "phase": "accepted",
@@ -266,9 +361,23 @@ its `text` is the decision's `question`, and its `figures` index that text.
            "figures": [{"start": 18, "end": 27, "text": "43,000.00", "step": "s1", "run": "r3", "input": null}],
            "decision": null,
            "notice": {"assumptions": [{"id": "a1", "text": "The guest count stays at 150."}],
-                      "steps": ["s1"], "status": "open"}}],
+                      "steps": ["s1"], "status": "open"},
+           "chips": [{"kind": "value", "label": "Guest count", "text": "150", "status": null,
+                      "subject": {"kind": "value", "run": "r3", "key": "guest_count", "value": "150",
+                                  "input": "in:guest_count", "step": "s1"}},
+                     {"kind": "assumption", "label": "", "text": "The guest count stays at 150.",
+                      "status": "unconfirmed",
+                      "subject": {"kind": "assumption", "run": "r3", "step": "s1",
+                                  "text": "The guest count stays at 150.", "assumption": "a1"}},
+                     {"kind": "result", "label": "Total cost", "text": "43,000", "status": null,
+                      "subject": {"kind": "result", "run": "r3", "step": "s1", "value": "43000.00"}}]}],
+ "history": {"trunk": [{"id": "n1", "ts": "...", "who": "you", "kind": "plan_accepted", "text": "Plan accepted",
+                        "change": {}, "touched": {"inputs": [], "steps": []}, "branch": null, "after": null}],
+             "latest": "n1"},
  "threads": []}
 ```
+
+(`changed_by` is null on the step and the input here: node `n1` touched nothing.)
 
 ## 4. The core and its extension points
 
@@ -359,6 +468,31 @@ What a layer must not do: import a higher layer, write to another layer's
 tables, or read `config.layers` itself. The core is the only place that knows
 which layers are on.
 
+### 4.4 The decision history in the core
+
+The core owns the trunk and the branch columns of threads, as it owns messages
+and threads; it knows no kind of change by meaning. Every layer records its own
+decisions through it.
+
+```python
+# harness/core/session.py, beside add_message and add_thread
+def decide(conn, conversation, *, who, kind, text, change=None, touched=None,
+           branch=None) -> str                     # "n<id>"; records `core.decided`; with `branch`,
+                                                   # sets that thread's outcome "joined" and its node
+def add_thread(conn, conversation, *, kind, title, step=None, after=None,
+               origin="you", subject=None) -> str  # `from` is the newest node of the conversation;
+                                                   # subject defaults to {"kind": "step", "step"} or {"kind": "plan"}
+def set_outcome(conn, thread, outcome) -> None     # "open" | "joined" | "dead" (joined only through decide)
+def list_trunk(conn, conversation) -> list[dict]   # the Nodes, oldest first
+Session.decide(**same but conn and conversation**) and Work.decide(...)   # also call changed()
+```
+
+`plan_state.start` takes the trunk and puts `history` in the document;
+`plan_state.finish` sets `changed_by` on every step and input (the newest node
+whose `touched` names it; null when none). `list_threads` returns `origin`,
+`subject`, `from`, `outcome` and `node` with every thread. `history` is there
+at every layer; at layer 0 its trunk is empty.
+
 ## 5. Actions
 
 `POST /api/act` with `{"action": name, ...payload}`. 200 `{"ok": true,
@@ -370,21 +504,27 @@ every action.
 | --- | --- | --- | --- | --- |
 | `say` | `text`, `step`?, `notice`? | 0 | always | A person message in the main chat; answers `waiting`, or is routed (SPEC 2.3) |
 | `start` | `text` | 1 | `phase` is `empty` | Starts the interview with the opening statement |
-| `accept_plan` | | 1 | `waiting.kind` is `plan` | Saves the brief as confirmed; hook `plan_accepted` |
+| `accept_plan` | | 1 | `waiting.kind` is `plan` | Saves the brief as confirmed; trunk node `plan_accepted`; hook `plan_accepted` |
 | `wrap` | | 1 | the interview waits for an answer | Asks the interviewer to propose the plan now |
 | `build` | | 2 | `phase` is `accepted`, no build queued or running | Queues the unattended build |
 | `confirm_example` | `step`, `n` | 2 | that example exists and is not yours already | Records "confirmed by you" |
 | `confirm_plan_check` | `step` | 2 | the step has departures not yet confirmed | Clears the plan-check mark |
 | `run_tests` | `step` | 2 | the step has a registered module | Queues a test run |
-| `choose` | `decision`, `option` | 4 | that decision is the one waiting | Posts the option's text as the person's message (`who` "you", the decision's step), then answers the decision with the option number |
-| `confirm_assumptions` | `message` | 4 | that message's notice is open | Confirms its assumptions |
-| `side` | `text`, `step`?, `thread`? | 4 | always | Starts a side thread, or replies in one (side or review) |
-| `use_challenge` | `challenge` | 5 | the challenge is open | Marks it used; posts the person's "use this" message and routes it |
-| `dismiss_challenge` | `challenge` | 5 | the challenge is open | Marks it dismissed |
+| `choose` | `decision`, `option` | 4 | that decision is the one waiting | Posts the option's text as the person's message (`who` "you", the decision's step), then answers the decision with the option number; trunk node `call` (an answer in words records it too) |
+| `confirm_assumptions` | `message` | 4 | that message's notice is open | Confirms its assumptions; trunk node `assumption_confirmed` |
+| `side` | `text`, `step`?, `thread`?, `subject`? | 4 | always | Without `thread`: opens a branch (origin `you`) on `subject` (default: the step, else the whole plan) and marks the person's other answered side branches dead. With `thread`: says something in that branch (side or review); a dead side branch opens again |
+| `accept_proposal` | `proposal` | 4 | the proposal is pending, and the main lane does not wait on a decision | Status `accepted`; queues the join on the main lane (section 12.3) |
+| `decline_proposal` | `proposal` | 4 | the proposal is pending | Status `declined`; the branch is dead |
+| `close_branch` | `thread` | 4 | a side branch whose outcome is `open` | The branch is dead; a pending proposal in it is declined |
+| `use_challenge` | `challenge` | 5 | the challenge is open | Marks it used; trunk node `challenge_used` (who `reviewer`), the review branch joined; posts the person's "use this" message and routes it |
+| `dismiss_challenge` | `challenge` | 5 | the challenge is open | Marks it dismissed; the review branch is dead |
 
 "Change it" under a notice is the page putting the notice's steps in the
-composer; the message then goes as `say` with `notice` set. The Review toggle,
-pop-ups, "Whole plan" and selection are page-only.
+composer; the message then goes as `say` with `notice` set (trunk node
+`assumption_corrected`). The Review toggle, pop-ups, "Whole plan", selection,
+and the chip's "see it in the graph" are page-only. A chip's "challenge or
+correct" and "talk about it" are `side` with the chip's `subject`; the branch
+starts with the person's first message, so an empty branch is never stored.
 
 The terminal maps typed lines to the same actions (SPEC 2.5). Replay plays a
 scenario's lines as actions (SPEC 2.6).
@@ -401,6 +541,19 @@ second pass, code, tests, registration, not built, confirmations), `ask.`
 `review.` (passes, lookups, challenges kept and dropped, use and dismiss).
 Kinds are listed in each layer's section of the SPEC. Tests assert kinds and
 payload keys, never wording.
+
+The decision history adds (section 12):
+
+| Kind | Payload | Recorded by |
+| --- | --- | --- |
+| `core.decided` | `node, kind, who, branch, touched` | `decide`, for every trunk node, whatever layer asked |
+| `you.side_opened` | gains `subject` | `side` without `thread`, as today |
+| `you.branch_dead` | `thread, reason`: `closed`, `declined`, `moved_on`, `new_branch` | layer 4 (a dismissed review branch is dead with `review.dismissed`, layer 5) |
+| `you.branch_reopened` | `thread` | a message in a dead side branch |
+| `you.proposed` | `thread, proposal, change, impact` | `propose_change`, when it passes the checks |
+| `you.proposal_refused` | `thread, reason, change` | `propose_change`, when it does not; `reason` one of `not_their_words`, `unknown_input`, `value_unbacked`, `ambiguous`, `same`, `unknown_step`, `one_per_reply` |
+| `you.proposal_accepted`, `you.proposal_declined` | `thread, proposal` | the two actions |
+| `you.joined` | `thread, proposal, node, runs, failed` | the join, when it ends |
 
 ## 7. "The harness at step N"
 
@@ -435,7 +588,8 @@ payload keys, never wording.
   step and hides what it has no keys for.
 - **Where this is not fully additive.** The core knows the generic shapes later
   layers fill (threads, decisions in `waiting`, the step-line rule reads keys
-  of layers 2 to 5); it does not import them. The page is one given file for
+  of layers 2 to 5, the trunk and the branch columns of section 12); it does
+  not import them, and it never names a kind of change. The page is one given file for
   every step, not built step by step. The analyst prompt is composed of parts,
   so a later part must only add, never contradict an earlier one; the layer 4
   part says plainly what it changes. These are the fallbacks, and they are
@@ -450,8 +604,8 @@ migration history. After a schema change, delete `my/var/harness.db`.
 ## 9. Implementation notes
 
 Notes made while the harness was built, one package at a time (A0 to A6 for
-behaviour, B2 for the page, C1 for the workshop tool, then fixes from end-to-end
-and live runs). They record interfaces and choices the contract leaves open.
+behaviour, B2 for the page, C1 for the workshop tool, D0 to D6 for the decision
+history of section 12, then fixes from end-to-end and live runs). They record interfaces and choices the contract leaves open.
 Where a note mentions an earlier package, a later one, or the previous version
 of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
 
@@ -847,7 +1001,8 @@ of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
   hooks (the review pass of a seeded plan starts there). Layer 4 `marks` also takes `confirmed` and `corrected` (at least that many
   `you.assumptions_*` events), layer 5 `challenges` takes `used` and `dismissed` (at least that many in that state), so a scenario
   can expect counts and states. Layer 3 `shown` and `not_shown` read the assistant's text and decision messages in the chat
-  (they read `ask.reply` events only, so a figure in a decision's question was "not shown").
+  (they read `ask.reply` events only, so a figure in a decision's question was "not shown"), and, since the decision graph,
+  the text of each harness message too, and with every message the text of its chips, so the figures of a join notice and the results a short reply leaves to its chips can be expected.
 - **A6 · Prompt changed on replay evidence.** `needs_you/analyst.md`: one bullet says a value put into a run that the person did
   not give (a share they only called "shares", a rate, a date worked out, whether a payment counts toward a total) is an
   assumption to list in the run's `assumptions`. Before it, four of four live runs of `confirm_and_correct` gave the 50/50 split
@@ -890,3 +1045,340 @@ of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
   at layer 3 and 4 of 4 at layer 4 (nothing fired). What stays unchecked: text and true/false inputs (whether a
   payment counts toward a total), whole numbers up to 12, a value of the person's put into the wrong input, and a
   call left in prose when the person did not ask to decide.
+- **DG · The rule reversed.** "A side thread never changes anything" (SPEC 6.4 before, the design's section 4) no
+  longer holds: a branch's assistant may propose, and a proposal the person accepts joins the trunk (section 12).
+  The side assistant still applies nothing; the harness applies, with the person's yes.
+- **DG · One table per thing.** A branch is a `threads` row (five columns more, layer 0), a node a `trunk` row (layer
+  0), a proposal a `proposals` row (layer 4). No `branches` table; `decisions` keeps its meaning (the person's calls).
+  `status` on threads stays for the current page; `outcome` is the branch's.
+- **DG · The re-run is the harness's, not the model's.** The join re-runs the last answer's runs that the value reaches,
+  by value lineage, through the gate, with no model call (12.4). Reasons: it is deterministic for the demo, fast, and a
+  number the person sees still comes only from a tested module. The analyst is told afterwards in a `[harness]` line.
+- **DG · Chips from records.** Chips are built at `state()` from `_runs` and `calc_runs`, not asked of the model; the
+  analyst's prompt only says to keep the prose short (12.7).
+- **DG · Death is stored.** A branch dies by an action or a hook and records `you.branch_dead`; nothing is derived at
+  display time, so a replay can check it and the page draws what it gets.
+- **DG · Events kept.** `you.side_opened` keeps its name and gains `subject`; existing tests of event kinds hold.
+- **D0 · Checks in the core.** `decide` refuses a `who` or `kind` outside 3.5 and a `branch` that is not a thread of the
+  conversation (ValueError); `text` is whitespace-folded and cut to 80 characters ending in `…`; `touched` always has both lists.
+  `set_outcome` takes only `open` or `dead` (`joined` only through `decide`). `plan_state.start(..., trunk=)` puts `history` in
+  the document, `finish` sets `changed_by` (None when no node), and a `finish` on a bare dict without `history` is fine.
+- **D0 · The validator.** `tests/layer0/state_shape.py` requires `history`, `changed_by`, and the branch keys on threads at
+  every layer; `chips` and `proposal` are checked when present and required only once `CHIPS_REQUIRED`/`PROPOSAL_REQUIRED` at
+  its top are set True (do that when D3a and D4a land). The five older sample states gained the new core keys.
+- **D3b · Re-run details.** `rerun` returns `replaced` and `failed[].run` as `"r<id>"` (the `value` Change's form) and
+  `runs` as ints (the `_runs` form); failed runs stay in `runs`. `impact` takes an optional `conversation` (default: the
+  current one from `meta`; the state has none). A value one leaf of a re-run kept and another changed is ambiguous, as one
+  mapped to two values. "Needed its output" is "holds a value it produced" (`_produced`). Only re-run outputs map; the
+  changed input itself maps nowhere but its own top-level key. `RERUN_EXPECTED` lives in `answers/rerun.py` (layer 4 imports it).
+- **D3a · Chips.** Built in `answers/layer.py` (`add_chips`, `run_chips`): every main-chat message gets `chips`, `[]` without
+  runs. A value chip's subject `value` and a result chip's are the input or output as written (text as is, a list or object
+  as JSON); a "produced" value is one whose every number and date an earlier run of the same message produced; no step for
+  the run: no result chip, `step` null on its value chips. `tell_analyst` adds to the note that goes with the next message
+  (as `WITHHELD_NOTE` does, after the person's words); `store_input` writes only, `save_input` keeps its event.
+- **D1 · Nodes of layer 1.** `plan_accepted` is recorded in `_run` after `PLAN_ACCEPTED` is posted and before the `plan_accepted` hook (so a
+  node follows that message); `loaded` records it for a confirmed plan with an empty trunk and no interview, after `PREPARED`. `revise_plan`
+  gains `branch=None`, returns `{"changed", "node"}`, and records `plan_revised` (text `Plan changed: {changes}`, touched steps `changed`)
+  after `PLAN_CHANGED`; a revision that errors records nothing. Every layer 2 and later session on a saved plan therefore starts with `n1`.
+- **D4b · Nodes of layer 4.** `call` is recorded in `ask_decision` right after the answer is stored, so `choose` and words both record it
+  (text `{question} {words}`, `words` being the option's text for `choose`). `assumption_confirmed` and `assumption_corrected` use the
+  notice's steps and all the notice's (resp. corrected) assumptions; text `Confirmed: `/`Corrected: ` + first sentence (+ ` and n more`),
+  kept within 80 characters by `marks.node_text`. `built` is recorded when `request_module` ends `built` or `reused` (`why` is the case).
+- **D5 · Review branches.** `open_thread` passes `origin="reviewer"` and subject `{"kind": "step", "step"}`. `use_challenge` records
+  `challenge_used` (after settling the challenge, before the "use this" message) with `branch` the thread; `dismiss_challenge` calls
+  `set_outcome(thread, "dead")`. A question branch stays `open` until dismissed.
+- **D4a · Branches and joins.** In `needs_you/join.py` (proposals, checks, the three actions, the join, deaths) and `side.py`
+  (subject, sections, the tool). A `value` proposal's `input` may also be the branch subject's own key (a value chip of an
+  older answer, a plan input's pill); a leading `in:` is dropped; a bad `kind` is refused `unknown_input`. The new value's
+  numbers are checked strictly (small whole numbers too; dates whole). Proposal text `{label}: {from or none} → {to}`, or
+  `Plan[, step N Name]: {words}` cut to 80; the node's text is SPEC 6.6's `{label}: {new} (was {old})`. The join notice is a
+  `harness` message of kind `text` with `figures: []`; a failed run with no step gets `step` "" in the node's `failed`. A value
+  join that raises makes the proposal `failed` (reason posted in the branch) and still sets `error`. The `turn_finished` hook
+  is marks' then the `moved_on` death. A join notice first had every value chip of its new runs (13 in a live
+  wedding run); after the first browser run it keeps the changed value and the results, each `new (was old)` (12.7).
+  `review_challenges.json` gained `"proposal": null`; `workshop/manifest.json` lists `join.py`.
+- **D6 · Replay acts and scenarios.** The scenarios are `branch_that_joins` and `branch_that_dies` (SPEC 6.6 gives them; the question is one the real
+  model answers reliably, and `today` is 2026-10-12). `branch` takes a `chip` or a
+  `step`, not both. "Newest" is the highest number in the id (a review pass on load makes thread ids unpredictable), `accept` and
+  `decline` look at every thread's pending proposal, `close` at open side branches (origin any, kind `side`). The terminal's `/yes`, `/no`,
+  `/close` pick the same way, and it prints a pending proposal once with `Type /yes to decide it, or /no.`.
+
+## 12. Decision history
+
+The scope is deliberately small: two examples must be right (12.10);
+everything else may stay as it is, as long as it does not look broken beside
+them.
+
+### 12.1 The model
+
+- The chat is a **decision history**. Its **trunk** holds only decisions that
+  changed the analysis, from the plan's acceptance on. Each is a **node**:
+  who decided (you, the assistant, the harness, the reviewer), a typed change,
+  what it touched in the plan, and the branch it came from, if any.
+- A **branch** is a thread. It leaves the trunk at the newest node, is about
+  one **subject** in the plan (an input, a value in a run, a result, an
+  assumption, a step, a node, or the whole plan), holds its messages, and has
+  an **outcome**: `open`, `joined` (naming its node) or `dead`.
+- A branch **joins** only through a change with a consequence: a value that
+  goes into the runs, or the plan. It is **dead** when it ends without one.
+- The main chat stays as it is: the person asks, the analyst answers. A value
+  given or changed in the main chat is conversation, not a node; it becomes a
+  decision when the person challenges its chip and accepts the proposal, or
+  uses one of their own buttons (choose, confirm, "Change it", "use this").
+
+### 12.2 What exists, and what it becomes
+
+| Today | Becomes | Layer |
+| --- | --- | --- |
+| The plan accepted (`accept_plan`; a confirmed plan found on load with an empty trunk, as a seeded example) | The first node, `plan_accepted`, who `you` | 1 |
+| A plan revision after acceptance (`revise_plan`, from `change_plan` or from a plan proposal) | Node `plan_revised`, who `you` (`reviewer` when `by` is the reviewer); `branch` set when it came from a proposal | 1 |
+| A side thread (`threads` kind `side`) | A branch, origin `you`, subject from `side` (default `{"kind": "step"}` or `{"kind": "plan"}`) | 4 |
+| A side reply | Talk in the branch. The side assistant may now **propose** a change through `propose_change` (12.3); it still applies nothing | 4 |
+| A review thread and its challenge (`challenges` row) | A branch, origin `reviewer`, subject `{"kind": "step"}`. "Use this" records node `challenge_used` (who `reviewer`) and joins it; the analyst then acts on the person's message as today, and what it changes records its own node. "Dismiss" makes it dead | 5 |
+| A notice under an answer (`notice`, `assumptions` rows) | Stays a notice. Its assumptions are also assumption chips. "Confirm" records `assumption_confirmed`; "Change it" records `assumption_corrected` and the analyst runs again, as today | 4 |
+| A chip's correction of an assumption | A branch on `{"kind": "assumption"}`; its proposal is a `value` of that run; the join also marks the assumption `corrected` with the words | 4 |
+| A call answered (`decisions` row, `answered`) | Node `call`, who `you`, touched: the decision's step | 4 |
+| A build the analyst asked for (`request_module`) | Node `built`, who `assistant`, `why` its case, no branch | 4 |
+| A rebuild by the harness itself (module files changed and adopted again on load; a helper rebuild; a step built again after it went stale) | A branch of kind `harness`, origin `harness`, subject the step, holding the harness's lines; joined at once as node `built`, who `harness`. Open while the step is not built. Not built: no layer records it yet (SPEC 4.9) | 2 |
+| The unattended build (`build`) | Node `built`, who `harness`, `why` `build`, all its steps, no branch. Not built: no layer records it yet (SPEC 4.9) | 2 |
+| Stale propagation | Unchanged: a plan revision makes changed steps stale, as today | 2 |
+| Every event | Unchanged; `core.decided` and the `you.` kinds of section 6 are added | all |
+
+No parallel table: a branch is a `threads` row with five more columns, a node
+is a `trunk` row, a proposal is a `proposals` row (12.8).
+
+### 12.3 The join
+
+**A proposal.** On a branch, the side assistant calls `propose_change` (SPEC
+6.6) with a fixed shape: `kind` `value` (`input`: the value's name as the
+runs give it, `value`: the new value in plain form) or `plan` (`step`), and
+`words`: the person's words in this branch it rests on. The harness, with no
+model:
+
+1. checks the words are in a person's message of this branch;
+2. resolves the target: for `value`, `input` must be a top-level input of a
+   run of the last answer, or the branch's subject is a plan input and `input`
+   is its id without `in:`; for `plan`, `step` is empty or a plan step;
+3. number-checks the new value against the person's messages **in this branch
+   only** (as `marks.given_texts` reads them: number words and dates too): a
+   value of theirs, never one the model worked out;
+4. finds the old value: the subject's `value` when the subject is a value of
+   that input; else that input's value in the subject's run (a result or an
+   assumption subject); else the saved input; else the one value that input
+   has in the last answer (two or more, as a range: refused `ambiguous`, open
+   the branch from one of them); refused `same` when old and new are the same;
+5. computes the impact (12.4) and stores the proposal, `pending`. A pending
+   proposal in the branch becomes `replaced`. One proposal per reply.
+
+A refusal goes back to the model as the tool's error, with the reason; the
+model then says plainly what it cannot propose. The person sees the proposal
+at the end of the branch: its `text`, what it touches (`impact`), Yes and No.
+
+**Yes** (`accept_proposal`): status `accepted`; a main-lane job `join` is
+queued (it waits behind an analyst turn; it is refused while a decision waits
+on the person). For a **value** the job:
+
+1. computes the runs again from the last answer as it is now (12.4);
+2. saves the value: `answers.agent.store_input(conn, key, new, note, conversation)`,
+   the note `on a branch: <words>`; the plan input's pill shows it;
+3. when the branch's subject is an assumption, marks it `corrected` with the words;
+4. runs again what 12.4 says, through the gate, with progress
+   `running step N again` (activity `what` `join`, `step` that step);
+5. posts the join notice in the main chat (`JOINED`, SPEC 6.6, a `harness`
+   message) with private `_runs` (the new last answer: the old one without the
+   replaced runs, plus the new runs) and `_chip_runs` (the new runs only);
+6. records the node: `decide(who="you", kind="value", text, change, touched,
+   branch)`: `touched.inputs` is `in:<key>` when that is a plan input,
+   `touched.steps` the steps run again; the branch is `joined`;
+7. sets the message's `_node`, the proposal's `node`, records `you.joined`,
+   and tells the analyst with `answers.agent.tell_analyst(session, JOIN_NOTE)`
+   (a `[harness]` line put before the person's next message, as a withheld
+   note is today).
+
+For a **plan** proposal the job calls `revise_plan(work, words, step,
+by="person", branch=thread)`; `revise_plan` records `plan_revised` with that
+branch, which joins it. An error makes the proposal `failed` with the reason,
+posted in the branch as a `harness` line; the branch stays open. Changed steps
+go stale as today; nothing runs again.
+
+**No** (`decline_proposal`): status `declined`, the branch is dead.
+
+### 12.4 What runs again
+
+Let `A` be the runs of the last answer (layer 3: the runs of its turn and the
+runs its figures name), oldest first; `key` the input, `old` and `new` its
+values.
+
+1. A run of `A` is **direct** when its inputs have `key` at the top level with
+   a value equal to `old` (the same number as the number check reads it, or the
+   same text; with `old` null, every run of `A` with `key`).
+2. Going through `A` in order, a run is run again when it is direct, or when a
+   value anywhere in its inputs equals an old value that an earlier re-run
+   changed. Old and new outputs of each re-run are compared leaf by leaf (by
+   key path; a list by position); each leaf that differs maps its old value
+   to its new one. A run whose inputs come out unchanged is not run again and
+   stays in the answer.
+3. Its inputs are the old ones with `key` set to `new` (direct) and each mapped
+   value replaced, written as the input was: text as the shortest plain decimal
+   (`43000`, `18500`, `0.4`) or the date as written; any other value keeps its
+   type. One old value mapped to two different new ones: that run is not run
+   again (`failed`, `a value it took is ambiguous`).
+4. Its assumptions are its own, less the branch's assumption subject and less
+   any sentence that holds `old` or names `key` in words. `expected` is
+   `RERUN_EXPECTED` (SPEC 6.6).
+5. It goes through `gate.call`. A refusal goes in `failed` with the gate's
+   words, and the later runs that needed its output fail with `an earlier step
+   could not run again`. The join still saves the value and records the node.
+
+**Impact** is the same walk without running: the direct runs, then each run
+of `A` holding a value an earlier listed run produced (`provenance._produced`).
+`steps` are their steps; `downstream` the steps the plan's `edges` reach from
+them that are not in `steps` (for a value no run used: the input's `steps` and
+what they reach). Downstream steps are shown as touched and not run: the
+analyst runs them when asked.
+
+### 12.5 When a branch dies
+
+A side branch whose outcome is `open` becomes `dead`:
+
+- the person closes it (`close_branch`, reason `closed`);
+- the person declines its proposal (`declined`);
+- the person opens another branch (`new_branch`), or the analyst finishes
+  answering a main-chat message sent after the branch's last message
+  (`moved_on`, from layer 4's `turn_finished`): in both cases only when its
+  last message is the side assistant's and it has no pending proposal.
+
+A message in a dead side branch opens it again (`you.branch_reopened`). A
+joined branch stays joined; it may go on as talk, and a later accepted
+proposal there records another node (its `node` is the newest). Review
+branches die only by "dismiss". A branch never joins without a node. Dead
+branches stay in the history, drawn dimmed.
+
+### 12.6 Who may join without asking
+
+- **The person's yes is needed** for every proposal: a value that goes into
+  their runs, or the plan. Their own buttons in the main chat (choose,
+  confirm, "Change it", "use this") are their yes already.
+- **Automatic**, shown as the assistant's doing: a build the analyst asked
+  for. It does not change a figure of the person's or the plan's shape: an added step is "not
+  in the plan".
+- The side assistant and the analyst never join anything.
+
+### 12.7 Less prose: chips
+
+The analyst's reply becomes one or two sentences, the answer to the question
+with the one or two numbers that answer it. Everything else is chips, built
+by the harness from its own records, never asked of the model:
+
+- **Where from.** Layer 3's `contribute`, at every `state()`, from a message's
+  private `_runs` (`_chip_runs` on a join notice) and the `calc_runs` rows.
+- **For each run, oldest first:**
+  - *value* chips: each top-level input that no earlier run of the same
+    message produced (`_produced`) and that is not today's date. Label: the
+    plan input's name when `in:<key>` is a plan input, else the key in words
+    with a capital (`Dinner cost per guest`). Text: `display(value)["text"]`.
+    The same key with the same value: one chip.
+  - *assumption* chips: each sentence of the run's `assumptions`, once per
+    message; `status` and `subject.assumption` are set by layer 4 from the
+    `assumptions` table.
+  - *result* chips: one per run whose module carries out a step in the state
+    (added steps too). Label: the step's name. Text: `show_value(output,
+    spec.output)`, as the step line writes it.
+- **Order:** values, assumptions, results. A join notice keeps only what the join
+  changed (layer 4, from `_node`): a *decision* chip first (label `Decided`, text the
+  node's text), the *value* chip of the changed input with text `new (was old)`
+  (`150 (was 120)`), and one *result* chip per re-run whose text is the last leaf that
+  differs between the old run's output and the new one, both as `show_scalar` writes
+  them (`18,500 (was 15,050)`; the new value alone when nothing differs). The re-runs'
+  other inputs and assumptions are the old answer's and stay with it.
+- A withheld reply keeps its chips: a result of a tested module may be shown.
+- Figures in the prose stay as they are (3.4).
+
+### 12.8 Storage
+
+The database is disposable: after pulling this, delete `my/var/harness.db`
+and `my/var/examples/`.
+
+```sql
+-- harness/schema.sql (layer 0): threads gains five columns, and a new table
+CREATE TABLE IF NOT EXISTS threads (
+    ...as today...,
+    origin     TEXT NOT NULL DEFAULT 'you',            -- "you" | "assistant" | "reviewer" | "harness"
+    subject    TEXT NOT NULL DEFAULT '{"kind": "plan"}',  -- JSON Subject
+    from_node  INTEGER,                                -- trunk.id it left from, NULL before any node
+    outcome    TEXT NOT NULL DEFAULT 'open',           -- "open" | "joined" | "dead"
+    node       INTEGER                                 -- trunk.id it joined as
+);
+CREATE TABLE IF NOT EXISTS trunk (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,   -- shown as "n<id>"
+    ts            TEXT NOT NULL,
+    conversation  TEXT NOT NULL,
+    who           TEXT NOT NULL,                       -- "you" | "assistant" | "harness" | "reviewer"
+    kind          TEXT NOT NULL,
+    text          TEXT NOT NULL,
+    change        TEXT NOT NULL DEFAULT '{}',          -- JSON Change
+    touched       TEXT NOT NULL DEFAULT '{"inputs": [], "steps": []}',
+    thread        INTEGER,                             -- the branch it joined from
+    after         INTEGER                              -- the main-chat message it follows
+);
+
+-- harness/needs_you/schema.sql (layer 4)
+CREATE TABLE IF NOT EXISTS proposals (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,   -- shown as "p<id>"
+    ts            TEXT NOT NULL,
+    conversation  TEXT NOT NULL,
+    thread        INTEGER NOT NULL,
+    kind          TEXT NOT NULL,                       -- "value" | "plan"
+    change        TEXT NOT NULL,                       -- JSON, the Proposal's change
+    words         TEXT NOT NULL,
+    impact        TEXT NOT NULL,                       -- JSON Impact, as proposed
+    status        TEXT NOT NULL,                       -- "pending" | "accepted" | "declined" | "replaced" | "failed"
+    reason        TEXT NOT NULL DEFAULT '',
+    node          INTEGER                              -- trunk.id once joined
+);
+```
+
+Message `data` gains private keys: `_chip_runs` and `_node` (a join notice).
+
+### 12.9 Layers
+
+| Layer | Owns | Holds with later layers off because |
+| --- | --- | --- |
+| 0 | `trunk`, the branch columns, `decide`, `set_outcome`, `list_trunk`, `history`, `changed_by` | the trunk is empty and every thread is `open` until a layer records something |
+| 1 | `plan_accepted` (accept, and on load), `plan_revised` (with `branch`) | its own nodes only |
+| 2 | nothing yet: harness branches and `built` nodes for rebuilds and the build are reserved (SPEC 4.9), and the core accepts their kinds | — |
+| 3 | chips (value, assumption without status, result); `answers/rerun.py` (`impact`, `rerun`); `store_input`; `tell_analyst`; the shorter prose | the engine is tested by calling it, without a branch |
+| 4 | subjects on branches, `propose_change`, `proposals`, the three actions, the join job, the death rule, `call` and `assumption_*` nodes, assumption chip status, decision chips, `side.md`, its analyst part | — |
+| 5 | review branches (origin, subject), `challenge_used`, dead on dismiss | — |
+
+### 12.10 The two examples, as the harness runs them
+
+**1. A branch that joins** (scenario `branch_that_joins`). The person asks for
+the three payments with 120 guests. The analyst runs `wedding_total_cost`
+(r1: 36,100) and `wedding_payment_schedule` (r2: 6,000, 15,050, 15,050); the
+reply is a sentence or two, with chips: values (Guest count 120, Dinner cost
+per guest 230, ...), results (36,100; the schedule). The person hovers
+`Guest count 120`, chooses "challenge or correct", and writes "We will get no
+fewer than 150 guests." (`side` with subject `{"kind": "value", "run": "r1",
+"key": "guest_count", "value": "120", "input": "in:guest_count", "step":
+"s1"}`). The side assistant calls `propose_change {kind: value, input:
+guest_count, value: "150", words: "no fewer than 150 guests"}`. The harness
+checks the words, finds 150 in them, takes 120 from the subject, and walks the
+last answer: r1 is direct; r2 took 36100, which r1 produced: impact `{inputs:
+[in:guest_count], runs: [r1, r2], steps: [s1, s2], downstream: [s5, s6, s7]}`.
+The branch shows "Guest count: 120 → 150", touching steps 1 and 2 (and 5, 6, 7
+downstream). The person says Yes. The join saves `guest_count` = 150, runs r1
+again with 150 (r3: 43,000), maps 36100 to 43000, runs r2 again with
+`total_cost` "43000" (r4: 18,500 and 18,500), posts "Decided on a branch:
+Guest count is 150 (was 120). Run again: steps 1, 2." with a decision chip and
+result chips 43,000 and the new schedule, records node `value` (who `you`,
+branch t1, touched in:guest_count, s1, s2), and the branch joins. The plan
+graph: the pill reads 150, steps 1 and 2 show their new results and are
+marked as changed by that node.
+
+**2. A branch that dies** (scenario `branch_that_dies`). The person opens a
+branch on step 5 and asks what a sinking fund is. The side assistant
+answers from the plan and the standard terms and proposes nothing. The person closes the
+branch (or opens another one, or goes on in the main chat): it is dead, drawn
+dimmed, no node is recorded, and the plan is as it was.
+

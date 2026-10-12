@@ -150,7 +150,7 @@ Rules:
 - Keep one thread open at a time. Give the threads in a chat the same `name` attribute and the browser closes the others.
 - A reviewer thread ends with what it proposes and two buttons, "Use this" and "Dismiss". It never blocks anything.
 - A challenge built on outside information shows its source in `fah-thread__source`, as a link the harness actually fetched.
-- A side thread changes nothing in the plan. There is no "pass this on" step.
+- On the page a thread is now drawn as a **Branch** (below), which can join the trunk with the person's yes. `fah-thread` stays for anything that is not part of the decision history.
 
 ---
 
@@ -204,25 +204,25 @@ Rules:
 
 ## Composer
 
-The message box at the bottom of the chat. It carries two extra things: the step the message is about, and a toggle for asking on the side.
+The message box at the bottom of the chat. It carries two extra things: the step the message is about, and a toggle for starting a new branch.
 
 ```html
 <div class="fah-composer">
   <span class="fah-chip">2 Three payments ✕</span>
   <input type="text" placeholder="Say what should change…" aria-label="Message about step 2">
-  <button class="fah-side" type="button" aria-pressed="false">On the side</button>
+  <button class="fah-side" type="button" aria-pressed="false">New branch</button>
 </div>
 ```
 
 ### Behaviour
 
 - Clicking a step in the diagram puts its chip in the box. The message then goes to the assistant with that step attached. The `✕` removes it.
-- "On the side" is a toggle. Call `FAH.sideToggle(button)` on click: it flips `aria-pressed` and tints the box, so it is obvious the next message starts a side thread that changes nothing.
+- "New branch" is a toggle. Call `FAH.sideToggle(button)` on click: it flips `aria-pressed` and tints the box, so it is obvious the next message starts a branch (on the attached step, else on the whole plan) rather than going to the main chat.
 - Enter sends. There is no send button.
 
 ### Placeholder
 
-Change it to say what the box will do right now: "Ask, or click a step…" by default, "Say what should change…" with a step attached, "…or answer in your own words" while a decision is open.
+Change it to say what the box will do right now: "Ask, or click a step…" by default, "Say what should change…" with a step attached, "Start a branch…" or "Start a branch about this…" with "New branch" pressed, "…or answer in your own words" while a decision is open.
 
 Give the input a stable `id` and an `aria-label`; the placeholder is not a label.
 
@@ -252,7 +252,7 @@ Rules:
 
 - The Review toggle sits in one fixed place, top right of the diagram, on every screen after the plan is accepted. Leave the count off when there are no challenges.
 - "Accept plan" lives in the chat, under the message that proposes the plan, not in the header.
-- No icon-only buttons. No destructive style: nothing here deletes anything.
+- No icon-only buttons, with one exception: the Hover menu, whose buttons carry an `aria-label` and show their name in words under the pointer or focus. No destructive style: nothing here deletes anything.
 
 ---
 
@@ -284,6 +284,137 @@ What goes in it, by kind of step: a calculation shows its examples and tests; af
 The page positions it: 8px below the step, left edges aligned, flipping above when there is no room. Toggle it with the `hidden` attribute; the entrance plays each time it is shown. Set `aria-expanded` on the step, close on Escape and on a click outside, and return focus to the step.
 
 One pop-up open at a time, and it never covers the step it belongs to.
+
+---
+
+## Decision graph
+
+The panel beside the plan is the decision history: a vertical spine (the trunk) of confirmed decisions, with branches forking sideways that fold open to their conversation. Everything below uses `dg-` classes from the same `bundle.css`, the same tokens and no new colours. Two rules change: a branch (a side thread) **can** change the plan, once the person says yes; and the Hover menu is the one place with icon buttons.
+
+### Contributor mark
+
+Who said or decided something. The shape says who, the fill says where it stands. Build it with `FAH.mark(who, state, size)`; the graph draws the same path with `FAH.shape(who, x, y, r)`.
+
+| Shape | Who |
+| --- | --- |
+| circle | You |
+| diamond | The assistant |
+| square | The harness |
+| triangle | The reviewer |
+
+| Class on the path | Meaning |
+| --- | --- |
+| `dg-shape` | Filled with ink: a decision on the trunk |
+| `dg-shape--open` | Hollow: said on a branch |
+| `dg-shape--dead` | Hollow and muted: on a dead branch |
+| `dg-shape--needs` | The attention fill: a proposal waits for the person's yes (not while a call waits) |
+
+The SVG carries the name in `aria-label`. Never tell contributors apart by colour.
+
+### History (the graph)
+
+```html
+<div class="dg-graph">
+  <svg class="dg-svg" aria-hidden="true"><!-- trunk, forks, joins, marks: drawn from measured positions --></svg>
+  <div class="dg-row dg-row--trunk"><div class="dg-row__l"><!-- dg-node --></div><div class="dg-row__s"></div><div class="dg-row__r"></div></div>
+  <div class="dg-row dg-row--branch"><div class="dg-row__l"></div><div class="dg-row__s"></div><div class="dg-row__r"><!-- dg-branch --></div></div>
+  <div class="dg-row dg-row--now"><div class="dg-row__l"><span class="dg-now">Now</span></div>…</div>
+</div>
+```
+
+- Decisions sit on the left of the spine, right aligned; branches on the right. Under 440px add `dg-graph--narrow`: the spine moves to a 30px column on the left and everything stacks beside it.
+- Lines (`dg-l--trunk` ink 2.5px, `dg-l--branch` flow 1.75px, `dg-l--dead` dotted, `dg-l--cap` the bar that ends a dead branch, `dg-l--sel` the ring round a selected node) are drawn after layout and again on resize and on every branch `toggle`. A fork leaves the trunk 18px above the branch's title; a join arrives 8px above its node. The SVG has no meaning of its own: every line has a text equivalent in the cards.
+- A joined branch sits just above the node it joined as; other branches sit after the node they left from.
+
+### Trunk node
+
+One confirmed decision: who (the mark on the spine, and a hidden "You, decided:"), what (one short line), and refs to what it touched.
+
+```html
+<div class="dg-node" data-node="n3">
+  <button class="dg-node__title"><span class="dg-sr">You, decided: </span>Guest count: 120 → 150</button>
+  <p class="dg-node__meta"><span>Changed</span><button class="dg-ref dg-ref--input">Guest count</button><span>re-ran</span><button class="dg-ref">1</button><button class="dg-ref">2</button></p>
+  <div class="dg-node__results"><!-- result chips the join produced --></div>
+</div>
+```
+
+The title is a button: it selects the node (a ring on the spine) and marks what it changed in the plan in place of the latest node. Escape clears it. `is-new` plays the arrival (see Motion).
+
+### Ref
+
+A step or input named in a node, branch or proposal, in the plan's shape language at 20px: `dg-ref` a calculation's number, `dg-ref--you` round, `dg-ref--call` dashed, `dg-ref--input` a pill with the input's name. Clicking selects that step, or that input's pills (`dg-pill--sel`), and scrolls it into view. The hit area grows 8px above and below.
+
+### Branch
+
+A conversation about one thing in the plan, a native `<details>`. It ends one of two ways: it joins, or it dies.
+
+| Class | Looks | State word |
+| --- | --- | --- |
+| `dg-branch--open` | `thread` tint, open | "open", "answering", "challenge", "question"; "needs you" (semibold, `dg-branch--needs`) with a pending proposal |
+| `dg-branch--joined` | tinted, folded | "joined" |
+| `dg-branch--dead` | no tint, 1px `line` outline, muted | "no change", "dismissed" |
+
+Parts: `dg-branch__on` ("From [chip]" or "On [ref]"), `dg-say` (one line: a 10px hollow mark, then the words; `dg-say--you` in ink), `dg-branch__end` ("Joined when you said yes.", "You kept 120. Nothing in the plan changed."), `dg-reply` (the branch's own reply box), `dg-branch__acts` ("Close branch"). Fold a branch when it joins or dies; a dead branch never disappears. The opening line is not repeated when the title already says it.
+
+### Join request
+
+The harness's proposal at the end of an open branch: the change as a question, what it changes (old struck, new in semibold), what re-runs and what lies further on, then Yes and No.
+
+```html
+<div class="dg-propose" role="group" aria-label="Proposed change">
+  <p class="dg-propose__q"><svg class="dg-who">…needs…</svg>Change guest count to 150?</p>
+  <p class="dg-propose__row"><button class="dg-ref dg-ref--input">Guest count</button><s>120</s>→<b>150</b></p>
+  <p class="dg-propose__row"><span class="dg-propose__k">Re-runs</span><button class="dg-ref">1</button><button class="dg-ref">2</button></p>
+  <p class="dg-propose__row"><span class="dg-propose__k">Further on</span>…</p>
+  <div class="fah-row"><button class="fah-btn fah-btn--primary">Yes, change it</button><button class="fah-btn">Keep 120</button></div>
+</div>
+```
+
+While it is pending the plan shows its impact: `dg-touch` (dashed, outside the box) on the inputs and steps that re-run, `dg-touch--far` (dotted) on the steps further on, `dg-needs` (the attention fill) on the input, unless a call is waiting, which stays the one "needs you".
+
+### Chip
+
+A value in place of a sentence. Kinds are told apart by shape and a glyph, never colour.
+
+| Class | Kind | Shape |
+| --- | --- | --- |
+| `dg-chip--given` | A value that went in ("Guest count **120**") | Round, 1px outline |
+| `dg-chip--assumed` | An assumption (`◌`, `✓` once confirmed, wraps) | Dashed `flow` outline |
+| `dg-chip--result` | What a step produced ("Total cost → **43,000**") | 4px corners, 1.5px ink |
+| `dg-chip--decision` | A decision (the decider's mark, then the node's text) | 4px corners, 2px ink |
+| `dg-chip--stale` | No longer current after a join: struck and muted | |
+| `is-traced` | Its place is selected in the plan | `thread` tint |
+
+```html
+<span class="dg-chip dg-chip--given">
+  <button class="dg-chip__btn" aria-label="Guest count 120, a value that went in. Show in the plan">
+    <span class="dg-chip__k">Guest count</span><span class="dg-chip__v">120</span></button>
+  <span class="dg-menu" role="group" aria-label="Actions for Guest count 120">…</span>
+</span>
+```
+
+Clicking selects its place: the input when there is one, else the step, opening its pop-up on the run. Of a replaced run, results go stale, and of the values only the one the join changed.
+
+### Answer
+
+A short lead (the message's own text, figures underlined) and the chips as facts: `dg-answer`, then `dl.dg-facts` with one row per result (labelled with the step), then "Rests on" (values) and "Assumes" (assumptions). An open Notice takes the assumption chips into itself, above Confirm and Change it.
+
+### Hover menu
+
+Three icon buttons on a chip or an underlined figure (`dg-fig`): **See in graph** (eye), **Challenge or correct** (correction mark), **Talk about it** (thread). The last two only when layer 4 is on. It opens on hover and on keyboard focus, names the button under the pointer or focus in `dg-menu__label`, and closes on Escape with focus back on the chip. It flips below (`dg-below`) within 72px of the top of its scroll area and aligns right (`dg-end`) near the right edge. Buttons are 32px, 44px under `pointer: coarse`.
+
+"Challenge or correct" opens a new branch on the chip's subject with its box focused ("Say what should change…"); "Talk about it" opens the branch already about it, else a new one ("Start a branch about this…"). A branch is stored only with its first message.
+
+### In the plan
+
+| Class | On | Meaning |
+| --- | --- | --- |
+| `dg-touch` | step, pill | A pending proposal (or a running join) changes it |
+| `dg-touch--far` | step | Further on: touched, not re-run |
+| `dg-needs` | pill | The input a pending proposal is about |
+| `dg-pill--sel` | pill | A selected input: 2.5px ink inside |
+| `dg-pill--changed` | pill | Changed by the latest node; shows its value (`dg-pill__v`) |
+| `dg-tag` / `dg-tag__new` | under a step | The latest node's mark and word ("re-ran", "changed", "rebuilt"), or a working line and "running again" |
 
 ---
 

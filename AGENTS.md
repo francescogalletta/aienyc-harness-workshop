@@ -37,7 +37,7 @@ plug into it, each one package, each importing only the layers below it.
 | 1 the plan | `harness/grounding/` | An interview agrees the plan: goal, standard terms with sources, the person's particulars, steps, each item with an origin |
 | 2 build | `harness/calc/` | Every number comes from a tested module. The build runs unattended; a second model pass checks the worked examples; the code writer never sees them |
 | 3 answers | `harness/answers/` | Each number in an answer leads to the step that produced it; a number no step produced is held back |
-| 4 needs you | `harness/needs_you/` | Assumptions run and are marked; calls that are the person's stop and ask; missing calculations are built; side threads |
+| 4 needs you | `harness/needs_you/` | Assumptions run and are marked; calls that are the person's stop and ask; missing calculations are built; branches that change a figure or the plan only on the person's yes |
 | 5 review | `harness/review/` | A reviewer challenges the plan; the person uses or dismisses each challenge |
 
 ## Where things live

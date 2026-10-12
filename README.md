@@ -70,15 +70,15 @@ uv run python -m harness ui                             # your own plan
 HARNESS_EXAMPLE=wedding uv run python -m harness ui     # the main example
 ```
 
-The page opens in your browser, served from your machine. It has two parts that never change: the plan as a diagram, and the chat beside it. Click a step to attach it to your next message, or open its details. Add `--port N` or `--no-browser` if you need to.
+The page opens in your browser, served from your machine. It has two parts that never change: the plan as a diagram on the left, and on the right the decision graph. Its trunk lists only the decisions that changed the plan (you, the assistant, the harness or the reviewer decided them); beside the trunk are branches, and below it the conversation. Click a step to attach it to your next message, or open its details. Add `--port N` or `--no-browser` if you need to.
 
 1. **Describe a goal.** On an empty page, say what you want help with. The harness reads up on the finance terms you use, asks one question at a time, and draws a plan. Or open the main example, which starts with an accepted plan.
 2. **Accept the plan.** Click a step and say what is wrong to correct it; the diagram redraws. A plan with open questions can still be accepted.
 3. **Build.** One button builds every calculation step without stopping, which takes one to four minutes. Each step shows how many worked examples it has and how many tests pass. Examples are checked by a second model pass and are marked "checked by a second pass" until you confirm them.
-4. **Ask.** Ask about your plan in the chat. Every number in an answer leads to the step that produced it. A number no tested step produced is held back.
+4. **Ask.** Ask about your plan in the chat. The reply is short; the values it used, what it assumed and what it found are chips under it. Every number leads to the step that produced it, and a number no tested step produced is held back. Hover a chip for a small menu: see it in the diagram, challenge or correct it, or open a branch about it.
 5. **Marks and your calls.** An answer that rests on something you did not confirm carries a mark: confirm it or change it. A call that is yours to make stops and asks, with options as buttons or in your own words. A calculation the plan lacks is built for you and shows as "not in the plan".
-6. **Side threads.** Use "On the side" to ask what a term means or why, without changing anything. To make something count, say it in the main chat.
-7. **Review.** After the plan is accepted a reviewer looks for weak assumptions and challenges them, each as a thread on a step. Choose "use this" or "dismiss". It never blocks. The **Review** toggle shows the challenged steps.
+6. **Branches.** A branch is a side conversation about one thing in the plan: open it from a chip ("challenge or correct", "talk about it") or with "New branch" after clicking a step. If you say something that would change one of your figures ("we will get no fewer than 150 guests"), the branch proposes the change and shows what it touches. Nothing changes until you say yes; then the branch joins the trunk as a decision and the steps it reaches run again through the same test gate, with no model call. A branch that changes nothing (a question about a term) stays on the page, dimmed, and never joins.
+7. **Review.** After the plan is accepted a reviewer looks for weak assumptions and challenges them, each as a branch on a step. Choose "use this" (the branch joins the trunk) or "dismiss" (it stays, dimmed). It never blocks. The **Review** toggle shows the challenged steps.
 
 Your work is kept in `my/` (or, with `HARNESS_EXAMPLE`, in a copy under `my/var/examples/<name>/`; delete that folder to start the example again). Do not type account numbers or passwords into the chat.
 
@@ -87,7 +87,7 @@ Your work is kept in `my/` (or, with `HARNESS_EXAMPLE`, in a copy under `my/var/
 ```
 uv run python -m harness ground          # the interview; /accept, /wrap, /quit
 uv run python -m harness build           # build the calculation steps of the accepted plan
-uv run python -m harness ask "..."       # ask; /confirm, /side TEXT, /reply TEXT, /quit
+uv run python -m harness ask "..."       # ask; /confirm, /side TEXT, /reply TEXT, /yes, /no, /close, /quit
 uv run python -m harness events          # everything recorded
 ```
 

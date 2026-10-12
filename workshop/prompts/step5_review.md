@@ -8,12 +8,12 @@ You are building layer 5 of a small agent harness, the Financial Advisor Harness
 
 What this layer does:
 
-A reviewer looks at how the problem is being thought about and challenges weak assumptions, inputs, methods or the shape of the plan. It runs in the background on its own lane, after the plan is accepted and when new assumptions appear. A challenge belongs to a step and is a thread in the chat; the person uses it or dismisses it. A challenge that cites outside information carries a source the harness fetched; only a general term goes to the web.
+A reviewer looks at how the problem is being thought about and challenges weak assumptions, inputs, methods or the shape of the plan. It runs in the background on its own lane, after the plan is accepted and when new assumptions appear. A challenge belongs to a step and is a branch in the decision graph; if the person uses it, the branch joins the trunk as a decision, and if they dismiss it, the branch dies and stays on the page, dimmed. A challenge that cites outside information carries a source the harness fetched; only a general term goes to the web.
 
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 7 (review, 7.1 to 7.4). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.4 (threads and challenges), 4 and the notes marked A5 in section 9.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.4 and 3.5 (threads, challenges and the decision history), 4 and the notes marked A5 and D5 in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer5/`. These tests are the definition of done.
 

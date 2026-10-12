@@ -176,3 +176,35 @@ def test_a_withheld_reply_carries_no_notice_but_the_step_keeps_its_mark(open_ses
     assert assistant(state)[-1]["kind"] == "withheld" and notices(state) == []
     assert [each["text"] for each in step_of(state, "c1")["unconfirmed"]] == [ASSUMED]
     assert problems(state, strict=True) == []
+
+
+def test_confirming_records_an_assumption_confirmed_node_touching_the_steps_of_the_notice(open_session):
+    session, state = total_with_assumption(open_session)
+    message = notices(state)[0]["id"]
+    ids = [each["id"] for each in notices(state)[0]["notice"]["assumptions"]]
+    state = act(session, "confirm_assumptions", message=message)
+    [node] = [each for each in state["history"]["trunk"] if each["kind"] == "assumption_confirmed"]
+    assert (node["who"], node["branch"], node["text"]) == ("you", None, f"Confirmed: {ASSUMED}")
+    assert node["change"] == {"assumptions": ids} and node["touched"] == {"inputs": [], "steps": ["c1"]}
+    assert node["after"] == message and step_of(state, "c1")["changed_by"] == node["id"]
+    assert refused(session, "confirm_assumptions", message=message)             # a second confirm is refused
+    assert len([each for each in session.state()["history"]["trunk"] if each["kind"] == "assumption_confirmed"]) == 1
+
+
+def test_a_node_names_the_first_sentence_and_how_many_more(open_session):
+    assert marks.node_text("Confirmed: ", ["B stays at 20. It is a guess.", "C is 3."]) == "Confirmed: B stays at 20. and 1 more"
+    assert len(marks.node_text("Corrected: ", ["A very long sentence " * 10, "x", "y"])) <= 80
+
+
+def test_changing_it_records_an_assumption_corrected_node_before_the_analyst_runs_again(open_session):
+    session, state = total_with_assumption(open_session, run("total", {"a": 10, "b": 25}),
+                                           reply("With B at 25 the total is 35."))
+    message = notices(state)[0]["id"]
+    ids = [each["id"] for each in notices(state)[0]["notice"]["assumptions"]]
+    state = say(session, "B is 25 in fact", notice=message)
+    [node] = [each for each in state["history"]["trunk"] if each["kind"] == "assumption_corrected"]
+    assert (node["who"], node["text"]) == ("you", f"Corrected: {ASSUMED}")
+    assert node["change"] == {"assumptions": ids, "words": "B is 25 in fact"}
+    assert node["touched"] == {"inputs": [], "steps": ["c1"]}
+    said = next(each for each in state["chat"] if each["text"] == "B is 25 in fact")
+    assert node["after"] == said["id"]                                       # recorded before the analyst's reply

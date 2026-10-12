@@ -42,9 +42,29 @@ CREATE TABLE IF NOT EXISTS threads (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,    -- shown as "t<id>"
     ts            TEXT NOT NULL,
     conversation  TEXT NOT NULL,
-    kind          TEXT NOT NULL,                        -- "side" | "review"
+    kind          TEXT NOT NULL,                        -- "side" | "review" | "harness"
     step          TEXT,
     after         INTEGER,                              -- the main-chat message it follows; NULL: none yet
     title         TEXT NOT NULL,
-    status        TEXT NOT NULL                         -- "open" | "used" | "dismissed"
+    status        TEXT NOT NULL,                        -- "open" | "used" | "dismissed"
+    -- a thread is a branch (ARCHITECTURE.md 3.5, 12.8)
+    origin        TEXT NOT NULL DEFAULT 'you',          -- "you" | "assistant" | "reviewer" | "harness"
+    subject       TEXT NOT NULL DEFAULT '{"kind": "plan"}',   -- JSON Subject
+    from_node     INTEGER,                              -- trunk.id it left from; NULL before any node
+    outcome       TEXT NOT NULL DEFAULT 'open',         -- "open" | "joined" | "dead"
+    node          INTEGER                               -- trunk.id it joined as
+);
+
+-- The trunk: the decisions of a conversation that changed the analysis (ARCHITECTURE.md 12.1).
+CREATE TABLE IF NOT EXISTS trunk (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,    -- shown as "n<id>"
+    ts            TEXT NOT NULL,
+    conversation  TEXT NOT NULL,
+    who           TEXT NOT NULL,                        -- "you" | "assistant" | "harness" | "reviewer"
+    kind          TEXT NOT NULL,
+    text          TEXT NOT NULL,
+    change        TEXT NOT NULL DEFAULT '{}',           -- JSON Change
+    touched       TEXT NOT NULL DEFAULT '{"inputs": [], "steps": []}',
+    thread        INTEGER,                              -- the branch it joined from
+    after         INTEGER                               -- the main-chat message it follows
 );

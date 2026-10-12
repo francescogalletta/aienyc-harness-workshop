@@ -29,7 +29,12 @@ Sections follow the layers. A layer's section holds only what that layer adds.
    challenge. The event log is append-only.
 6. **Nothing blocks unless the call is the person's.** Builds run unattended.
    Assumptions run and are marked. Only a decision (`ask_decision`) and the plan
-   awaiting acceptance wait for the person.
+   awaiting acceptance wait for the person. A change proposed on a branch waits
+   for the person's yes and blocks nothing.
+12. **Decisions are recorded.** Every decision that changes the analysis is a
+    trunk node (ARCHITECTURE.md section 12), recorded by the layer that made
+    it. Nothing changes a figure of the person's or the plan's shape without
+    their yes; the harness's own rebuilds join by themselves.
 7. **Provider-agnostic.** Only `harness/model/` imports a provider SDK.
 8. **Standard library only** for the harness. The page is one self-contained
    HTML file: the design system's three files inlined, no web font, no network.
@@ -78,7 +83,9 @@ by `main()`.
 - `harness/schema.sql`: `events` (append-only, with its two triggers), `meta
   (key PRIMARY KEY, value)`, `messages (id, ts, conversation, thread NULL, who,
   text, step NULL, kind, data JSON)`, `threads (id, ts, conversation, kind,
-  step NULL, title, status)`.
+  step NULL, after NULL, title, status, origin, subject JSON, from_node NULL,
+  outcome, node NULL)`, `trunk (id, ts, conversation, who, kind, text, change
+  JSON, touched JSON, thread NULL, after NULL)` (ARCHITECTURE.md 12.8).
 - There is no migration history (ARCHITECTURE.md section 8).
 
 ### 2.3 The core
@@ -98,6 +105,15 @@ in ARCHITECTURE.md section 4. Rules the code must keep:
   3. else the harness posts `NO_ROUTE`, or `NO_ROUTE_PLAN` once a plan is accepted.
 - A job that raises is caught: `error` is set to one line, the event
   `core.job_failed` is recorded, the lane goes on with its next job.
+- **The decision history** (ARCHITECTURE.md 4.4). `decide(...)` stores a trunk
+  node of the current conversation with `after` the last main-chat message,
+  records `core.decided {node, kind, who, branch, touched}`, and, with
+  `branch`, sets that thread's `outcome` to `joined` and its `node`. `who` is
+  one of `you`, `assistant`, `harness`, `reviewer`; `text` is cut to 80
+  characters. `add_thread` stores `origin`, `subject` and `from_node` (the
+  newest node, or NULL). `history` is in the state at every layer;
+  `changed_by` on a step or an input is the newest node whose `touched` names
+  it.
 - **Templates** (posted by the harness):
 
 ```
@@ -160,6 +176,8 @@ changes. It reads a line when the main lane waits or is idle:
 | `/confirm` | `confirm_assumptions` on the latest open notice |
 | `/side TEXT` | `side` with a new thread (`/side @STEP TEXT`: about that step) |
 | `/reply TEXT` | `side` in the latest side thread (`/side tN TEXT`: in thread tN) |
+| `/yes`, `/no` | `accept_proposal`, `decline_proposal` on the newest pending proposal |
+| `/close` | `close_branch` on the newest open side branch |
 | `/quit`, end of input | stop the driver |
 | anything else | `say` (a decision reads a number or an option's words) |
 
@@ -185,6 +203,12 @@ A string line is said to the main chat. An object is an action of the scripted p
 the main lane waits on), `side {text, step?, reply?}` (`reply: true`: in the latest side thread), `use {index?}` and
 `dismiss {index?}` (the k-th open challenge, from 1; `use` skips questions). `"settle": false` plays the line without
 waiting for the previous one to finish (a side thread opened mid-answer).
+
+The decision history adds four acts, all of layer 4. `branch {text, step?, chip?}` opens a branch with `side`: with
+`chip` (`{kind, label?, text?}`), on the `subject` of the newest chip in the main chat of that kind whose label and
+text match when given (case-folded, runs of white space as one; no such chip stops the scenario); with `step`, on
+`{"kind": "step", "step"}`; else on the whole plan. `accept` and `decline` act on the newest pending proposal;
+`close` closes the newest open side branch. Any of them with nothing to act on stops the scenario with that reason.
 
 `run_scenario` works in a scratch folder under `my/var/replay/`: it copies the
 brief and the modules (leaving out the `without` steps), sets the database,
@@ -286,7 +310,11 @@ waits with `{"kind": "message"}`; its progress lines set `activity`. The state
   fingerprint or name) and removed, by number and name; with none, what
   around them changed.
 - `accept_plan`: the brief is saved as confirmed, the harness posts
-  `PLAN_ACCEPTED`, `phase` is `accepted`, hook `plan_accepted`.
+  `PLAN_ACCEPTED`, `phase` is `accepted`, the first trunk node is recorded
+  (`plan_accepted`, who `you`, text `Plan accepted`), hook `plan_accepted`.
+  On `loaded`, a confirmed plan whose conversation has no node yet (a seeded
+  example, a database made before the trunk) records the same node, after
+  `PREPARED` when that is posted.
 - A message instead: it is a correction. The tool result to the interviewer is
   `NOT_CONFIRMED` and the words, with the step prefix when a step is attached.
   The interviewer submits a revised brief; the diagram redraws from it.
@@ -305,15 +333,17 @@ accepted and the conversation has no message yet.
 
 ### 3.3 Revising an accepted plan: `revise.py`
 
-`revise_plan(work, *, words, step, by) -> {"changed": [ids]} | {"error": str}`.
+`revise_plan(work, *, words, step, by, branch=None) -> {"changed": [ids], "node": "n<id>"} | {"error": str}`.
 One interviewer conversation: the interviewer's system prompt, the accepted
 brief, and a `[harness]` line asking for exactly the change in `words`
 (about `step` when given), with `look_up` and `write_brief` as tools, up to three
 attempts. A valid brief is saved as confirmed with a new `revisions` entry.
 `changed` lists the steps added, removed, or whose step fingerprint (4.4)
 changed. The harness posts `PLAN_CHANGED = "The plan is changed: {changes}."`
-(`changes` as in 3.2). Hook `plan_changed(changed)`. A reply with no `write_brief` returns
-`{"error": "the plan was not changed: <reply>"}`.
+(`changes` as in 3.2), then records the trunk node `plan_revised` (who `you`, or `reviewer` when `by` is the reviewer;
+text `Plan changed: {changes}`; change `{step, words, changed}`; touched steps `changed`; `branch` as given, which
+joins that branch). Hook `plan_changed(changed)`. A reply with no `write_brief` returns
+`{"error": "the plan was not changed: <reply>"}` and records nothing.
 
 ### 3.4 Lookups
 
@@ -328,7 +358,7 @@ request; otherwise it is `look_up`. Layers 4 and 5 use it.
 `contribute`: `phase`, `goal`, `context`, `inputs`, `steps` (the base fields),
 `edges`, from the proposed brief while there is one, else from the saved
 brief. `route`: in phase `empty`, a message starts the interview (as `start`).
-Actions `start`, `accept_plan`, `wrap`. Command `ground`. Events: `plan.answer`,
+Actions `start`, `accept_plan`, `wrap`. Trunk nodes `plan_accepted`, `plan_revised`. Command `ground`. Events: `plan.answer`,
 `plan.question`, `plan.correction` (one question rule), `plan.research_plan`,
 `plan.lookup`, `plan.brief_rejected`, `plan.proposed`, `plan.changes`,
 `plan.accepted`, `plan.revised`.
@@ -482,6 +512,20 @@ out."`
 `build.example_confirmed`, `build.example_corrected`,
 `build.departures_confirmed`, `build.note`, `build.finished`.
 
+### 4.9 The harness's own branch (not built)
+
+This is reserved: the core accepts these nodes (ARCHITECTURE.md 3.5), but nothing in
+layer 2 records them yet.
+
+The unattended build records one node when it ends with a step built: `built`, who `harness`, change
+`{"steps": {id: outcome}, "why": "build"}` for the steps built or reused, no branch. A single step built again
+outside it (the helper's rebuild, `code_only`, a stale step, or adoption of a registered module whose files
+changed) opens a branch of kind `harness` (origin `harness`, subject the step), posts its lines there
+(`REBUILDING_WHY = "Building step {number} {name} again: {why}."`, then `STEP_BUILT` or `STEP_NOT_BUILT`; what the
+helper posts in the main chat today stays as it is), and
+on `built` or `reused` records the node (`why` `rebuilt` or `files_changed`), which joins it. A step not built
+leaves the branch open. The person is not asked.
+
 ## 5. Layer 3: answers with evidence (`harness/answers/`)
 
 ### 5.1 The analyst
@@ -504,7 +548,8 @@ on the main lane.
     `{"module", "run_id", "output"}` or the refusal.
   - `save_input {name, value, note}`: `name` in snake_case, a non-empty
     value, number-checked, then saved; a different value replaces the saved
-    one.
+    one. The write is `store_input(conn, name, value, note, conversation)`,
+    which layer 4's join also calls.
   - `change_plan {step, words}`: `words` must appear in a message the person
     typed in this conversation (compared as in 3.1). Calls `revise_plan`
     (`by: "person"`). Result: the changed steps or the error.
@@ -554,9 +599,25 @@ conversations. Tools above. Prompt `analyst.md`. Command
 `ask`. Expects `runs`, `shown`, `not_shown`, `max_withheld`,
 `max_corrections` (a list of module runs with inputs, numbers shown or not in
 the assistant's messages, at most that many withheld replies or corrections).
-Events: `ask.message`, `ask.reply`,
+`shown` and `not_shown` read what the person reads in the main chat: the
+assistant's replies and decision questions and each harness message (a join
+notice), each with the text of its chips. Events: `ask.message`, `ask.reply`,
 `ask.correction`, `ask.withheld`, `ask.stopped`, `ask.input_saved`,
 `ask.plan_changed`, and the gate's `calc.run`, `calc.refused`.
+
+### 5.4 Chips and the re-run engine (ARCHITECTURE.md 12.4, 12.7)
+
+- **Chips.** `contribute` sets `chips` on every message: built from its private `_runs` (`_chip_runs` when present)
+  as ARCHITECTURE.md 12.7 says, else `[]`. Assumption chips have `status` null and `subject.assumption` null here.
+  The prompt asks for one or two sentences; nothing checks the length.
+- **Telling the analyst.** `tell_analyst(session, text)` puts `text` before the person's next message to the
+  analyst, as `WITHHELD_NOTE` is today.
+- **Re-runs.** `answers/rerun.py`: `last_answer_runs(conn, conversation)` (the runs of the last answer, 5.2, oldest
+  first); `old_values(conn, conversation, key)` (the distinct values of the top-level input `key` among them, as
+  written); `impact(conn, state, *, key, old) -> Impact`; `rerun(work, *, key, old, new, label, drop=()) ->
+  {"replaced": {old run id: new run id}, "failed": [{"run", "step", "reason"}], "runs": [run ids]}`, where `runs` is
+  the new last answer and `drop` the assumption sentences to leave out. Both follow ARCHITECTURE.md 12.4 exactly;
+  `rerun` calls `gate.call` on `work.conn` and `work.progress` before each run, and posts nothing.
 
 ## 6. Layer 4: when the harness needs the person (`harness/needs_you/`)
 
@@ -575,13 +636,17 @@ case-folded.
   `open`.
 - `confirm_assumptions {message}`: each of the notice's assumptions becomes
   `confirmed`; the notice becomes `confirmed`. Marks clear wherever only those
-  assumptions were unconfirmed.
+  assumptions were unconfirmed. Trunk node `assumption_confirmed` (who `you`,
+  text `Confirmed: {first sentence}` with ` and {n} more` when there are
+  others, touched steps the notice's steps).
 - A message with `notice` set (the person's "Change it"): the notice's
   assumptions become `corrected` with the person's words; the notice becomes
   `changed`; the analyst turn starts with `CORRECTED = "[harness] The person
   says this is not right: {assumptions}. Their words follow. Run again the
   steps that rested on it."` A corrected assumption used again counts as
-  unconfirmed.
+  unconfirmed. Trunk node `assumption_corrected` (who `you`, text `Corrected:
+  {first sentence}`, change `{assumptions, words}`, touched steps the notice's
+  steps), recorded before the analyst's turn.
 - **Unlisted assumptions** (hook `run_ready`). A value is the person's when
   the person's messages in this conversation (with `half`, `a third`, `a
   quarter` and number words read as numbers, and dates written as `12 June
@@ -627,7 +692,10 @@ answered with no choice).
   result is `{"outcome": "decided", "decision", "choice", "option", "said",
   "judgment_steps"}`: `option` is the chosen option's text (null for something
   else), `said` the person's words, and `judgment_steps` each judgment step
-  with whether it is decided.
+  with whether it is decided. An answered decision also records the trunk node
+  `call` (who `you`, text `{question} {option's text or words}` cut to 80,
+  change `{decision, step, choice, words}`, touched steps its step). A dropped
+  decision records nothing.
 - **A call left in prose** (hook `reply_ready`). It looks only at a turn
   where the person's message asks to decide or choose (a word such as
   `decide`, `decision`, `choose`, `choice`), or is attached to a `judgment`
@@ -662,7 +730,9 @@ module. The harness posts `BUILT_NOT_IN_PLAN` (for `new`) or `BUILT_STEP` and
 the result goes to the analyst (`built`, `reused` or `not_built` with the
 spec or the reason). `you.module_requested` records `near`: the step attached
 to the person's message, else the step of the turn's latest run; an added
-step carries it as `near` in the state.
+step carries it as `near` in the state. A step built or reused records the
+trunk node `built` (who `assistant`, change `{"steps": {id: outcome}, "why":
+case}`, text `Built step {number} {name}`), with no branch.
 
 ```
 BUILT_NOT_IN_PLAN = "A calculation that is not in the plan was needed: {name}. It is built and tested."
@@ -670,38 +740,164 @@ BUILT_STEP        = "Step {number} {name} is built and tested."
 NOT_BUILT_STEP    = "Step {number} {name} could not be built. Click it to see why."
 ```
 
-### 6.4 Side threads: `side.py`
+### 6.4 Branches: `side.py`
 
-`side {text, step?, thread?}` without `thread` starts a side thread (title: the
-step's name, or the first words of the text, cut to 45 characters); with
-`thread` it replies in that thread, side or review. One reply per message, on
-the side lane, with `side.md` and the tool `look_up` (through
-`look_up_general`, at most three per thread). Up to six person messages per
-thread.
+A side thread is a branch (ARCHITECTURE.md 12). `side {text, step?, thread?,
+subject?}` without `thread` opens one: origin `you`, subject `subject` (a
+Subject of ARCHITECTURE.md 3.5 whose ids exist: a run of this conversation, a
+plan step or input, an assumption, a node; anything else is a BadAction), else
+`{"kind": "step", "step"}`, else `{"kind": "plan"}`; its `step` is the
+subject's step; its title the first words of the text, cut to 45 characters
+(the branch's first line names its subject). It marks the person's other open side branches dead as
+12.5 says. With `thread` it says something in that thread, side or review; a
+dead side branch opens again. One reply per message, on the side lane, with
+`side.md` and the tools `look_up` (through `look_up_general`, at most three
+per thread) and `propose_change` (6.6). Up to six person messages per thread.
 
 - **It sees**: the plan (goal, context, steps with formula, needs, produces,
   particulars, open questions); for the attached step, its spec in plain words,
   examples and who checked them, last run, unconfirmed assumptions, decisions,
   challenges; the last ten main-chat messages as text; for a review thread,
-  its challenge; the thread's own messages.
-- **It cannot** run, save, build, decide or change anything, and nothing
-  passes back. Its reply is number-checked against what it sees, the thread's
-  messages and its lookups; unbacked twice: `WITHHELD`.
-- It works in every phase.
+  its challenge; the thread's own messages; and two new sections: `subject`
+  (the subject with what it points at: the run's module, inputs and output, the
+  input's name and saved value, the assumption's sentence, the node's text) and
+  `last answer` (each of its runs: module, step, inputs, output).
+- **It cannot** run, save, build, decide or apply anything. It may **propose**
+  a change the person asked for (6.6); the harness applies it on their yes.
+  Its reply is number-checked against what it sees, the thread's messages and
+  its lookups; unbacked twice: `WITHHELD`.
+- It works in every phase. `propose_change` is offered only in a side branch
+  (not a reviewer's), once the plan is accepted.
 
 ### 6.5 What it registers
 
 Prompt part `analyst.md`. Tools `ask_decision`, `request_module`. Actions
-`choose`, `confirm_assumptions`, `side`. Route: a message with `notice`.
+`choose`, `confirm_assumptions`, `side`, `accept_proposal`,
+`decline_proposal`, `close_branch`. Route: a message with `notice`.
 `contribute`: `unconfirmed`, `calls`, `needs_you` for a decision, `notice` and
-`decision` on messages, side threads. Expects `decisions` (`[{step, choice,
+`decision` on messages, side threads with `proposal`, assumption chips'
+`status` and `subject.assumption`, a join notice's decision chip. Table
+`proposals`. Trunk nodes `call`, `assumption_confirmed`,
+`assumption_corrected`, `value`, `built`. Expects `decisions` (`[{step, choice,
 count}]`), `marks` (`{"min", "max", "confirmed", "corrected"}`: open notices; actions done), `side_threads` (int), `added`
-(int: added steps). Events: `you.decision_asked`, `you.decision`,
+(int: added steps), `branches` (6.6). Events: `you.decision_asked`, `you.decision`,
 `you.decision_refused`, `you.assumptions_confirmed`,
 `you.assumptions_corrected`, `you.module_requested`, `you.request_refused`,
-`you.side_opened`, `you.side_message`, `you.side_reply`, `you.side_withheld`,
-`you.side_lookup`, `you.assumption_unlisted`, `you.decision_prompted`. Hooks
-`run_ready` and `reply_ready` (5.1).
+`you.side_opened` (with `subject`), `you.side_message`, `you.side_reply`, `you.side_withheld`,
+`you.side_lookup`, `you.assumption_unlisted`, `you.decision_prompted`,
+`you.branch_dead`, `you.branch_reopened`, `you.proposed`,
+`you.proposal_refused`, `you.proposal_accepted`, `you.proposal_declined`,
+`you.joined`. Hooks `run_ready` and `reply_ready` (5.1), and `turn_finished`
+(marks, and the `moved_on` death).
+
+### 6.6 Proposals and joins: `side.py`, `join.py`
+
+The mechanics are ARCHITECTURE.md 12.3 to 12.5; this is the interface.
+
+```
+propose_change {"kind": "value" | "plan",
+                "input": str,          value: the value's name as the last answer's runs give it
+                "value": str,          value: the new value in plain form (digits, YYYY-MM-DD, or text)
+                "step": str,           plan: the step it is about, or ""
+                "words": str}          the person's words in this thread it rests on, copied exactly
+```
+
+Checks, in order, each refusal the tool's error result and a
+`you.proposal_refused {thread, reason, change}`: `not_their_words` (the words,
+compared as in 3.1, are in no person message of this thread); `unknown_input`
+(12.3, point 2); `value_unbacked` (a number or date of `value` not in the
+person's messages of this thread, read with number words and dates); `ambiguous`
+(12.3, point 4); `same`; `unknown_step`; `one_per_reply`. A proposal that passes
+is stored `pending` with its `impact`, replaces a pending one in the thread,
+records `you.proposed`, and the tool result is `PROPOSED`.
+
+`accept_proposal {proposal}`: NotNow unless it is `pending`, or while the main
+lane waits on a decision (`ANSWER_FIRST = "Answer the question that is waiting first."`, layer 4's own). It becomes
+`accepted`, records `you.proposal_accepted`, and queues the main-lane job
+(`what` `join`). The job is 12.3; it ends with `JOINED` (or `JOINED_NOTHING`
+when no run of the last answer used the value), `NOT_RUN_AGAIN` added for
+failures, and `you.joined {thread, proposal, node, runs, failed}`. A plan
+proposal whose revision fails becomes `failed`, its reason posted in the
+branch as a `harness` message. `decline_proposal {proposal}`: NotNow unless
+`pending`; `declined`, the branch dead. `close_branch {thread}`: NotNow unless
+a side branch of this conversation whose outcome is `open`; a pending
+proposal in it is declined; the branch dead. A malformed id is a BadAction.
+
+```
+PROPOSED        = "Proposed: {text}. It touches {steps}. The person sees it with Yes and No in this thread, with what it changes and re-runs: do not repeat that. Say only, in a few words, that it waits for their yes. Do not say it is done."
+NOT_THEIR_WORDS = "Those are not words the person wrote in this thread. Copy them exactly from their message."
+UNKNOWN_INPUT   = "Nothing in the last answer takes {input}. The values it took are: {inputs}. Propose one of them, or tell the person to say it in the main chat."
+VALUE_UNBACKED  = "The new value must be in the person's words in this thread, and {numbers} is not. Ask them for the figure itself. Do not work it out."
+AMBIGUOUS       = "The last answer used several values for {input}: {values}. Ask the person which one they mean."
+SAME            = "{input} is already {value}."
+UNKNOWN_STEP    = "There is no step {step} in the plan."
+ONE_PER_REPLY   = "One proposal per reply."
+JOINED          = "Decided on a branch: {label} is {new} (was {old}). Run again: {steps}."
+JOINED_NOTHING  = "Decided on a branch: {label} is {new} (was {old}). Nothing in the last answer used it."
+NOT_RUN_AGAIN   = " Not run again: {steps} ({reason})."
+RERUN_EXPECTED  = "Run again by the harness: {label} is {new} (was {old})."
+JOIN_NOTE       = "[harness] On a branch the person changed {label} from {old} to {new}, in their words: \"{words}\". The harness saved it and ran again: {runs}. These are now the current results; do not run them again unless the person asks."
+```
+
+`{old}` is `none` when there was no old value. `{steps}` is `step 1` or `steps
+1, 2 and 5`; in `PROPOSED`, the impact's steps then ` (and {downstream} further
+down)`. `{runs}` in `JOIN_NOTE` is `{module} gives {output as JSON}` for each
+new run, joined by `; ` (never a run id). A node's `text` for a value is
+`{label}: {new} (was {old})`.
+
+Expectation `branches {"joined"?, "dead"?, "nodes"?}`: `joined` and `dead`
+are the exact numbers of side branches (origin `you`) with that outcome at
+the end; each kind in `nodes` is the kind of the node of a joined side branch.
+
+**The two seeded scenarios** (`examples/wedding/scenarios/`):
+
+`branch_that_joins.json`:
+
+```json
+{
+  "name": "branch_that_joins",
+  "layer": 4,
+  "kind": "ask",
+  "description": "The payments are worked out for 120 guests (total 36,100, later payments 15,050 each). From the guest count's chip the person opens a branch and says they will get no fewer than 150; the side assistant proposes 150, the person accepts, the branch joins the trunk as a decision, and steps 1 and 2 run again (total 43,000, later payments 18,500 each).",
+  "today": "2026-10-12",
+  "lines": [
+    "Can I cover the three payments if we invite 120 guests? The wedding is on 12 June 2027. Dinner is 230 a guest, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due 21 days from today, and it counts toward the total. The second and third payments are each half of what remains, due 30 and 14 days before the wedding.",
+    {"act": "branch", "chip": {"kind": "value", "label": "Guest count", "text": "120"}, "text": "We will get no fewer than 150 guests."},
+    {"act": "accept"}
+  ],
+  "expect": {
+    "runs": [
+      {"module": "wedding_total_cost", "inputs": {"guest_count": "120", "dinner_cost_per_guest": "230"}},
+      {"module": "wedding_total_cost", "inputs": {"guest_count": "150", "dinner_cost_per_guest": "230"}},
+      {"module": "wedding_payment_schedule", "inputs": {"total_cost": "36100", "first_payment_amount": "6000"}},
+      {"module": "wedding_payment_schedule", "inputs": {"total_cost": "43000", "first_payment_amount": "6000"}}
+    ],
+    "branches": {"joined": 1, "dead": 0, "nodes": ["value"]},
+    "max_withheld": 0,
+    "shown": ["43,000", "18,500"]
+  }
+}
+```
+
+`branch_that_dies.json`:
+
+```json
+{
+  "name": "branch_that_dies",
+  "layer": 4,
+  "kind": "ask",
+  "description": "The person opens a branch on step 5 to ask what a sinking fund is. It is answered from the plan and the standard terms, nothing is proposed, and closing it leaves it dead: no decision is recorded and the plan is as it was.",
+  "today": "2026-10-12",
+  "lines": [
+    {"act": "branch", "step": "s5", "text": "What is a sinking fund?"},
+    {"act": "close"}
+  ],
+  "expect": {
+    "side_threads": 1,
+    "branches": {"joined": 0, "dead": 1}
+  }
+}
+```
 
 ## 7. Layer 5: review (`harness/review/`)
 
@@ -744,9 +940,16 @@ the reviewer's concern, then `Proposed: {proposal}`, with its sources.
 
 ### 7.3 Use this, dismiss, reply
 
-- `use_challenge`: the challenge and its thread become `used`; the harness
-  posts, as the person, `USE_THIS` with the step attached, and routes it.
-- `dismiss_challenge`: both become `dismissed`. Later passes are told.
+- A review thread is a branch: origin `reviewer`, subject `{"kind": "step",
+  "step"}` (layer 5 passes both to `add_thread`).
+- `use_challenge`: the challenge and its thread become `used`; the trunk node
+  `challenge_used` is recorded (who `reviewer`, text `Reviewer's suggestion
+  used on step {number}`, change `{challenge, step, change}`, touched steps
+  its step, `branch` the thread, which joins it); then the harness posts, as
+  the person, `USE_THIS` with the step attached, and routes it.
+- `dismiss_challenge`: both become `dismissed`; the branch is dead
+  (`set_outcome`; the event is `review.dismissed`, as today). Later passes are
+  told.
 - A reply in its thread is a `side` action (6.4); the person's words reach the
   next pass and change nothing now.
 
@@ -759,7 +962,7 @@ USE_THIS = "Use the reviewer's suggestion on step {number} {name}: {proposal}"
 Table `challenges (id, ts, pass, step_id, kind, title, concern, proposal,
 change, impact, rank, sources, status, thread_id)` and `review_passes (id, ts,
 trigger, lookups, kept, dropped)`. Prompt part `analyst.md`. Actions
-`use_challenge`, `dismiss_challenge`. `contribute`: `challenges` on steps,
+`use_challenge`, `dismiss_challenge`. Trunk node `challenge_used`. `contribute`: `challenges` on steps,
 `challenge` on review threads, `review`. Expects `challenges` (`{"min",
 "max", "used", "dismissed", "steps"}`). Events: `review.started`, `review.lookup`, `review.kept`,
 `review.dropped`, `review.finished`, `review.used`, `review.dismissed`.

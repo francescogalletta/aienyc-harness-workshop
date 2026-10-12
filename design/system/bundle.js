@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":4,"namespace":"FAH","components":[{"name":"Screen"},{"name":"Step"},{"name":"Pill"},{"name":"Flow"},{"name":"Message"},{"name":"Thread"},{"name":"Decision"},{"name":"Notice"},{"name":"Composer"},{"name":"Button"},{"name":"Popover"}]} */
+/* @ds-bundle: {"format":4,"namespace":"FAH","components":[{"name":"Screen"},{"name":"Step"},{"name":"Pill"},{"name":"Flow"},{"name":"Message"},{"name":"Thread"},{"name":"Decision"},{"name":"Notice"},{"name":"Composer"},{"name":"Button"},{"name":"Popover"},{"name":"ContributorMark"},{"name":"History"},{"name":"TrunkNode"},{"name":"Ref"},{"name":"Branch"},{"name":"JoinRequest"},{"name":"Chip"},{"name":"HoverMenu"},{"name":"Answer"}]} */
 /* Financial Advisor Harness: motion and state helpers. Plain script, no dependencies.
    Everything here only adds or removes classes from bundle.css; the markup is yours. */
 (function () {
@@ -92,8 +92,51 @@
     return on;
   }
 
+  /* The four contributors, told apart by shape: circle you, diamond the assistant,
+     square the harness, triangle the reviewer. One function, so a mark in text and a node
+     on the trunk are the same path at different sizes. */
+  var WHO = { you: 'You', assistant: 'The assistant', harness: 'The harness', reviewer: 'The reviewer' };
+  function shape(who, x, y, r) {
+    if (who === 'assistant') { var d = r * 1.3; return 'M' + x + ' ' + (y - d) + 'L' + (x + d) + ' ' + y + 'L' + x + ' ' + (y + d) + 'L' + (x - d) + ' ' + y + 'z'; }
+    if (who === 'harness') { var q = r * 0.9; return 'M' + (x - q) + ' ' + (y - q) + 'h' + (2 * q) + 'v' + (2 * q) + 'h' + (-2 * q) + 'z'; }
+    if (who === 'reviewer') { return 'M' + x + ' ' + (y - r * 1.25) + 'L' + (x + r * 1.2) + ' ' + (y + r * 0.85) + 'L' + (x - r * 1.2) + ' ' + (y + r * 0.85) + 'z'; }
+    return 'M' + (x - r) + ' ' + y + 'a' + r + ' ' + r + ' 0 1 0 ' + (2 * r) + ' 0a' + r + ' ' + r + ' 0 1 0 ' + (-2 * r) + ' 0z';
+  }
+  /* A contributor mark as a small SVG. state: undefined (decided, filled) | 'open' | 'dead' | 'needs'. */
+  function mark(who, state, size) {
+    var z = size || 12;
+    var svg = document.createElementNS(SVG, 'svg');
+    svg.setAttribute('class', 'dg-who'); svg.setAttribute('viewBox', '0 0 12 12');
+    svg.setAttribute('width', z); svg.setAttribute('height', z);
+    svg.setAttribute('role', 'img'); svg.setAttribute('aria-label', WHO[who] || WHO.you);
+    var path = document.createElementNS(SVG, 'path');
+    path.setAttribute('class', 'dg-shape' + (state ? ' dg-shape--' + state : ''));
+    path.setAttribute('d', shape(who, 6, 6, 4.4));
+    svg.appendChild(path);
+    return svg;
+  }
+
+  /* A branch joins the trunk: the join line draws itself (500ms), then the node's mark pops in
+     and its card rises; then each tag under a changed step rises in, 150ms apart, in the order given.
+     Focus moves to the node so a keyboard user lands on what changed. Reduced motion: state only. */
+  function join(o) {
+    o = o || {};
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    (o.tags || []).forEach(function (t) { t.style.visibility = 'hidden'; });
+    if (o.line) { o.line.setAttribute('pathLength', '100'); restart(o.line, 'is-drawing'); }
+    if (o.mark) { restart(o.mark, 'is-new'); }
+    if (o.card) { restart(o.card, 'is-new'); }
+    if (o.focus && o.focus.focus) { o.focus.focus({ preventScroll: true }); }
+    var chain = wait(still ? 0 : 500);
+    (o.tags || []).forEach(function (t) {
+      chain = chain.then(function () { t.style.visibility = ''; restart(t, 'is-in'); return wait(still ? 0 : 150); });
+    });
+    return chain;
+  }
+
   window.FAH = {
     tick: tick, setLine: setLine, needsYou: needsYou, select: select, fade: fade,
-    flow: flow, trace: trace, sideToggle: sideToggle, restart: restart, wait: wait
+    flow: flow, trace: trace, sideToggle: sideToggle, restart: restart, wait: wait,
+    shape: shape, mark: mark, join: join
   };
 })();

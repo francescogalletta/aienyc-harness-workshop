@@ -12,17 +12,18 @@ After the plan is accepted, the person's messages go to an analyst that can run 
 
 Read these first, in this order:
 
-1. `SPEC.md`: section 1 (ground rules), then section 5 (answers with evidence, 5.1 to 5.3). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 and 3.4 (`last_run`, chat messages and their figures), 4 and the notes marked A3 in section 9.
+1. `SPEC.md`: section 1 (ground rules), then section 5 (answers with evidence, 5.1 to 5.4). Follow its names, signatures, templates and behaviour exactly.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.3 to 3.5 (`last_run`, chat messages, their figures and chips), 4, 12.4 and 12.7, and the notes marked A3, D3a and D3b in section 9.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer3/`. These tests are the definition of done.
 
 Build these files, all in `harness/answers/`:
 
 - `__init__.py`: a docstring only
-- `agent.py`: the analyst turn, its tools, the number-check sources, the system prompt from the layers' parts
+- `agent.py`: the analyst turn, its tools (`store_input` and `tell_analyst` among them), the number-check sources, the system prompt from the layers' parts
 - `figures.py`: the figures of a reply and the last answer
-- `layer.py`: `LAYER`: the state contribution, routing after acceptance, the `ask` command, replay expectations
+- `layer.py`: `LAYER`: the state contribution (chips included), routing after acceptance, the `ask` command, replay expectations
+- `rerun.py`: the re-run engine: which runs of the last answer a changed value reaches, and running them again
 - `schema.sql`: the `inputs` table
 
 Given files (do not edit; read them):
