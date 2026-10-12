@@ -10,8 +10,7 @@ from .tree import Problem, ROOT
 
 ACCEPT_WORDS = {"/accept", "yes", "y", "yes.", "ok", "okay", "si", "sí"}     # the words the harness takes as a yes
 BAD_STEP = "Steps are numbered 0 to 5."
-SETTING = {"env": "HARNESS_LAYERS={value} (in your shell)", "file": "my/var/layers says {value}",
-           "none": "no setting: every layer that is present is on"}
+SETTING = {"env": "HARNESS_LAYERS={value} (in your shell)", "none": "no setting: every layer that is present is on"}
 LEAVE_ASK = ("This removes workshop/: the guides, the prompts and this command. The harness, its tests and my/ stay "
              "as they are. Type yes to remove it: ")
 STEPS_HEAD = ("# The six steps\n\nGenerated from `manifest.json` by `uv run python -m workshop steps --write`; "
@@ -19,11 +18,10 @@ STEPS_HEAD = ("# The six steps\n\nGenerated from `manifest.json` by `uv run pyth
 
 
 def setting():
-    """Which layers setting applies now, as config reads it: the variable, else my/var/layers, else none."""
+    """Which layers setting applies now, as config reads it: the variable, else none."""
     if os.environ.get("HARNESS_LAYERS"):
         return "env", os.environ["HARNESS_LAYERS"]
-    value = tree.read_layers_file(ROOT)
-    return ("file", value) if value else ("none", "")
+    return "none", ""
 
 
 def status(manifest, args, write=print):
@@ -53,20 +51,6 @@ def status(manifest, args, write=print):
     return 0
 
 
-def cmd_at(manifest, args, write=print):
-    n = step_number(args.n)
-    tree.write_layers_file(ROOT, n)
-    write(f"This copy now runs as the harness at step {n} (my/var/layers holds {n}). Nothing was removed or copied.")
-    write("A page that is already open keeps the old step: stop it (Ctrl+C) and start it again.")
-    if os.environ.get("HARNESS_LAYERS"):
-        write(f"Your shell sets HARNESS_LAYERS={os.environ['HARNESS_LAYERS']}, which wins over the file. Unset it.")
-    gone = [k for k in range(1, n + 1) if not tree.present(ROOT, manifest)[k]]
-    if gone:
-        write(f"Layer {gone[0]} is not in this copy, so it runs only up to layer {gone[0] - 1}. "
-              f"To get it back: python -m workshop finish {n}")
-    return 0
-
-
 def cmd_start(manifest, args, write=print):
     n = step_number(args.n)
     done = tree.start(ROOT, manifest, n)
@@ -79,9 +63,9 @@ def cmd_start(manifest, args, write=print):
         given = ", ".join(Path(f).name for f in manifest["steps"][n]["given"]) or "none"
         write(f"Step {n}: build {tree.package(manifest, n)}. Given and kept: {given}. "
               f"Tests: uv run pytest {manifest['steps'][n]['tests']} -q (they fail until you are done).")
-    value = tree.read_layers_file(ROOT)
-    if value and value.isdigit() and int(value) < n:
-        write(f"my/var/layers says {value}, so layer {n} will stay off. Run: python -m workshop at {n}")
+    value = os.environ.get("HARNESS_LAYERS", "").strip()
+    if value.isdigit() and int(value) < n:
+        write(f"HARNESS_LAYERS={value} in your shell, so layer {n} will stay off. Unset it.")
     return 0
 
 
@@ -109,9 +93,6 @@ def cmd_leave(manifest, args, write=print, ask=input):
     import shutil
     shutil.rmtree(ROOT / "workshop")
     write("Removed workshop/. If this copy is in git, commit the removal; git checkout -- workshop brings it back.")
-    value = tree.read_layers_file(ROOT)
-    if value and value != "5":
-        write(f"my/var/layers still says {value}; delete it to run all five layers.")
     return 0
 
 
@@ -164,8 +145,7 @@ def parser():
     sub = top.add_subparsers(dest="command", required=True)
     sub.add_parser("status", help="which layers are present and on, and whether each step's tests pass") \
         .add_argument("--quick", action="store_true", help="do not run the tests")
-    for name, text in (("at", "run this copy as the harness at step N (writes my/var/layers; removes nothing)"),
-                       ("start", "remove step N's built files and later layers, to build step N yourself"),
+    for name, text in (("start", "remove step N's built files and later layers, to build step N yourself"),
                        ("finish", "restore the files of layers 1 to N from git")):
         sub.add_parser(name, help=text).add_argument("n", metavar="N", help="0 to 5")
     sub.add_parser("leave", help="remove workshop/ and keep the harness")
@@ -175,7 +155,7 @@ def parser():
     return top
 
 
-COMMANDS = {"status": status, "at": cmd_at, "start": cmd_start, "finish": cmd_finish, "leave": cmd_leave,
+COMMANDS = {"status": status, "start": cmd_start, "finish": cmd_finish, "leave": cmd_leave,
             "check": cmd_check, "steps": cmd_steps}
 
 

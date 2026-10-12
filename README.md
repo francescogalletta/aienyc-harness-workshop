@@ -110,7 +110,7 @@ It prints a line per expectation and exits 0 only when all pass. A scenario take
 
 ## Moving through the steps
 
-The workshop builds the harness in six steps, 0 (the core) and 1 to 5 (the layers). The `workshop` command moves your copy between them (`uv run python -m workshop at N`) and never overwrites your work in `my/`. `workshop/README.md` is the guide, `workshop/STEPS.md` the table of steps and `workshop/DESIGN.md` every command.
+The workshop builds the harness in six steps, 0 (the core) and 1 to 5 (the layers). `HARNESS_LAYERS=N` runs the harness at step N; the `workshop` command moves your copy between the steps and never overwrites your work in `my/`. `workshop/README.md` is the guide, `workshop/STEPS.md` the table of steps and `workshop/DESIGN.md` every command.
 
 ## The three places
 

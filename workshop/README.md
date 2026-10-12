@@ -34,11 +34,11 @@ It should end with `Setup works`. It takes a few seconds, up to a minute on a fi
 The harness is a core (step 0) and five layers (steps 1 to 5): the plan, build, answers, needs you, review. "The harness at step N" is the finished harness with layers above N off. `workshop/STEPS.md` has the table.
 
 ```
-uv run python -m workshop status --quick   # which layers are present and on
-uv run python -m workshop at N             # run this copy as the harness at step N
+uv run python -m workshop status --quick         # which layers are present and on
+HARNESS_LAYERS=N uv run python -m harness ui     # run this copy as the harness at step N
 ```
 
-`at N` removes and copies nothing. It writes `N` to `my/var/layers`, and `harness` reads it when it starts: stop the page (Ctrl+C) and start it again after `at N`, a reload is not enough (`at N` prints a line saying so). `at 5` is the whole harness. If `HARNESS_LAYERS` is set in your shell, it wins, and `at` says so.
+`HARNESS_LAYERS=N` removes and copies nothing. `harness` reads it when it starts: stop the page (Ctrl+C) and start it again with the new value, a reload is not enough. Unset, it is the whole harness.
 
 ## Three ways to take part
 
@@ -49,18 +49,16 @@ Pick one. You can change at any step.
 The seeded wedding plan. Nothing you do touches `my/`: the example is copied to `my/var/examples/wedding/` the first time, and your database lives beside it. Delete that folder to start again.
 
 ```
-uv run python -m workshop at 1
-HARNESS_EXAMPLE=wedding uv run python -m harness ui     # PowerShell: $env:HARNESS_EXAMPLE="wedding"; uv run python -m harness ui
+HARNESS_LAYERS=1 HARNESS_EXAMPLE=wedding uv run python -m harness ui     # PowerShell: $env:HARNESS_LAYERS="1"; $env:HARNESS_EXAMPLE="wedding"; uv run python -m harness ui
 ```
 
-Then `at 2`, `at 3` and so on: stop the page (Ctrl+C), run `at N`, start the page again. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment`, or `branch_that_joins` for the decision graph (the example is an argument, so `HARNESS_EXAMPLE` is not needed). `EXERCISES.md` has exercises for each step.
+Then `HARNESS_LAYERS=2`, `3` and so on: stop the page (Ctrl+C) and start it again with the next step. Change a figure, choose differently, and look at what changes. `examples/README.md` lists scenarios you can replay against the real model, for instance `uv run python -m harness replay wedding cover_each_payment`, or `branch_that_joins` for the decision graph (the example is an argument, so `HARNESS_EXAMPLE` is not needed). `EXERCISES.md` has exercises for each step.
 
 ### (b) A variation with your own figures and plan
 
 Same kind of plan (saving towards dated payments). It all lives in `my/`, without `HARNESS_EXAMPLE`.
 
 ```
-uv run python -m workshop at 5
 uv run python -m harness ui
 ```
 
@@ -100,17 +98,16 @@ Commands are `uv run python -m harness ...`; `harness --help` lists what exists 
 
 ```
 uv run python -m workshop status          # where this copy stands (--quick skips the tests)
-uv run python -m workshop at N            # see the finished harness as it is at step N
+HARNESS_LAYERS=N uv run python -m harness ui   # see the finished harness as it is at step N
 uv run python -m workshop finish N        # if you built it yourself: restore layers 1 to N from git
 ```
 
-`at N` is enough to follow along. `finish N` is only for path (c).
+`HARNESS_LAYERS=N` is enough to follow along. `finish N` is only for path (c).
 
 ## Taking it home
 
 ```
-uv run python -m workshop at 5            # the whole harness
 uv run python -m workshop leave
 ```
 
-`leave` asks first (type `yes`, `y` or `ok`), then removes `workshop/`. What is left is the harness (`harness/`, `tests/`, `reference/`, `examples/`, `design/`, `SPEC.md`, `ARCHITECTURE.md`) and your `my/`. Commit the removal, `my/brief` and `my/modules`. `my/var/` is never committed. `my/var/layers` stays as it is, so `at 5` first, or delete that file, and the whole harness runs.
+`leave` asks first (type `yes`, `y` or `ok`), then removes `workshop/`. What is left is the harness (`harness/`, `tests/`, `reference/`, `examples/`, `design/`, `SPEC.md`, `ARCHITECTURE.md`) and your `my/`. Commit the removal, `my/brief` and `my/modules`. `my/var/` is never committed. Unset `HARNESS_LAYERS` and the whole harness runs.

@@ -4,7 +4,7 @@ Times are what the room waits, measured against the real model, driving the page
 
 Three rules worth knowing before you start:
 
-- **The page reads the step when it starts.** After `workshop at N`, stop the page (Ctrl+C) and start it again. A reload shows the old step. `workshop at N` prints a line saying so; say it aloud too.
+- **The page reads the step when it starts.** After changing `HARNESS_LAYERS`, stop the page (Ctrl+C) and start it again. A reload shows the old step; say it aloud.
 - **The example copy keeps your last run** (`my/var/examples/wedding`), the decision history included. Delete it, then start the page, to begin a block clean. The page without an example keeps its interview in `my/var/harness.db` and `my/var/grounding_state.json`: delete both for an empty page.
 - **The page uses the real date.** "Due 21 days from today" is true on any day, but the dates and shortfalls that follow from it move by a few hundred with the day. Read them off the screen.
 
@@ -12,13 +12,13 @@ Three rules worth knowing before you start:
 
 | Block | Min | Clock | Command | The one thing to show |
 | --- | --- | --- | --- | --- |
-| 0 Setup | 10 | 0:00 | `workshop at 0`; `harness check`; `HARNESS_DB=my/var/shell.db harness ui` | Empty page; a message gets "Nothing here can answer that yet." |
-| 1 The plan | 18 | 0:10 | `workshop at 1`; `harness ui`; then `HARNESS_EXAMPLE=wedding harness ui` | Live interview to a plan you correct; then the seeded plan, step 3's origin |
-| 2 Build | 20 | 0:28 | `workshop at 2`; delete `modules/monthly_surplus`; `HARNESS_EXAMPLE=wedding harness ui` | `Stale · rebuild`, click, step 3 built and tested |
-| 3 Answers | 17 | 0:48 | `workshop at 3`; the prepared sentence | A short reply with chips; click an underlined number or the 54,500 chip, its step lights up |
-| 4 Needs you | 25 | 1:05 | `workshop at 4`; the 120-guest sentence | Chip, "no fewer than 150", Yes: 43,000 and 18,500 re-run, a trunk node; a dead branch; Confirm; your call |
-| 5 Review | 12 | 1:30 | `workshop at 5` | The reviewer's challenges are branches: Use this joins the trunk, Dismiss is dead |
-| Wrap | 8 | 1:42 | `workshop at 5` | What they take home; `leave` only in a throwaway clone |
+| 0 Setup | 10 | 0:00 | `export HARNESS_LAYERS=0`; `harness check`; `HARNESS_DB=my/var/shell.db harness ui` | Empty page; a message gets "Nothing here can answer that yet." |
+| 1 The plan | 18 | 0:10 | `export HARNESS_LAYERS=1`; `harness ui`; then `HARNESS_EXAMPLE=wedding harness ui` | Live interview to a plan you correct; then the seeded plan, step 3's origin |
+| 2 Build | 20 | 0:28 | `export HARNESS_LAYERS=2`; delete `modules/monthly_surplus`; `HARNESS_EXAMPLE=wedding harness ui` | `Stale · rebuild`, click, step 3 built and tested |
+| 3 Answers | 17 | 0:48 | `export HARNESS_LAYERS=3`; the prepared sentence | A short reply with chips; click an underlined number or the 54,500 chip, its step lights up |
+| 4 Needs you | 25 | 1:05 | `export HARNESS_LAYERS=4`; the 120-guest sentence | Chip, "no fewer than 150", Yes: 43,000 and 18,500 re-run, a trunk node; a dead branch; Confirm; your call |
+| 5 Review | 12 | 1:30 | `export HARNESS_LAYERS=5` | The reviewer's challenges are branches: Use this joins the trunk, Dismiss is dead |
+| Wrap | 8 | 1:42 | `export HARNESS_LAYERS=5` | What they take home; `leave` only in a throwaway clone |
 
 Spare 10 minutes: 1:50 to 2:00. If behind, cut in this order: the live interview in block 1 (use the seeded plan), the live rebuild in block 2 (use `replay`), the call in block 4, then the dead branch.
 
@@ -33,7 +33,6 @@ uv run python -m harness check                                # "Setup works: th
 uv run python -m harness replay wedding branch_that_joins     # "PASS wedding/branch_that_joins (layer 4) 37 to 46 s" (about 1 minute with the start)
 workshop/fallback/open.sh 4-branch-joined                     # "Kept run 4-branch-joined at layer 4: http://127.0.0.1:8765/": open it, see 43,000 on step 1, the trunk node and the dimmed branch, Ctrl+C
 rm -rf my/var/examples/wedding my/var/harness.db* my/var/grounding_state.json my/var/fallback my/var/replay
-uv run python -m workshop at 0                                # "This copy now runs as the harness at step 0"
 ```
 
 Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a spare. Close other Claude Code sessions (they share the plan's usage).
@@ -43,7 +42,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 0: setup (10 min)
 
 - Principle: one core owns the conversation, three lanes and the plan state; the model is one swappable interface.
-- `workshop at 0`, `harness --help`: `check, events, ui, replay`. `harness check` (a few seconds, up to a minute on a first run or a slow link), then `harness events`: one line, `core.check`.
+- `export HARNESS_LAYERS=0`, `harness --help`: `check, events, ui, replay`. `harness check` (a few seconds, up to a minute on a first run or a slow link), then `harness events`: one line, `core.check`.
 - Page: `HARNESS_DB=my/var/shell.db harness ui`. Empty. Type "I want to pay for my wedding": the reply is "Nothing here can answer that yet." at once (1/1). Say: the core takes the message and no layer wants it. (Once a plan is accepted the same reply goes on: "At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3.") Use the throwaway database so block 1's empty page stays empty.
 - Attendees: all run `harness check`. Path (c) reads `SPEC.md` section 1 and section 1 of `ARCHITECTURE.md`.
 - If it goes wrong: sign-in (`claude auth status`, `claude update`), `ANTHROPIC_API_KEY` set by mistake (unset it). Fallback: `workshop/fallback/open.sh 0-setup`.
@@ -51,7 +50,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 1: the plan (18 min)
 
 - Principle: an interview turns a vague goal into a plan everyone agrees on.
-- `workshop at 1`; `harness --help` now has `ground`.
+- `export HARNESS_LAYERS=1`; `harness --help` now has `ground`.
 - Before: Ctrl+C the old page, delete `my/var/harness.db*` and `my/var/grounding_state.json`, `harness ui`. Empty page. Type `I want to pay for my wedding`. First question after 10 to 14 s (2/2). The research ("reading up on: sinking fund, ...") is printed only in the terminal command `harness ground`, not in the page: say it, do not look for it.
 - Click the link under the question, **Propose the plan now**: a 4 to 5 step plan appears after 28 to 46 s (2/2). Click step 2 and type `This should also include 3,000 for the honeymoon.` The plan redraws after 18 to 26 s (2/2): a new input "Honeymoon cost", and "The plan is revised: changed steps ...". Do not accept; Ctrl+C. During each wait: say what the interview, the proposal and the correction are for.
 - After: `HARNESS_EXAMPLE=wedding harness ui`. Seven steps; `●` with a number is an open question, `✎` proposed by the assistant, `❝` the person's words; step 4 is a figure from the person, step 7 (dashed) their call. Click step 3: the pop-up shows its formula, particulars with origins and the open question. The trunk on the right has one node, "Plan accepted"; say it is where the history of decisions starts.
@@ -62,8 +61,8 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 2: build (20 min)
 
 - Principle: the model never adds up; a calculation runs only if its module's tests pass now.
-- `workshop at 2`, `harness --help` has `build`. Before: the page at step 1 shows no build state. After (restart the page): `All 6 built` and on each calculation step `N examples · P/P`: 4/4, 3/3, 4/4, 5/5, 5/5 (the counts differ per step; steps 4 and 7 are the person's, no tag). Step 8, "not in the plan", is the step the seed added in a conversation; say so.
-- Live: Ctrl+C, `rm -rf my/var/examples/wedding/modules/monthly_surplus`, restart (the copy must have run once, as it has after `workshop at 2`). Step 3 shows `Stale · rebuild`; the button says **Rebuild 1 step**. Click: it says "Building" for 33 to 35 s (3/3), not minutes, and makes only step 3, which then reads `4 examples · 5/5` (counts differ per build). Talk during the wait: the code writer never sees the examples; a second pass checks them.
+- `export HARNESS_LAYERS=2`, `harness --help` has `build`. Before: the page at step 1 shows no build state. After (restart the page): `All 6 built` and on each calculation step `N examples · P/P`: 4/4, 3/3, 4/4, 5/5, 5/5 (the counts differ per step; steps 4 and 7 are the person's, no tag). Step 8, "not in the plan", is the step the seed added in a conversation; say so.
+- Live: Ctrl+C, `rm -rf my/var/examples/wedding/modules/monthly_surplus`, restart (the copy must have run once, as it has after `export HARNESS_LAYERS=2`). Step 3 shows `Stale · rebuild`; the button says **Rebuild 1 step**. Click: it says "Building" for 33 to 35 s (3/3), not minutes, and makes only step 3, which then reads `4 examples · 5/5` (counts differ per build). Talk during the wait: the code writer never sees the examples; a second pass checks them.
 - Open step 3: Examples marked "checked by a second pass", "4 tests, all passing", Code and tests. Take the first example, read its inputs, work it out on a calculator in front of them. Examples differ per build; say that nobody has confirmed them.
 - Attendees: (a) open steps, read examples. (b) build their plan early: a whole 4-step plan took 200 s (1/1), about 50 s a step. (c) `workshop start 2`, `prompts/step2_build.md`, `uv run pytest tests/layer2 -q`.
 - If it goes wrong: `harness replay wedding build_monthly_surplus` (20 to 28 s, PASS) does the same in a scratch copy. No model: `workshop/fallback/open.sh 2-build`.
@@ -71,7 +70,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 3: answers (17 min)
 
 - Principle: every number in an answer leads to the step that produced it; a number no step produced is never shown.
-- `workshop at 3`, `harness --help` has `ask`; restart the page. Before: at step 2 the same sentence gets "Nothing here can answer that yet. At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3." Paste this into the chat (spending of 8,500, so there is a shortfall on any day):
+- `export HARNESS_LAYERS=3`, `harness --help` has `ask`; restart the page. Before: at step 2 the same sentence gets "Nothing here can answer that yet. At this step the plan can be read, but not changed or questioned. Asking about it arrives at step 3." Paste this into the chat (spending of 8,500, so there is a shortfall on any day):
 
   `Can I cover each wedding payment? The wedding is on 12 June 2027 and I expect between 150 and 200 guests, at 230 each for dinner. Costs that do not depend on guests: 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due 21 days from today, and it counts towards the total. The second is half of what remains, due 30 days before the wedding, and the third is the other half, due 14 days before. I take home 10,000 a month and spend about 8,500 a month. I have 10,000 saved for the wedding. My families will give 20,000 on 29 May 2027.`
 
@@ -83,7 +82,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 4: needs you (25 min)
 
 - Principle: assumptions run and are marked; only a call that is the person's stops; a branch joins the trunk only with your yes.
-- `workshop at 4`, restart the page on a fresh copy (`rm -rf my/var/examples/wedding`). Point at the right panel: the trunk, with "Plan accepted" at the top, is only confirmed decisions; below it the conversation. Paste (120 guests, so a branch can change it):
+- `export HARNESS_LAYERS=4`, restart the page on a fresh copy (`rm -rf my/var/examples/wedding`). Point at the right panel: the trunk, with "Plan accepted" at the top, is only confirmed decisions; below it the conversation. Paste (120 guests, so a branch can change it):
 
   `Can I cover the three payments if we invite 120 guests? The wedding is on 12 June 2027. Dinner is 230 a guest, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due 21 days from today, and it counts toward the total. The second and third payments are each half of what remains, due 30 and 14 days before the wedding.`
 
@@ -99,14 +98,14 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 ### Block 5: review (12 min)
 
 - Principle: someone other than the analyst looks at how the problem is being thought about.
-- `workshop at 5`, restart the page. The reviewer runs on open: `Review · 2` or `Review · 3` after 10 to 13 s (3/3). Each challenge is a branch off the trunk, tagged `challenge` or `question`; steps carry `▲`. Click one to open it: **Use this**, **Dismiss**, a reply box. A question has no Use this: pick another.
+- `export HARNESS_LAYERS=5`, restart the page. The reviewer runs on open: `Review · 2` or `Review · 3` after 10 to 13 s (3/3). Each challenge is a branch off the trunk, tagged `challenge` or `question`; steps carry `▲`. Click one to open it: **Use this**, **Dismiss**, a reply box. A question has no Use this: pick another.
 - Click **Use this** on a challenge: the branch joins the trunk as `Reviewer's suggestion used on step 5` and the analyst replies in 4 to 6 s (2/2; it asks for inputs not saved yet). Open another and click **Dismiss**: instant, the branch is dimmed, `dismissed`. Say: the reviewer's challenges are branches; Use this joins, Dismiss is dead.
 - Attendees: (a) as shown. (c) `prompts/step5_review.md`, `uv run pytest tests/layer5 -q`.
 - If it goes wrong: nothing raised, send the block 4 sentence for a second pass. Outside lookups need Wikipedia; challenges then carry no source. No model: `open.sh 5-review`, before: `open.sh 5-review 8765 4`.
 
 ### Wrap (8 min)
 
-`workshop at 5`. Do not run `workshop leave` in this copy: it deletes `workshop/`, this file included. Show it in a throwaway clone (it asks; `yes`; verified). What they take home, the limitation in `README.md` here.
+`export HARNESS_LAYERS=5`. Do not run `workshop leave` in this copy: it deletes `workshop/`, this file included. Show it in a throwaway clone (it asks; `yes`; verified). What they take home, the limitation in `README.md` here.
 
 ## Fallbacks
 

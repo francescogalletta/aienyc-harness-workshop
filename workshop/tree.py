@@ -7,7 +7,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = Path(__file__).with_name("manifest.json")
-LAYERS_FILE = Path("my/var/layers")
 SET_ASIDE = Path("my/var/set-aside")
 STEPS = range(6)
 NO_GIT = ("This copy is not a git checkout, so there is nothing to restore from. "
@@ -147,19 +146,6 @@ def finish(root, manifest, n) -> dict:
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         (root / rel).write_bytes(content[rel])
     return {"restored": todo, "same": len(wanted) - len(todo), "set_aside": kept, "ref": ref}
-
-
-def read_layers_file(root=ROOT):
-    try:
-        return (Path(root) / LAYERS_FILE).read_text(encoding="utf-8").strip()
-    except OSError:
-        return None
-
-
-def write_layers_file(root, n):
-    path = Path(root) / LAYERS_FILE
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(f"{n}\n", encoding="utf-8")
 
 
 def present(root, manifest) -> list[bool]:

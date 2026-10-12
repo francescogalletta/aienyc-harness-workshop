@@ -87,6 +87,5 @@ uv run python -m harness replay wedding       # play the scripted scenarios agai
 uv run python -m harness events               # print the recorded events
 HARNESS_EXAMPLE=wedding uv run python -m harness ui      # play with a seeded example
 HARNESS_LAYERS=3 uv run python -m harness ui             # the harness with layers above 3 off
-uv run python -m workshop at 3                # the same, saved in my/var/layers
 uv run python -m workshop check               # every step's tests with later layers off (about five minutes)
 ```

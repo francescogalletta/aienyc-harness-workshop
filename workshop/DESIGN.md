@@ -11,8 +11,8 @@ and with git.
 - Standard library only. It never calls a model.
 - `harness/` never imports `workshop/`; `tests/layer0/test_layout.py` checks that. Deleting
   `workshop/` leaves a harness whose tests pass.
-- It never touches `my/brief`, `my/modules` or the database. The only things it writes under
-  `my/` are `my/var/layers` (the `at` command) and `my/var/set-aside/` (copies of the person's
+- It never touches `my/brief`, `my/modules` or the database. The only thing it writes under
+  `my/` is `my/var/set-aside/` (copies of the person's
   changed files). `my/var/` is git-ignored.
 - Every change that could lose work first copies the files that differ from the reference to
   `my/var/set-aside/<timestamp>/<path>`. A command that cannot finish says why and changes
@@ -48,9 +48,8 @@ step, and every listed file exists. A new file in the harness fails `check` unti
 
 | Command | Does |
 | --- | --- |
-| `status [--quick]` | The setting in force (`HARNESS_LAYERS`, else `my/var/layers`, else none); per layer: package present, on, built files present; then each step's tests, unless `--quick` |
-| `at N` | Writes `N` to `my/var/layers`. Removes and copies nothing. The harness's `config` reads that file when `HARNESS_LAYERS` is unset, so no shell export is needed; the variable still wins and `at` says so |
-| `start N` | For someone who builds step N: sets aside what differs, then removes step N's built files and the packages of layers above N. Keeps the contract, step N's given files and every `tests/layer*` folder. Warns if `my/var/layers` is below N |
+| `status [--quick]` | The setting in force (`HARNESS_LAYERS`, else none); per layer: package present, on, built files present; then each step's tests, unless `--quick` |
+| `start N` | For someone who builds step N: sets aside what differs, then removes step N's built files and the packages of layers above N. Keeps the contract, step N's given files and every `tests/layer*` folder. Warns if `HARNESS_LAYERS` is below N |
 | `finish N` | Restores the files of layers 1 to N from git (`git show <ref>:<path>`), after setting aside those that differ. Not a git checkout: says so and stops. A commit that lacks a file: stops before writing |
 | `leave` | Removes `workshop/` after an accept word (`yes`, `y`, `ok`, `okay`, `si`, `/accept`) |
 | `check` | The drift check, below |
@@ -79,6 +78,6 @@ to the layer it belongs to.
 
 ## Not done
 
-- There is no `next` command: `at N` is the follower's switch, `finish N` the catch-up.
+- There is no `next` command: `HARNESS_LAYERS=N` is the follower's switch, `finish N` the catch-up.
 - Tests of layers above N stay after `start N` and fail until their layer exists; run
   `uv run pytest tests/layerN`, as `STEPS.md` says.

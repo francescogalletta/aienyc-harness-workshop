@@ -560,10 +560,6 @@ The decision history adds (section 12):
 - **One setting.** `HARNESS_LAYERS=N` (default 5) turns layers above N off.
   The facilitator presents step N on the finished tree with
   `HARNESS_LAYERS=N uv run python -m harness ui`.
-- **A local default.** When `HARNESS_LAYERS` is unset or empty, `config` reads one whole number from
-  `my/var/layers` (git-ignored, under `my/` like everything the harness reads locally); no file means 5. The
-  variable wins over the file. `python -m workshop at N` writes the file, so a presenter or an attendee needs no
-  shell export; deleting it returns to the finished tree. A bad file is an error that names it.
 - **Files absent.** A tree without the packages of layers above N is the
   harness at step N; discovery stops at the first missing package. This is
   how an attendee's copy is at step N (`workshop start N` removes the files of
@@ -974,8 +970,6 @@ of the harness, it is history: `SPEC.md` and sections 1 to 8 are the contract.
   each and no lookup was asked for (the reviewer did not ask). Wikipedia is unreachable from this machine (proxy answers
   403), and the research chain then returns `not_found` for a term the reference file lacks, without an error. A second
   message sent while a pass ran was answered in 6 s.
-- **C1 · The local layers default.** `config` reads `my/var/layers` when `HARNESS_LAYERS` is not set (section 7).
-  `workshop at N` writes it; tests that check the default of 5 run in an empty folder.
 - **A6 · Files and interfaces.** `replay.py`: `validate_scenario(value, *, stem, brief, layers=None)`, `load_scenarios(example_dir,
   only=None) -> (scenarios, skipped)`, `run_scenario(scenario, *, example_dir, keep=False, model_factory=None, write=print,
   timeout=900) -> {"scenario", "passed", "checks", "error", "seconds", "folder"}`, `expectations(layer)` (the `Expect`s of layers 0

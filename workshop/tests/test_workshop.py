@@ -39,26 +39,6 @@ def test_the_manifest_check_names_a_file_in_two_places_a_missing_one_and_an_unli
     assert "harness/review/extra.py is under harness/ but in no step" in found
 
 
-def test_at_writes_the_local_default_and_removes_nothing(project, capsys):
-    root, manifest = project
-    before = tree.files_under(root, ".")
-    assert cli.main(["at", "3"]) == 0
-    assert (root / "my/var/layers").read_text() == "3\n"
-    assert sorted(tree.files_under(root, ".")) == sorted(before + ["my/var/layers"])
-    out = capsys.readouterr().out
-    assert "step 3" in out
-    assert "A page that is already open keeps the old step: stop it (Ctrl+C) and start it again." in out
-
-
-def test_at_tells_when_a_layer_is_not_here_and_when_the_shell_overrides(project, monkeypatch, capsys):
-    root, manifest = project
-    shutil.rmtree(root / "harness/answers")
-    monkeypatch.setenv("HARNESS_LAYERS", "1")
-    cli.cmd_at(manifest, argparse.Namespace(n="4"))
-    out = capsys.readouterr().out
-    assert "Layer 3 is not in this copy" in out and "HARNESS_LAYERS=1" in out
-
-
 @pytest.mark.parametrize("bad", ["6", "-1", "x", "1.5", ""])
 def test_a_step_number_outside_0_to_5_is_refused_and_nothing_changes(project, bad, capsys):
     root, _ = project
@@ -181,13 +161,13 @@ def test_leave_removes_workshop_only_after_an_accept_word(project):
     assert not (root / "workshop").exists() and (root / "harness/base.py").is_file()
 
 
-def test_status_quick_shows_the_setting_and_which_layers_are_present_and_on(project, capsys):
+def test_status_quick_shows_the_setting_and_which_layers_are_present_and_on(project, monkeypatch, capsys):
     root, manifest = project
-    tree.write_layers_file(root, 2)
+    monkeypatch.setenv("HARNESS_LAYERS", "2")
     shutil.rmtree(root / "harness/needs_you")
     cli.status(manifest, argparse.Namespace(quick=True))
     lines = capsys.readouterr().out.splitlines()
-    assert "my/var/layers says 2" in lines[0]
+    assert "HARNESS_LAYERS=2" in lines[0]
     rows = {line.split()[0]: line.split() for line in lines[2:8]}
     assert rows["2"][-3:-1] == ["yes", "yes"] and rows["3"][-3:-1] == ["yes", "no"]
     assert rows["4"][2:4] == ["harness/needs_you/", "no"] or "no" in rows["4"]

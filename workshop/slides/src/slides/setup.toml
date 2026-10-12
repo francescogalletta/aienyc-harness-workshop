@@ -28,7 +28,6 @@ items = [
   { path = "design/", gloss = "product design, page source", mute = 1 },
   { path = "SPEC.md", gloss = "the contract", mute = 1 },
 ]
-line = { text = "Catch up to step N:", command = "uv run workshop at N", step = 2 }
 
 [[slide]]
 id = "s-map"
