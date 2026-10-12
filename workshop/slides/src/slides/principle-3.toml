@@ -32,13 +32,12 @@ id = "s-p3-examples"
 name = "P3 · Examples"
 layout = "statement"
 blocks = [
-  { label = "EXAMPLES" },
-  { compact = true, heads = ["“I MAKE 10K NET”, FROM", "SO IT IS"], guesses = [
-      { said = "A payslip or bank statement", doubts = ["a fact"] },
-      { said = "Your answer to a question", doubts = ["stated", "people forget, or round"], step = 1 },
-      { said = "“About 10k”, said in passing", doubts = ["an estimate"], step = 2 },
+  { label = "EXAMPLE: WE NEED INCOME AS AN INPUT" },
+  { compact = true, heads = ["FROM", "SO IT IS"], guesses = [
+      { said = "Unstructured thoughts in chat", doubts = ["an interpretation"] },
+      { said = "The agent's reasoning or memory", doubts = ["an assumption"], step = 1 },
+      { said = "A bank statement", doubts = ["a fact"], step = 2 },
   ] },
-  { sub = "Same number. Three levels of trust.", step = 3 },
 ]
 
 [[slide]]

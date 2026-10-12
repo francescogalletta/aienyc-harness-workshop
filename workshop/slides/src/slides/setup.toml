@@ -22,13 +22,12 @@ items = [
   { path = "harness/", gloss = "the harness you build" },
   { path = "examples/wedding/", gloss = "today's example" },
   { path = "my/", gloss = "your own plan" },
-  { path = "workshop/", gloss = "the steps, and how to catch-up" },
+  { path = "workshop/", gloss = "the guide and exercises" },
   { path = "tests/", gloss = "offline tests per layer", mute = 1 },
   { path = "reference/", gloss = "checked finance terms", mute = 1 },
   { path = "design/", gloss = "product design, page source", mute = 1 },
   { path = "SPEC.md", gloss = "the contract", mute = 1 },
 ]
-line = { text = "Catch up to step N:", command = "uv run workshop at N", step = 2 }
 
 [[slide]]
 id = "s-map"

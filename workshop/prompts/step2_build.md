@@ -61,6 +61,6 @@ uv run pytest tests/layer1 -q
 uv run pytest tests/layer0 -q
 ```
 
-Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. With the seeded modules adopted, each calculation step of the wedding plan shows `N examples · N/N`. If you are stuck, `uv run python -m workshop finish 2` restores the finished layer from git (your files are set aside first).
+Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. With the seeded modules adopted, each calculation step of the wedding plan shows `N examples · N/N`.
 
 When you think you are done, report briefly: the files you created, the test results, and anything in the contract you found unclear or had to guess.
