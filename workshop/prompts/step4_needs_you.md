@@ -53,6 +53,6 @@ uv run pytest tests/layer1 -q
 uv run pytest tests/layer0 -q
 ```
 
-Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. An answer on an unsaid split is marked `◌`; confirm it, then change it to 40/60. Then open a branch from the Guest count chip, say "We will get no fewer than 150 guests", and say yes to the proposal; `examples/wedding/scenarios/branch_that_joins.json` is that run. If you are stuck, `uv run python -m workshop finish 4` restores the finished layer from git (your files are set aside first).
+Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. An answer on an unsaid split is marked `◌`; confirm it, then change it to 40/60. Then open a branch from the Guest count chip, say "We will get no fewer than 150 guests", and say yes to the proposal; `examples/wedding/scenarios/branch_that_joins.json` is that run.
 
 When you think you are done, report briefly: the files you created, the test results, and anything in the contract you found unclear or had to guess.

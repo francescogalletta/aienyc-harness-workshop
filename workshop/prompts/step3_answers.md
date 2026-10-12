@@ -49,6 +49,6 @@ uv run pytest tests/layer1 -q
 uv run pytest tests/layer0 -q
 ```
 
-Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. The question in `examples/wedding/scenarios/cover_each_payment.json` gives 43,000 and 54,500, and each number leads to its step. If you are stuck, `uv run python -m workshop finish 3` restores the finished layer from git (your files are set aside first).
+Tests of layers above this one fail until they are built; that is expected. Then try it on the main example. The question in `examples/wedding/scenarios/cover_each_payment.json` gives 43,000 and 54,500, and each number leads to its step.
 
 When you think you are done, report briefly: the files you created, the test results, and anything in the contract you found unclear or had to guess.
