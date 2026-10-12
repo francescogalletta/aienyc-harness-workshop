@@ -43,7 +43,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Core: one core owns the conversation, three lanes and the plan state; the model is one swappable interface.
 - `harness --help`: `check, events, ui, replay` come with the core; `ground`, `build` and `ask` with layers 1 to 3. `harness check` (a few seconds, up to a minute on a first run or a slow link), then `harness events`: one line, `core.check`.
 - Page: `harness ui`. Empty: no plan, nothing to draw yet. Do not type: a message starts the interview, which is block 1. Ctrl+C.
-- Attendees: all run `harness check`. Anyone rebuilding a layer reads `SPEC.md` section 1 and section 1 of `ARCHITECTURE.md`.
+- Attendees: all run `harness check`.
 - If it goes wrong: sign-in (`claude auth status`, `claude update`), `ANTHROPIC_API_KEY` set by mistake (unset it).
 
 ### Block 1: Shared Domain (the plan) (18 min)
@@ -53,7 +53,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Delete `my/var/harness.db*` and `my/var/grounding_state.json`, `harness ui`. Empty page. Type `I want to pay for my wedding`. First question after 10 to 14 s (2/2). The research ("reading up on: sinking fund, ...") is printed only in the terminal command `harness ground`, not in the page: say it, do not look for it.
 - Click the link under the question, **Propose the plan now**: a 4 to 5 step plan appears after 28 to 46 s (2/2). Click step 2 and type `This should also include 3,000 for the honeymoon.` The plan redraws after 18 to 26 s (2/2): a new input "Honeymoon cost", and "The plan is revised: changed steps ...". Do not accept; Ctrl+C. During each wait: say what the interview, the proposal and the correction are for.
 - Then: `HARNESS_EXAMPLE=wedding harness ui`. Seven plan steps, and an eighth added in a conversation, marked "not in the plan"; `●` with a number is an open question, `✎` proposed by the assistant, `❝` the person's words; step 4 is a figure from the person, step 7 (dashed) their call. Click step 3: among other things the pop-up shows its formula, particulars with origins and the open question. The trunk on the right has one node, "Plan accepted"; say it is where the history of decisions starts.
-- Attendees: (a) open the example and click steps. (b) `harness ui` with their goal. Rebuilding the layer: `prompts/step1_plan.md`, `uv run pytest tests/layer1 -q`.
+- Attendees: open the example and click steps. The Try it slides for this principle: step origins, and correcting the plan.
 - If it goes wrong: a slow interview, press Propose the plan now after the first question.
 
 ### Block 2: Consistency (build) (20 min)
@@ -63,7 +63,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - On the example page: `All 6 built` and on each calculation step `N examples · P/P`: 4/4, 3/3, 4/4, 5/5, 5/5 (the counts differ per step; steps 4 and 7 are the person's, no tag). Step 8, "not in the plan", is the step the seed added in a conversation; say so.
 - Live: Ctrl+C, `rm -rf my/var/examples/wedding/modules/monthly_surplus`, restart (the copy must have run once, as it has after block 1). Step 3 shows `Stale · rebuild`; the button says **Rebuild 1 step**. Click: it says "Building" for 33 to 35 s (3/3), not minutes, and makes only step 3, which then reads `4 examples · 5/5` (counts differ per build). Talk during the wait: the code writer never sees the examples; a second pass checks them.
 - Open step 3: Examples marked "checked by a second pass", "4 tests, all passing", Code and tests. Take the first example, read its inputs, work it out on a calculator in front of them. Examples differ per build; say that nobody has confirmed them.
-- Attendees: (a) open steps, read examples. (b) build their plan early: a whole 4-step plan took 200 s (1/1), about 50 s a step. Rebuilding the layer: `prompts/step2_build.md`, `uv run pytest tests/layer2 -q`.
+- Attendees: open steps, read examples. The Try it slides for this principle: run the tests, and break a module. A whole 4-step build took 200 s (1/1), about 50 s a step.
 - If it goes wrong: `harness replay wedding build_monthly_surplus` (20 to 28 s, PASS) does the same in a scratch copy.
 
 ### Block 3: Evidence (answers) (17 min)
@@ -76,7 +76,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 
 - Wait 30 to 50 s. The reply is short: "Not fully, in either case", with the shortfalls in the sentence. On 12 October: 150 guests, payment 2 short by 4,000 and payment 3 by 2,500; 200 guests, 9,750 and 14,000. Under it are chips: the totals 43,000 and 54,500 and the surplus 1,500 (results), the values it used and what it assumed (a `◌` mark on it is block 4). Say what the analyst did: it ran the modules, and the number check holds back anything no step made.
 - Click an underlined number (9,750): step 5 is selected and its pop-up opens; click the chip `Estimate total wedding cost 54,500` and step 1 is selected (2/2). Steps not used fade. Then type `What if my families give nothing?`: 17 to 60 s, payment 3 now short by 22,500 and 34,000.
-- Attendees: (a) ask it, change the guest range. (b) ask about their plan, built first. Rebuilding the layer: `prompts/step3_answers.md`, `uv run pytest tests/layer3 -q`.
+- Attendees: ask it, change the guest range. The Try it slides for this principle: ask, and follow a number back.
 - If it goes wrong: `replay wedding cover_each_payment` (30 to 35 s, PASS; fixes its date so 5,250 shows).
 
 ### Block 4: Accountability (needs you) (25 min)
@@ -93,7 +93,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - The branch that dies. Click step 5, then **New branch** (bottom right of the box), type `What is a sinking fund?`. It answers in 5 to 6 s (2/2) from the plan's glossary, now with a sourced definition, and offers to look up more; it does not. Click **Close branch**: the branch is dimmed, `no change`; the trunk and the plan are as they were. Say: a branch with no consequence stays dead.
 - Confirm. Scroll down, click **Confirm** (instant): a trunk node `Confirmed: ... and 1 more`. Say: the trunk is only confirmed decisions. Spare, 15 s: instead of Confirm click **Change it** and type `On second thought, the second payment is 40% of what remains, and the third is the other 60%.` for a node `Corrected: ...`, 14,800 and 22,200 (2/2).
 - Your call. Type `Now help me decide what to update first.` After 10 s (1/1) step 7 asks with four buttons, the words differ each time; pick one: a trunk node appears at once and step 7 reads "Decided", the reply follows in 5 s. The node shows the start of the question, not your choice; open step 7 for "You chose: ...".
-- Attendees: (a) as shown; change 150 to 180 from a branch. (b) their plan. Rebuilding the layer: `prompts/step4_needs_you.md`, `uv run pytest tests/layer4 -q`. Exercise 4.4 is the join.
+- Attendees: as shown; change 150 to 180 from a branch. The Try it slides for this principle: change a figure from a chip, and a branch that changes nothing.
 - If it goes wrong: no proposal after 15 s, say it plainly again (`Change the guest count to 150.`); the side assistant may ask a question first. No buttons after 90 s: move on; `harness replay wedding decide_what_to_update` plays the call in a scratch copy.
 
 ### Block 5: Verification (review) (12 min)
@@ -102,7 +102,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Click legend entry 5 to keep this principle spotlighted while you talk.
 - Restart the page on a fresh copy (`rm -rf my/var/examples/wedding`) so the room sees the reviewer start. It runs on open: `Review · 2` or `Review · 3` after 10 to 13 s (3/3). Each challenge is a branch off the trunk, tagged `challenge` or `question`; steps carry `▲`. Click one to open it: **Use this**, **Dismiss**, a reply box. A question has no Use this: pick another.
 - Click **Use this** on a challenge: the branch joins the trunk as `Reviewer's suggestion used on step 5` and the analyst replies in 4 to 6 s (2/2; it asks for inputs not saved yet). Open another and click **Dismiss**: instant, the branch is dimmed, `dismissed`. Say: the reviewer's challenges are branches; Use this joins, Dismiss is dead.
-- Attendees: (a) as shown. Rebuilding the layer: `prompts/step5_review.md`, `uv run pytest tests/layer5 -q`.
+- Attendees: as shown. The Try it slides for this principle: use a challenge, and dismiss one.
 - If it goes wrong: nothing raised, send the block 4 sentence for a second pass. Outside lookups need Wikipedia; challenges then carry no source.
 
 ### Wrap (8 min)
@@ -113,7 +113,7 @@ What they take home: `harness/` and their `my/`. `workshop/` is teaching materia
 
 - Timings measured: check a few seconds (up to a minute on a first run), short reply 10 to 15 s, a full answer 30 to 50 s, a branch's proposal 4 to 6.5 s, the join 1.5 to 4.6 s, rebuild of one step 35 s, a whole 4-step build 200 s, reviewer 10 to 13 s, `replay` per scenario 4 to 88 s (all eight in a row: 307 s, 8 of 8 passed).
 - A proposal needs a value the person wrote in the branch. A range ("between 150 and 200") is ambiguous: open the branch from one value (use the 120-guest sentence). One proposal per reply; the side assistant sometimes asks first.
-- A join re-runs only the steps the value reaches in the last answer (1, 2 and 5 here). Steps 6 and 7 are shown as further on and stay as they were until asked. A re-run the gate refuses (a module changed under it, exercise 4.4) still saves the value and records the node; the node lists the steps that could not run again.
+- A join re-runs only the steps the value reaches in the last answer (1, 2 and 5 here). Steps 6 and 7 are shown as further on and stay as they were until asked. A re-run the gate refuses (a module changed under it) still saves the value and records the node; the node lists the steps that could not run again.
 - Only your own buttons make trunk nodes (Confirm, Change it, a choice, Use this, Yes). A value you type in the main chat is conversation, not a decision: the 40/60 line typed after Confirm changes the answer and adds no node.
 - A figure in an old reply is struck through only when its re-run gave a different value; a result chip is struck when its run re-ran, even if one of its several values did not move. After a later answer, steps it did not use fade and show examples instead of values until asked again.
 - The glossary of the wedding example now carries sourced definitions for sinking fund, cash flow forecast and budget (from `reference/terms.json`); savings goal, net income and gross income have no saved source and stay the assistant's proposal.

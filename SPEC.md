@@ -104,7 +104,7 @@ in ARCHITECTURE.md section 4. Rules the code must keep:
   the state show the current conversation.
 - **A person's message** (`say`): stored at once as a `you` message (with
   `queued: true` when the main lane is busy). Then, in order:
-  1. if a main-lane job waits, the message answers it (`{"text", "step",
+  1. if a main-lane job waits, the message answers it (`{"id", "text", "step",
      "notice"}`);
   2. else the highest enabled layer whose `route` returns a handler gets it,
      as a main-lane job;
@@ -395,7 +395,7 @@ its inputs. The tables `test_runs`, `modules`, `step_modules`, `calc_runs`,
   the plan check. A plain sentence counts as a departure. Empty when there are
   none. The person is not asked about the spec.
 - New table `build_steps (step_id PRIMARY KEY, status, module, spec, departures,
-  departures_confirmed, examples, disagreement, reason, ts)`; `spec`,
+  departures_confirmed, examples, disagreement, reason, step_fingerprint, ts)`; `spec`,
   `departures`, `examples`, `disagreement` are JSON. New table
   `example_confirmations (id, ts, step_id, n, answer)`.
 
@@ -449,7 +449,8 @@ A step's fingerprint is the SHA-256 of the canonical JSON of its `kind`,
 particulars. `register` stores it. A built step is `stale` when the plan's
 step fingerprint differs from the stored one, or its files changed or its folder is gone (reasons `its files changed`, `its folder is missing`). The gate
 also refuses a stale module: `STALE = "The step of '{name}' changed in the
-plan, so '{name}' must be built again."` Every other gate rule is kept.
+plan, so '{name}' must be built again."` It also refuses a module whose
+step's last build ended `not_built`. Every other gate rule is kept.
 
 ### 4.5 The second pass: `checker.py`
 
@@ -462,8 +463,8 @@ One model call per step with `checker.md` and the tool `answer_examples`
 - **Not given**: the expected answers, the working, the example writer's
   messages, the brief, the notes, the person's words, other modules, any code.
 - An answer counts only when it fits the output type and every number in it
-  appears in its own working (`unbacked`). It agrees when `values.same(expected,
-  answer)` is true.
+  appears in its own working or the example's inputs (`unbacked`). It agrees
+  when `values.same(expected, answer)` is true.
 - A missing, malformed or disagreeing answer leaves the example out:
   `checked_by: null` and `second_pass` set to the checker's answer (or null).
   Left-out examples are kept in `build_steps.examples` and shown in the pop-up.
@@ -499,8 +500,8 @@ One model call with `step_helper.md`, the tool `respond`:
   confirmed.
 - `explain`: `message`, number-checked against the spec, the examples and the
   person's words; posted as the reply.
-- `note`: the message is kept as a note for the step; the harness says so.
-- `rebuild`: the message is kept as a note and the whole step is rebuilt.
+- `note`: the person's words are kept as a note for the step; the harness says so.
+- `rebuild`: the person's words are kept as a note and the whole step is rebuilt.
 
 A call that fails its checks gets `HELPER_UNCLEAR = "I could not tell what to
 change. Say which example and the right answer, with every number written
@@ -605,6 +606,8 @@ conversations. Tools above. Prompt `analyst.md`. Command
 `ask`. Expects `runs`, `shown`, `not_shown`, `max_withheld`,
 `max_corrections` (a list of module runs with inputs, numbers shown or not in
 the assistant's messages, at most that many withheld replies or corrections).
+A `runs` entry matches a run of that module whose listed inputs equal the
+given ones compared as text (`str`); inputs not listed are not compared.
 `shown` and `not_shown` read what the person reads in the main chat: the
 assistant's replies and decision questions and each harness message (a join
 notice), each with the text of its chips. Events: `ask.message`, `ask.reply`,
@@ -639,7 +642,8 @@ case-folded.
   `confirmed`. A step shows `◌` when its last run has one.
 - When a turn's runs have unconfirmed assumptions, the turn's final message
   gets a `notice`: those assumptions and the steps of those runs, status
-  `open`.
+  `open`. A withheld reply gets none: the person did not see what the
+  assumptions were for, and the steps keep `◌`. A stopped turn still gets one.
 - `confirm_assumptions {message}`: each of the notice's assumptions becomes
   `confirmed`; the notice becomes `confirmed`. Marks clear wherever only those
   assumptions were unconfirmed. Trunk node `assumption_confirmed` (who `you`,
@@ -729,8 +733,8 @@ Tool `request_module {case: step | new | replace, target, name?, works_out,
 from_what, gives, formula, why}` (`name`: a short name for a new step; else it is
 cut from `works_out`). Every field in words is required and number-checked;
 `step` must name a calculation step that is not built; `replace` must name a
-registered module whose step is in the plan. At most two per person message,
-counted whatever the outcome. It does not ask. `step` builds that step; `new`
+registered module whose step is in the plan. At most two per person message;
+a call that passes the checks counts, whatever the build gives. It does not ask. `step` builds that step; `new`
 adds a step (`added_<n>`, `in_plan` false) and builds it; `replace` keeps the words as a note and rebuilds the
 module. The harness posts `BUILT_NOT_IN_PLAN` (for `new`) or `BUILT_STEP` and
 the result goes to the analyst (`built`, `reused` or `not_built` with the
@@ -911,8 +915,9 @@ the end; each kind in `nodes` is the kind of the node of a joined side branch.
 
 Unless `HARNESS_REVIEW=off`, a pass is queued on the review lane after
 `plan_accepted`, after `plan_changed`, and after a turn whose runs stored an
-assumption key never seen before. Passes do not overlap; one more is queued at
-most.
+assumption key never seen before. A session that opens on an accepted plan
+with no pass yet in the current conversation queues one (trigger `loaded`).
+Passes do not overlap; one more is queued at most.
 
 ### 7.2 A pass: `reviewer.py`
 
@@ -934,11 +939,12 @@ report {"challenges": [{"step", "kind": "challenge" | "question", "title", "conc
 The harness keeps a challenge only when: `step` is a plan step; `title` is 1 to
 45 characters; kinds and values are known; a `question` has an empty proposal
 and change `none`; a `challenge` has a proposal; every source is a URL a
-lookup of this pass returned; `concern`, `proposal` and `title` pass the
+lookup of this pass returned, and so is every URL in `concern` or `proposal`;
+Wikipedia is not named without a source; `concern`, `proposal` and `title` pass the
 number check against the user message and the lookups; it does not repeat an
 open, used or dismissed challenge (same step and same title, compared as in
 3.1). It sorts the kept ones by impact (high first), then the reviewer's order,
-and keeps the first three; with five challenges already open it keeps none.
+and keeps at most `min(3, 5 - open)`: never more than five open.
 Every dropped one is recorded with its reason.
 
 Each kept challenge opens a review thread on its step; the first message is
@@ -965,9 +971,10 @@ USE_THIS = "Use the reviewer's suggestion on step {number} {name}: {proposal}"
 
 ### 7.4 What it registers
 
-Table `challenges (id, ts, pass, step_id, kind, title, concern, proposal,
-change, impact, rank, sources, status, thread_id)` and `review_passes (id, ts,
-trigger, lookups, kept, dropped)`. Prompt part `analyst.md`. Actions
+Table `challenges (id, ts, conversation, pass, step_id, kind, title, concern,
+proposal, change, impact, rank, sources, status, thread_id)` and `review_passes
+(id, ts, conversation, trigger, lookups, kept, dropped, seconds,
+assumption_mark)`. Prompt part `analyst.md`. Actions
 `use_challenge`, `dismiss_challenge`. Trunk node `challenge_used`. `contribute`: `challenges` on steps,
 `challenge` on review threads, `review`. Expects `challenges` (`{"min",
 "max", "used", "dismissed", "steps"}`). Events: `review.started`, `review.lookup`, `review.kept`,

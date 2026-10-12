@@ -18,10 +18,10 @@ name = "What you cloned"
 layout = "repo"
 label = "WHAT YOU JUST CLONED"
 items = [
-  { path = "harness/", gloss = "the harness you build" },
+  { path = "harness/", gloss = "the finished harness" },
   { path = "examples/wedding/", gloss = "today's example" },
-  { path = "my/", gloss = "your own plan" },
-  { path = "workshop/", gloss = "the guide and exercises" },
+  { path = "my/", gloss = "your copy of the example" },
+  { path = "workshop/", gloss = "the guide and these slides" },
   { path = "tests/", gloss = "offline tests per layer", mute = 1 },
   { path = "reference/", gloss = "checked finance terms", mute = 1 },
   { path = "design/", gloss = "product design, page source", mute = 1 },
@@ -33,7 +33,7 @@ id = "s-map"
 name = "The two hours"
 layout = "structure"
 label = "TODAY'S STRUCTURE"
-headline = "For each principle, we explain it, show it working, then discuss and play."
+headline = "For each principle, we explain it, show it working, then you try it."
 variant = "stairs"
 start = "Setup"
 end = "Wrap-up"
@@ -57,4 +57,6 @@ blocks = [
   { label = "CHECK IT WORKS" },
   { command = "uv run harness check" },
   { sub = "It should end with “Setup works”." },
+  { command = "HARNESS_EXAMPLE=wedding uv run harness ui", step = 1 },
+  { sub = "The wedding plan opens in your browser.", step = 1 },
 ]

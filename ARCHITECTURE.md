@@ -3,8 +3,8 @@
 This file says how the harness is built: the core, the plan state document,
 the layers and what each owns, the actions, how long work is reported, how
 the harness up to layer N is produced, and the database. Section 12 is the
-decision history the right-hand panel draws. The notes made while each part
-was built are in `HISTORY.md`.
+decision history the right-hand panel draws. Section 9 holds implementation
+notes the contract leaves open.
 `SPEC.md` is the contract for behaviour; it relies on sections 3 to 5 here,
 which are part of the contract too, and on section 12 where `SPEC.md` cites
 it. The product design is in `design/`
@@ -385,7 +385,8 @@ selects its step.
 
 ```python
 class Session:                                     # harness/core/session.py
-    def __init__(self, config, *, model_factory=get_model, desk_factory=None): ...
+    def __init__(self, config, *, model_factory=get_model, desk_factory=None,
+                 layers=None, memory=None): ...   # layers: replaces discovery (tests); memory: starts self.memory
     def state(self) -> dict                        # section 3
     def act(self, action: str, payload: dict) -> tuple[bool, str]   # (applied, reason when not)
     def settle(self, timeout: float | None = None) -> dict         # wait until every lane is idle
@@ -406,9 +407,10 @@ SPEC 4.6).
   runs), **side** (replies in side and reviewer threads), **review** (reviewer
   passes; a pass asked for while one runs is coalesced into one more).
 - A job gets a `Work` object: its own database connection, the model,
-  `progress(text, step=None)` (sets its `activity` entry), `post(message)`
-  (adds to `chat` or a thread), and `wait(kind, data) -> answer` (main lane
-  only: sets `waiting`, blocks until an action answers it).
+  `progress(text, step=None, what=None, thread=None)` (sets its `activity`
+  entry), `post(message)` (adds to `chat` or a thread), and `wait(kind, **data)
+  -> answer` (main lane only: sets `waiting` to `{"kind": kind, **data}`,
+  blocks until a message or an action answers it).
 - `version` goes up whenever `activity`, `waiting`, a lane, or the database
   changes through the core.
 - **Reporting: polling is kept.** The page polls `GET /api/state` every second
@@ -507,7 +509,7 @@ every action.
 | `accept_plan` | | 1 | `waiting.kind` is `plan` | Saves the brief as confirmed; trunk node `plan_accepted`; hook `plan_accepted` |
 | `wrap` | | 1 | the interview waits for an answer | Asks the interviewer to propose the plan now |
 | `build` | | 2 | `phase` is `accepted`, no build queued or running | Queues the unattended build |
-| `confirm_example` | `step`, `n` | 2 | that example exists and is not yours already | Records "confirmed by you" |
+| `confirm_example` | `step`, `n` | 2 | that example exists and is not yours already, and its step is not being built | Records "confirmed by you" |
 | `confirm_plan_check` | `step` | 2 | the step has departures not yet confirmed | Clears the plan-check mark |
 | `run_tests` | `step` | 2 | the step has a registered module | Queues a test run |
 | `choose` | `decision`, `option` | 4 | that decision is the one waiting | Posts the option's text as the person's message (`who` "you", the decision's step), then answers the decision with the option number; trunk node `call` (an answer in words records it too) |
@@ -516,7 +518,7 @@ every action.
 | `accept_proposal` | `proposal` | 4 | the proposal is pending, and the main lane does not wait on a decision | Status `accepted`; queues the join on the main lane (section 12.3) |
 | `decline_proposal` | `proposal` | 4 | the proposal is pending | Status `declined`; the branch is dead |
 | `close_branch` | `thread` | 4 | a side branch whose outcome is `open` | The branch is dead; a pending proposal in it is declined |
-| `use_challenge` | `challenge` | 5 | the challenge is open | Marks it used; trunk node `challenge_used` (who `reviewer`), the review branch joined; posts the person's "use this" message and routes it |
+| `use_challenge` | `challenge` | 5 | the challenge is open, is not a question, its step is still in the plan, and the main lane does not wait on the person | Marks it used; trunk node `challenge_used` (who `reviewer`), the review branch joined; posts the person's "use this" message and routes it |
 | `dismiss_challenge` | `challenge` | 5 | the challenge is open | Marks it dismissed; the review branch is dead |
 
 "Change it" under a notice is the page putting the notice's steps in the
@@ -596,8 +598,45 @@ migration history. After a schema change, delete `my/var/harness.db` (and
 
 ## 9. Implementation notes
 
-The notes made while each part was built (labelled A0 to A6, B2, D0 to D6 and
-so on) are in `HISTORY.md`. They are history, not contract.
+Choices the contract leaves open, and known limits. The contract wins where
+they differ.
+
+- **Session memory.** `Session.memory` is a dict the layers share for the life
+  of the Session. Each layer uses its own keys: `plan` and `plan_file` (layer 1,
+  the interview and the cached brief), `calc` (layer 2, the step being built),
+  `analyst` (layer 3, the model's messages for the current conversation).
+  `today` is set by whoever opens the Session (`Session(..., memory={"today":
+  ...})`, as replay and tests do) and replaces the clock. Read it only through
+  `answers.agent.today_of(memory)`. The analyst, the number check and the
+  reviewer all use it, so a fixed `today` applies everywhere.
+- **Paths come from the environment.** The gate's brief
+  (`gate.step_refusal`), `registry.module_dir`, adoption and the build's
+  staging folder `_build/` call `load_config()`. They do not read the
+  Session's config. A Session opened with a config that differs from the
+  environment reads and writes modules somewhere else. Replay sets the
+  `HARNESS_*` variables for this reason. This is a known limit.
+- **Two step fingerprints.** `modules.step_fingerprint` is the fingerprint of
+  the step the module was registered for. `build_steps.step_fingerprint` is the
+  fingerprint of the row's step when the row was written. They differ when a
+  step reuses a module built for another step. A step's status
+  (`registry.step_status`) is judged from `build_steps`; the gate compares the
+  module's own fingerprint.
+- **A not-built step's module does not answer.** After a failed rebuild the
+  old module stays registered, but it disagrees with an example the person or
+  the second pass agreed on. So the gate refuses it (`gate.NOT_BUILT`) until
+  the step is built again. It checks this first, even with no confirmed plan.
+  Staleness is checked only when there is a confirmed plan and the module has
+  a stored fingerprint.
+- **An example's inputs count as a source.** The example writer's expected
+  answer, and the checker's answer, may repeat a number or date taken from the
+  example's own inputs. A correct answer that only repeats an input date would
+  otherwise be rejected. A number found in neither the working nor the inputs
+  is still refused.
+- **Why `reply_ready` is narrow.** It sends a reply back only when the turn
+  ran modules and the person asked to decide, or attached a judgment step the
+  runs feed. A wider trigger, such as any question with "or" after a run,
+  would turn offers like "do you want me to also run 200?" into decisions and
+  stop turns that are fine.
 
 ## 12. Decision history
 

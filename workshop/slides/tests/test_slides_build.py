@@ -204,7 +204,7 @@ def test_principle_is_a_one_line_edit(tmp_path):
     p.write_text(p.read_text(encoding="utf-8").replace('"Evidence", "emoji": "🧾"', '"Provenance", "emoji": "🪪"'), encoding="utf-8")
     html = build.build(build.Deck(src), "blueprint", False)
     assert "Evidence" not in html and "🧾" not in html
-    assert html.count("Provenance") == 11 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 6 section labels
+    assert html.count("Provenance") == 13 and html.count("🪪") == 4  # flow, stack, stack again, divider (+ its comment), 8 section labels
 
 
 def test_check_catches_broken_sources(tmp_path, capsys):
