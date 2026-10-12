@@ -13,7 +13,7 @@ For a step, three model phases, each its own conversation, and a second pass:
 Nothing waits on the person. A step that cannot be finished ends `not_built`
 with a reason, and the build goes on to the next.
 
-What other packages call (HISTORY.md, note A2a):
+What other modules call (SPEC 4.3, 4.7, 6.3):
 `start_build(core)`, `run_build(work)`, `build_step(work, step, rebuild=, code_only=)`,
 `building_step(memory)`, `build_running(memory)`, `record_confirmation(...)`,
 `confirm_departures(...)`, `run_step_tests(...)`, `format_sections(...)`.

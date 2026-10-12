@@ -610,7 +610,7 @@ class Work:
     def wait(self, kind: str, **data) -> dict:
         """Main lane only: wait on the person. Sets `waiting` to {"kind": kind, **data} and blocks
         until a message or an action answers. A message typed while this job worked answers at once.
-        A message's answer is {"message", "text", "step", "notice"}."""
+        A message's answer is {"id", "text", "step", "notice"}."""
         if self.lane != "main":
             raise RuntimeError("only a main-lane job waits on the person")
         session = self.session

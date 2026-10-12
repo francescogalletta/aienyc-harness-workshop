@@ -1,4 +1,4 @@
-# Today's demo and the two tracks.
+# Today's demo.
 group = "Today's demo"
 
 [[slide]]
@@ -56,13 +56,11 @@ blocks = [
 ]
 
 [[slide]]
-id = "s-tracks"
-name = "Two tracks"
+id = "s-follow"
+name = "Follow along"
 layout = "statement"
 blocks = [
-  { label = "PICK A TRACK" },
-  { tracks = [
-      { name = "Follow along", line = "Help plan the wedding. [(unpaid)]{aside step=1}" },
-      { name = "Build your own", line = "Same framework, same principles. Something you actually care about.", yours = true, step = 2 },
-  ] },
+  { label = "TODAY" },
+  { display = "Help plan the wedding. [(unpaid)]{aside step=1}" },
+  { sub = "Your own plan: take it home. workshop/BUILD_YOUR_OWN.md", step = 2 },
 ]

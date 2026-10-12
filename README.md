@@ -17,6 +17,8 @@ cd aienyc-harness-workshop
 
 Start at [`workshop/README.md`](workshop/README.md)
 
+The repository serves three uses: presenting the workshop, following along on the main example (`examples/wedding`), and a variation of it with your own figures in `my/`. To build your own harness from scratch, see [`workshop/BUILD_YOUR_OWN.md`](workshop/BUILD_YOUR_OWN.md). That is not what the session is for.
+
 ## Demo Harness: General Use Personal Financial Analyst
 
 A small agent harness for (personal) finance, built for the workshop, with the intent of showing the design principles in practice in a digestible way, without revealing any IP.
@@ -32,14 +34,13 @@ The rest of this page describes the harness itself.
 | Path                         | What it is                                                                                                                           |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
 | `SPEC.md`, `ARCHITECTURE.md` | The contract (behaviour, state document, actions) and how it is built                                                                |
-| `HISTORY.md`                 | Notes made while the harness was built: history, not contract                                                                        |
 | `design/`                    | The product design, the design system and the source of the page (`design/page/`)                                                    |
 | `harness/`                   | The harness: the core, and one package per layer                                                                                     |
 | `tests/`                     | Offline tests, one folder per layer (`tests/layer0` to `tests/layer5`)                                                               |
 | `reference/`                 | Saved finance terms with checked sources, for offline lookups                                                                        |
-| `examples/`                  | Two seeded examples, `wedding` and `moving`: plan, built modules, scenarios. See `examples/README.md`                                |
+| `examples/`                  | One seeded example, `wedding`: plan, built modules, scenarios. See `examples/README.md`                                              |
 | `my/`                        | Yours: `my/brief/` (your plan), `my/modules/` (your tested calculations) and `my/var/` (database and working files, never committed) |
-| `workshop/`                  | The workshop guides, exercises, build prompts and slides. Optional: the harness never uses it                                        |
+| `workshop/`                  | The workshop guides, the build-your-own guide and slides. Optional: the harness never uses it                                        |
 
 ## Set up
 

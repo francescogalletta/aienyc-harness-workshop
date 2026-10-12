@@ -161,7 +161,7 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .url { display: inline-block; margin-top: var(--gap-s); text-decoration: none; color: var(--text); max-width: 560px; }
 .url:hover { text-decoration: underline; text-decoration-thickness: var(--link-underline); text-underline-offset: var(--link-underline-offset); }
 .pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
-.command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); }
+.command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); overflow-wrap: anywhere; }
 .command.xl { font-size: var(--command-xl-size); }
 .setup-note { font-size: var(--setup-note-size); line-height: 1.25; color: var(--text-muted); max-width: var(--sub-measure); }
 

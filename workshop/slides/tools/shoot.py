@@ -33,7 +33,7 @@ HERE = Path(__file__).resolve().parent
 
 # Representative slides for looking at a theme (by id, so they survive reordering).
 REVIEW = ["s-title", "s-francesco", "s-monzo", "s-trust", "s-evolution", "s-stakes", "s-gap", "s-deal",
-          "s-not-new", "s-framework", "s-ask", "s-hands", "s-tracks", "s-setup", "s-repo", "s-map", "s-check",
+          "s-not-new", "s-framework", "s-ask", "s-hands", "s-follow", "s-setup", "s-repo", "s-map", "s-check",
           "s-p1", "s-p2-examples", "s-p3-receipts", "s-p4-ambiguity", "s-p5-thin", "s-takeaways", "s-questions"]
 IDS_JS = "Array.from(document.querySelectorAll('#stage > .slide')).map(s => s.id)"
 ALT_JS = "document.documentElement.setAttribute('data-palette', 'alternate')"

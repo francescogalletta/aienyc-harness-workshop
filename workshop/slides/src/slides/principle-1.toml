@@ -44,3 +44,31 @@ blocks = [
 [[slide]]
 layout = "placeholder"
 kind = "demo"
+
+[[slide]]
+id = "s-p1-try-1"
+name = "P1 · Try it 1"
+layout = "statement"
+blocks = [
+  { label = "TRY IT · 1 OF 2" },
+  { headline = "Click step 3." },
+  { label = "YOU SEE", gap = "s" },
+  { sub = "Each item says where it came from: ❝ your words, ✎ proposed. ● is still open.", gap = "xs" },
+  { label = "WHY", gap = "m" },
+  { sub = "The plan is agreed item by item, before any number.", gap = "xs" },
+]
+
+[[slide]]
+id = "s-p1-try-2"
+name = "P1 · Try it 2"
+layout = "statement"
+blocks = [
+  { label = "TRY IT · 2 OF 2" },
+  { headline = "Click step 2. Type:" },
+  { command = "The plan is wrong: there should be two payments, not three.", gap = "s" },
+  { label = "YOU SEE", gap = "s" },
+  { sub = "A new trunk node. Step 2: Stale · rebuild.", gap = "xs" },
+  { label = "WHY", gap = "m" },
+  { sub = "Only your words change the plan. Its numbers wait for a rebuild.", gap = "xs" },
+]
+footnote = { text = "Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again." }

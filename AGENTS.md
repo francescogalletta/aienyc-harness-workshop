@@ -6,7 +6,7 @@ then `SPEC.md` and `ARCHITECTURE.md` for the part you are changing.
 
 ## What the repository must serve
 
-Every change is judged against these four uses. Do not make one better by
+Every change is judged against these three uses. Do not make one better by
 breaking another.
 
 1. **Presenting.** The facilitator shows the complete harness, one principle
@@ -18,9 +18,9 @@ breaking another.
 3. **A variation of the main example.** An attendee keeps the same kind of
    plan with their own figures and dates. Their work lives in
    `my/` and nothing we ship may overwrite it.
-4. **Their own plan or harness from scratch.** Supported by the contract and
-   tests, but not what the session is optimised for: say so plainly rather
-   than adding machinery for it.
+
+Building a harness from scratch is not what the session is for. The one guide
+for it is `workshop/BUILD_YOUR_OWN.md`; do not add machinery for it.
 
 Everyone leaves with a working harness: `harness/` plus their `my/`, with no
 workshop scaffolding mixed in. Deleting `workshop/` must leave a harness whose
@@ -45,7 +45,6 @@ plug into it, each one package, each importing only the layers below it.
 | Place | Holds | Who changes it |
 | --- | --- | --- |
 | `SPEC.md`, `ARCHITECTURE.md`, `design/` | The contract, how it is built, the product design and the page source (`design/page/`) | The maintainers, contract first |
-| `HISTORY.md` | Notes made while the harness was built (labels A0, D3a, ...): history, not contract | The maintainers |
 | `harness/`, `tests/`, `reference/`, `examples/` | The harness, its tests (`tests/layer0` to `tests/layer5`), saved terms and seeded examples | You, following the contract |
 | `my/` | A person's plan, modules and working files | Only the person. Never write here from a build task |
 | `workshop/` | Teaching material | Only the maintainers |

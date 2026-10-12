@@ -53,3 +53,29 @@ blocks = [
 [[slide]]
 layout = "placeholder"
 kind = "demo"
+
+[[slide]]
+id = "s-p5-try-1"
+name = "P5 · Try it 1"
+layout = "statement"
+blocks = [
+  { label = "TRY IT · 1 OF 2" },
+  { headline = "Open a branch tagged challenge. Click Use this." },
+  { label = "YOU SEE", gap = "s" },
+  { sub = "It joins the trunk: Reviewer's suggestion used on step N.", gap = "xs" },
+  { label = "WHY", gap = "m" },
+  { sub = "A second look you can act on.", gap = "xs" },
+]
+
+[[slide]]
+id = "s-p5-try-2"
+name = "P5 · Try it 2"
+layout = "statement"
+blocks = [
+  { label = "TRY IT · 2 OF 2" },
+  { headline = "Open another. Click Dismiss." },
+  { label = "YOU SEE", gap = "s" },
+  { sub = "It dims: dismissed. The plan stays as it was.", gap = "xs" },
+  { label = "WHY", gap = "m" },
+  { sub = "Each challenge is yours to use or dismiss.", gap = "xs" },
+]

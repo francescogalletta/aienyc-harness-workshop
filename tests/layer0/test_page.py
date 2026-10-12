@@ -1,4 +1,4 @@
-"""B2 (HISTORY.md): the real page is served with the token and loads nothing from outside; the sample plan state
+"""SPEC 2.7 and 2.8, ARCHITECTURE.md section 3: the real page is served with the token and loads nothing from outside; the sample plan state
 documents have the shape ARCHITECTURE.md section 3 states; the state and the actions round trip
 through the real server."""
 import json
