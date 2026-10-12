@@ -309,7 +309,7 @@ def test_unknown_structure_variant_is_rejected(tmp_path):
 
 def test_setup_check_fields_are_optional_and_the_note_is_quiet(deck):
     out = slide_html(deck.src, "s-setup")
-    assert "GET THE REPO" in out and "YOU NEED ONE OF" in out and 'data-placeholder' in out
+    assert "GET THE REPO" in out and "YOU NEED ONE OF" in out and 'data-placeholder' not in out
     assert "CHECK IT WORKS" not in out and 'class="mono step command"' not in out
     assert '<p class="setup-note gap-l">Or just ask your agent to guide you.</p>' in out and "hand-note" not in out
 

@@ -11,7 +11,7 @@ import shutil
 from .scripted import ScriptedModel
 
 NO_PROVIDER = ("No model provider is available. Install Claude Code and sign in, or set "
-               "ANTHROPIC_API_KEY and install the anthropic package, or set "
+               "ANTHROPIC_API_KEY and install the anthropic package, or set OPENROUTER_API_KEY, or set "
                "HARNESS_MODEL_PROVIDER to the provider you want.")
 
 MISSING_PACKAGE = ("The '{provider}' provider needs the '{package}' package. "
@@ -32,6 +32,8 @@ def resolve_provider(name):
         return name
     if os.environ.get("ANTHROPIC_API_KEY") and _package_installed("anthropic"):
         return "anthropic"
+    if os.environ.get("OPENROUTER_API_KEY"):
+        return "openrouter"
     if shutil.which("claude"):
         return "claude_code"
     raise RuntimeError(NO_PROVIDER)
@@ -61,10 +63,16 @@ def _claude_code(config):
     return ClaudeCodeModel(config.model_name)
 
 
+def _openrouter(config):
+    from .openrouter_provider import OpenRouterModel
+    return OpenRouterModel(config.model_name)
+
+
 # name -> function that takes the Config and returns a Model
 PROVIDERS = {
     "auto": _auto,
     "scripted": _scripted,
     "anthropic": _anthropic,
     "claude_code": _claude_code,
+    "openrouter": _openrouter,
 }

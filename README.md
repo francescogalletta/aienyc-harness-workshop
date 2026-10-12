@@ -56,8 +56,9 @@ Then you need model access, one of:
 
 - **Claude Code** installed and signed in with your Claude plan. Check with `claude auth status`. Usage counts against your plan. If `ANTHROPIC_API_KEY` is set in your shell, unset it, or it is used instead.
 - **An Anthropic API key**: `export ANTHROPIC_API_KEY=...`, and run with `uv run --extra claude`.
+- **An OpenRouter API key**: `export OPENROUTER_API_KEY=...`. No extra package. `HARNESS_MODEL` takes any OpenRouter model id (`openai/gpt-5`, say); a name without a `/` is read as a Claude model, so the default is sent as `anthropic/claude-sonnet-5.5`.
 
-`HARNESS_MODEL_PROVIDER` can force `claude_code`, `anthropic` or `scripted` (prepared replies, used by every test). The default `auto` picks `anthropic` when a key and the package are present, else `claude_code`. `HARNESS_MODEL` picks the model; the default is `claude-sonnet-5-5`.
+`HARNESS_MODEL_PROVIDER` can force `claude_code`, `anthropic`, `openrouter` or `scripted` (prepared replies, used by every test). The default `auto` picks `anthropic` when a key and the package are present, else `openrouter` when its key is set, else `claude_code`. `HARNESS_MODEL` picks the model; the default is `claude-sonnet-5-5`.
 
 ```
 uv run python -m harness check
