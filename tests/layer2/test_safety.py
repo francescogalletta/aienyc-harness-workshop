@@ -1,4 +1,4 @@
-"""SPEC 5.2: model-written code is read before it is run."""
+"""SPEC 4.1: model-written code is read before it is run."""
 import re
 
 import pytest

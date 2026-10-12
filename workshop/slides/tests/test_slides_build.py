@@ -92,7 +92,7 @@ def test_reveal_order_and_validation():
         build.reveal({"step": "soon"})
 
 
-def test_sequences_for_swap_and_tally():
+def test_sequences_for_cycle_and_tally():
     assert build.SlideRenderer.sequence(3) == [{"step": None, "out": 1}, {"step": 1, "out": 2}, {"step": 2, "out": None}]
     assert build.SlideRenderer.sequence(2, 1, "mute") == [{"step": 1, "mute": 2}, {"step": 2, "mute": None}]
 

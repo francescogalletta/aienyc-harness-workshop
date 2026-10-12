@@ -1,4 +1,4 @@
-"""A check that code written by a model is only a calculation (SPEC 5.2).
+"""A check that code written by a model is only a calculation (SPEC 4.1).
 
 The harness is about to run this code on the person's machine, so it reads
 it first. A module may do arithmetic with numbers and dates. It may not

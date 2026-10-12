@@ -1,4 +1,4 @@
-"""SPEC 4.6: the Wikipedia researcher and the chain. No test here reaches the web."""
+"""SPEC 3.4: the Wikipedia researcher and the chain. No test here reaches the web."""
 import json
 from urllib.parse import parse_qs, quote, urlsplit
 
@@ -40,7 +40,7 @@ def test_a_page_with_an_extract_is_found():
 
 
 def test_only_the_query_is_sent():
-    """Ground rule 6: one request, and nothing in it but the term."""
+    """Ground rule 4: one request, and nothing in it but the term."""
     fetch = FakeFetch(page())
     WikipediaResearcher(fetch=fetch).look_up("pay yourself first & save 10%?")
     encoded = quote("pay yourself first & save 10%?", safe="")

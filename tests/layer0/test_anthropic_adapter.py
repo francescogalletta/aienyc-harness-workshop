@@ -1,4 +1,4 @@
-"""SPEC 3.4: the Claude adapter translates both ways. No network is used:
+"""SPEC 2.2: the Claude adapter translates both ways. No network is used:
 a fake client stands in for the SDK."""
 from types import SimpleNamespace
 

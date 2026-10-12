@@ -2,24 +2,31 @@
 
 Sixteen exercises: three for each layer, and a fourth for layer 4, the join. Each takes 5 to 15 minutes. Do them on the main example. Each one is a change you make, then something you watch the harness do. Three kinds: **break it** (make something wrong and watch the harness refuse it), **change it** (move a limit or a format and see what changes), **extend it** (add something of your own).
 
+Each layer's section names its principle and the legend entry to hover (or click) on the page to see what that principle put there.
+
 ## Before you start
 
 ```
 export HARNESS_EXAMPLE=wedding              # PowerShell: $env:HARNESS_EXAMPLE="wedding"
 uv run python -m harness ui                 # the page; Ctrl+C stops it
-uv run python -m harness ask                # the same, in the terminal; type /quit to stop
+uv run python -m harness ask                # or the same in the terminal; type /quit to stop
 ```
+
+Pick one of the two for an exercise.
 
 - **Reset after every exercise.** Run `git checkout .` (or `git stash`) to undo edits to `harness/` and `reference/`. Delete any file you added. A stash does not remove new files. Then `rm -rf my/var/examples/wedding` to reset the example copy.
 - In the page the plan is on the left and the decision graph on the right: a trunk of decisions, branches, the conversation, and chips under each reply. Hover a chip for its small menu.
 - Edit the copy under `my/var/examples/wedding/`, not `examples/`. It is made the first time you run `ui`, `ask`, `build` or `events`. Python edits need a restart of `ui`. Edits to a module in the copy are seen at once.
-- `uv run pytest -q` runs several hundred tests in under a minute. One layer's tests: `uv run pytest tests/layer0 -q` (a few seconds).
+- `uv run pytest -q` runs about 700 tests in about a minute. One layer's tests: `uv run pytest tests/layer0 -q` (a few seconds).
 - Every exercise runs on the whole harness, all five layers. The reviewer (layer 5) looks at the plan when the example opens or a plan is accepted: a model call of its own, 10 to 15 seconds, in the background. Its challenges can show up in the page, in the terminal and in `harness events` beside what an exercise describes. "Model call" below does not count it.
+- When you run `harness build` or `harness ask` in the terminal, the first lines printed may be the reviewer's challenges. You can skip them.
 - **Model call: yes** means the exercise sends real prompts. A reply takes 5 to 60 seconds. The model varies, so try twice before you believe a miss. Do not type real account numbers.
 
-## Layer 1: the plan
+## Layer 1 · Shared Domain (blue): the plan
 
-*An interview agrees the plan, and every item says where it came from.*
+*Agree the plan before any number.*
+
+An interview agrees the plan, and every item says where it came from. Legend: 1.
 
 ### 1.1 The checks on a proposed plan (break it) · 5 min · Model call: no
 You will see the harness reject a plan that breaks its rules, before anyone is asked to accept it.
@@ -31,7 +38,8 @@ from harness.grounding.brief import validate_brief
 b = json.load(open("examples/wedding/brief/domain_brief.json"))
 said = ["saving to pay for the wedding", "net pay", "gross", "consume", "I think", "current budget", "projections and estimations"]
 # b["process"][2]["method"] = "compound interest"
-print(validate_brief(b, [], said) or "no problems")
+looked = [{"sources": [{"url": t["source"]} for t in b["glossary"] if t.get("source")]}]
+print(validate_brief(b, looked, said) or "no problems")
 ```
 2. Run `uv run python - < my/var/check_brief.py`. You get `no problems`.
 3. Remove the `#` and run again. Then put the `#` back and try, one at a time: `b["goal"]["origin"] = {"kind": "person", "quote": "I never said this"}` and `b["process"][2]["needs"].append("Bonus pay")`.
@@ -62,9 +70,11 @@ You will see the plan change because you said so, with a revision line the harne
 - **Clean up:** as in 1.2.
 - **Why it matters:** the plan is a document you can correct, and each item records whether it was you, a source, or the assistant.
 
-## Layer 2: build and tested calculations
+## Layer 2 · Consistency (purple): build and tested calculations
 
-*Every number comes from a module whose tests pass right now.*
+*Numbers come only from tested code.* Builds on: the shared plan says which parts never change.
+
+Every number comes from a module whose tests pass right now. Legend: 2.
 
 ### 2.1 Make a module wrong (break it) · 7 min · Model call: no (the repair at the end: yes)
 You will see a module go stale the moment its code changes, and the harness refuse to trust it.
@@ -103,9 +113,11 @@ In your first example, make the `expected` answer wrong on purpose: 10 more than
 - **Expected:** step 3 builds. Its line reads `4 examples · 4/4` while the writer proposed five. Example 1 is left out (not checked): it says 1010 and the second pass said 1000. The code never saw the bad example.
 - **Why it matters:** the model that writes the examples is not the one that checks them, and the code writer never sees them.
 
-## Layer 3: answers with evidence
+## Layer 3 · Evidence (red): answers with evidence
 
-*Every number in an answer leads to the step that produced it. A number no step produced is held back.*
+*Every number can be followed back.* Builds on: tested code (and everything else) leaves a trail we can follow.
+
+Every number in an answer leads to the step that produced it. A number no step produced is held back. Legend: 3 (it lights up once an answer is on the page).
 
 ### 3.1 Make the analyst do the sum (break it) · 7 min · Model call: yes
 You will see an invented number held back.
@@ -149,13 +161,15 @@ You will see a question of yours become a repeatable test against the real model
 ```
 2. Run `uv run python -m harness replay wedding my_question`.
 3. Change `"31,000"` to `"32,000"` and run it again.
-- **Expected:** three `ok` lines (`ran wedding_total_cost`, `shows 31,000`, `at most 0 replies withheld`), then `PASS ... 11 s`. The second run prints `FAIL shows 32,000 [none of 1 replies]` and exits with 1.
+- **Expected:** three `ok` lines (`ran wedding_total_cost ...`, `shows 31,000  [31,000 of 1 messages]`, `at most 0 replies withheld  [0 replies withheld]`), then `PASS wedding/my_question (layer 3) 9 s` (the seconds vary). The second run prints `FAIL shows 32,000  [none of 1 messages]` and exits with 1.
 - **Clean up:** delete the file.
 - **Why it matters:** you work out the right figure by hand, so the check does not trust the harness it tests.
 
-## Layer 4: when the harness needs you
+## Layer 4 · Accountability (orange): when the harness needs you
 
-*Assumptions run and are marked, your calls stop and ask, and a missing calculation is built, not guessed.*
+*Ask only where a person must decide.* Builds on: the evidence is what you decide with.
+
+Assumptions run and are marked, your calls stop and ask, and a missing calculation is built, not guessed. Legend: 4.
 
 ### 4.1 Delete a module, then ask (break it) · 8 min · Model call: yes
 You will see the harness build what is missing instead of making up an answer.
@@ -200,14 +214,17 @@ You will see a branch change one of your figures only after your yes, the steps 
 3. Hover the chip `Guest count 120` (under "Rests on"). Click the middle icon, "challenge or correct". Type `We will get no fewer than 150 guests.` After 4 to 6 seconds the branch asks `Change guest count to 150?`, with `Re-runs 1 2 5` and `Further on 6 7`; steps 1, 2 and 5 are outlined on the plan. Click **Yes, change it**.
 4. Watch the plan and the trunk. Then, in another terminal, `uv run python -m harness events | tail -20`.
 5. Break the module: in `my/var/examples/wedding/modules/wedding_total_cost/module.py`, line 9, change `Decimal(guest_count) * dinner_cost_per_guest` to use `+`. Save.
-6. Click step 1 in the diagram, then **New branch**, and type `Actually we expect 180 guests.` After about 4 seconds the proposal reads `Guest count: 150 → 180`. Click **Yes, change it**.
-- **Expected:** after step 3 (2 to 5 seconds) the Guest count pill reads 150, step 1 reads 43,000 and steps 1, 2 and 5 carry `re-ran`; the trunk has a node `Guest count: 150 (was 120)` with the chips `43,000 (was 36,100)`, `18,500 (was 15,050)` and `22,000 (was 28,900)`; in the old reply the figures that moved are struck through and the ones that did not (4,000, the dates) are not. Among the events are `you.proposal_accepted`, a `build.tests_run` and a `calc.run` for each of the three steps, `core.decided` and `you.joined`: the join itself calls no model. After step 6 the pill reads 180 and the trunk has a node `Guest count: 180 (was 150)`, but steps 1, 2 and 5 keep their numbers: the node says `Step 1 could not run again: The files of 'wedding_total_cost' are not the ones that passed their tests ...` and `Steps 2 and 5 could not run again: an earlier step could not run again`, the events show `calc.refused`, and the top button reads `Rebuild 1 step`.
+6. Click step 1 in the diagram, then **New branch**, and type `Actually we expect 180 guests.` After about 4 seconds the branch asks `Change guest count to 180?`, with `Guest count 150 → 180`. Click **Yes, change it**.
+- **Expected:** after step 3 (2 to 5 seconds) the Guest count pill reads 150, step 1 reads 43,000 and steps 1, 2 and 5 carry `re-ran`; the trunk has a node `Guest count: 150 (was 120)` with the chips `43,000 (was 36,100)`, `18,500 (was 15,050)` and `22,000 (was 28,900)`; in the old reply the figures that moved are struck through and the ones that did not (4,000, the dates) are not. Among the events are `you.proposal_accepted`, a `build.tests_run` and a `calc.run` for each of the three steps, `core.decided` and `you.joined`: the join itself calls no model. After step 6 the pill reads 180 and the trunk has a node `Guest count: 180 (was 150)`, but steps 1, 2 and 5 keep their numbers: the node says `Step 1 could not run again: The files of 'wedding_total_cost' are not the ones that passed their tests ...` and, on lines of their own, `Step 2 could not run again: an earlier step could not run again` and `Step 5 could not run again: an earlier step could not run again`, the events show `calc.refused`, and the top button reads `Rebuild 1 step`.
+- The Review count may rise while you work: the reviewer runs again after an answer that rests on something new.
 - **Clean up:** `rm -rf my/var/examples/wedding`.
 - **Why it matters:** your yes decides what changes, and the re-run goes through the same gate as every other number: a module that fails its tests produces nothing, even for a join. The value is still saved and the decision recorded, so nothing is lost silently.
 
-## Layer 5: review
+## Layer 5 · Verification (green): review
 
-*A reviewer challenges the plan, and the harness checks what it says. You decide. It never blocks.*
+*A reviewer challenges the plan.* Builds on: each challenge is yours to use or dismiss.
+
+The harness checks what the reviewer says. You decide. It never blocks. Legend: 5.
 
 ### 5.1 Cap the reviewer (change it) · 5 min · Model call: yes
 You will see the harness keep fewer challenges than the reviewer raised.

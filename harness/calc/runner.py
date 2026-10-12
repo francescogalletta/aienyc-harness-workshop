@@ -1,4 +1,4 @@
-"""Runs one module in a process of its own (SPEC 5.3).
+"""Runs one module in a process of its own (SPEC 4.1).
 
 The harness starts this file with `python -I` and talks to it over standard
 input and output, so a module that misbehaves cannot disturb the harness,
@@ -40,7 +40,7 @@ def call(spec: dict, module, inputs: dict):
             raise ValueError(f"input '{name}': {error}") from None
     result = values.to_json(module.calculate(**arguments))
     try:
-        values.from_json(result, spec["output"]["type"])        # the result must fit the spec (SPEC 5.3)
+        values.from_json(result, spec["output"]["type"])        # the result must fit the spec (SPEC 4.1)
     except ValueError as error:
         raise ValueError(f"the result does not fit the spec: {error}") from None
     return result

@@ -1,4 +1,4 @@
-"""The number check (SPEC 5.8): a tripwire for numbers the agent made up.
+"""The number check (SPEC 1 rule 1, 4.1): a tripwire for numbers the agent made up.
 
 Every number in what the agent sends out must already be known: it must
 appear in a source (a module result, a saved input, the brief, the person's
@@ -9,7 +9,7 @@ import re
 from decimal import Decimal
 
 SMALL = 12      # a bare whole number from 0 to this is never checked
-SOURCE_LABELS = ("run", "data", "input", "note", "brief", "person", "today")     # where a number may come from (SPEC 7.1)
+SOURCE_LABELS = ("run", "data", "input", "note", "brief", "person", "today")     # where a number may come from (SPEC 1 rule 1)
 SMALL_LABEL = "small"
 NONE_LABEL = "none"
 

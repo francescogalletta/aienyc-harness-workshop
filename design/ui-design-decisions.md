@@ -70,14 +70,14 @@ Two parts that never change: the plan as a diagram, and the chat, drawn as a dec
 - Assumptions: run and mark. The result carries a mark ("rests on things you haven't confirmed"); one click confirms or corrects.
 - Calls that are the person's stay real stops. They belong to the "your call" steps; the question arrives in the chat with options as buttons, or the person answers in their own words. The record lives in that step's pop-up; there is no separate decisions list.
 - A calculation missing from the plan is built automatically; the person is told, and it appears as a new step marked "not in the plan".
-- Side questions are a collapsible tinted thread inside the chat. They work everywhere (plan, build, questions). A side thread is a branch (ARCHITECTURE.md section 12) and no longer only talks: it may propose a change, and nothing changes until the person says yes, which joins the branch to the trunk and runs the steps it reaches again. The side assistant itself never applies anything. A branch that proposes nothing stays dead and dimmed.
+- Side questions are branches in the decision graph beside the plan (ARCHITECTURE.md section 12): each forks from the trunk and folds open to its conversation. They work everywhere (plan, build, questions). A branch may propose a change, and nothing changes until the person says yes, which joins the branch to the trunk and runs the steps it reaches again. The side assistant itself never applies anything. A branch that proposes nothing stays dead and dimmed.
 
 ## 5. Review
 
 - A reviewer looks at how the problem is being thought about (assumptions, inputs, methods, the shape of the plan) and pushes back where something looks weak. It may research on the web and ask the person a clarifying question.
 - It runs automatically in the background after the plan is accepted and when new assumptions appear.
 - A challenge attaches to a step. Steps show a count; a "Review" view of the same diagram shows one line per challenged step.
-- Each challenge is a thread in the chat, the same tinted thread as a side question, started by the reviewer.
+- Each challenge is a branch in the decision graph, like a side question, opened by the reviewer.
 - Each challenge has two actions, "use this" and "dismiss", plus replying in its thread. It never blocks.
 - A challenge based on outside information carries a source the harness actually fetched. Only the general question goes to the web, never the person's figures.
 - Each pass is capped to a few challenges, ranked by how much they would change the result.

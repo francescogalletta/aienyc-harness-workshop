@@ -1,4 +1,4 @@
-"""SPEC 2.6 at step 4: replay of a scripted person who confirms, corrects, chooses and opens side threads, and
+"""SPEC 2.6 at layer 4: replay of a scripted person who confirms, corrects, chooses and opens side threads, and
 the expectation keys `decisions`, `marks`, `added` and `side_threads`."""
 import time
 
@@ -126,10 +126,6 @@ def test_a_side_thread_can_be_opened_while_the_main_answer_is_still_being_worked
 
 CHIP = {"kind": "value", "label": "A", "text": "10"}
 JOIN_LINES = [ASK, {"act": "branch", "chip": CHIP, "text": "Make it: a is 15, not 10."}, {"act": "accept"}]
-
-
-def _chat(*chips):
-    return {"chat": [{"id": "m1", "chips": []}, {"id": "m2", "chips": list(chips)}]}
 
 
 def test_the_branch_acts_are_checked_when_the_scenario_is_read():

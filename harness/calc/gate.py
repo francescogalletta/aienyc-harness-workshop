@@ -1,4 +1,4 @@
-"""The gate: the only way a calculation runs (SPEC 4.4; version 1 5.6).
+"""The gate: the only way a calculation runs (SPEC 4.4).
 
 It refuses a module that is not registered, whose files have changed, whose
 step changed in the plan (stale) or ended not built at its last build, whose

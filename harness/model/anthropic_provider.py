@@ -1,4 +1,4 @@
-"""The Claude adapter (SPEC 3.4). The only file that may import the provider SDK."""
+"""The Claude adapter (SPEC 2.2). The only file that may import the provider SDK."""
 from collections.abc import Sequence
 
 from .interface import ModelResponse, ToolCall, ToolSpec

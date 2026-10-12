@@ -1,4 +1,4 @@
-"""SPEC 3.2 and 3.3: the model interface and its scripted stand-in."""
+"""SPEC 2.2: the model interface and its scripted stand-in."""
 import json
 import subprocess
 import sys
@@ -80,7 +80,7 @@ def test_get_model_unknown_provider():
 
 
 def test_a_provider_is_one_entry_in_the_table(monkeypatch):
-    """SPEC 3.7: adding or swapping a provider touches only the provider table."""
+    """SPEC 2.2: adding or swapping a provider touches only the provider table."""
     from harness.model.providers import PROVIDERS
     assert {"scripted", "anthropic", "claude_code"} <= set(PROVIDERS)
 
@@ -106,7 +106,7 @@ def test_importing_the_model_package_loads_no_provider_sdk():
 
 
 def test_only_the_model_package_mentions_a_provider_sdk():
-    """Ground rule 3: no file outside harness/model/ imports a provider SDK."""
+    """Ground rule 8: no file outside harness/model/ imports a provider SDK."""
     offenders = []
     for path in (ROOT / "harness").rglob("*.py"):
         if (ROOT / "harness" / "model") in path.parents:
@@ -118,7 +118,7 @@ def test_only_the_model_package_mentions_a_provider_sdk():
 
 
 def test_the_harness_does_not_name_the_example():
-    """Ground rule 2: nothing under harness/ knows about the example domain."""
+    """Ground rule 10: nothing under harness/ knows about the example domain."""
     offenders = []
     for path in (ROOT / "harness").rglob("*"):
         if path.is_file() and path.suffix in {".py", ".sql", ".md", ".json"}:

@@ -38,7 +38,7 @@ def _now() -> str:
 
 
 def module_dir(name: str) -> Path:
-    """The folder of a module (SPEC 5.4)."""
+    """The folder of a module (SPEC 4.1)."""
     return load_config().modules_dir / name
 
 
@@ -47,7 +47,7 @@ def _text(value) -> bool:
 
 
 def validate_spec(spec) -> list[str]:
-    """Return what is wrong with a spec. An empty list means it is acceptable (SPEC 5.4)."""
+    """Return what is wrong with a spec. An empty list means it is acceptable (SPEC 4.1)."""
     if not isinstance(spec, dict):
         return ["the spec must be an object"]
     missing = [f"missing: {key}" for key in SPEC_KEYS if key not in spec]
@@ -90,7 +90,7 @@ def validate_spec(spec) -> list[str]:
 
 
 def input_problems(spec: dict, inputs) -> list[str]:
-    """Say whether a set of inputs fits a spec (SPEC 5.4). An empty list means it fits."""
+    """Say whether a set of inputs fits a spec (SPEC 4.1). An empty list means it fits."""
     if not isinstance(inputs, dict):
         return ["the inputs must be an object"]
     names = [item["name"] for item in spec["inputs"]]
@@ -106,7 +106,7 @@ def input_problems(spec: dict, inputs) -> list[str]:
 
 
 def fingerprint(folder) -> str | None:
-    """The SHA-256 of a module's four files, or None if the folder or a file is missing (SPEC 5.4)."""
+    """The SHA-256 of a module's four files, or None if the folder or a file is missing (SPEC 4.1)."""
     folder = Path(folder)
     digest = hashlib.sha256()
     for name in FILES:
@@ -173,7 +173,7 @@ def _read_json(path: Path, what: str):
 
 def register(conn, name: str, *, step_id: str, test_run_id: int, session_id: str,
              step_fingerprint: str = "") -> str:
-    """Register a module, if its files and its passing test run all check out (SPEC 5.5).
+    """Register a module, if its files and its passing test run all check out (SPEC 4.1, 4.2).
 
     Returns the fingerprint. Raises ValueError with a plain reason at the first failure.
     """

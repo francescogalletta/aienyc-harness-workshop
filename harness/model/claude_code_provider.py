@@ -1,4 +1,4 @@
-"""The Claude Code adapter (SPEC 3.8).
+"""The Claude Code adapter (SPEC 2.2).
 
 It uses the Claude Code command-line tool, signed in on this machine, as the
 model. No API key is involved: each call runs `claude -p` once, with Claude

@@ -1,4 +1,4 @@
-"""SPEC 3.8: the Claude Code adapter. No Claude Code is needed to run these:
+"""SPEC 2.2: the Claude Code adapter. No Claude Code is needed to run these:
 a fake runner stands in for the command-line tool."""
 import json
 
@@ -10,7 +10,7 @@ from harness.model.claude_code_provider import ClaudeCodeModel
 LOOKUP = ToolSpec(name="lookup", description="Look something up",
                   input_schema={"type": "object", "properties": {"q": {"type": "string"}}})
 
-# The preamble is fixed by SPEC 3.8 so that every build behaves the same live.
+# The preamble is fixed so that every build behaves the same live.
 PREAMBLE = (
     "You are acting as the language model inside another program. "
     "You have no tools of your own in this session: you cannot read files, run commands or browse. "

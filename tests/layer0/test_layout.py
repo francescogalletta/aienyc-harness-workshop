@@ -1,4 +1,4 @@
-"""SPEC 1 (rules 7, 9, 10 and 11): what the tree of the harness keeps to."""
+"""SPEC 1 (rules 10, 11 and 12): what the tree of the harness keeps to."""
 import ast
 import importlib
 import re

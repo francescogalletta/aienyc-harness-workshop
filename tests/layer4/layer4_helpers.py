@@ -11,8 +11,6 @@ from layer3_helpers import (ASK, SETTLE, TOTAL, assistant, call, events, number,
                             reply, run, save, scenario, small_plan, step_of, world_folder, write_world)
 from state_shape import problems  # noqa: E402,F401
 
-WAIT = 5
-
 
 def say(session, text, step=None, notice=None):
     applied, why = session.act("say", {"text": text, "step": step, "notice": notice})

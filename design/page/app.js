@@ -517,7 +517,7 @@
     canvas.querySelectorAll('.fah-pill[data-inputs]').forEach(function (p) { p.classList.toggle('dg-pill--sel', !!ui.selInput && p.getAttribute('data-inputs').split(' ').indexOf(ui.selInput) >= 0); });
   }
 
-  /* What the decision history marks on the plan right now (ARCHITECTURE 9, B3):
+  /* What the decision history marks on the plan right now (ARCHITECTURE 3.5, 12.4):
      a pending proposal's impact (touched; its inputs need you unless a call waits), a join that is running,
      and what the latest node (or the node the person selected) changed. */
   var TAG_WORD = { value: 're-ran', assumption_corrected: 're-ran', plan_revised: 'changed', challenge_used: 'used',

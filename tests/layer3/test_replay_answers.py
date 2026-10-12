@@ -1,4 +1,4 @@
-"""SPEC 2.6 at step 3: replay of a scripted person on the answers layer: the keys `runs`, `shown` and
+"""SPEC 2.6 at layer 3: replay of a scripted person on the answers layer: the keys `runs`, `shown` and
 `max_withheld`, and a scenario played from the command."""
 import argparse
 import json

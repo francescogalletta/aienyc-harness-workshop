@@ -1,4 +1,4 @@
-"""SPEC 2.6 at step 2: the `build` act and the `steps` expectation of replay."""
+"""SPEC 2.6 at layer 2: the `build` act and the `steps` expectation of replay."""
 from pathlib import Path
 
 import pytest

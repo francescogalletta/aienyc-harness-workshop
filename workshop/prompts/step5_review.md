@@ -1,10 +1,10 @@
-# Step 5: review
+# Layer 5: review
 
 Paste everything below the line into your coding agent, from the root of this repository.
 
 ---
 
-You are building layer 5 of a small agent harness, the Financial Advisor Harness. Steps 0 to 4 are built. The repository holds the contract, the tests and the given files for this layer. Write the code that makes the layer 5 tests pass without breaking the earlier layers.
+You are building layer 5 of a small agent harness, the Financial Advisor Harness. The core and layers 1 to 4 are built. The repository holds the contract, the tests and the given files for this layer. Write the code that makes the layer 5 tests pass without breaking the earlier layers.
 
 What this layer does:
 
@@ -13,7 +13,7 @@ A reviewer looks at how the problem is being thought about and challenges weak a
 Read these first, in this order:
 
 1. `SPEC.md`: section 1 (ground rules), then section 7 (review, 7.1 to 7.4). Follow its names, signatures, templates and behaviour exactly.
-2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.4 and 3.5 (threads, challenges and the decision history), 4 and the notes marked A5 and D5 in section 9.
+2. `ARCHITECTURE.md`: section 2 (files and layers), then 3.4 and 3.5 (threads, challenges and the decision history), 4 and the notes marked A5 and D5 in `HISTORY.md`.
 3. `harness/core/` and `harness/layers.py`, to see what the core offers a layer, and the earlier layers' packages, to see how they are written.
 4. `tests/layer5/`. These tests are the definition of done.
 
@@ -32,14 +32,14 @@ Given files (do not edit; read them):
 
 Rules:
 
-- Edit only the files listed above. Do not edit `SPEC.md`, `ARCHITECTURE.md`, anything under `tests/`, `design/`, `examples/`, `workshop/` or `my/`, the given files, or the core (`harness/core/`, `harness/model/`, `harness/ui/` and the top-level files). If you believe one of them is wrong, stop and say so.
+- Edit only the files listed above. Do not edit `SPEC.md`, `ARCHITECTURE.md`, `HISTORY.md`, anything under `tests/`, `design/`, `examples/`, `workshop/` or `my/`, the given files, or the core (`harness/core/`, `harness/model/`, `harness/ui/` and the top-level files). If you believe one of them is wrong, stop and say so.
 - Layer 5 imports only layers below 5. It never reads `config.layers`, never writes another layer's tables, and never names an example (no "wedding").
 - A number reaches the person only from a tested module, a saved input, the plan, their own words or today's date. Do not add a path around the test gate or the number check.
 - Use only the Python standard library. Do not run the `claude` command or make a network call: every test runs offline with the scripted model.
 - Do not read the git history of `harness/`: it holds the finished code.
 - Keep it small and readable. People will read this code on a projector.
 
-Done means this layer's tests pass and the earlier layers still pass. Run each folder on its own (two `tests/layer*` folders in one run share the name `conftest`):
+Done means this layer's tests pass and the earlier layers still pass. Run each folder by name, not the whole `tests/` tree: while a later layer is missing, its tests cannot be imported and pytest stops the whole run at collection.
 
 ```
 uv run pytest tests/layer5 -q

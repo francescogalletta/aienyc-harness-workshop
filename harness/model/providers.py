@@ -1,4 +1,4 @@
-"""The provider table (SPEC 3.7): the one place that knows which adapters exist.
+"""The provider table (SPEC 2.2): the one place that knows which adapters exist.
 
 To add a provider, write one file in this folder with a class that has a
 `complete` method (see interface.py), then add one entry here. Nothing else

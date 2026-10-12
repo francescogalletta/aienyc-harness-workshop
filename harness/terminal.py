@@ -141,8 +141,3 @@ class Terminal:
         if message["kind"] == "decision" and decision:
             for n, option in enumerate(decision.get("options", []), start=1):
                 self.write(f"  {n}. {option}")
-
-
-def drive(session, *, stop=None, read=input, write=print) -> dict:
-    """Run the terminal driver on `session`. Returns the last state."""
-    return Terminal(session, read=read, write=write).run(stop)

@@ -1,4 +1,4 @@
-"""SPEC 2.6 at step 5: the `use` and `dismiss` acts and the `challenges` expectation, and the seeded scenarios
+"""SPEC 2.6 at layer 5: the `use` and `dismiss` acts and the `challenges` expectation, and the seeded scenarios
 of both examples (which together need every layer)."""
 import json
 from pathlib import Path

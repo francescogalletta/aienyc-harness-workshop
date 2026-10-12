@@ -1,4 +1,4 @@
-"""Every test here checks the harness at step 3 (ARCHITECTURE.md section 7)."""
+"""Every test here checks the harness up to layer 3 (ARCHITECTURE.md section 7)."""
 import shutil
 
 import pytest
@@ -10,7 +10,7 @@ from layer3_helpers import SETTLE, small_plan, write_world
 
 
 @pytest.fixture(autouse=True)
-def harness_at_step_3(monkeypatch, tmp_path):
+def harness_up_to_layer_3(monkeypatch, tmp_path):
     monkeypatch.setenv("HARNESS_LAYERS", "3")
     monkeypatch.setenv("HARNESS_DB", str(tmp_path / "harness.db"))
     monkeypatch.setenv("HARNESS_BRIEF_DIR", str(tmp_path / "brief"))

@@ -1,4 +1,4 @@
--- Layer 0: the base tables (SPEC 2.2). Applied on every connect; no migration history.
+-- Layer 0: the core's tables (SPEC 2.2). Applied on every connect; no migration history.
 -- After a change here, delete my/var/harness.db.
 
 CREATE TABLE IF NOT EXISTS events (

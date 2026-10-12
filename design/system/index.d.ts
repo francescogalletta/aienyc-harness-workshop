@@ -18,7 +18,7 @@ export interface FAH {
   flow(lines: ArrayLike<Element>, gapMs?: number): Promise<void>;
   /** Marks a clicked number in the chat and selects the step that produced it. */
   trace(num: HTMLElement | null, step: HTMLElement | null, root?: ParentNode): void;
-  /** Flips the "On the side" toggle in a composer. Returns true when side mode is on. */
+  /** Flips the "New branch" toggle in a composer. Returns true when side mode is on. */
   sideToggle(button: HTMLElement): boolean;
   /** Replays a CSS animation by removing and re-adding a class. */
   restart(el: Element, cls: string): void;

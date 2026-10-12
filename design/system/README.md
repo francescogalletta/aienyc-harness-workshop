@@ -21,7 +21,7 @@ The agreed product behaviour is in `design/ui-design-decisions.md`.
 
 ## How to use it
 
-1. Load `tokens.css` (generated from `tokens.json`), then `bundle.css`, then `bundle.js`.
+1. Load `tokens.css`, then `bundle.css`, then `bundle.js`. `tokens.css` and `tokens.json` hold the same tokens and are both edited by hand; a test (`tests/layer0/test_page.py`) checks that they agree.
 2. Wrap the screen in one element with class `fah`. It sets the font, text colour and tabular figures.
 3. Write components as plain HTML with `fah-` classes. Each component's page shows the markup.
 4. Call `window.FAH` when state changes. The helpers only add and remove classes; they never fetch, store or build layout.

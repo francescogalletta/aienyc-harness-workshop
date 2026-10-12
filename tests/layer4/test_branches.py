@@ -1,4 +1,4 @@
-"""SPEC 6.4 and 6.6, ARCHITECTURE.md 3.5, 4.4, 5, 6 and 12 (package D4a): branches on a subject, the side assistant's
+"""SPEC 6.4 and 6.6, ARCHITECTURE.md 3.5, 4.4, 5, 6 and 12 (package D4a, HISTORY.md): branches on a subject, the side assistant's
 `propose_change`, proposals, the join (save the input, run again with no model call, a trunk node, the branch
 joined), the death rule, decision chips and assumption-chip status.
 
@@ -619,7 +619,7 @@ def test_an_assumption_chip_carries_its_status_and_id_from_the_assumptions_table
 
 # --- The layer pin and the expectation (6.5, 6.6) ---
 
-def test_these_tests_run_the_harness_at_step_4(routed):
+def test_these_tests_run_the_harness_up_to_layer_4(routed):
     session = routed(side=[])
     assert session.state()["layers"] == [0, 1, 2, 3, 4]
 

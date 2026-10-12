@@ -12,14 +12,9 @@ def OPT(*kinds):
 
 def LIST(kind):
     return ("list", kind)
-ISO = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}")
+
 
 LANES = ("idle", "working", "waiting")
-
-# `chips` on messages (layer 3) and `proposal` on threads (layer 4) are checked when present. Set these to True
-# once the packages that write them (D3a, D4a) have landed, and every live state must then carry them.
-CHIPS_REQUIRED = True
-PROPOSAL_REQUIRED = True
 
 
 def check(value, shape, where, out):
@@ -192,7 +187,7 @@ def history_problems(state: dict) -> list[str]:
         subject_problems(thread["subject"], f"{where}.subject", out)
         found = thread.get("proposal")
         if found is None:
-            if PROPOSAL_REQUIRED and 4 in state["layers"] and "proposal" not in thread:
+            if 4 in state["layers"] and "proposal" not in thread:
                 out.append(f"{where}: no proposal key (layer 4)")
         else:
             check(found, PROPOSAL, f"{where}.proposal", out)
@@ -211,7 +206,7 @@ def history_problems(state: dict) -> list[str]:
     for n, message in enumerate(state["chat"]):
         chips = message.get("chips")
         if chips is None:
-            if CHIPS_REQUIRED and 3 in state["layers"]:
+            if 3 in state["layers"]:
                 out.append(f"chat[{n}]: no chips (layer 3)")
             continue
         check(chips, LIST(CHIP), f"chat[{n}].chips", out)
