@@ -75,7 +75,12 @@ by `main()`.
 
 - `harness/model/` is kept unchanged: `Model.complete(system, messages,
   tools)`, `ToolSpec`, `ToolCall`, `ModelResponse`, the providers `scripted`,
-  `anthropic`, `claude_code`, `auto`.
+  `anthropic`, `claude_code`, `openrouter`, `auto`. `openrouter` speaks
+  OpenRouter's chat API over the standard library, with `OPENROUTER_API_KEY`;
+  a `HARNESS_MODEL` without a `/` is read as a Claude model
+  (`claude-sonnet-5-5` is sent as `anthropic/claude-sonnet-5.5`). `auto` picks
+  `anthropic` (key and package present), else `openrouter` (key set), else
+  `claude_code`.
 - `db.connect(path=None)` opens SQLite with WAL, `busy_timeout` 5000 ms and
   foreign keys, creating the folder. `db.apply_schemas(conn, layers)` runs the
   `schema.sql` of `harness/` and of each enabled layer. `record_event(conn, *,

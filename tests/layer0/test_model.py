@@ -75,7 +75,7 @@ def test_get_model_anthropic_is_built_lazily_with_the_configured_name(monkeypatc
 def test_get_model_unknown_provider():
     with pytest.raises(ValueError, match="carrier-pigeon"):
         get_model("carrier-pigeon")
-    with pytest.raises(ValueError, match="claude_code, scripted"):
+    with pytest.raises(ValueError, match="claude_code, openrouter, scripted"):
         get_model("carrier-pigeon")       # the error lists the providers that do exist
 
 
