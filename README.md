@@ -1,44 +1,31 @@
 # Financial Analyst Harness Workshop
 
-This repo hosts the code to run a workshop for AI Engineer NYC 2026 about building agentic harnesses for financial analysis that you can trust. It contains the presentation for the speakers, a demo harness to showcase the design principles applied, and a toy example of solving a problem with said demo harness.
+This hosts the code to run a workshop for [AI Engineer NYC 2026](https://ai.engineer/nyc/2026) about building agentic harnesses for financial analysis that you can trust.
 
-## Personal Finance Harness
+It has the presentation for the speakers, a demo harness to showcase the design principles applied, and a toy example of solving a problem with said demo harness.
 
+## Workshop
 
+This was built for a workshop for [AI Engineer NYC 2026](https://ai.engineer/nyc/2026).
 
-
-Harness Building
-
-
-
-
-A small agent harness for (personal) finance.
-
-You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and answers your questions with every number traced to a step.
-
-The running example is a plan to pay for a wedding on time (`examples/wedding/`)
-
-This was built for a workshop for AI Engineer NYC 2026. The five principles behind it, and how each builds on the last: [`workshop/README.md`](workshop/README.md#the-five-principles).
-
-**Taking part in the workshop?** Start at [`workshop/README.md`](workshop/README.md): what to install before you arrive, the five principles and the two ways to follow along. Get the code first:
+**Taking part in the workshop?**. First, get the repo
 
 ```
 git clone https://github.com/francescogalletta/aienyc-harness-workshop
 cd aienyc-harness-workshop
 ```
 
+Start at [`workshop/README.md`](workshop/README.md)
+
+## Demo Harness: General Use Personal Financial Analyst
+
+A small agent harness for (personal) finance, built for the workshop, with the intent of showing the design principles in practice in a digestible way, without revealing any IP.
+
+You describe a money goal and the harness draws the plan as a diagram, builds and tests the calculations, and builds with you an in-depth analysis, with loads of features aimed at increasing building trust with you.
+
+We have a running example to show the harness working, and how does it feel when you use a harness built on these principles. The example revolves around a plan to pay for a wedding on time (`examples/wedding/`)
+
 The rest of this page describes the harness itself.
-
-## What this is for
-
-The repository serves four uses.
-
-1. **Presenting.** Show the complete harness on the main example, one principle at a time, and what each layer adds.
-2. **Following along.** Run the harness on the main example from a fresh clone, change figures and choices, and see what changes.
-3. **A variation of the main example.** The same kind of plan with your own figures and dates, kept in `my/`.
-4. **Your own plan or harness from scratch.** Supported by the contract and tests, but not what the workshop is made for.
-
-Whichever you choose, you leave with a working harness: the code in `harness/`, your own plan in `my/`, and nothing from the workshop mixed in. Everyone needs model access on their own machine.
 
 ## What is here
 
