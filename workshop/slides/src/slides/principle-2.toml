@@ -46,7 +46,7 @@ id = "s-p2-try-1"
 name = "P2 · Try it 1"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 1 OF 2" },
+  { label = "TRY IT · 1 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Click step 1, then Build, then Run tests now." },
   { label = "YOU SEE", gap = "s" },
   { sub = "The code, its tests: 4 tests, all passing.", gap = "xs" },
@@ -59,12 +59,11 @@ id = "s-p2-try-2"
 name = "P2 · Try it 2"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 2 OF 2" },
+  { label = "TRY IT · 2 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Line 9: change * to +. Save." },
-  { command = "my/var/examples/wedding/modules/​wedding_total_cost/module.py", gap = "s" },
+  { command = "my/var/examples/wedding/modules/​wedding_total_cost/module.py", gap = "s", optional = true },
   { label = "YOU SEE", gap = "s" },
   { sub = "No restart needed. Step 1: Stale · rebuild.", gap = "xs" },
   { label = "WHY", gap = "m" },
   { sub = "Code changed after its tests passed gives no number.", gap = "xs" },
 ]
-footnote = { text = "Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again." }

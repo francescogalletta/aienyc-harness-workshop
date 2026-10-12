@@ -24,7 +24,7 @@ id = "s-p1-try-1"
 name = "P1 · Try it 1"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 1 OF 2" },
+  { label = "TRY IT · 1 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Click step 3." },
   { label = "YOU SEE", gap = "s" },
   { sub = "Each item says where it came from: ❝ your words, ✎ proposed. ● is still open.", gap = "xs" },
@@ -37,9 +37,9 @@ id = "s-p1-try-2"
 name = "P1 · Try it 2"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 2 OF 2" },
+  { label = "TRY IT · 2 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Click step 2, then tell the agent:" },
-  { command = "I already made the 1st payment, do we need to change the plan?", gap = "s" },
+  { command = "I already made the 1st payment, do we need to change the plan?", gap = "s", optional = true },
   { label = "YOU SEE", gap = "s" },
   { sub = "A new trunk node. Step 2: Stale · rebuild.", gap = "xs" },
   { label = "WHY", gap = "m" },

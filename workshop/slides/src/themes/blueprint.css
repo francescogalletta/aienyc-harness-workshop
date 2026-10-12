@@ -17,6 +17,7 @@
   --navy-700: #33465f;
   --navy-900: #0f2440;
   --apricot-200: #ffd9b0;
+  --apricot-800: #8f5418;   /* optional tag text on navy-50, 5.4:1 */
   --teal-300: #5fd0c8;
   --teal-700: #0b6b6a;
   --blue-300: #7fb0ff;
@@ -58,6 +59,7 @@
   --line: var(--navy-200);
   --connector: var(--navy-400);
   --attention: var(--apricot-200);
+  --optional: var(--apricot-800);
   --accent-trust: var(--teal-700);
   --principle-1: var(--blue-600);
   --principle-2: var(--violet-600);
@@ -73,6 +75,7 @@
 /* Alternate: night. */
 :root[data-palette="alternate"] {
   --slide-bg: var(--night-ground);
+  --optional: var(--attention);
   --surface: var(--night-surface);
   --text: var(--night-text);
   --text-quiet: var(--night-quiet);

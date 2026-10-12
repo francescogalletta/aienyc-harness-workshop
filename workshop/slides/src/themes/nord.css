@@ -43,6 +43,7 @@
   --nord13-ink: #a48547;      /* deviation, Snow Storm */
   --nord14-ink: #779161;      /* deviation, Snow Storm */
   --nord12-ink: #be7660;    /* deviation: chart highlight on nord6, 3:1 */
+  --nord13-text: #836729;   /* deviation: optional tag text on nord6, 4.6:1 */
 
   /* fonts */
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -130,6 +131,7 @@
   --progress-fill: var(--nord10);
   --strike-color: var(--nord1);
   --viz-highlight: var(--nord13-ink);
+  --optional: var(--nord13-text);
   --viz-up: var(--nord14-ink);
   --viz-down: var(--nord11);
   --stair-tint: 14%;

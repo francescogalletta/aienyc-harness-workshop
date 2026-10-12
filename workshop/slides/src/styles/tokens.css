@@ -168,6 +168,9 @@
   --step-radius: var(--radius-m);
   --from-you-radius: var(--radius-pill);
   --your-call-stroke: var(--outline);
+  --optional: var(--attention);       /* optional follow-along (the wedding example): dashed outline and tag text */
+  --optional-tag-pad-y: 6px;
+  --optional-tag-pad-x: 20px;
 
   --pill-h: 72px;
   --pill-pad-x: 30px;

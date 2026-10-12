@@ -51,7 +51,9 @@ layout = "statement"
 blocks = [
   { label = "CHECK IT WORKS" },
   { command = "uv run harness check" },
-  { sub = "It should end with “Setup works”." },
-  { command = "HARNESS_EXAMPLE=wedding uv run harness ui", step = 1 },
-  { sub = "The wedding plan opens in your browser.", step = 1 },
+  { sub = "It should end with “Setup works”.", gap = "xs" },
+  { command = "uv run harness ui", step = 1, gap = "s" },
+  { sub = "The UI opens in your browser.", step = 1, gap = "xs" },
+  { label = "OPTIONAL · FOLLOW ALONG WITH THE WEDDING", optional = true, step = 2, gap = "m" },
+  { command = "HARNESS_EXAMPLE=wedding uv run harness ui", optional = true, step = 2, gap = "xs" },
 ]

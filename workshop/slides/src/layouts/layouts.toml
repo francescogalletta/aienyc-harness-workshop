@@ -155,6 +155,7 @@ sub = "sub"          # smaller: five lines under a display
 quiet = "quiet"
 grow = "grow"
 compact = "compact"   # on guesses: a smaller table for long quotes
+optional = "optional" # follow along with the wedding example if you like: a dashed tag (label) or box (command)
 
 # Gap before a block, by "previous-role role". Anything not listed gets default.
 [rhythm]
