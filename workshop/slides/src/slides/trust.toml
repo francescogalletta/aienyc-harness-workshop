@@ -59,31 +59,17 @@ id = "s-gap"
 name = "The gap"
 layout = "split"
 left = { label = "YOU", headline = "know your situation", examples = [
-  { text = "the venue wants 30% up front", step = 1 },
-  { text = "my bonus lands in March", step = 2 },
-  { text = "her parents may chip in", step = 3 },
-  { text = "we never stick to a budget", step = 4 },
+  { text = "my bonus lands in March", step = 1 },
+  { text = "our client pays late", step = 2 },
+  { text = "Q3 had a one-off sale", step = 3 },
+  { text = "this CFO guides low", step = 4 },
 ] }
 right = { label = "THE MODEL", headline = "knows the field", step = 5, examples = [
-  { text = "the average wedding", step = 6 },
-  { text = "the average couple", step = 6 },
-  { text = "the average budget", step = 6 },
+  { text = "the average household", step = 6 },
+  { text = "the average company", step = 6 },
+  { text = "the average quarter", step = 6 },
 ] }
 foot = { text = "Second nature to you. Averaged out in the training data.", step = 7 }
-
-[[slide]]
-id = "s-caveats"
-name = "Caveats"
-layout = "converge"
-inputs = [
-  { text = "guest count not final", x = 440, y = 400, step = 1 },
-  { text = "three payment dates", x = 700, y = 290, step = 2 },
-  { text = "family money, maybe", x = 960, y = 180, step = 3 },
-  { text = "gross or net?", x = 1220, y = 290, step = 4 },
-  { text = "what we really spend", x = 1480, y = 400, step = 5 },
-]
-question = "Can we pay for the wedding?"
-sub = { text = "Simple question. Then the caveats.", step = 6 }
 
 [[slide]]
 id = "s-deal"
