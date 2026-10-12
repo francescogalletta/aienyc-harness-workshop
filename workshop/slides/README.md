@@ -70,7 +70,7 @@ footnote = { text = "* A footnote, at the second click.", step = 2 }
 - The QR code, `src/assets/qr.json`, is written by `tools/qr.py` (needs `segno`).
 
 **The five principles** are one line each in `src/principles.json`: name, emoji,
-colour token, minutes, statement and "builds on" line. The structure slides, the
+colour token, statement and "builds on" line. The structure slides, the
 framework stack, the rail and the dividers all follow it.
 
 ## Change the look

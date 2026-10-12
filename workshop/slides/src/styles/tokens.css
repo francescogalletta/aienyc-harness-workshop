@@ -324,7 +324,6 @@
   --tl-line: var(--stroke-hair);
   --tl-num-size: var(--fs-xl);
   --tl-name-size: calc(34px * var(--type-scale));
-  --tl-min-size: var(--fs-xs);
 
   /* Split halves */
   --split-gap: 100px;

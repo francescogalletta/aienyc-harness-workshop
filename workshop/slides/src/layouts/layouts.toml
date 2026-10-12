@@ -38,8 +38,8 @@ required = ["figure"]
 
 [layouts.setup]
 template = "setup"
-fields = ["label", "minutes", "url", "needs_label", "needs", "needs_todo", "check_label", "command", "check_result", "note"]
-required = ["label", "minutes", "url", "needs_label", "needs"]   # check_label, command, check_result: optional; note is small and quiet
+fields = ["label", "url", "needs_label", "needs", "needs_todo", "check_label", "command", "check_result", "note"]
+required = ["label", "url", "needs_label", "needs"]   # check_label, command, check_result: optional; note is small and quiet
 
 [layouts.repo]   # the top level of the repository as a file tree: path, gloss, mute = n; then one line (text + command) at its step
 template = "repo"

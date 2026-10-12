@@ -9,19 +9,19 @@ Every block runs the whole harness, all five layers, and shows one principle: wh
 - **Spotlight one principle with the legend.** On the example, everything but Evidence is already on the page when it opens, so the page shows four principles at once. Click a principle's entry in the legend at the foot of the plan: everything else fades until you click it again or press Escape. That is how you show one principle at a time.
 - **The page uses the real date.** "Due 21 days from today" is true on any day, but the dates and shortfalls that follow from it move by a few hundred with the day. Read them off the screen.
 
-## Minute by minute (110 of 120 minutes, 10 spare)
+## Run order
 
-| Block | Principle | Min | Clock | Command | The one thing to show |
-| --- | --- | --- | --- | --- | --- |
-| 0 Setup | core | 10 | 0:00 | `harness --help`; `harness check`; `harness ui` | `Setup works`; the empty page |
-| 1 The plan | Shared Domain | 18 | 0:10 | `harness ui`; then `HARNESS_EXAMPLE=wedding harness ui` | Live interview to a plan you correct; then the seeded plan, step 3's origin |
-| 2 Build | Consistency | 20 | 0:28 | delete `modules/monthly_surplus`; `HARNESS_EXAMPLE=wedding harness ui` | `Stale · rebuild`, click, step 3 built and tested |
-| 3 Answers | Evidence | 17 | 0:48 | the prepared sentence | A short reply with chips; click an underlined number or the 54,500 chip, its step lights up |
-| 4 Needs you | Accountability | 25 | 1:05 | a fresh copy; the 120-guest sentence | Chip, "no fewer than 150", Yes: 43,000 and 18,500 re-run, a trunk node; a dead branch; Confirm; your call |
-| 5 Review | Verification | 12 | 1:30 | a fresh copy; `HARNESS_EXAMPLE=wedding harness ui` | The reviewer's challenges are branches: Use this joins the trunk, Dismiss is dead |
-| Wrap | – | 8 | 1:42 | none | What they take home |
+| Block | Principle | Command | The one thing to show |
+| --- | --- | --- | --- |
+| 0 Setup | core | `harness --help`; `harness check`; `harness ui` | `Setup works`; the empty page |
+| 1 The plan | Shared Domain | `harness ui`; then `HARNESS_EXAMPLE=wedding harness ui` | Live interview to a plan you correct; then the seeded plan, step 3's origin |
+| 2 Build | Consistency | delete `modules/monthly_surplus`; `HARNESS_EXAMPLE=wedding harness ui` | `Stale · rebuild`, click, step 3 built and tested |
+| 3 Answers | Evidence | the prepared sentence | A short reply with chips; click an underlined number or the 54,500 chip, its step lights up |
+| 4 Needs you | Accountability | a fresh copy; the 120-guest sentence | Chip, "no fewer than 150", Yes: 43,000 and 18,500 re-run, a trunk node; a dead branch; Confirm; your call |
+| 5 Review | Verification | a fresh copy; `HARNESS_EXAMPLE=wedding harness ui` | The reviewer's challenges are branches: Use this joins the trunk, Dismiss is dead |
+| Wrap | – | none | What they take home |
 
-Spare 10 minutes: 1:50 to 2:00. If behind, cut in this order: the live interview in block 1 (use the seeded plan), the live rebuild in block 2 (use `replay`), the call in block 4, then the dead branch.
+If short on time, cut in this order: the live interview in block 1 (use the seeded plan), the live rebuild in block 2 (use `replay`), the call in block 4, then the dead branch.
 
 ## Before the day (paste in order; each line says what you should see)
 
@@ -38,7 +38,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 
 ## Run of show
 
-### Block 0: setup (10 min)
+### Block 0: setup
 
 - Core: one core owns the conversation, three lanes and the plan state; the model is one swappable interface.
 - `harness --help`: `check, events, ui, replay` come with the core; `ground`, `build` and `ask` with layers 1 to 3. `harness check` (a few seconds, up to a minute on a first run or a slow link), then `harness events`: one line, `core.check`.
@@ -46,7 +46,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Attendees: all run `harness check`.
 - If it goes wrong: sign-in (`claude auth status`, `claude update`), `ANTHROPIC_API_KEY` set by mistake (unset it).
 
-### Block 1: Shared Domain (the plan) (18 min)
+### Block 1: Shared Domain (the plan)
 
 - Principle: *Agree the plan before any number.* An interview turns a vague goal into a plan everyone agrees on.
 - Click legend entry 1 to keep this principle spotlighted while you talk.
@@ -56,7 +56,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Attendees: open the example and click steps. The Try it slides for this principle: step origins, and correcting the plan.
 - If it goes wrong: a slow interview, press Propose the plan now after the first question.
 
-### Block 2: Consistency (build) (20 min)
+### Block 2: Consistency (build)
 
 - Principle: *Numbers come only from tested code.* The bridge from block 1: "The shared plan says which parts never change." The model never adds up; a calculation runs only if its module's tests pass now.
 - Click legend entry 2 to keep this principle spotlighted while you talk.
@@ -66,7 +66,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Attendees: open steps, read examples. The Try it slides for this principle: run the tests, and break a module. A whole 4-step build took 200 s (1/1), about 50 s a step.
 - If it goes wrong: `harness replay wedding build_monthly_surplus` (20 to 28 s, PASS) does the same in a scratch copy.
 
-### Block 3: Evidence (answers) (17 min)
+### Block 3: Evidence (answers)
 
 - Principle: *Every number can be followed back.* The bridge from block 2: "Tested code (and everything else) leaves a trail we can follow." Every number in an answer leads to the step that produced it; a number no step produced is never shown.
 - Click legend entry 3 to keep this principle spotlighted while you talk. It lights up once the first answer is on the page.
@@ -79,7 +79,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Attendees: ask it, change the guest range. The Try it slides for this principle: ask, and follow a number back.
 - If it goes wrong: `replay wedding cover_each_payment` (30 to 35 s, PASS; fixes its date so 5,250 shows).
 
-### Block 4: Accountability (needs you) (25 min)
+### Block 4: Accountability (needs you)
 
 - Principle: *Ask only where a person must decide.* The bridge from block 3: "The evidence is what you decide with." Assumptions run and are marked; only a call that is the person's stops; a branch joins the trunk only with your yes.
 - Click legend entry 4 to keep this principle spotlighted while you talk.
@@ -91,12 +91,12 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - The join. Hover the chip `Guest count 120` (under "Rests on"): three small icons, the middle one is "challenge or correct". Click it and type `We will get no fewer than 150 guests.` A branch opens at the top of the panel. After 4 to 6 s (4/4) it proposes `Change guest count to 150?`: `120 → 150`, `Re-runs 1 2 5`, `Further on 6 7`. On the plan the Guest count pill turns orange, steps 1, 2 and 5 are outlined dashed, 6 and 7 are faded. Say: anything that touches your figures needs your yes. Click **Yes, change it**.
 - It takes 1.5 to 4.5 s (3/3): "Decided on a branch: Guest count is 150 (was 120). Run again: steps 1, 2 and 5." Step 1 reads 43,000, steps 1, 2 and 5 carry `re-ran`, the pill reads 150, the trunk has a node `Guest count: 150 (was 120)` with the chips `43,000 (was 36,100)`, `18,500 (was 15,050)` and `22,000 (was 28,900)`. In the old reply the figures that moved are struck through; 4,000 and the dates are not. Say: the join re-runs through the same test gate, with no model call (`harness events` shows a `calc.run` for each step).
 - The branch that dies. Click step 5, then **New branch** (bottom right of the box), type `What is a sinking fund?`. It answers in 5 to 6 s (2/2) from the plan's glossary, now with a sourced definition, and offers to look up more; it does not. Click **Close branch**: the branch is dimmed, `no change`; the trunk and the plan are as they were. Say: a branch with no consequence stays dead.
-- Confirm. Scroll down, click **Confirm** (instant): a trunk node `Confirmed: ... and 1 more`. Say: the trunk is only confirmed decisions. Spare, 15 s: instead of Confirm click **Change it** and type `On second thought, the second payment is 40% of what remains, and the third is the other 60%.` for a node `Corrected: ...`, 14,800 and 22,200 (2/2).
+- Confirm. Scroll down, click **Confirm** (instant): a trunk node `Confirmed: ... and 1 more`. Say: the trunk is only confirmed decisions. Optional: instead of Confirm click **Change it** and type `On second thought, the second payment is 40% of what remains, and the third is the other 60%.` for a node `Corrected: ...`, 14,800 and 22,200 (2/2).
 - Your call. Type `Now help me decide what to update first.` After 10 s (1/1) step 7 asks with four buttons, the words differ each time; pick one: a trunk node appears at once and step 7 reads "Decided", the reply follows in 5 s. The node shows the start of the question, not your choice; open step 7 for "You chose: ...".
 - Attendees: as shown; change 150 to 180 from a branch. The Try it slides for this principle: change a figure from a chip, and a branch that changes nothing.
 - If it goes wrong: no proposal after 15 s, say it plainly again (`Change the guest count to 150.`); the side assistant may ask a question first. No buttons after 90 s: move on; `harness replay wedding decide_what_to_update` plays the call in a scratch copy.
 
-### Block 5: Verification (review) (12 min)
+### Block 5: Verification (review)
 
 - Principle: *A reviewer challenges the plan.* The bridge from block 4: "Each challenge is yours to use or dismiss." Someone other than the analyst looks at how the problem is being thought about.
 - Click legend entry 5 to keep this principle spotlighted while you talk.
@@ -105,7 +105,7 @@ Also: Wi-Fi in the room may block Wikipedia and the model; tether a phone as a s
 - Attendees: as shown. The Try it slides for this principle: use a challenge, and dismiss one.
 - If it goes wrong: nothing raised, send the block 4 sentence for a second pass. Outside lookups need Wikipedia; challenges then carry no source.
 
-### Wrap (8 min)
+### Wrap
 
 What they take home: `harness/` and their `my/`. `workshop/` is teaching material; deleting it by hand leaves a harness whose tests pass. Repeat the limitation from "Read this first" in `workshop/README.md`: the session is not made for building an entirely different harness, or a very different plan, from scratch; a variation of the example with their own figures and dates is what it supports.
 
