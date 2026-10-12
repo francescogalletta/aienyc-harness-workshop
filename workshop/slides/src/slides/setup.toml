@@ -28,7 +28,7 @@ items = [
   { path = "design/", gloss = "product design, page source", mute = 1 },
   { path = "SPEC.md", gloss = "the contract", mute = 1 },
 ]
-line = { text = "Catch up to step N:", command = "uv run python -m workshop at N", step = 2 }
+line = { text = "Catch up to step N:", command = "uv run workshop at N", step = 2 }
 
 [[slide]]
 id = "s-map"
@@ -57,6 +57,6 @@ name = "Check it works"
 layout = "statement"
 blocks = [
   { label = "CHECK IT WORKS" },
-  { command = "uv run python -m harness check" },
+  { command = "uv run harness check" },
   { sub = "It should end with “Setup works”." },
 ]

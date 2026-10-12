@@ -60,7 +60,7 @@ name = "Command block"
 layout = "statement"
 blocks = [
   { label = "BLOCK · COMMAND" },
-  { command = "uv run python -m harness check" },
+  { command = "uv run harness check" },
   { sub = "A shell command, large enough for the back of the room." },
 ]
 

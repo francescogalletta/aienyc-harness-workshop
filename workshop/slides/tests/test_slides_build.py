@@ -319,12 +319,12 @@ def test_repo_slide_mutes_the_rest_and_shows_the_catch_up_command(deck):
     assert out.count('class="tree-row"') == 8 and out.count('data-step-mute="1"') == 4
     for path in ("harness/", "examples/wedding/", "my/", "workshop/", "tests/", "reference/", "design/", "SPEC.md"):
         assert f">{path}</code>" in out
-    assert 'data-step="2"' in out and "uv run python -m workshop at N" in out
+    assert 'data-step="2"' in out and "uv run workshop at N" in out
 
 
 def test_check_slide_is_a_large_command(deck):
     out = slide_html(deck.src, "s-check")
-    assert re.search(r'<code class="mono step command xl[^"]*">uv run python -m harness check</code>', out)
+    assert re.search(r'<code class="mono step command xl[^"]*">uv run harness check</code>', out)
     assert [x["id"] for x in deck.slides if x.get("group") == "Setup"] == ["s-setup", "s-repo", "s-map", "s-fine", "s-check"]
 
 
