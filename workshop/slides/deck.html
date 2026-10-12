@@ -180,6 +180,9 @@ img { max-width: 100%; }
   --step-radius: var(--radius-m);
   --from-you-radius: var(--radius-pill);
   --your-call-stroke: var(--outline);
+  --optional: var(--attention);       /* optional follow-along (the wedding example): dashed outline and tag text */
+  --optional-tag-pad-y: 6px;
+  --optional-tag-pad-x: 20px;
 
   --pill-h: 72px;
   --pill-pad-x: 30px;
@@ -526,6 +529,7 @@ img { max-width: 100%; }
   --nord13-ink: #a48547;      /* deviation, Snow Storm */
   --nord14-ink: #779161;      /* deviation, Snow Storm */
   --nord12-ink: #be7660;    /* deviation: chart highlight on nord6, 3:1 */
+  --nord13-text: #836729;   /* deviation: optional tag text on nord6, 4.6:1 */
 
   /* fonts */
   --font-sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
@@ -614,6 +618,7 @@ img { max-width: 100%; }
   --progress-fill: var(--nord10);
   --strike-color: var(--nord1);
   --viz-highlight: var(--nord13-ink);
+  --optional: var(--nord13-text);
   --viz-up: var(--nord14-ink);
   --viz-down: var(--nord11);
   --stair-tint: 14%;
@@ -893,6 +898,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
 .command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); overflow-wrap: anywhere; }
 .command.xl { font-size: var(--command-xl-size); }
+/* Optional: following along with the wedding example. Dashed, in its own colour. */
+.command.optional { box-shadow: none; background: transparent; border: var(--step-stroke) dashed var(--optional); }
+.label.optional { width: fit-content; padding: var(--optional-tag-pad-y) var(--optional-tag-pad-x); color: var(--optional); border: var(--stroke-hair) dashed var(--optional); border-radius: var(--radius-pill); }
 .setup-note { font-size: var(--setup-note-size); line-height: 1.25; color: var(--text-muted); max-width: var(--sub-measure); }
 
 /* ---------- Repo tree (the "what you cloned" slide) ---------- */
@@ -1424,9 +1432,11 @@ figure.viz { align-self: stretch; }
   <p class="section-label">Setup</p>
   <p class="label">CHECK IT WORKS</p>
   <code class="mono step command xl gap-m">uv run harness check</code>
-  <p class="sub gap-m">It should end with “Setup works”.</p>
-  <code class="mono step command xl gap-m" data-step="1">HARNESS_EXAMPLE=wedding uv run harness ui</code>
-  <p class="sub gap-m" data-step="1">The wedding plan opens in your browser.</p>
+  <p class="sub gap-xs">It should end with “Setup works”.</p>
+  <code class="mono step command xl gap-s" data-step="1">uv run harness ui</code>
+  <p class="sub gap-xs" data-step="1">The UI opens in your browser.</p>
+  <p class="label optional gap-m" data-step="2">OPTIONAL · FOLLOW ALONG WITH THE WEDDING</p>
+  <code class="mono step command xl optional gap-xs" data-step="2">HARNESS_EXAMPLE=wedding uv run harness ui</code>
 </section>
 
 <!-- 27 · Principle 1 · Shared Domain -->
@@ -1452,7 +1462,7 @@ figure.viz { align-self: stretch; }
 <!-- 30 · P1 · Try it 1 -->
 <section class="slide" id="s-p1-try-1" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
-  <p class="label">TRY IT · 1 OF 2</p>
+  <p class="label optional">TRY IT · 1 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Click step 3.</h2>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">Each item says where it came from: ❝ your words, ✎ proposed. ● is still open.</p>
@@ -1463,9 +1473,9 @@ figure.viz { align-self: stretch; }
 <!-- 31 · P1 · Try it 2 -->
 <section class="slide" id="s-p1-try-2" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
-  <p class="label">TRY IT · 2 OF 2</p>
+  <p class="label optional">TRY IT · 2 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Click step 2, then tell the agent:</h2>
-  <code class="mono step command xl gap-s">I already made the 1st payment, do we need to change the plan?</code>
+  <code class="mono step command xl optional gap-s">I already made the 1st payment, do we need to change the plan?</code>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">A new trunk node. Step 2: Stale · rebuild.</p>
   <p class="label gap-m">WHY</p>
@@ -1523,7 +1533,7 @@ figure.viz { align-self: stretch; }
 <!-- 37 · P2 · Try it 1 -->
 <section class="slide" id="s-p2-try-1" data-principle="2">
   <p class="section-label">2 · Consistency</p>
-  <p class="label">TRY IT · 1 OF 2</p>
+  <p class="label optional">TRY IT · 1 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Click step 1, then Code and tests, then Run tests now.</h2>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">The code, its tests: 4 tests, all passing.</p>
@@ -1534,14 +1544,13 @@ figure.viz { align-self: stretch; }
 <!-- 38 · P2 · Try it 2 -->
 <section class="slide" id="s-p2-try-2" data-principle="2">
   <p class="section-label">2 · Consistency</p>
-  <p class="label">TRY IT · 2 OF 2</p>
+  <p class="label optional">TRY IT · 2 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Line 9: change * to +. Save.</h2>
-  <code class="mono step command xl gap-s">my/var/examples/wedding/modules/​wedding_total_cost/module.py</code>
+  <code class="mono step command xl optional gap-s">my/var/examples/wedding/modules/​wedding_total_cost/module.py</code>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">No restart needed. Step 1: Stale · rebuild.</p>
   <p class="label gap-m">WHY</p>
   <p class="sub gap-xs">Code changed after its tests passed gives no number.</p>
-  <p class="footnote">Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again.</p>
 </section>
 
 <!-- 39 · Principle 3 · Evidence -->
@@ -1606,9 +1615,9 @@ figure.viz { align-self: stretch; }
 <!-- 45 · P3 · Try it 1 -->
 <section class="slide" id="s-p3-try-1" data-principle="3">
   <p class="section-label">3 · Evidence</p>
-  <p class="label">TRY IT · 1 OF 2</p>
+  <p class="label optional">TRY IT · 1 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Type:</h2>
-  <code class="mono step command xl gap-s">What would the wedding cost with 100 guests at 250 each for dinner, plus 6,000 for extras?</code>
+  <code class="mono step command xl optional gap-s">What would the wedding cost with 100 guests at 250 each for dinner, plus 6,000 for extras?</code>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">31,000 underlined, chips under it, step 1 lit up.</p>
   <p class="label gap-m">WHY</p>
@@ -1618,7 +1627,7 @@ figure.viz { align-self: stretch; }
 <!-- 46 · P3 · Try it 2 -->
 <section class="slide" id="s-p3-try-2" data-principle="3">
   <p class="section-label">3 · Evidence</p>
-  <p class="label">TRY IT · 2 OF 2</p>
+  <p class="label optional">TRY IT · 2 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Click the underlined 31,000.</h2>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">Step 1 opens: your inputs, Came out 31,000, after test run N.</p>
@@ -1681,9 +1690,9 @@ figure.viz { align-self: stretch; }
 <!-- 53 · P4 · Try it 1 -->
 <section class="slide" id="s-p4-try-1" data-principle="4">
   <p class="section-label">4 · Accountability</p>
-  <p class="label">TRY IT · 1 OF 2</p>
+  <p class="label optional">TRY IT · 1 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Hover the chip Guest count 100. Click Challenge or correct. Type:</h2>
-  <code class="mono step command xl gap-s">We will get no fewer than 150 guests.</code>
+  <code class="mono step command xl optional gap-s">We will get no fewer than 150 guests.</code>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">“Change guest count to 150?” Nothing moves until Yes, change it.</p>
   <p class="label gap-m">WHY</p>
@@ -1693,9 +1702,9 @@ figure.viz { align-self: stretch; }
 <!-- 54 · P4 · Try it 2 -->
 <section class="slide" id="s-p4-try-2" data-principle="4">
   <p class="section-label">4 · Accountability</p>
-  <p class="label">TRY IT · 2 OF 2</p>
+  <p class="label optional">TRY IT · 2 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Click step 5, then New branch. Type:</h2>
-  <code class="mono step command xl gap-s">What is a sinking fund?</code>
+  <code class="mono step command xl optional gap-s">What is a sinking fund?</code>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">An answer. Close branch: it dims, no change.</p>
   <p class="label gap-m">WHY</p>
@@ -1768,7 +1777,7 @@ figure.viz { align-self: stretch; }
 <!-- 61 · P5 · Try it 1 -->
 <section class="slide" id="s-p5-try-1" data-principle="5">
   <p class="section-label">5 · Verification</p>
-  <p class="label">TRY IT · 1 OF 2</p>
+  <p class="label optional">TRY IT · 1 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Open a branch tagged challenge. Click Use this.</h2>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">It joins the trunk: Reviewer's suggestion used on step N.</p>
@@ -1779,7 +1788,7 @@ figure.viz { align-self: stretch; }
 <!-- 62 · P5 · Try it 2 -->
 <section class="slide" id="s-p5-try-2" data-principle="5">
   <p class="section-label">5 · Verification</p>
-  <p class="label">TRY IT · 2 OF 2</p>
+  <p class="label optional">TRY IT · 2 OF 2 · WEDDING EXAMPLE</p>
   <h2 class="headline gap-xs">Open another. Click Dismiss.</h2>
   <p class="label gap-s">YOU SEE</p>
   <p class="sub gap-xs">It dims: dismissed. The plan stays as it was.</p>

@@ -1086,7 +1086,7 @@ CONTRAST_PAIRS = [  # (foreground, background, minimum)
     *[(f"--on-principle-{n}", f"--principle-{n}", 4.0) for n in range(1, 6)],
     *[(f"--principle-{n}-ink", "--slide-bg", 3.0) for n in range(1, 6)],
     ("--text", "--slide-bg", 7.0), ("--text-quiet", "--slide-bg", 4.5), ("--text-muted", "--slide-bg", 4.5),
-    ("--accent-trust", "--slide-bg", 4.5), ("--text", "--surface", 4.5), ("--pill-text", "--pill-fill", 4.5),
+    ("--accent-trust", "--slide-bg", 4.5), ("--optional", "--slide-bg", 4.5),("--text", "--surface", 4.5), ("--pill-text", "--pill-fill", 4.5),
     ("--ask-text", "--ask-fill", 4.5), ("--qr-ink", "--qr-ground", 7.0),
 ]
 

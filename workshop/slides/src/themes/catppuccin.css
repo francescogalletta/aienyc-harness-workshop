@@ -54,6 +54,7 @@
   --lat-peach-ink: #f25800;    /* deviation */
   --lat-green-ink: #3e9e29;    /* deviation */
   --lat-yellow-ink: #c87800;   /* deviation: chart highlight on Latte base, 3:1 */
+  --lat-yellow-text: #9a5f00;  /* deviation: optional tag text on Latte base, 4.6:1 */
 
   /* fonts */
   --font-sans: "Figtree", "Segoe UI", system-ui, sans-serif;
@@ -152,6 +153,7 @@
   --progress-fill: var(--lat-overlay1);
   --strike-color: var(--lat-text);
   --viz-highlight: var(--lat-yellow-ink);
+  --optional: var(--lat-yellow-text);
   --viz-down: var(--lat-red);
   --stair-tint: 14%;
   --nest-tint: 6%;

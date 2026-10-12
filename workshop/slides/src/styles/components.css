@@ -163,6 +163,9 @@ canvas.confetti { position: absolute; inset: 0; width: var(--stage-w); height: v
 .pills { display: flex; flex-wrap: wrap; gap: var(--pills-gap); }
 .command { display: inline-block; padding: var(--command-pad-y) var(--command-pad-x); overflow-wrap: anywhere; }
 .command.xl { font-size: var(--command-xl-size); }
+/* Optional: following along with the wedding example. Dashed, in its own colour. */
+.command.optional { box-shadow: none; background: transparent; border: var(--step-stroke) dashed var(--optional); }
+.label.optional { width: fit-content; padding: var(--optional-tag-pad-y) var(--optional-tag-pad-x); color: var(--optional); border: var(--stroke-hair) dashed var(--optional); border-radius: var(--radius-pill); }
 .setup-note { font-size: var(--setup-note-size); line-height: 1.25; color: var(--text-muted); max-width: var(--sub-measure); }
 
 /* ---------- Repo tree (the "what you cloned" slide) ---------- */

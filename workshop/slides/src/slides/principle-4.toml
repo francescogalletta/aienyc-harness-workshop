@@ -59,9 +59,9 @@ id = "s-p4-try-1"
 name = "P4 · Try it 1"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 1 OF 2" },
+  { label = "TRY IT · 1 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Hover the chip Guest count 100. Click Challenge or correct. Type:" },
-  { command = "We will get no fewer than 150 guests.", gap = "s" },
+  { command = "We will get no fewer than 150 guests.", gap = "s", optional = true },
   { label = "YOU SEE", gap = "s" },
   { sub = "“Change guest count to 150?” Nothing moves until Yes, change it.", gap = "xs" },
   { label = "WHY", gap = "m" },
@@ -73,9 +73,9 @@ id = "s-p4-try-2"
 name = "P4 · Try it 2"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 2 OF 2" },
+  { label = "TRY IT · 2 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Click step 5, then New branch. Type:" },
-  { command = "What is a sinking fund?", gap = "s" },
+  { command = "What is a sinking fund?", gap = "s", optional = true },
   { label = "YOU SEE", gap = "s" },
   { sub = "An answer. Close branch: it dims, no change.", gap = "xs" },
   { label = "WHY", gap = "m" },

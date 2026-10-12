@@ -59,9 +59,9 @@ id = "s-p3-try-1"
 name = "P3 · Try it 1"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 1 OF 2" },
+  { label = "TRY IT · 1 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Type:" },
-  { command = "What would the wedding cost with 100 guests at 250 each for dinner, plus 6,000 for extras?", gap = "s" },
+  { command = "What would the wedding cost with 100 guests at 250 each for dinner, plus 6,000 for extras?", gap = "s", optional = true },
   { label = "YOU SEE", gap = "s" },
   { sub = "31,000 underlined, chips under it, step 1 lit up.", gap = "xs" },
   { label = "WHY", gap = "m" },
@@ -73,7 +73,7 @@ id = "s-p3-try-2"
 name = "P3 · Try it 2"
 layout = "statement"
 blocks = [
-  { label = "TRY IT · 2 OF 2" },
+  { label = "TRY IT · 2 OF 2 · WEDDING EXAMPLE", optional = true },
   { headline = "Click the underlined 31,000." },
   { label = "YOU SEE", gap = "s" },
   { sub = "Step 1 opens: your inputs, Came out 31,000, after test run N.", gap = "xs" },
