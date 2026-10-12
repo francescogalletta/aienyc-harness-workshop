@@ -312,8 +312,11 @@ def test_the_join_notice_carries_a_decision_chip_first_and_the_new_results(make)
     assert kinds[0] == "decision" and notice["chips"][0]["subject"] == {"kind": "decision",
                                                                          "node": state["history"]["latest"]}
     assert [each["subject"]["run"] for each in notice["chips"] if each["kind"] == "result"] == ["r3", "r4"]
-    assert ("Unit count", "50") in [(each["label"], each["text"]) for each in notice["chips"]
-                                    if each["kind"] == "value"]
+    assert [(each["label"], each["text"]) for each in notice["chips"] if each["kind"] == "value"] == [
+        ("Unit count", "50 (was 40)")]                      # only the value that changed, old to new (12.7)
+    assert [(each["label"], each["text"]) for each in notice["chips"] if each["kind"] == "result"] == [
+        ("Total", "5,000 (was 4,000)"), ("Split", "2,250 (was 1,750)")]   # an object: the leaf that changed
+    assert "assumption" not in kinds                         # the old answer keeps those
     assert {step["id"]: step["last_run"]["run"] for step in state["steps"] if step["id"] in ("c1", "c2")} == {
         "c1": "r3", "c2": "r4"}
 

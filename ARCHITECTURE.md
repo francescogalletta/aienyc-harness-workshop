@@ -1249,9 +1249,14 @@ For the decision graph (section 12), 11 October:
   `Plan[, step N Name]: {words}` cut to 80; the node's text is SPEC 6.6's `{label}: {new} (was {old})`. The join notice is a
   `harness` message of kind `text` with `figures: []`; a failed run with no step gets `step` "" in the node's `failed`. A value
   join that raises makes the proposal `failed` (reason posted in the branch) and still sets `error`. The `turn_finished` hook
-  is marks' then the `moved_on` death. A join notice has every value chip of its new runs, as 12.7 says
-  (13 in a live wedding run; the sample state shows only the changed one: the maintainer may want that).
+  is marks' then the `moved_on` death. A join notice first had every value chip of its new runs (13 in a live
+  wedding run); after the first browser run it keeps the changed value and the results, each `new (was old)` (12.7).
   `review_challenges.json` gained `"proposal": null`; `workshop/manifest.json` lists `join.py`.
+- **D6 · Replay acts and scenarios.** The scenarios are `branch_that_joins` and `branch_that_dies` (SPEC 6.6's `join_guest_count` and
+  `term_question_dies`, renamed, with the question the real model answers reliably and `today` 2026-10-12). `branch` takes a `chip` or a
+  `step`, not both. "Newest" is the highest number in the id (a review pass on load makes thread ids unpredictable), `accept` and
+  `decline` look at every thread's pending proposal, `close` at open side branches (origin any, kind `side`). The terminal's `/yes`, `/no`,
+  `/close` pick the same way, and it prints a pending proposal once with `Type /yes to decide it, or /no.`.
 
 ## 12. Decision history
 
@@ -1435,8 +1440,13 @@ by the harness from its own records, never asked of the model:
   - *result* chips: one per run whose module carries out a step in the state
     (added steps too). Label: the step's name. Text: `show_value(output,
     spec.output)`, as the step line writes it.
-- **Order:** values, assumptions, results. A join notice also has a *decision*
-  chip first (layer 4, from `_node`): label `Decided`, text the node's text.
+- **Order:** values, assumptions, results. A join notice keeps only what the join
+  changed (layer 4, from `_node`): a *decision* chip first (label `Decided`, text the
+  node's text), the *value* chip of the changed input with text `new (was old)`
+  (`150 (was 120)`), and one *result* chip per re-run whose text is the last leaf that
+  differs between the old run's output and the new one, both as `show_scalar` writes
+  them (`18,500 (was 15,050)`; the new value alone when nothing differs). The re-runs'
+  other inputs and assumptions are the old answer's and stay with it.
 - A withheld reply keeps its chips: a result of a tested module may be shown.
 - Figures in the prose stay as they are (3.4).
 

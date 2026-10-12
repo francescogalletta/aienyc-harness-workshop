@@ -1,7 +1,7 @@
 """Scenarios and replay (SPEC 2.6).
 
 A scenario is a scripted person: lines said to the main chat and actions (build, confirm, correct, choose,
-side, use, dismiss), played in order against the configured model on a Session, in a scratch copy of the
+side, branch, accept, decline, close, use, dismiss), played in order against the configured model on a Session, in a scratch copy of the
 example under `my/var/replay/`, at the scenario's layer. What the harness must have done is checked by the
 expectations the layers register (`Layer.expects`); a check never reads wording.
 """
@@ -38,6 +38,10 @@ VERBS = {
     "correct": (4, {"text"}, {"text"}),             # say, with the latest notice attached ("Change it")
     "choose": (4, {"option"}, {"option"}),          # the option of the decision the main lane waits on
     "side": (4, {"text", "step", "reply"}, {"text"}),   # a new side thread; "reply": true, in the latest one
+    "branch": (4, {"text", "step", "chip"}, {"text"}),  # a new branch on a chip's subject, a step, or the whole plan
+    "accept": (4, set(), set()),                    # accept_proposal on the newest pending proposal
+    "decline": (4, set(), set()),                   # decline_proposal on the newest pending proposal
+    "close": (4, set(), set()),                     # close_branch on the newest open side branch
     "use": (5, {"index"}, set()),                   # use_challenge on the index-th open challenge (not a question)
     "dismiss": (5, {"index"}, set()),               # dismiss_challenge on the index-th open challenge
 }
@@ -120,10 +124,28 @@ def _line_problems(number: int, line, layer: int, brief: dict) -> list[str]:
         errors.append(f"{where}: index must be a whole number from 1")
     if "reply" in line and not isinstance(line["reply"], bool):
         errors.append(f"{where}: reply must be true or false")
+    if "chip" in line:
+        errors += _chip_problems(where, line["chip"])
+        if "step" in line:
+            errors.append(f"{where}: a branch is on a chip or on a step, not both")
     if "step" in line and not _known_step(line["step"], brief):
         errors.append(f"{where}: '{line['step']}' is not a step of the brief")
     if line.get("reply") and "step" in line:
         errors.append(f"{where}: a reply goes to a thread that has its step already")
+    return errors
+
+
+CHIP_KINDS = ("value", "assumption", "result", "decision")
+
+
+def _chip_problems(where: str, chip) -> list[str]:
+    if not isinstance(chip, dict):
+        return [f"{where}: chip must be an object {{kind, label?, text?}}"]
+    errors = [f"{where}: chip does not take '{key}'" for key in chip if key not in ("kind", "label", "text")]
+    if chip.get("kind") not in CHIP_KINDS:
+        errors.append(f"{where}: chip kind must be one of {', '.join(CHIP_KINDS)}")
+    errors += [f"{where}: chip {key} must be a text" for key in ("label", "text")
+               if key in chip and not isinstance(chip[key], str)]
     return errors
 
 
@@ -278,6 +300,41 @@ def _open_challenges(state: dict, *, usable: bool) -> list[str]:
     return [each["id"] for each in sorted(found, key=lambda each: int(each["id"][1:]))]
 
 
+def _same(left, right) -> bool:
+    return " ".join(str(left).casefold().split()) == " ".join(str(right).casefold().split())
+
+
+def _chip_subject(state: dict, wanted: dict) -> dict:
+    """The subject of the newest chip in the main chat of that kind whose label and text match when given."""
+    for message in reversed(state["chat"]):
+        for chip in reversed(message.get("chips", [])):
+            if chip["kind"] == wanted["kind"] and all(_same(chip[key], wanted[key])
+                                                      for key in ("label", "text") if key in wanted):
+                return chip["subject"]
+    raise ReplayError(f"there is no {wanted['kind']} chip to branch from "
+                      f"(label {wanted.get('label', 'any')!r}, text {wanted.get('text', 'any')!r})")
+
+
+def _by_number(items):
+    return sorted(items, key=lambda each: int(each["id"][1:]))
+
+
+def _newest_pending(state: dict) -> str:
+    pending = [thread["proposal"] for thread in state.get("threads", [])
+               if (thread.get("proposal") or {}).get("status") == "pending"]
+    if not pending:
+        raise ReplayError("there is no pending proposal")
+    return _by_number(pending)[-1]["id"]
+
+
+def _newest_open_branch(state: dict) -> str:
+    open_ones = [thread for thread in state.get("threads", [])
+                 if thread["kind"] == "side" and thread.get("outcome") == "open"]
+    if not open_ones:
+        raise ReplayError("there is no open side branch to close")
+    return _by_number(open_ones)[-1]["id"]
+
+
 def _action_for(line, state: dict) -> tuple[str, dict]:
     """The core action and payload a line stands for."""
     if isinstance(line, str):
@@ -304,6 +361,14 @@ def _action_for(line, state: dict) -> tuple[str, dict]:
                 raise ReplayError("there is no side thread to reply in")
             return "side", {"text": line["text"], "thread": latest}
         return "side", {"text": line["text"], **({"step": line["step"]} if "step" in line else {})}
+    if verb == "branch":
+        if "chip" in line:
+            return "side", {"text": line["text"], "subject": _chip_subject(state, line["chip"])}
+        return "side", {"text": line["text"], **({"step": line["step"]} if "step" in line else {})}
+    if verb in ("accept", "decline"):
+        return f"{verb}_proposal", {"proposal": _newest_pending(state)}
+    if verb == "close":
+        return "close_branch", {"thread": _newest_open_branch(state)}
     open_ones = _open_challenges(state, usable=verb == "use")
     index = line.get("index", 1)
     if index > len(open_ones):

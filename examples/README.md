@@ -46,7 +46,7 @@ again.
 ## Scenarios
 
 A scenario is a scripted person (SPEC 2.6): lines said to the main chat and actions (confirm, correct, choose, side,
-use, dismiss), played against the configured model in a scratch copy under `my/var/replay/`, at the scenario's layer.
+branch, accept, decline, close, use, dismiss), played against the configured model in a scratch copy under `my/var/replay/`, at the scenario's layer.
 `uv run python -m harness replay wedding` (or `moving`, or one scenario: `replay wedding review_the_plan`) prints one
 line per expectation and exits 0 only when all pass; `--keep` keeps the scratch copy. Each run uses the real model:
 expect about 30 seconds for a build and one to two minutes for a conversation (a whole example takes 2 to 7 minutes).
@@ -59,6 +59,8 @@ Figures are worked out by hand, not with the modules.
 | `wedding` | `no_family_contribution` | 3 | no gift: shortfalls 24,500 (200 guests) and 13,000 (150) at the third payment |
 | `wedding` | `confirm_and_correct` | 4 | an answer resting on an unsaid split is marked; the person confirms, then changes it (40/60: 14,800 and 22,200) and it is run again |
 | `wedding` | `decide_what_to_update` | 4 | the review step `s7` is the person's call; they answer by option |
+| `wedding` | `branch_that_joins` | 4 | 120 guests: total 36,100. From the Guest count chip a branch says "no fewer than 150"; the proposal is accepted, the branch joins as a `value` decision and steps 1 and 2 run again (43,000; 18,500 each) |
+| `wedding` | `branch_that_dies` | 4 | a branch on step 5 asks what a sinking fund is; nothing is proposed, the person closes it: dead, no decision recorded |
 | `wedding` | `review_the_plan` | 5 | review passes (the first on load, a second after an answer that rests on an unsaid split) raise challenges; one is used, the next dismissed (counts and states only) |
 | `moving` | `build_months_to_save` | 2 | the module of step `m3` removed and built again |
 | `moving` | `keep_or_move_date` | 4 | upfront cost 4,430; keeping or moving the date (`m4`) is answered in the person's own words |

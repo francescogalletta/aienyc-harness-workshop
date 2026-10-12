@@ -77,7 +77,7 @@ def test_a_side_thread_is_answered_and_follows_the_last_main_message(routed):
     state = open_thread(session, "What does this step do?", step="c1")
     (thread,) = threads(state)
     assert (thread["kind"], thread["step"], thread["title"], thread["after"], thread["status"]) == (
-        "side", "c1", "Total", last, "open")
+        "side", "c1", "What does this step do?", last, "open")
     assert [(m["who"], m["text"]) for m in thread["messages"]] == [
         ("you", "What does this step do?"), ("assistant", "It adds the two amounts.")]
     assert all(m["sources"] == [] for m in thread["messages"]) and thread["challenge"] is None

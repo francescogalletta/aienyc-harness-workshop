@@ -54,9 +54,10 @@ def one_line(text: str) -> str:
     return " ".join(str(text).split())
 
 
-def title_of(text: str, step_name: str | None) -> str:
-    """The step's name, or the first words of the text, cut to 45 characters."""
-    title = one_line(step_name or text)
+def title_of(text: str) -> str:
+    """The first words of the text, cut to 45 characters: what the branch is about, in the words that opened it
+    (the branch's first line names its subject)."""
+    title = one_line(text)
     return title if len(title) <= TITLE_LENGTH else title[:TITLE_LENGTH - 1].rstrip() + "…"
 
 
@@ -156,13 +157,12 @@ def side(core, payload: dict) -> None:
             subject = {"kind": "step", "step": step}
         else:
             subject = {"kind": "plan"}
-        name = next((each["name"] for each in state["steps"] if each["id"] == step), None) if step else None
         for other in list_threads(conn, core.conversation):
             if join.dies(conn, other):
                 join.kill(core, other["id"], "new_branch")
-        thread = add_thread(conn, core.conversation, kind="side", title=title_of(text, name), step=step or None,
+        thread = add_thread(conn, core.conversation, kind="side", title=title_of(text), step=step or None,
                             origin="you", subject=subject)
-        core.record("you.side_opened", {"thread": thread, "step": step or None, "title": title_of(text, name),
+        core.record("you.side_opened", {"thread": thread, "step": step or None, "title": title_of(text),
                                         "subject": subject}, "person")
     else:
         try:

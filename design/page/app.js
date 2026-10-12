@@ -5,8 +5,9 @@
   var F = window.FAH;
   var TOKEN = '__HARNESS_TOKEN__';
 
-  /* Geometry of the diagram (px). The step is 184 wide (design system); the page owns the rest. */
-  var STEP_W = 184, STEP_H = 84, PILLS = 26, ROW = 156, CORRIDOR = 136;
+  /* Geometry of the diagram (px). The step is 184 wide (design system); when the plan would scroll sideways
+     beside the panel, steps narrow to fit, down to STEP_MIN. The page owns the rest. */
+  var STEP_FULL = 184, STEP_MIN = 156, STEP_W = STEP_FULL, STEP_H = 84, PILLS = 26, ROW = 156, CORRIDOR = 136;
   var MIN_GAP = 32, MAX_GAP = 72, LANE = 8, LANE_END = 14, PORT_GAP = 14, PORT_PAD = 14;
 
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -16,7 +17,8 @@
   var S = null, drawnVersion = -1, first = true, timer = null, failing = false;
   var ui = { selected: null, selInput: null, attached: null, notice: null, side: false, pop: null, popRun: null, code: false,
              review: false, whole: false, openThread: null, knownThreads: null, wantNewThread: false,
-             markNode: null, draft: null, replies: {}, branchOpen: {}, showEarlier: false, focusKey: null };
+             markNode: null, draft: null, replies: {}, branchOpen: {}, showEarlier: false, focusKey: null, moreFacts: {} };
+  var VALUES_SHOWN = 5;
   var stepEls = {}, lineShown = {}, needShown = {}, lay = null, layKey = '', edgeSegs = {}, pillEls = [];
   var answerKey = null, animating = {}, animRun = 0, popEl = null;
 
@@ -260,7 +262,10 @@
 
     /* 5. gap widths, then spread to the room there is */
     var gaps = gapLanes.map(function (l) { return l.length ? Math.max(MIN_GAP, LANE_END + l.length * LANE + 12) : MIN_GAP; });
-    var used = ncol * STEP_W + gaps.reduce(function (s, x) { return s + x; }, 0);
+    var gapSum = gaps.reduce(function (s, x) { return s + x; }, 0);
+    STEP_W = STEP_FULL;
+    if (avail > 0 && ncol * STEP_W + gapSum > avail) { STEP_W = Math.max(STEP_MIN, Math.floor((avail - gapSum) / ncol)); }
+    var used = ncol * STEP_W + gapSum;
     if (gaps.length && avail > used) {
       var extra = (avail - used) / gaps.length;
       gaps = gaps.map(function (x) { return Math.floor(x + Math.min(extra, Math.max(0, MAX_GAP - x))); });
@@ -416,7 +421,7 @@
         edgeSegs[k] = q.map(function (seg, i) { var svg = segment(seg, i === q.length - 1); frag.appendChild(svg); return svg; });
       });
       canvas.insertBefore(frag, canvas.firstChild);
-      list.forEach(function (s) { var p = lay.pos[s.id], b = stepEls[s.id]; b.style.left = p.x + 'px'; b.style.top = p.y + 'px'; });
+      list.forEach(function (s) { var p = lay.pos[s.id], b = stepEls[s.id]; b.style.left = p.x + 'px'; b.style.top = p.y + 'px'; b.style.width = STEP_W + 'px'; });
       canvas.style.width = lay.width + 'px';
       canvas.style.height = (list.length ? lay.height : 0) + 'px';
     }
@@ -429,7 +434,7 @@
       if (s.kind === 'from_you') { return; }
       var ins = arr(s.inputs); if (!ins.length) { return; }
       var row = el('div', 'fah-pills'), p = lay.pos[s.id];
-      row.style.left = p.x + 'px'; row.style.top = (p.y - PILLS) + 'px';
+      row.style.left = p.x + 'px'; row.style.top = (p.y - PILLS) + 'px'; row.style.maxWidth = STEP_W + 'px';
       row.setAttribute('aria-label', 'Inputs of ' + label(s));
       canvas.insertBefore(row, canvas.firstChild); pillEls.push(row);
       /* the design's rule: more than three inputs show two and "+N"; fewer if they do not fit the step's width */
@@ -496,7 +501,7 @@
   /* What the decision history marks on the plan right now (ARCHITECTURE 9, B3):
      a pending proposal's impact (touched; its inputs need you unless a call waits), a join that is running,
      and what the latest node (or the node the person selected) changed. */
-  var TAG_WORD = { value: 're-ran', assumption_corrected: 're-ran', plan_revised: 'changed', challenge_used: 'changed',
+  var TAG_WORD = { value: 're-ran', assumption_corrected: 're-ran', plan_revised: 'changed', challenge_used: 'used',
                    built: 'rebuilt', call: 'decided', assumption_confirmed: 'confirmed' };
   function planMarks() {
     var pm = { touch: {}, far: {}, needs: {}, running: {}, changed: {}, word: '', who: 'you', node: null, title: '' };
@@ -1098,11 +1103,18 @@
     if (!list.length) { return null; }
     var stale = staleRuns(), dl = el('dl', 'dg-facts'), any = false;
     function old(c) { return chipStale(c, stale); }
-    function row(t, kids) { if (!kids.length) { return; } any = true; var dd = el('dd'); kids.forEach(function (k) { dd.appendChild(k); }); dl.appendChild(el('dt', null, t)); dl.appendChild(dd); }
+    function row(t, kids) { if (!kids.length) { return; } any = true; var dd = el('dd'), dt = el('dt', null, t); dt.title = t; kids.forEach(function (k) { dd.appendChild(k); }); dl.appendChild(dt); dl.appendChild(dd); }
     function of(kind) { return list.filter(function (c) { return c.kind === kind; }); }
     of('decision').forEach(function (c) { row('Decided', [chipEl(c)]); });
     of('result').forEach(function (c) { row(c.label || 'Result', [chipEl(c, { stale: old(c) })]); });
-    row('Rests on', of('value').map(function (c) { return chipEl(c, { label: true, stale: old(c) }); }));
+    /* a long list of values folds after the first few: the answer stays short (12.7) */
+    var vals = of('value').map(function (c) { return chipEl(c, { label: true, stale: old(c) }); });
+    if (vals.length > VALUES_SHOWN + 1 && !ui.moreFacts[m.id]) {
+      var more = linkBtn('+' + (vals.length - VALUES_SHOWN) + ' more', function () { ui.moreFacts[m.id] = true; drawPanel(true); }, 'Show all ' + vals.length + ' values');
+      more.classList.add('fa-more');
+      vals = vals.slice(0, VALUES_SHOWN).concat([more]);
+    }
+    row('Rests on', vals);
     if (!skipAssumptions) { row('Assumes', of('assumption').map(function (c) { return chipEl(c, { stale: old(c) }); })); }
     return any ? dl : null;
   }
@@ -1189,7 +1201,7 @@
         if (sts.length) { words(ins.length ? 're-ran' : 'Re-ran'); put(sts); } break;
       case 'built': if (sts.length) { words(n.who === 'harness' ? 'By itself, built' : 'Built'); put(sts); } break;
       case 'call': if (sts.length) { words('Your call on'); put(sts); } break;
-      case 'challenge_used': if (sts.length || ins.length) { words('On a challenge, changed'); put(ins.concat(sts)); } break;
+      case 'challenge_used': if (sts.length || ins.length) { words('Used on'); put(ins.concat(sts)); } break;   /* what it changes records its own node */
       case 'assumption_confirmed': if (sts.length) { words('Confirmed, on'); put(sts); } break;
       default: if (sts.length || ins.length) { words('Changed'); put(ins.concat(sts)); }
     }
@@ -1613,6 +1625,8 @@
       if (f) { f.focus({ preventScroll: true }); if (typeof caret === 'number' && f.value) { try { f.setSelectionRange(caret, caret); } catch (e) { /* not a text field */ } } }
     }
     if (stick) { toBottom(); } else { log.scrollTop = top; }
+    /* on load, a proposal that waits for a yes is what the person came back to: show it, not the foot */
+    if (firstDraw) { var waits = graph.querySelector('.dg-branch--needs'); if (waits) { waits.scrollIntoView({ block: 'nearest' }); } }
     var j = joinAnim; joinAnim = null;
     var drawn = drawGraph(j);
     if (j) {

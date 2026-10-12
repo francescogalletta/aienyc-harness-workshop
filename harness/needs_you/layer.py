@@ -67,7 +67,8 @@ def contribute(view, state: dict) -> None:
 
 def chip_status(view, state: dict) -> None:
     """Assumption chips get their `status` and `subject.assumption` from the `assumptions` table; a join notice
-    gets a decision chip first, from its private `_node` (ARCHITECTURE.md 12.7)."""
+    keeps a decision chip first, from its private `_node`, the value that changed and its results, each as
+    `new (was old)` (ARCHITECTURE.md 12.7)."""
     conn = view.conn
     nodes = {node["id"]: node for node in state["history"]["trunk"]}
     joined = {}
@@ -97,8 +98,7 @@ def chip_status(view, state: dict) -> None:
                 subject["assumption"] = found["id"]
         node = joined.get(message["id"])
         if node is not None:
-            message["chips"] = [{"kind": "decision", "label": "Decided", "text": node["text"], "status": None,
-                                 "subject": {"kind": "decision", "node": node["id"]}}, *chips]
+            message["chips"] = join.notice_chips(conn, node, chips)
 
 
 # --- What the analyst is told ---

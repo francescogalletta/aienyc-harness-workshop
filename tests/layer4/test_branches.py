@@ -356,13 +356,14 @@ def test_yes_posts_the_join_notice_with_a_decision_chip_and_the_new_results(rout
     assert notice["who"] == "harness" and notice["id"] != first_answer["id"]
     assert "50" in notice["text"] and "10" in notice["text"]
     chips = notice["chips"]
-    assert [chip["kind"] for chip in chips] == ["decision", "value", "value", "result", "result"]
+    assert [chip["kind"] for chip in chips] == ["decision", "value", "result", "result"]   # B did not change
     assert (chips[0]["label"], chips[0]["text"], chips[0]["subject"]) == ("Decided", node["text"],
                                                                          {"kind": "decision", "node": node["id"]})
-    assert [(chip["label"], chip["text"]) for chip in chips[1:3]] == [("A", "50"), ("B", "20")]
+    assert (chips[1]["label"], chips[1]["text"]) == ("A", "50 (was 10)")
     assert chips[1]["subject"]["run"] == f"r{new[0]['id']}" and chips[1]["subject"]["input"] == "in:a"
-    assert [chip["label"] for chip in chips[3:]] == ["Total", "Double"]
-    assert [number(chip["text"]) for chip in chips[3:]] == [70, 140]
+    assert [chip["label"] for chip in chips[2:]] == ["Total", "Double"]
+    assert [chip["text"] for chip in chips[2:]] == ["70 (was 30)", "140 (was 60)"]
+    assert [chip["subject"]["run"] for chip in chips[2:]] == [f"r{each['id']}" for each in new]
     again = next(m for m in state["chat"] if m["id"] == first_answer["id"])
     assert [chip["text"] for chip in again["chips"] if chip["kind"] == "value"] == ["10", "20"]      # the old ones stay
     assert problems(state, strict=True) == []

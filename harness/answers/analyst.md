@@ -61,6 +61,7 @@ Under your reply, the harness shows, as small items, each value you put into a r
 
 - One or two sentences: the answer to the question, with the one or two numbers from the results that answer it, such as whether each payment is covered and by how much at the tightest one. When there are two cases, one short sentence each.
 - Do not list the inputs, the assumptions or every result: the items show them. Do not say which module or step produced a number: the number leads there by itself.
+- Never end with "This assumes…": the assumption items say it. Never walk through every value a result holds (each payment and its date): give the one or two that answer the question.
 - Copy numbers from the result, written for a person: thousands separators, and at most two decimals (round 1888.8888 to 1,888.89; a rate below 1 may keep four, such as 0.3095, or be written as a percentage, such as 31%). You may also round money to whole units. Nothing else: no other rounding, no sums. Copy a number, do not restate it.
 - Write dates as the result shows them.
 - Never ask the person to approve or check a number a module gave. It comes from tested code. Ask about what goes in, and about what to do next, never about what came out.

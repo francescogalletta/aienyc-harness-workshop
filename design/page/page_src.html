@@ -26,7 +26,7 @@
 button.fah-chip { margin: 0; border: 0; background: none; color: inherit; font-family: inherit; cursor: pointer; }
 html, body { margin: 0; background: var(--ground); color: var(--ink); }
 body { min-height: 100vh; }
-.fa-app { --chat-w: clamp(400px, 35vw, 544px); display: grid; grid-template-columns: minmax(0, 1fr) var(--chat-w); height: 100vh; }
+.fa-app { --chat-w: clamp(380px, 32vw, 544px); display: grid; grid-template-columns: minmax(0, 1fr) var(--chat-w); height: 100vh; }
 .fa-plan { position: relative; min-width: 0; overflow: auto; padding: 20px 20px 48px; }
 .fa-side { display: flex; flex-direction: column; min-height: 0; background: var(--surface); box-shadow: inset 1px 0 0 var(--line); }
 
@@ -50,9 +50,9 @@ body { min-height: 100vh; }
 .fa-canvas .fah-step--from-you.fah-step--selected, .fa-canvas .fah-step--from-you.fah-step--needs-you { padding-left: 20px; padding-right: 20px; }
 .fa-canvas .fah-step__name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
 .fa-canvas .fah-step__line { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fa-canvas .fah-pills { position: absolute; max-width: 184px; flex-wrap: nowrap; overflow: hidden; }
+.fa-canvas .fah-pills { position: absolute; max-width: 184px; flex-wrap: nowrap; overflow: hidden; }   /* the script narrows it with the step */
 .fa-canvas .fah-pills .fah-pill { flex: none; }
-.fa-canvas .fah-pills .fah-pill:only-child { display: block; max-width: 184px; overflow: hidden; text-overflow: ellipsis; }
+.fa-canvas .fah-pills .fah-pill:only-child { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .fa-canvas .fah-flow { position: absolute; }
 .fa-tag { position: absolute; top: calc(100% + 3px); right: 2px; font-size: 11px; line-height: 14px; font-weight: 400; color: var(--muted); white-space: nowrap; pointer-events: none; }
 .fa-tag > span + span { margin-left: 8px; }
@@ -125,6 +125,8 @@ body { min-height: 100vh; }
 .fa-ans-lead { margin: 0; }
 .fah-decision .fah-row .fah-btn, .fah-notice .fah-row .fah-btn { min-height: 36px; padding: 0 12px; }
 .fah-notice .dg-facts { margin-top: 2px; }
+.dg-facts dt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }   /* a long step name: two lines */
+.dg-facts .fa-more { font-size: 12px; line-height: 20px; color: var(--ink-2); }
 .fa-compose { padding: 8px 16px 16px; background: var(--surface); }
 .fa-compose .fah-composer { flex-wrap: wrap; row-gap: 4px; }
 .fa-compose .fah-composer input { flex: 1 1 170px; min-height: 32px; }

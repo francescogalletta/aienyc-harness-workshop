@@ -20,7 +20,7 @@ The person may say here that something is not right, or has changed: "we will ge
 - The value must be in the person's words in this branch. "No fewer than 150" is `150`. "Thirty more guests" or "ten percent more" is not a value they gave: ask them for the figure itself. Never work a value out.
 - A change to how the plan works, such as a step, a particular or the scope: `kind` is `plan`, and `step` is the step it is about, or empty for the whole plan.
 - `words`: the person's words in this branch that ask for the change, copied exactly from their message.
-- One proposal per reply. Call the tool first, with your text empty. When the result comes back, say in one sentence what you proposed. Never say it is done: it is done only when the person says yes.
+- One proposal per reply. Call the tool first, with your text empty. When the result comes back, the person sees the change and the steps it re-runs under your reply: do not repeat them; say only, in a few words, that it waits for their yes. Never say it is done: it is done only when the person says yes.
 - If the harness refuses the proposal, say plainly in one sentence what is missing, and ask the person for it.
 - A result cannot be changed: it is what tested code gives. If the person thinks a result is wrong, find with them which value that went into it, or which step, is wrong, and propose that.
 - If the person only asks what something means, or why, propose nothing. A branch that changes nothing is fine: it stays in the history as a question that was answered.

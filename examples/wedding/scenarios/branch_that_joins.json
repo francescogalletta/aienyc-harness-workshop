@@ -1,0 +1,62 @@
+{
+  "name": "branch_that_joins",
+  "layer": 4,
+  "kind": "ask",
+  "description": "The payments are worked out for 120 guests (total 36,100, later payments 15,050 each). From the guest count's chip the person opens a branch and says they will get no fewer than 150; the side assistant proposes 150, the person accepts, the branch joins the trunk as a decision, and steps 1 and 2 run again (total 43,000, later payments 18,500 each).",
+  "today": "2026-10-12",
+  "lines": [
+    "Can I cover the three payments if we invite 120 guests? The wedding is on 12 June 2027. Dinner is 230 a guest, plus 5,000 for extras, 2,000 for the DJ and 1,500 for the bar. The first payment is 6,000, due on 1 November 2026, and it counts toward the total. The second and third payments are each half of what remains, due 30 and 14 days before the wedding.",
+    {
+      "act": "branch",
+      "chip": {
+        "kind": "value",
+        "label": "Guest count",
+        "text": "120"
+      },
+      "text": "We will get no fewer than 150 guests."
+    },
+    {
+      "act": "accept"
+    }
+  ],
+  "expect": {
+    "runs": [
+      {
+        "module": "wedding_total_cost",
+        "inputs": {
+          "guest_count": "120",
+          "dinner_cost_per_guest": "230"
+        }
+      },
+      {
+        "module": "wedding_total_cost",
+        "inputs": {
+          "guest_count": "150",
+          "dinner_cost_per_guest": "230"
+        }
+      },
+      {
+        "module": "wedding_payment_schedule",
+        "inputs": {
+          "total_cost": "36100",
+          "first_payment_amount": "6000"
+        }
+      },
+      {
+        "module": "wedding_payment_schedule",
+        "inputs": {
+          "total_cost": "43000",
+          "first_payment_amount": "6000"
+        }
+      }
+    ],
+    "branches": {
+      "joined": 1,
+      "dead": 0,
+      "nodes": [
+        "value"
+      ]
+    },
+    "max_withheld": 0
+  }
+}

@@ -1364,7 +1364,7 @@
     {
      "kind": "value",
      "label": "Guest count",
-     "text": "150",
+     "text": "150 (was 120)",
      "status": null,
      "subject": {
       "kind": "value",
@@ -1378,7 +1378,7 @@
     {
      "kind": "result",
      "label": "Total cost",
-     "text": "43,000",
+     "text": "43,000 (was 36,100)",
      "status": null,
      "subject": {
       "kind": "result",
@@ -1390,7 +1390,7 @@
     {
      "kind": "result",
      "label": "Three payments",
-     "text": "3 values",
+     "text": "18,500 (was 15,050)",
      "status": null,
      "subject": {
       "kind": "result",

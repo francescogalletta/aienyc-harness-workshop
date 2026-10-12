@@ -10,8 +10,9 @@ through the gate (no model), the join notice is posted with chips, and the trunk
 import json
 
 from ..answers.agent import saved_inputs, step_of_module, store_input, tell_analyst, tool_result
-from ..answers.rerun import _as_written, _token, impact, last_answer_runs, old_values, rerun
+from ..answers.rerun import _as_written, _pairs, _token, impact, last_answer_runs, old_values, rerun
 from ..core import BadAction, NotNow, number_of, set_outcome
+from ..core.state import show_scalar
 from ..db import now
 from ..model import ToolSpec
 from . import marks
@@ -29,8 +30,9 @@ PROPOSE_CHANGE = ToolSpec(
         "value": {"type": "string"}, "step": {"type": "string"}, "words": {"type": "string"}},
         "required": ["kind", "words"]})
 
-PROPOSED = ("Proposed: {text}. It touches {steps}. The person sees it with Yes and No in this thread. Say in one "
-            "sentence what you proposed. Do not say it is done.")
+PROPOSED = ("Proposed: {text}. It touches {steps}. The person sees it with Yes and No in this thread, with what it "
+            "changes and re-runs: do not repeat that. Say only, in a few words, that it waits for their yes. Do not "
+            "say it is done.")
 NOT_THEIR_WORDS = "Those are not words the person wrote in this thread. Copy them exactly from their message."
 UNKNOWN_INPUT = ("Nothing in the last answer takes {input}. The values it took are: {inputs}. Propose one of them, or "
                  "tell the person to say it in the main chat.")
@@ -46,6 +48,7 @@ NOT_RUN_AGAIN = " Not run again: {steps} ({reason})."
 JOIN_NOTE = ("[harness] On a branch the person changed {label} from {old} to {new}, in their words: \"{words}\". The "
              "harness saved it and ran again: {runs}. These are now the current results; do not run them again "
              "unless the person asks.")
+WAS = "{new} (was {old})"
 ANSWER_FIRST = "Answer the question that is waiting first."
 NOT_PENDING = "That proposal is not waiting for a yes or a no."
 NOT_OPEN = "That branch is not open."
@@ -104,6 +107,48 @@ def touches(found: dict, state: dict) -> str:
 
 
 # --- Storage ---
+
+def _output(conn, run) -> tuple[bool, object]:
+    try:
+        row = conn.execute("SELECT output FROM calc_runs WHERE id = ?", (number_of(run, "r"),)).fetchone()
+    except (TypeError, ValueError):
+        row = None
+    return (True, json.loads(row["output"])) if row is not None else (False, None)
+
+
+def _what_changed(conn, old_run, new_run, shown: str) -> str:
+    """A re-run's result as what changed in it: the last leaf that differs, `new (was old)`, as the step line
+    writes a value; `shown` when nothing can be compared or nothing differs."""
+    (had_old, old), (had_new, new) = _output(conn, old_run), _output(conn, new_run)
+    if not (had_old and had_new):
+        return shown
+    differ = [(was, now_) for was, now_ in _pairs(old, new) if _token(was) != _token(now_)]
+    if not differ:
+        return shown
+    was, now_ = differ[-1]
+    return WAS.format(new=show_scalar(now_), old=show_scalar(was))
+
+
+def notice_chips(conn, node: dict, chips: list[dict]) -> list[dict]:
+    """A join notice's chips (ARCHITECTURE.md 12.7): the decision first, then the value that changed, `new (was
+    old)`, then one result per re-run, as what changed in it. The re-runs' other inputs and assumptions are the
+    old answer's, and stay with it."""
+    change = node.get("change") or {}
+    key, old = change.get("input"), change.get("from")
+    back = {new: was for was, new in (change.get("runs") or {}).items()}
+    kept, valued = [], False
+    for chip in chips:
+        subject = chip.get("subject") or {}
+        if chip.get("kind") == "value" and key and subject.get("key") == key and not valued:
+            valued = True
+            kept.append({**chip, "text": WAS.format(new=chip["text"], old=show_scalar(old))
+                         if old is not None else chip["text"]})
+        elif chip.get("kind") == "result":
+            kept.append({**chip, "text": _what_changed(conn, back.get(subject.get("run")), subject.get("run"),
+                                                       chip["text"])})
+    return [{"kind": "decision", "label": "Decided", "text": node["text"], "status": None,
+             "subject": {"kind": "decision", "node": node["id"]}}, *kept]
+
 
 def proposal_row(conn, proposal_id: str, conversation: str):
     try:

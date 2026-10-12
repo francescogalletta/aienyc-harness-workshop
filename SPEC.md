@@ -717,8 +717,8 @@ subject?}` without `thread` opens one: origin `you`, subject `subject` (a
 Subject of ARCHITECTURE.md 3.5 whose ids exist: a run of this conversation, a
 plan step or input, an assumption, a node; anything else is a BadAction), else
 `{"kind": "step", "step"}`, else `{"kind": "plan"}`; its `step` is the
-subject's step; its title the step's name, or the first words of the text,
-cut to 45 characters. It marks the person's other open side branches dead as
+subject's step; its title the first words of the text, cut to 45 characters
+(the branch's first line names its subject). It marks the person's other open side branches dead as
 12.5 says. With `thread` it says something in that thread, side or review; a
 dead side branch opens again. One reply per message, on the side lane, with
 `side.md` and the tools `look_up` (through `look_up_general`, at most three
@@ -794,7 +794,7 @@ a side branch of this conversation whose outcome is `open`; a pending
 proposal in it is declined; the branch dead. A malformed id is a BadAction.
 
 ```
-PROPOSED        = "Proposed: {text}. It touches {steps}. The person sees it with Yes and No in this thread. Say in one sentence what you proposed. Do not say it is done."
+PROPOSED        = "Proposed: {text}. It touches {steps}. The person sees it with Yes and No in this thread, with what it changes and re-runs: do not repeat that. Say only, in a few words, that it waits for their yes. Do not say it is done."
 NOT_THEIR_WORDS = "Those are not words the person wrote in this thread. Copy them exactly from their message."
 UNKNOWN_INPUT   = "Nothing in the last answer takes {input}. The values it took are: {inputs}. Propose one of them, or tell the person to say it in the main chat."
 VALUE_UNBACKED  = "The new value must be in the person's words in this thread, and {numbers} is not. Ask them for the figure itself. Do not work it out."
