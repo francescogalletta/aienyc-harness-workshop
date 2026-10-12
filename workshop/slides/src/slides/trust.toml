@@ -55,17 +55,20 @@ blocks = [
 
 [[slide]]
 id = "s-not-new"
-name = "Not new"
+name = "Ingredients"
 layout = "statement"
 blocks = [
-  { display = "None of this is new." },
-  { lines = [
-      { sub = "Unit tests [decades old]{aside step=1}", step = 1 },
-      { sub = "Planning with your agent [the most obvious one]{aside step=2}", step = 2 },
-      { sub = "Evals [everyone knows]{aside step=3}", step = 3 },
-      { sub = "Traces and observability [not new either]{aside step=4}", step = 4 },
-      { sub = "Loops and graphs [this season's fashion]{aside step=5}", step = 5 },
+  { label = "THE INGREDIENTS" },
+  { compact = true, lines = [
+      { sub = "🔌 Data connections", step = 1 },
+      { sub = "🧵 Traces and observability", step = 2 },
+      { sub = "🔁 Feedback loops", step = 3 },
+      { sub = "🔗 Sources", step = 4 },
+      { sub = "🧪 Evals and unit tests", step = 5 },
+      { sub = "🧰 Frameworks, SDKs, skills, etc.", step = 6 },
+      { sub = "🕸️ Loops and graphs [this season's fashion]{aside step=7}", step = 7 },
   ] },
+  { headline = "None of the ingredients are new.", step = 8 },
 ]
 
 [[slide]]
@@ -92,6 +95,18 @@ blocks = [
   { lines = [
       { sub = "So we built a harness for today, around a very simple example.", step = 1 },
       { sub = "This is just ONE very simple implementation of the principles.", step = 2 },
+  ] },
+]
+
+[[slide]]
+id = "s-taste"
+name = "Taste"
+layout = "statement"
+blocks = [
+  { lines = [
+      { headline = "🧑‍🍳 We cooked.", step = 1 },
+      { headline = "🍽️ You eat.", step = 2 },
+      { headline = "📖 Recipes come later. [now you know what good tastes like]{aside who step=4}", step = 3 },
   ] },
 ]
 

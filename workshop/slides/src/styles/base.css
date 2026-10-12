@@ -58,6 +58,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .gap-l  { margin-top: var(--gap-l); }
 .gap-xl { margin-top: var(--gap-xl); }
 .stack-tight > * + * { margin-top: var(--gap-tight); }
+.stack-tight.compact .sub { font-size: var(--sub-compact-size); }
 
 /* ---------- Build steps (fragments): they snap ----------
    data-step="n"        hidden until step n            (.shown)

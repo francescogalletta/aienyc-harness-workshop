@@ -125,6 +125,7 @@ img { max-width: 100%; }
   --headline-leading: 1.1;
   --sub-size: var(--fs-xl);
   --sub-leading: 1.25;
+  --sub-compact-size: var(--fs-l);  /* a long list of subs (lines with compact) */
   --label-size: var(--fs-xs);
   --code-size: var(--fs-m);
   --hero-size: var(--fs-7xl);
@@ -683,6 +684,7 @@ a:focus-visible, button:focus-visible { outline: var(--focus-ring-width) solid v
 .gap-l  { margin-top: var(--gap-l); }
 .gap-xl { margin-top: var(--gap-xl); }
 .stack-tight > * + * { margin-top: var(--gap-tight); }
+.stack-tight.compact .sub { font-size: var(--sub-compact-size); }
 
 /* ---------- Build steps (fragments): they snap ----------
    data-step="n"        hidden until step n            (.shown)
@@ -1249,17 +1251,20 @@ figure.viz { align-self: stretch; }
   <p class="display gap-m" data-step="1">Then you can truly delegate the boring work.</p>
 </section>
 
-<!-- 11 · Not new -->
+<!-- 11 · Ingredients -->
 <section class="slide" id="s-not-new">
   <p class="section-label">Why trust</p>
-  <h1 class="display">None of this is new.</h1>
-  <div class="stack-tight gap-l">
-    <p class="sub" data-step="1">Unit tests <span class="hand-aside" data-step="1">decades old</span></p>
-    <p class="sub" data-step="2">Planning with your agent <span class="hand-aside" data-step="2">the most obvious one</span></p>
-    <p class="sub" data-step="3">Evals <span class="hand-aside" data-step="3">everyone knows</span></p>
-    <p class="sub" data-step="4">Traces and observability <span class="hand-aside" data-step="4">not new either</span></p>
-    <p class="sub" data-step="5">Loops and graphs <span class="hand-aside" data-step="5">this season's fashion</span></p>
+  <p class="label">THE INGREDIENTS</p>
+  <div class="stack-tight compact gap-m">
+    <p class="sub" data-step="1">🔌 Data connections</p>
+    <p class="sub" data-step="2">🧵 Traces and observability</p>
+    <p class="sub" data-step="3">🔁 Feedback loops</p>
+    <p class="sub" data-step="4">🔗 Sources</p>
+    <p class="sub" data-step="5">🧪 Evals and unit tests</p>
+    <p class="sub" data-step="6">🧰 Frameworks, SDKs, skills, etc.</p>
+    <p class="sub" data-step="7">🕸️ Loops and graphs <span class="hand-aside" data-step="7">this season's fashion</span></p>
   </div>
+  <h2 class="headline gap-m" data-step="8">None of the ingredients are new.</h2>
 </section>
 
 <!-- 12 · What we cover -->
@@ -1285,7 +1290,17 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 14 · The framework (builds bottom-up) -->
+<!-- 14 · Taste -->
+<section class="slide" id="s-taste">
+  <p class="section-label">Why trust</p>
+  <div class="stack-tight">
+    <p class="headline" data-step="1">🧑‍🍳 We cooked.</p>
+    <p class="headline" data-step="2">🍽️ You eat.</p>
+    <p class="headline" data-step="3">📖 Recipes come later. <span class="hand-aside ask-who" data-step="4">now you know what good tastes like</span></p>
+  </div>
+</section>
+
+<!-- 15 · The framework (builds bottom-up) -->
 <section class="slide tall" id="s-framework">
   <p class="section-label">Why trust</p>
   <span data-step="6" data-confetti hidden></span>
@@ -1302,26 +1317,26 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 15 · The real ask -->
+<!-- 16 · The real ask -->
 <section class="slide centred" id="s-bait">
   <p class="section-label">Today's demo</p>
   <h1 class="display">Speaking of <span class="trust">trust</span>…</h1>
 </section>
 
-<!-- 16 · The value question -->
+<!-- 17 · The value question -->
 <section class="slide centred" id="s-value">
   <p class="section-label">Today's demo</p>
   <h1 class="display">I have an ulterior motive today.</h1>
 </section>
 
-<!-- 17 · The real ask -->
+<!-- 18 · The real ask -->
 <section class="slide centred" id="s-ask">
   <p class="section-label">Today's demo</p>
   <p class="display step from-you ask">You are here to help <span class="ask-us">me</span>.</p>
   <p class="hand-aside ask-who gap-xs" data-step="1">(Francesco)</p>
 </section>
 
-<!-- 18 · The demo -->
+<!-- 19 · The demo -->
 <section class="slide" id="s-demo">
   <p class="section-label">Today's demo</p>
   <div class="mega-row">
@@ -1331,7 +1346,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="1">Figuring out the finances around it, to be exact.</p>
 </section>
 
-<!-- 19 · Show of hands -->
+<!-- 20 · Show of hands -->
 <section class="slide" id="s-hands">
   <p class="section-label">Today's demo</p>
   <p class="label">SHOW OF HANDS</p>
@@ -1345,14 +1360,14 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 20 · Expensive -->
+<!-- 21 · Expensive -->
 <section class="slide centred" id="s-expensive">
   <p class="section-label">Today's demo</p>
   <h1 class="display">In short, these things are expensive and complicated.</h1>
   <p class="display gap-m" data-step="1">I wouldn't recommend.</p>
 </section>
 
-<!-- 21 · Follow along -->
+<!-- 22 · Follow along -->
 <section class="slide" id="s-follow">
   <p class="section-label">Today's demo</p>
   <p class="label">TODAY</p>
@@ -1360,7 +1375,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="2">Your own plan: take it home. workshop/BUILD_YOUR_OWN.md</p>
 </section>
 
-<!-- 22 · Setup -->
+<!-- 23 · Setup -->
 <section class="slide" id="s-setup">
   <p class="section-label">Setup</p>
   <div class="setup">
@@ -1382,7 +1397,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 23 · What you cloned -->
+<!-- 24 · What you cloned -->
 <section class="slide" id="s-repo">
   <p class="section-label">Setup</p>
   <p class="label">WHAT YOU JUST CLONED</p>
@@ -1394,7 +1409,7 @@ figure.viz { align-self: stretch; }
   </ul>
 </section>
 
-<!-- 24 · The two hours -->
+<!-- 25 · The two hours -->
 <section class="slide" id="s-map">
   <p class="section-label">Setup</p>
   <p class="label">TODAY'S STRUCTURE</p>
@@ -1410,7 +1425,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 25 · Fine print -->
+<!-- 26 · Fine print -->
 <section class="slide" id="s-fine">
   <p class="section-label">Setup</p>
   <p class="label">DISCLAIMER</p>
@@ -1419,7 +1434,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-s" data-step="2">If something breaks or does not make sense, raise your hand. We will come to you.</p>
 </section>
 
-<!-- 26 · Check it works -->
+<!-- 27 · Check it works -->
 <section class="slide" id="s-check">
   <p class="section-label">Setup</p>
   <p class="label">CHECK IT WORKS</p>
@@ -1429,13 +1444,13 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="1">The wedding plan opens in your browser.</p>
 </section>
 
-<!-- 27 · Principle 1 · Shared Domain -->
+<!-- 28 · Principle 1 · Shared Domain -->
 <section class="slide" id="s-p1" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-1-ink)">1</span><h1 class="display">Shared Domain</h1><span class="p-emoji" aria-hidden="true">🤝</span></div>
 </section>
 
-<!-- 28 · P1 · Why -->
+<!-- 29 · P1 · Why -->
 <section class="slide" id="s-p1-why" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
   <p class="label">WHY</p>
@@ -1443,13 +1458,13 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="1">Start from the goal. Work backwards, together.</p>
 </section>
 
-<!-- 29 · P1 · Demo -->
+<!-- 30 · P1 · Demo -->
 <section class="slide" id="s-p1-demo" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 30 · P1 · Try it 1 -->
+<!-- 31 · P1 · Try it 1 -->
 <section class="slide" id="s-p1-try-1" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
   <p class="label">TRY IT · 1 OF 2</p>
@@ -1460,7 +1475,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">You can tell how the plan is being built, and where decisions are coming from.</p>
 </section>
 
-<!-- 31 · P1 · Try it 2 -->
+<!-- 32 · P1 · Try it 2 -->
 <section class="slide" id="s-p1-try-2" data-principle="1">
   <p class="section-label">1 · Shared Domain</p>
   <p class="label">TRY IT · 2 OF 2</p>
@@ -1472,7 +1487,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">Only your words change the plan. Its numbers wait for a rebuild.</p>
 </section>
 
-<!-- 32 · Principle 2 · Consistency -->
+<!-- 33 · Principle 2 · Consistency -->
 <section class="slide" id="s-p2" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-2-ink)">2</span><h1 class="display">Consistency</h1><span class="p-emoji" aria-hidden="true">🧮</span></div>
@@ -1480,7 +1495,7 @@ figure.viz { align-self: stretch; }
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-1); --oc:var(--on-principle-1)">1</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The shared plan says which parts never change.</p></div>
 </section>
 
-<!-- 33 · P2 · Why -->
+<!-- 34 · P2 · Why -->
 <section class="slide" id="s-p2-why" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <p class="label">WHY</p>
@@ -1488,7 +1503,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="1">The model picks the tool. It never does the arithmetic.</p>
 </section>
 
-<!-- 34 · P2 · Without it -->
+<!-- 35 · P2 · Without it -->
 <section class="slide" id="s-p2-without" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <p class="label">WITHOUT IT</p>
@@ -1499,7 +1514,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 35 · P2 · Examples -->
+<!-- 36 · P2 · Examples -->
 <section class="slide" id="s-p2-examples" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <p class="label">EXAMPLES</p>
@@ -1514,13 +1529,13 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m">Each one is code, with tests.</p>
 </section>
 
-<!-- 36 · P2 · Demo -->
+<!-- 37 · P2 · Demo -->
 <section class="slide" id="s-p2-demo" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 37 · P2 · Try it 1 -->
+<!-- 38 · P2 · Try it 1 -->
 <section class="slide" id="s-p2-try-1" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <p class="label">TRY IT · 1 OF 2</p>
@@ -1531,7 +1546,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">Every number comes from code you can read, tested now.</p>
 </section>
 
-<!-- 38 · P2 · Try it 2 -->
+<!-- 39 · P2 · Try it 2 -->
 <section class="slide" id="s-p2-try-2" data-principle="2">
   <p class="section-label">2 · Consistency</p>
   <p class="label">TRY IT · 2 OF 2</p>
@@ -1544,7 +1559,7 @@ figure.viz { align-self: stretch; }
   <p class="footnote">Then reset: Ctrl+C, rm -rf my/var/examples/wedding, start again.</p>
 </section>
 
-<!-- 39 · Principle 3 · Evidence -->
+<!-- 40 · Principle 3 · Evidence -->
 <section class="slide" id="s-p3" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-3-ink)">3</span><h1 class="display">Evidence</h1><span class="p-emoji" aria-hidden="true">🧾</span></div>
@@ -1552,7 +1567,7 @@ figure.viz { align-self: stretch; }
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-2); --oc:var(--on-principle-2)">2</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Tested code (and everything else) leaves a trail we can follow.</p></div>
 </section>
 
-<!-- 40 · P3 · Why -->
+<!-- 41 · P3 · Why -->
 <section class="slide" id="s-p3-why" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <p class="label">WHY</p>
@@ -1560,7 +1575,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="1">Keep the trail: where each thing came from, and how far to trust it.</p>
 </section>
 
-<!-- 41 · P3 · Without it -->
+<!-- 42 · P3 · Without it -->
 <section class="slide" id="s-p3-without" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <p class="label">WITHOUT IT</p>
@@ -1571,7 +1586,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 42 · P3 · Examples -->
+<!-- 43 · P3 · Examples -->
 <section class="slide" id="s-p3-examples" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <p class="label">EXAMPLE: WE NEED INCOME AS AN INPUT</p>
@@ -1589,7 +1604,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 43 · P3 · Receipts -->
+<!-- 44 · P3 · Receipts -->
 <section class="slide" id="s-p3-receipts" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <h1 class="display">“I ran the numbers, but the template changed recently.”</h1>
@@ -1597,13 +1612,13 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-s" data-step="2">Show the receipts for what matters, not everything.</p>
 </section>
 
-<!-- 44 · P3 · Demo -->
+<!-- 45 · P3 · Demo -->
 <section class="slide" id="s-p3-demo" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 45 · P3 · Try it 1 -->
+<!-- 46 · P3 · Try it 1 -->
 <section class="slide" id="s-p3-try-1" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <p class="label">TRY IT · 1 OF 2</p>
@@ -1615,7 +1630,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">The answer carries its trail: which step, which inputs.</p>
 </section>
 
-<!-- 46 · P3 · Try it 2 -->
+<!-- 47 · P3 · Try it 2 -->
 <section class="slide" id="s-p3-try-2" data-principle="3">
   <p class="section-label">3 · Evidence</p>
   <p class="label">TRY IT · 2 OF 2</p>
@@ -1626,7 +1641,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">Any number leads back to its step, its inputs and its tests.</p>
 </section>
 
-<!-- 47 · Principle 4 · Accountability -->
+<!-- 48 · Principle 4 · Accountability -->
 <section class="slide" id="s-p4" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-4-ink)">4</span><h1 class="display">Accountability</h1><span class="p-emoji" aria-hidden="true">🙋</span></div>
@@ -1634,7 +1649,7 @@ figure.viz { align-self: stretch; }
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-3); --oc:var(--on-principle-3)">3</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">The evidence is what you decide with.</p></div>
 </section>
 
-<!-- 48 · P4 · Why -->
+<!-- 49 · P4 · Why -->
 <section class="slide" id="s-p4-why" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <p class="label">WHY</p>
@@ -1642,14 +1657,14 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-m" data-step="1">That is your leverage. Keep it.</p>
 </section>
 
-<!-- 49 · P4 · Ambiguity -->
+<!-- 50 · P4 · Ambiguity -->
 <section class="slide" id="s-p4-ambiguity" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <h1 class="display">Reduce ambiguity. Do not remove it.</h1>
   <p class="sub gap-m" data-step="1">The judgement calls stay with you. The harness makes them easy to make.</p>
 </section>
 
-<!-- 50 · P4 · Without it -->
+<!-- 51 · P4 · Without it -->
 <section class="slide" id="s-p4-without" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <p class="label">WITHOUT IT</p>
@@ -1660,7 +1675,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 51 · P4 · In practice -->
+<!-- 52 · P4 · In practice -->
 <section class="slide" id="s-p4-examples" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <p class="label">IN PRACTICE</p>
@@ -1672,13 +1687,13 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 52 · P4 · Demo -->
+<!-- 53 · P4 · Demo -->
 <section class="slide" id="s-p4-demo" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 53 · P4 · Try it 1 -->
+<!-- 54 · P4 · Try it 1 -->
 <section class="slide" id="s-p4-try-1" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <p class="label">TRY IT · 1 OF 2</p>
@@ -1690,7 +1705,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">Your figures change only with your yes.</p>
 </section>
 
-<!-- 54 · P4 · Try it 2 -->
+<!-- 55 · P4 · Try it 2 -->
 <section class="slide" id="s-p4-try-2" data-principle="4">
   <p class="section-label">4 · Accountability</p>
   <p class="label">TRY IT · 2 OF 2</p>
@@ -1702,7 +1717,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">Nothing to decide, so nothing is asked and nothing changes.</p>
 </section>
 
-<!-- 55 · Principle 5 · Verification -->
+<!-- 56 · Principle 5 · Verification -->
 <section class="slide" id="s-p5" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <div class="p-title"><span class="mega p-num" style="--c:var(--principle-5-ink)">5</span><h1 class="display">Verification</h1><span class="p-emoji" aria-hidden="true">🔍</span></div>
@@ -1710,7 +1725,7 @@ figure.viz { align-self: stretch; }
   <div class="builds-on gap-l"><span class="cell" style="--c:var(--principle-4); --oc:var(--on-principle-4)">4</span><svg class="arrow" viewBox="0 0 64 18"><path class="l" d="M2 9H52" pathLength="100"/><path class="h" d="M50 2l14 7-14 7z"/></svg><p class="sub">Each challenge is yours to use or dismiss.</p></div>
 </section>
 
-<!-- 56 · P5 · Why -->
+<!-- 57 · P5 · Why -->
 <section class="slide" id="s-p5-why" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <p class="label">WHY</p>
@@ -1719,7 +1734,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-s" data-step="2">And roughly what the answer should look like.</p>
 </section>
 
-<!-- 57 · P5 · Thin slices -->
+<!-- 58 · P5 · Thin slices -->
 <section class="slide" id="s-p5-thin" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <div class="split">
@@ -1736,7 +1751,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 58 · P5 · Without it -->
+<!-- 59 · P5 · Without it -->
 <section class="slide" id="s-p5-without" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <p class="label">WITHOUT IT</p>
@@ -1747,7 +1762,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 59 · P5 · Examples -->
+<!-- 60 · P5 · Examples -->
 <section class="slide" id="s-p5-examples" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <p class="label">EXAMPLES</p>
@@ -1759,13 +1774,13 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-l" data-step="3">Each challenge is yours to use or dismiss.</p>
 </section>
 
-<!-- 60 · P5 · Demo -->
+<!-- 61 · P5 · Demo -->
 <section class="slide" id="s-p5-demo" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <div class="panel ph" data-placeholder><p class="label">DEMO</p></div>
 </section>
 
-<!-- 61 · P5 · Try it 1 -->
+<!-- 62 · P5 · Try it 1 -->
 <section class="slide" id="s-p5-try-1" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <p class="label">TRY IT · 1 OF 2</p>
@@ -1776,7 +1791,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">A second look you can act on.</p>
 </section>
 
-<!-- 62 · P5 · Try it 2 -->
+<!-- 63 · P5 · Try it 2 -->
 <section class="slide" id="s-p5-try-2" data-principle="5">
   <p class="section-label">5 · Verification</p>
   <p class="label">TRY IT · 2 OF 2</p>
@@ -1787,7 +1802,7 @@ figure.viz { align-self: stretch; }
   <p class="sub gap-xs">Each challenge is yours to use or dismiss.</p>
 </section>
 
-<!-- 63 · Wrap · The framework again -->
+<!-- 64 · Wrap · The framework again -->
 <section class="slide tall" id="s-framework-again" data-principle="wrap" data-rail="off">
   <p class="section-label">Wrap</p>
   <div class="stack">
@@ -1803,7 +1818,7 @@ figure.viz { align-self: stretch; }
   </div>
 </section>
 
-<!-- 64 · Wrap · Takeaways -->
+<!-- 65 · Wrap · Takeaways -->
 <section class="slide" id="s-takeaways" data-principle="wrap">
   <p class="section-label">Wrap</p>
   <p class="label">WHEN TRUST IS PARAMOUNT</p>
@@ -1814,13 +1829,13 @@ figure.viz { align-self: stretch; }
   <h1 class="display gap-m" data-step="4">Design to increase <span class="trust">trust</span>. Never assume it.</h1>
 </section>
 
-<!-- 65 · Wrap · Better models -->
+<!-- 66 · Wrap · Better models -->
 <section class="slide" id="s-better" data-principle="wrap">
   <p class="section-label">Wrap</p>
   <h1 class="display">Better models still have to earn <span class="trust">trust</span>.</h1>
 </section>
 
-<!-- 66 · Wrap · Questions -->
+<!-- 67 · Wrap · Questions -->
 <section class="slide" id="s-questions" data-principle="wrap">
   <p class="section-label">Wrap</p>
   <h1 class="mega">Questions</h1>
