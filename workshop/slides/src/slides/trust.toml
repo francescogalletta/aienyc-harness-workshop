@@ -102,9 +102,7 @@ blocks = [
   { display = "We want you to feel these principles work." },
   { lines = [
       { sub = "So we built a harness for today, around a very simple example.", step = 1 },
-      { sub = "It is ONE implementation of the principles.", step = 2 },
-      { sub = "The repo has everything we used, so you can do it too.", step = 3 },
-      { sub = "They scale to enterprise. [no secret sauce today]{aside step=5}", step = 4 },
+      { sub = "This is just ONE very simple implementation of the principles.", step = 2 },
   ] },
 ]
 
