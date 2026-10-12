@@ -20,7 +20,7 @@ items = [
   { path = "harness/", gloss = "the finished harness" },
   { path = "examples/wedding/", gloss = "today's example" },
   { path = "my/", gloss = "your copy of the example" },
-  { path = "workshop/", gloss = "the guide and these slides" },
+  { path = "workshop/", gloss = "these slides and the speaker notes" },
   { path = "tests/", gloss = "offline tests per layer", mute = 1 },
   { path = "reference/", gloss = "checked finance terms", mute = 1 },
   { path = "design/", gloss = "product design, page source", mute = 1 },
