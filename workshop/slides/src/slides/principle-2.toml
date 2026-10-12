@@ -47,7 +47,7 @@ name = "P2 · Try it 1"
 layout = "statement"
 blocks = [
   { label = "TRY IT · 1 OF 2" },
-  { headline = "Click step 1, then Code and tests, then Run tests now." },
+  { headline = "Click step 1, then Build, then Run tests now." },
   { label = "YOU SEE", gap = "s" },
   { sub = "The code, its tests: 4 tests, all passing.", gap = "xs" },
   { label = "WHY", gap = "m" },

@@ -80,11 +80,11 @@ Look for (legend entry 1, blue): the goal, the step outlines, the input pills, a
 
 Open the example again. Look for (legend entry 2, purple): the button reads `All 6 built`, and each calculation step shows `N examples · P/P`, its worked examples and how many tests pass. Steps 4 and 7 are the person's and carry no tag.
 
-1. Click step 1, then **Code and tests**, then **Run tests now**.\
-   **You see** The code, its tests: `4 tests, all passing`.\
+1. Click step 1, then **Build**, then **Unit tests**, then **Run tests now**.\
+   **You see** `Unit tests (4) all passing`, with the tests under it. **Code** opens the module.\
    **Why** Every number comes from code you can read, tested now.
 
-   The same pop-up lists the step's worked examples, each "checked by a second pass": a second model pass, not a person. Work one out with a calculator; a mistake both passes make gets through.
+   Under **Golden examples**, the same pop-up lists the step's worked examples: answers worked by hand before the code was written, which the code must reproduce. A second model pass checked them, not a person, until you approve them: one by one, or with **Approve all examples**. Work one out with a calculator; a mistake both passes make gets through. **Unit tests** are separate: the code writer's own tests of the code, which nobody approves.
 
 2. Stop the page, delete one built module and start again:
    ```

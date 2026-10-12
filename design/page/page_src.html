@@ -86,7 +86,26 @@ body { min-height: 100vh; }
 .fa-code { margin: 0; max-height: 240px; overflow: auto; padding: 8px 10px; font-size: 12px; line-height: 16px; background: var(--ground); border-radius: var(--radius-sm); white-space: pre; }
 .fa-acts { display: flex; flex-wrap: wrap; gap: 4px 16px; }
 .fa-ex { display: flex; flex-direction: column; gap: 2px; }
-.fa-ex .fa-sub .fah-link { margin-left: 8px; font-size: 12px; color: var(--ink); }
+.fa-ex .fah-pop__row { font-size: 12px; line-height: 16px; }
+.fa-ex .fah-pop__row > :first-child { font-weight: 600; color: var(--ink-2); }
+.fa-ex .fah-pop__row .fah-link { color: var(--ink); }
+.fa-ex__out { color: var(--ink-2); }
+/* A section of the pop-up that folds: its name in the principle's ink, a one-line summary, a turning marker */
+.fa-fold { display: flex; align-items: baseline; gap: 6px; width: 100%; min-width: 0; min-height: 28px; margin: 4px 0 0; padding: 4px 0;
+  font: inherit; font-size: 12px; line-height: 16px; text-align: left; color: var(--ink-2); background: none; border: 0; cursor: pointer; }
+.fa-part > .fa-fold:first-child { margin-top: 0; }
+.fa-fold::before { content: "▸"; flex: none; width: 10px; color: var(--p-ink, var(--ink-2)); transition: transform var(--dur-base) var(--ease-out); }
+.fa-fold[aria-expanded="true"]::before { transform: rotate(90deg); }
+.fa-fold--still { cursor: default; }
+.fa-fold--still::before { content: ""; }
+.fa-fold__name { flex: none; font-weight: 600; color: var(--p-ink, var(--ink-2)); }
+.fa-fold__sum { flex: 1 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); }
+.fa-fold:hover .fa-fold__name { text-decoration: underline; text-underline-offset: 2px; }
+.fa-fold--sub { margin-top: 2px; min-height: 24px; }
+.fa-fold--sub .fa-fold__name { color: var(--ink-2); }
+.fa-fold__body { display: flex; flex-direction: column; gap: 6px; }
+.fa-fold__body .fa-fold__body { padding-left: 16px; }
+@media (pointer: coarse) { .fa-fold { min-height: 44px; } }
 .fah-pop .fah-row .fah-btn { min-height: 36px; padding: 0 12px; }
 .fa-tablewrap { overflow-x: auto; }
 .fa-table { border-collapse: collapse; font-size: 12px; line-height: 16px; }
@@ -139,7 +158,16 @@ body { min-height: 100vh; }
 .fah-decision .fah-row .fah-btn, .fah-notice .fah-row .fah-btn { min-height: 36px; padding: 0 12px; }
 .fah-notice .dg-facts { margin-top: 2px; }
 .dg-facts dt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }   /* a long step name: two lines */
-.dg-facts .fa-more { font-size: 12px; line-height: 20px; color: var(--ink-2); }
+/* A reply clamps at four lines until the person asks for the rest; the clip lets a figure's menu show above it */
+.fa-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+.fa-clamp:has(.dg-fig:hover, .dg-fig:focus-within) { overflow: visible; clip-path: inset(-160px -100vw 0 -100vw); }
+.fa-clampbtn, .fa-factsbtn { align-self: flex-start; font-size: 12px; line-height: 16px; color: var(--ink-2); }
+.fa-clampbtn { margin-top: -4px; }
+.fa-facts { display: flex; flex-direction: column; gap: 6px; }
+.fa-factsbtn { display: inline-flex; gap: 6px; align-items: baseline; min-height: 24px; padding: 2px 0; margin: 0; font-family: inherit; background: none; border: 0; cursor: pointer; text-align: left; }
+.fa-factsbtn::before { content: "▸"; display: inline-block; transition: transform var(--dur-base) var(--ease-out); }
+.fa-factsbtn[aria-expanded="true"]::before { transform: rotate(90deg); }
+.fa-factsbtn:hover { text-decoration: underline; text-underline-offset: 2px; }
 .fa-compose { padding: 8px 16px 16px; background: var(--surface); }
 .fa-compose .fah-composer { flex-wrap: wrap; row-gap: 4px; }
 .fa-compose .fah-composer textarea { flex: 1 1 170px; min-width: 0; min-height: 32px; max-height: 160px; padding: 6px 0; font: inherit; line-height: 20px; color: var(--ink); background: transparent; border: 0; outline: 0; resize: none; overflow-y: auto; overflow-wrap: anywhere; }

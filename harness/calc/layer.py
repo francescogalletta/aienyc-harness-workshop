@@ -1,7 +1,7 @@
 """Layer 2, build and tested calculations (SPEC 4).
 
 Adoption of module folders on load and when a plan is accepted, the actions `build`, `confirm_example`,
-`confirm_plan_check` and `run_tests`, the step helper (`route`, `helper.py`), the `build` key on every
+`confirm_examples`, `confirm_plan_check` and `run_tests`, the step helper (`route`, `helper.py`), the `build` key on every
 step (set on calculation steps once the plan is accepted, with added steps drawn after the plan's), the
 `build` command and the `steps` expectation of replay.
 """
@@ -22,6 +22,7 @@ TESTING = "running the tests"
 NO_STEP = "The plan has no calculation step '{step}'."
 NO_EXAMPLE = "Step '{step}' has no example {n}."
 ALREADY_YOURS = "Example {n} is already confirmed by you."
+NOTHING_TO_CONFIRM = "Step '{step}' has no examples left to confirm."
 BEING_BUILT = "That step is being built right now."
 NO_DEPARTURES = "That step has nothing to confirm."
 NO_MODULE = "That step has no registered module to test."
@@ -102,6 +103,24 @@ def confirm_example(core, payload: dict) -> None:
         raise NotNow(BEING_BUILT)
     result = record_confirmation(core.conn, step_id, n, session_id=core.conversation)
     if result["rebuild"]:
+        core.queue("main", lambda work: rebuild_code(work, step_id), what="build", step=step_id,
+                   text="checking the code against your confirmation")
+
+
+def confirm_examples(core, payload: dict) -> None:
+    """The person says every example the second pass agreed with is right. Left-out examples stay as they
+    are: confirming one changes what the module is tested on, so it stays a deliberate `confirm_example`."""
+    step_id = _calculation(core, payload)
+    waiting = [each["n"] for each in (get_build(core.conn, step_id) or {}).get("examples", [])
+               if each.get("checked_by") == "second_pass"]
+    if not waiting:
+        raise NotNow(NOTHING_TO_CONFIRM.format(step=step_id))
+    if building_step(core.memory) == step_id:
+        raise NotNow(BEING_BUILT)
+    rebuild = False
+    for n in waiting:
+        rebuild = record_confirmation(core.conn, step_id, n, session_id=core.conversation)["rebuild"] or rebuild
+    if rebuild:
         core.queue("main", lambda work: rebuild_code(work, step_id), what="build", step=step_id,
                    text="checking the code against your confirmation")
 
@@ -191,7 +210,8 @@ def _check_steps(value: dict, session) -> dict:
 LAYER = Layer(
     number=2, name="build", schema=Path(__file__).with_name("schema.sql"),
     contribute=contribute,
-    actions={"build": build, "confirm_example": confirm_example, "confirm_plan_check": confirm_plan_check,
+    actions={"build": build, "confirm_example": confirm_example,
+             "confirm_examples": confirm_examples, "confirm_plan_check": confirm_plan_check,
              "run_tests": run_tests},
     route=route,
     hooks={"loaded": loaded, "plan_accepted": plan_accepted},
