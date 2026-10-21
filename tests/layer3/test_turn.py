@@ -1,4 +1,5 @@
 """SPEC 5.1: an analyst turn on the main lane: what the model is told, its calls, and what ends a turn."""
+import re
 from pathlib import Path
 
 from harness.answers.agent import tool_result
@@ -75,6 +76,23 @@ def test_a_new_process_starts_fresh_but_the_prompt_holds_what_was_saved_and_run(
     assert state["chat"][0]["text"] == "Amount A is 100 and B is 50"      # the chat is the same conversation
 
 
+def test_the_model_sees_the_runs_of_the_last_answer_and_the_last_eight_runs(open_session):
+    from harness.calc import gate
+
+    session = open_session([reply("Hello")])
+    conversation = session.conversation
+    first = gate.call(session.conn, "total", {"a": "1", "b": "2"}, assumptions=[], expected="3",
+                      session_id=conversation)
+    session.post("It is 3.", who="assistant", kind="text", data={"_runs": [first["run_id"]]})
+    later = [gate.call(session.conn, "double", {"total": str(n)}, assumptions=[], expected="x",
+                       session_id=conversation)["run_id"] for n in range(100, 110)]
+    say(session, "Hello")
+    known = session.script.calls[0]["system"].split("[earlier runs in this conversation]")[1]
+    runs = [int(each) for each in re.findall(r'"run": (\d+)', known)]
+    assert runs == sorted([first["run_id"], *later[-8:]])        # the last answer's run, and the last eight
+    assert later[0] not in runs
+
+
 def test_an_empty_reply_is_asked_for_again(open_session):
     session = open_session([reply(""), reply("Fine")])
     state = say(session, "Hello")
@@ -82,10 +100,10 @@ def test_an_empty_reply_is_asked_for_again(open_session):
     assert session.script.calls[1]["messages"][-1]["content"].startswith("[harness]")
 
 
-def test_a_turn_stops_after_ten_model_calls(open_session):
-    session = open_session([call("nothing_here")] * 10)
+def test_a_turn_stops_after_twenty_model_calls(open_session):
+    session = open_session([call("nothing_here")] * 20)
     state = say(session, "Hello")
-    assert len(session.script.calls) == 10
+    assert len(session.script.calls) == 20
     assert [(message["who"], message["kind"]) for message in assistant(state)] == [("harness", "text")]
     assert events(session, "ask.stopped") and not events(session, "ask.reply")
 
