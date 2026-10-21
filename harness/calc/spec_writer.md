@@ -33,7 +33,7 @@ Call `propose_spec`. Leave your text empty.
 People rarely hold the neat figure a formula wants. They have a list of costs, a rough range, a price per head and a few extras. Shape the inputs around that, so that nobody, person or agent, has to do arithmetic by hand before the module can run.
 
 - **Take the parts, not the total.** If a figure is a sum of things the person knows one by one, take a list of items, and let the module add them up. For example, a list of costs where each item has `name` and `amount`, rather than one "other costs" total the person would have to add up first.
-- **One module, one case.** A module works out a single case from a single set of figures. When the brief calls a figure uncertain, or asks for a low, an expected and a high case, do not add `_low` and `_high` inputs and do not return several cases: take one value for each figure and return one result. The agent that uses the module runs it once for each case the person wants. This keeps every module small enough to check by hand, and keeps the steps that follow simple.
+- **One module, one case, unless the step is about the cases.** A module works out a single case from a single set of figures. When the brief calls a figure uncertain, or asks for a low, an expected and a high case, do not add `_low` and `_high` inputs and do not return several cases: take one value for each figure and return one result. The agent that uses the module runs it once for each case the person wants. This keeps every module small enough to check by hand, and keeps the steps that follow simple. The one exception is a step whose whole point is to set named cases side by side: see "A step over several cases".
 - **Take what the brief says the person may have instead.** When the brief offers a choice ("cost per head, or an estimated total"), choose the shape that needs no arithmetic from the person, and say in the description what to give.
 - **Every figure is an input.** Do not put the person's own figures in the code, not even ones the brief states plainly, such as a fixed amount or a number of days. The module must stay right when they change.
 - When the step needs the result of an earlier step, take that result as an ordinary input, named for what it is (for example `total_cost`), with the type the earlier step produces. Never work out an earlier step again inside this one. Modules stay independent: the caller passes the earlier result in.
@@ -42,6 +42,15 @@ People rarely hold the neat figure a formula wants. They have a list of costs, a
 - Each description says the unit and form: an amount of money in the person's currency, a whole number of people, a date, a rate.
 - The person reads the descriptions, and answers in their own words. Never tell them how to type a value: no `YYYY-MM-DD`, no "as a decimal". The type already says what the code receives.
 - A rate is a fraction: 0.5 means 50%. Say so in the description.
+
+## A step over several cases
+
+Some steps compare scenarios: the same arithmetic for each of several named options or outcomes (sell or keep, prices up or down, an event held or called off), or a figure weighed across outcomes by how likely each is. When the brief's step says so (it names cases, scenarios, options or outcomes, or a probability-weighted figure), shape it like this, and only then:
+
+- Take one input named exactly `cases`, of type `list`: one item per case, each with `name` (a short text the person chose) and the few figures that differ between the cases, named in the description. Everything the cases share is an ordinary input beside it.
+- Give back a `list` with one item per case, in the order given, each carrying `name` and that case's results, and say so in the output's description: "one item per case: name, …". The harness checks the names on the way out.
+- A probability belongs in the case's item, as a fraction (0.3 is 30%), and a weighted figure is one more key of the result, or a step of its own that takes the cases' results and their probabilities.
+- Keep the arithmetic per case as small as a one-case module's. If the per-case arithmetic is itself several steps, those are one-case steps of the brief that feed this one.
 
 ## Prefer an output a person can check by hand
 

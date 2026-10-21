@@ -66,8 +66,9 @@ The diagram shows particulars and open questions on the step they belong to. Giv
    - `judgment`: a call that is the person's to make, such as deciding what to change once the results are in.
    - `input`: a figure or fact only the person can supply.
    Give each step a short name a person would use, such as "Fund balance", not a sentence.
-8. Ask how they will know it works: what they want to see, how often, and what would make them trust it.
-9. The limit is {max_questions} questions, but most interviews need three or four. Stop asking and call `write_brief` as soon as you know: the goal and whether it is ongoing or one-off, which figures the steps need, and any way their situation differs from the standard case. Anything still unknown becomes an open question or an input, not another question. Do not ask about the definition of done: propose one. Never ask a fifth question unless the answer would change the steps themselves.
+8. When the person is weighing options or outcomes (sell or keep, hold or cancel, prices up or down), the plan compares cases. Give each figure that is worked out the same way for every case one `calculation` step that takes the named cases side by side (say so in its formula: "for each case"), and, when the person speaks of how likely each outcome is, one step that weighs a result by each case's probability. The cases, their differing figures and their probabilities are `inputs`. Choosing between the cases is a `judgment` step: the harness never decides it.
+9. Ask how they will know it works: what they want to see, how often, and what would make them trust it.
+10. The limit is {max_questions} questions, but most interviews need three or four. Stop asking and call `write_brief` as soon as you know: the goal and whether it is ongoing or one-off, which figures the steps need, and any way their situation differs from the standard case. Anything still unknown becomes an open question or an input, not another question. Do not ask about the definition of done: propose one. Never ask a fifth question unless the answer would change the steps themselves.
 
 ## Proposing the plan
 

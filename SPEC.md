@@ -142,7 +142,9 @@ gives `line`:
    text cut to 18 characters; a list or an object as its key value with the
    key's name (`shortfall 5,600`, `last balance 29,400` for a list of rows)
    when one is obvious (the only numeric key the step's output description
-   names, else the only numeric key), else `{n} values`.
+   names, else the only numeric key), else `{n} values`; a list of rows that
+   each carry a text `name`, when the output's description says "case", as
+   `{n} cases` (`1 case`).
 4. `build.status` is `built`: `{examples} examples · {passing}/{tests}`; kind
    `tested` when every test and example passes, else null.
 5. `build.status` is `stale`: `Stale · rebuild`; `not_built`: `Not built`;
@@ -394,6 +396,16 @@ its inputs. The tables `test_runs`, `modules`, `step_modules`, `calc_runs`,
   units, wording), which is recorded in `build.spec_proposed` and kept out of
   the plan check. A plain sentence counts as a departure. Empty when there are
   none. The person is not asked about the spec.
+- **A step over several cases.** A spec may take an input named `cases`.
+  `validate_spec` then requires it to be a `list`, and the output to be a
+  `list` whose description names `name` and says "case". `input_problems`
+  requires `cases` to be a non-empty list of objects, each with a non-empty
+  text `name`, the names distinct. The runner refuses a result that is not
+  one object per case carrying the case's `name`, in the order given, so a
+  module whose rows do not carry the names fails its examples and never
+  registers. Nothing else in the build changes: the prompts say when a step
+  takes this shape (one whose point is to set named cases side by side) and
+  the analyst runs such a module once for every case.
 - New table `build_steps (step_id PRIMARY KEY, status, module, spec, departures,
   departures_confirmed, examples, disagreement, reason, step_fingerprint, ts)`; `spec`,
   `departures`, `examples`, `disagreement` are JSON. New table

@@ -115,8 +115,8 @@ def test_a_module_that_names_each_case_as_given_runs_and_gives_one_row_per_case_
                         {"cases": [{"name": "high", "guest_count": "200"}, {"name": "low", "guest_count": "100"}],
                          "price": "10"}, assumptions=[], expected="two rows", session_id=session.conversation)
         assert run["output"] == [{"name": "high", "total": "2000"}, {"name": "low", "total": "1000"}]
-        step = next(each for each in session.state()["steps"] if each["id"] == "c1")
-        assert step["line"]["text"] == "→ 2 cases"
+        from harness.core.state import show_value
+        assert show_value(run["output"], spec()["output"]) == "2 cases"       # the step line, once answered
     finally:
         session.close()
 
