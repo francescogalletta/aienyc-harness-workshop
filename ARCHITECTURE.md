@@ -271,6 +271,8 @@ Change, by kind:
   plan_accepted         {}
   plan_revised          {"step": "s2" | null, "words": str, "changed": ["s2"]}
   value                 {"input": "guest_count", "label": "Guest count", "from": "120" | null, "to": "150",
+                         "changes": [{"input", "label", "from", "to"}],   only for a bundle of several: all of
+                                                                          them; input to to are then the first
                          "runs": {"r3": "r9", "r4": "r10"},        each re-run: old run -> new run
                          "failed": [{"run": "r5", "step": "s5", "reason": str}]}
   assumption_confirmed  {"assumptions": ["a3"]}
@@ -299,7 +301,8 @@ Chip     = {"kind": "value" | "assumption" | "result" | "decision",
 
 Proposal = {"id": "p2", "status": "pending" | "accepted" | "declined" | "replaced" | "failed",
             "change": {"kind": "value", "input": "guest_count", "label": "Guest count",
-                       "from": "120" | null, "to": "150"}
+                       "from": "120" | null, "to": "150",
+                       "changes": [{"input", "label", "from", "to"}]}   only for a bundle of several (as a node's)
                     | {"kind": "plan", "step": "s1" | null, "words": str},
             "words": str,             the person's words in the branch it rests on
             "text": "Guest count: 120 → 150",          one line the harness writes
@@ -698,9 +701,10 @@ is a `trunk` row, a proposal is a `proposals` row (12.8).
 
 **A proposal.** On a branch, the side assistant calls `propose_change` (SPEC
 6.6) with a fixed shape: `kind` `value` (`input`: the value's name as the
-runs give it, `value`: the new value in plain form) or `plan` (`step`), and
-`words`: the person's words in this branch it rests on. The harness, with no
-model:
+runs give it, `value`: the new value in plain form; or `changes`, several
+such pairs at once, a bundle) or `plan` (`step`), and `words`: the person's
+words in this branch it rests on. The harness, with no model, for each
+change of the bundle in turn (the first refusal refuses the bundle):
 
 1. checks the words are in a person's message of this branch;
 2. resolves the target: for `value`, `input` must be a top-level input of a
@@ -723,19 +727,19 @@ at the end of the branch: its `text`, what it touches (`impact`), Yes and No.
 
 **Yes** (`accept_proposal`): status `accepted`; a main-lane job `join` is
 queued (it waits behind an analyst turn; it is refused while a decision waits
-on the person). For a **value** the job:
+on the person). For a **value** the job, with the whole bundle at once:
 
 1. computes the runs again from the last answer as it is now (12.4);
-2. saves the value: `answers.agent.store_input(conn, key, new, note, conversation)`,
-   the note `on a branch: <words>`; the plan input's pill shows it;
+2. saves each value: `answers.agent.store_input(conn, key, new, note, conversation)`,
+   the note `on a branch: <words>`; the plan inputs' pills show them;
 3. when the branch's subject is an assumption, marks it `corrected` with the words;
 4. runs again what 12.4 says, through the gate, with progress
    `running step N again` (activity `what` `join`, `step` that step);
 5. posts the join notice in the main chat (`JOINED`, SPEC 6.6, a `harness`
    message) with private `_runs` (the new last answer: the old one without the
    replaced runs, plus the new runs) and `_chip_runs` (the new runs only);
-6. records the node: `decide(who="you", kind="value", text, change, touched,
-   branch)`: `touched.inputs` is `in:<key>` when that is a plan input,
+6. records one node: `decide(who="you", kind="value", text, change, touched,
+   branch)`: `touched.inputs` is each `in:<key>` that is a plan input,
    `touched.steps` the steps run again; the branch is `joined`;
 7. sets the message's `_node`, the proposal's `node`, records `you.joined`,
    and tells the analyst with `answers.agent.tell_analyst(session, JOIN_NOTE)`

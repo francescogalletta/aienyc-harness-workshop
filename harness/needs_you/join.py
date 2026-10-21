@@ -22,12 +22,17 @@ PROPOSE_CHANGE = ToolSpec(
     description=("Propose a change the person asked for in this branch. The harness checks it and shows it to them "
                  "with Yes and No; it changes nothing by itself. kind `value`: `input` is the value's name as the "
                  "last answer's runs give it (such as guest_count), `value` the new value in plain form (digits, "
-                 "YYYY-MM-DD, or text), taken from the person's words here. kind `plan`: `step` is the step it is "
-                 "about, or empty for the whole plan. `words`: the person's words in this branch it rests on, "
-                 "copied exactly."),
+                 "YYYY-MM-DD, or text), taken from the person's words here; when the person changes several "
+                 "values at once, give them all in `changes` (one {input, value} each) instead of `input` and "
+                 "`value`, so they are proposed, accepted and run again together. kind `plan`: `step` is the step "
+                 "it is about, or empty for the whole plan. `words`: the person's words in this branch it rests "
+                 "on, copied exactly."),
     input_schema={"type": "object", "properties": {
         "kind": {"type": "string", "enum": ["value", "plan"]}, "input": {"type": "string"},
-        "value": {"type": "string"}, "step": {"type": "string"}, "words": {"type": "string"}},
+        "value": {"type": "string"},
+        "changes": {"type": "array", "items": {"type": "object", "properties": {
+            "input": {"type": "string"}, "value": {"type": "string"}}, "required": ["input", "value"]}},
+        "step": {"type": "string"}, "words": {"type": "string"}},
         "required": ["kind", "words"]})
 
 PROPOSED = ("Proposed: {text}. It touches {steps}. The person sees it with Yes and No in this thread, with what it "
@@ -42,12 +47,15 @@ AMBIGUOUS = "The last answer used several values for {input}: {values}. Ask the 
 SAME = "{input} is already {value}."
 UNKNOWN_STEP = "There is no step {step} in the plan."
 ONE_PER_REPLY = "One proposal per reply."
-JOINED = "Decided on a branch: {label} is {new} (was {old}). Run again: {steps}."
-JOINED_NOTHING = "Decided on a branch: {label} is {new} (was {old}). Nothing in the last answer used it."
+JOINED = "Decided on a branch: {what}. Run again: {steps}."
+JOINED_NOTHING = "Decided on a branch: {what}. Nothing in the last answer used it."
 NOT_RUN_AGAIN = " Not run again: {steps} ({reason})."
-JOIN_NOTE = ("[harness] On a branch the person changed {label} from {old} to {new}, in their words: \"{words}\". The "
+JOIN_NOTE = ("[harness] On a branch the person changed {what}, in their words: \"{words}\". The "
              "harness saved it and ran again: {runs}. These are now the current results; do not run them again "
              "unless the person asks.")
+IS = "{label} is {new} (was {old})"              # one change in JOINED
+FROM_TO = "{label} from {old} to {new}"          # one change in JOIN_NOTE
+NODE_TEXT = "{label}: {new} (was {old})"         # one change in a node's text; several joined by "; "
 WAS = "{new} (was {old})"
 ANSWER_FIRST = "Answer the question that is waiting first."
 NOT_PENDING = "That proposal is not waiting for a yes or a no."
@@ -91,9 +99,31 @@ def label_of(state: dict, key: str) -> str:
     return text[:1].upper() + text[1:]
 
 
+def value_changes(change: dict) -> list[dict]:
+    """The changes of a value proposal or node: its bundle (`changes`), else the one it names."""
+    if change.get("changes"):
+        return list(change["changes"])
+    return [{key: change.get(key) for key in ("input", "label", "from", "to")}]
+
+
+def with_first(changes: list[dict]) -> dict:
+    """A value change: the first of the bundle as `input`, `label`, `from`, `to`, and `changes` when several."""
+    found = {"kind": "value", **{key: changes[0][key] for key in ("input", "label", "from", "to")}}
+    if len(changes) > 1:
+        found["changes"] = [dict(each) for each in changes]
+    return found
+
+
+def each_change(template: str, changes: list[dict], joint: str) -> str:
+    return joint.join(template.format(label=each["label"], new=each["to"],
+                                      old=each["from"] if each["from"] is not None else "none")
+                      for each in changes)
+
+
 def proposal_text(change: dict, state: dict) -> str:
     if change["kind"] == "value":
-        return f"{change['label']}: {change['from'] if change['from'] is not None else 'none'} → {change['to']}"
+        return "; ".join(f"{each['label']}: {each['from'] if each['from'] is not None else 'none'} → {each['to']}"
+                         for each in value_changes(change))
     step = next((each for each in state["steps"] if each["id"] == change.get("step")), None)
     text = (f"Plan, step {step['number']} {step['name']}: " if step else "Plan: ") + one_line(change["words"])
     return text if len(text) <= PLAN_TEXT_LENGTH else text[:PLAN_TEXT_LENGTH - 1] + "…"
@@ -134,13 +164,14 @@ def notice_chips(conn, node: dict, chips: list[dict]) -> list[dict]:
     old)`, then one result per re-run, as what changed in it. The re-runs' other inputs and assumptions are the
     old answer's, and stay with it."""
     change = node.get("change") or {}
-    key, old = change.get("input"), change.get("from")
+    olds = {each["input"]: each["from"] for each in value_changes(change) if each.get("input")}
     back = {new: was for was, new in (change.get("runs") or {}).items()}
-    kept, valued = [], False
+    kept, valued = [], set()
     for chip in chips:
         subject = chip.get("subject") or {}
-        if chip.get("kind") == "value" and key and subject.get("key") == key and not valued:
-            valued = True
+        if chip.get("kind") == "value" and subject.get("key") in olds and subject.get("key") not in valued:
+            valued.add(subject["key"])
+            old = olds[subject["key"]]
             kept.append({**chip, "text": WAS.format(new=chip["text"], old=show_scalar(old))
                          if old is not None else chip["text"]})
         elif chip.get("kind") == "result":
@@ -242,11 +273,18 @@ def check(conn, conversation: str, state: dict, thread: dict, arguments: dict, p
     """(reason, error text, change) for a refused proposal, or (None, None, change) for one that passes."""
     kind = arguments.get("kind")
     words = arguments.get("words")
-    raw_input = str(arguments.get("input") or "").strip()
-    key = raw_input[len("in:"):] if raw_input.startswith("in:") else raw_input
-    value = one_line(arguments.get("value") or "")
+    items = arguments.get("changes") if isinstance(arguments.get("changes"), list) and arguments.get("changes") \
+        else [{"input": arguments.get("input"), "value": arguments.get("value")}]
+    pairs = []
+    for item in items:
+        raw_input = str((item or {}).get("input") or "").strip() if isinstance(item, dict) else ""
+        pairs.append((raw_input[len("in:"):] if raw_input.startswith("in:") else raw_input,
+                      one_line((item or {}).get("value") or "") if isinstance(item, dict) else ""))
+    key, value = pairs[0]
     step = str(arguments.get("step") or "").strip() or None
     shown = {"kind": kind, "input": key, "value": value, "step": step, "words": words}
+    if len(pairs) > 1:
+        shown["changes"] = [{"input": each_key, "value": each_value} for each_key, each_value in pairs]
     if not isinstance(words, str) or len(spaced(words)) < 3 or not any(spaced(words) in spaced(text)
                                                                         for text in person):
         return "not_their_words", NOT_THEIR_WORDS, shown
@@ -259,17 +297,22 @@ def check(conn, conversation: str, state: dict, thread: dict, arguments: dict, p
     taken = _last_answer_inputs(conn, conversation)
     own = [subject.get("key")] if subject.get("kind") == "value" else \
         [subject["input"][len("in:"):]] if subject.get("kind") == "input" else []
-    if kind != "value" or not key or key not in [*taken, *own]:
+    if kind != "value":
         return "unknown_input", UNKNOWN_INPUT.format(input=key or "that", inputs=", ".join(taken) or "none"), shown
-    missing = value_unbacked(value, person) if value else [EMPTY_VALUE]
-    if missing:
-        return "value_unbacked", VALUE_UNBACKED.format(numbers=", ".join(missing)), shown
-    old, several = old_value(conn, conversation, subject, key)
-    if several:
-        return "ambiguous", AMBIGUOUS.format(input=key, values=", ".join(several)), shown
-    if old is not None and _token(old) == _token(value):
-        return "same", SAME.format(input=key, value=old), shown
-    return None, None, {"kind": "value", "input": key, "label": label_of(state, key), "from": old, "to": value}
+    changes = []
+    for key, value in pairs:
+        if not key or key not in [*taken, *own] or key in {each["input"] for each in changes}:
+            return "unknown_input", UNKNOWN_INPUT.format(input=key or "that", inputs=", ".join(taken) or "none"), shown
+        missing = value_unbacked(value, person) if value else [EMPTY_VALUE]
+        if missing:
+            return "value_unbacked", VALUE_UNBACKED.format(numbers=", ".join(missing)), shown
+        old, several = old_value(conn, conversation, subject, key)
+        if several:
+            return "ambiguous", AMBIGUOUS.format(input=key, values=", ".join(several)), shown
+        if old is not None and _token(old) == _token(value):
+            return "same", SAME.format(input=key, value=old), shown
+        changes.append({"input": key, "label": label_of(state, key), "from": old, "to": value})
+    return None, None, with_first(changes)
 
 
 def plan_impact(state: dict, step: str | None) -> dict:
@@ -299,7 +342,8 @@ def propose(work, thread: dict, call, state: dict, person: list[str], made: list
     if reason is not None:
         return refuse(reason, error, change)
     if change["kind"] == "value":
-        found = impact(conn, state, key=change["input"], old=change["from"], conversation=conversation)
+        found = impact(conn, state, changes=[{"key": each["input"], "old": each["from"]}
+                                             for each in value_changes(change)], conversation=conversation)
     else:
         found = plan_impact(state, change["step"])
     conn.execute("UPDATE proposals SET status = 'replaced' WHERE thread = ? AND status = 'pending'",
@@ -458,10 +502,11 @@ def _join_plan(work, row, change: dict) -> None:
 def _join_value(work, row, change: dict) -> None:
     conn, conversation = work.conn, work.conversation
     thread = f"t{row['thread']}"
-    key, new, old, label = change["input"], change["to"], change["from"], change["label"]
+    changes = value_changes(change)
     subject = json.loads(conn.execute("SELECT subject FROM threads WHERE id = ?", (row["thread"],)).fetchone()[0])
-    work.progress("saving the value", what="join")
-    store_input(conn, key, new, f"on a branch: {row['words']}", conversation)
+    work.progress("saving the value" if len(changes) == 1 else "saving the values", what="join")
+    for each in changes:
+        store_input(conn, each["input"], each["to"], f"on a branch: {row['words']}", conversation)
     drop = []
     if subject.get("kind") == "assumption":
         drop = [subject.get("text") or ""]
@@ -472,7 +517,8 @@ def _join_value(work, row, change: dict) -> None:
         if found:
             marks.set_status(conn, [found], marks.CORRECTED, row["words"])
     work.changed()
-    result = rerun(work, key=key, old=old, new=new, label=label, drop=drop)
+    result = rerun(work, changes=[{"key": each["input"], "old": each["from"], "new": each["to"],
+                                   "label": each["label"]} for each in changes], drop=drop)
 
     state = work.session.state()
     step_ids = {step["id"] for step in state["steps"]}
@@ -487,11 +533,11 @@ def _join_value(work, row, change: dict) -> None:
             steps += [step] if step not in steps else []
         elif modules[run] not in loose:
             loose.append(modules[run])
-    shown_old = old if old is not None else "none"
+    what = each_change(IS, changes, " and ")
     if result["replaced"] or result["failed"]:
-        text = JOINED.format(label=label, new=new, old=shown_old, steps=step_words([*numbers_of(state, steps), *loose]))
+        text = JOINED.format(what=what, steps=step_words([*numbers_of(state, steps), *loose]))
     else:
-        text = JOINED_NOTHING.format(label=label, new=new, old=shown_old)
+        text = JOINED_NOTHING.format(what=what)
     reasons = {}
     for each in result["failed"]:
         reasons.setdefault(each["reason"], []).append(each["step"] or "a calculation not in the plan")
@@ -501,10 +547,11 @@ def _join_value(work, row, change: dict) -> None:
     message = work.post(text, who="harness", kind="text",
                         data={"_runs": result["runs"], "_chip_runs": new_runs, "figures": []})
     failed = [{"run": each["run"], "step": each["step"] or "", "reason": each["reason"]} for each in result["failed"]]
-    node = work.decide(who="you", kind="value", text=f"{label}: {new} (was {shown_old})",
-                       change={"input": key, "label": label, "from": old, "to": new, "runs": result["replaced"],
-                               "failed": failed},
-                       touched={"inputs": [f"in:{key}"] if f"in:{key}" in state["inputs"] else [], "steps": steps},
+    node = work.decide(who="you", kind="value", text=each_change(NODE_TEXT, changes, "; "),
+                       change={**{key: value for key, value in with_first(changes).items() if key != "kind"},
+                               "runs": result["replaced"], "failed": failed},
+                       touched={"inputs": [f"in:{each['input']}" for each in changes
+                                           if f"in:{each['input']}" in state["inputs"]], "steps": steps},
                        branch=thread)
     work.session.update_message(message, {"_node": node})
     conn.execute("UPDATE proposals SET node = ? WHERE id = ?", (number_of(node, "n"), row["id"]))
@@ -513,5 +560,5 @@ def _join_value(work, row, change: dict) -> None:
                                "runs": result["replaced"], "failed": failed}, "harness")
     outputs = [conn.execute("SELECT module, output FROM calc_runs WHERE id = ?", (run,)).fetchone() for run in new_runs]
     runs = "; ".join(f"{each['module']} gives {each['output']}" for each in outputs) or "nothing"
-    tell_analyst(work, JOIN_NOTE.format(label=label, old=shown_old, new=new, words=row["words"], runs=runs))
+    tell_analyst(work, JOIN_NOTE.format(what=each_change(FROM_TO, changes, ", "), words=row["words"], runs=runs))
     work.changed()

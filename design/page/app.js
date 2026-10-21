@@ -1071,7 +1071,8 @@
     var out = {};
     trunk().forEach(function (n) {
       var c = n.change || {}, r = c.runs;
-      if (r && typeof r === 'object') { Object.keys(r).forEach(function (k) { out[k] = { key: c.input || null }; }); }
+      var keys = arr(c.changes).length ? arr(c.changes).map(function (x) { return x.input; }) : [c.input || null];
+      if (r && typeof r === 'object') { Object.keys(r).forEach(function (k) { out[k] = { keys: keys }; }); }
     });
     return out;
   }
@@ -1079,7 +1080,7 @@
     var sub = c.subject || {}, hit = sub.run && stale[sub.run];
     if (!hit) { return false; }
     if (c.kind === 'result') { return true; }
-    if (c.kind === 'value') { return !!hit.key && sub.key === hit.key; }
+    if (c.kind === 'value') { return arr(hit.keys).indexOf(sub.key) >= 0; }
     return false;
   }
   function plainNum(v) { var t = String(v == null ? '' : v); return /^-?\d+(\.\d+)?$/.test(t) ? Number(t).toLocaleString('en-US', { maximumFractionDigits: 2 }) : t; }
@@ -1461,17 +1462,22 @@
     var ch = p.change || {}, imp = p.impact || {};
     var box = P(el('div', 'dg-propose'), 4); box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Proposed change');
     var q = el('p', 'dg-propose__q'); q.appendChild(F.mark('harness', needs ? 'needs' : 'open', 12));
-    var target = ch.input && S.inputs && S.inputs['in:' + ch.input] ? 'in:' + ch.input : null;
-    if (ch.kind === 'value') { add(q, 'Change ' + lower(ch.label || keyWords(ch.input)) + ' to ' + plainNum(ch.to) + '?'); }
-    else { add(q, ch.step && stepById(ch.step) ? 'Change step ' + stepById(ch.step).number + ' of the plan?' : 'Change the plan?'); }
-    box.appendChild(q);
-    var r1 = el('p', 'dg-propose__row');
+    var changes = ch.kind === 'value' ? (arr(ch.changes).length ? arr(ch.changes) : [ch]) : [];
     if (ch.kind === 'value') {
-      r1.appendChild(target ? refInput(target) : el('span', null, ch.label || keyWords(ch.input)));
-      if (ch.from != null) { r1.appendChild(el('s', null, plainNum(ch.from))); add(r1, '→'); }
-      r1.appendChild(el('b', null, plainNum(ch.to)));
-    } else { add(r1, '“' + (ch.words || p.words || '') + '”'); }
-    box.appendChild(r1);
+      add(q, changes.length > 1 ? 'Change ' + changes.map(function (x) { return lower(x.label || keyWords(x.input)) + ' to ' + plainNum(x.to); }).join(' and ') + '?'
+        : 'Change ' + lower(ch.label || keyWords(ch.input)) + ' to ' + plainNum(ch.to) + '?');
+    } else { add(q, ch.step && stepById(ch.step) ? 'Change step ' + stepById(ch.step).number + ' of the plan?' : 'Change the plan?'); }
+    box.appendChild(q);
+    if (ch.kind === 'value') {
+      changes.forEach(function (x) {
+        var row = el('p', 'dg-propose__row');
+        var target = x.input && S.inputs && S.inputs['in:' + x.input] ? 'in:' + x.input : null;
+        row.appendChild(target ? refInput(target) : el('span', null, x.label || keyWords(x.input)));
+        if (x.from != null) { row.appendChild(el('s', null, plainNum(x.from))); add(row, '→'); }
+        row.appendChild(el('b', null, plainNum(x.to)));
+        box.appendChild(row);
+      });
+    } else { var r1 = el('p', 'dg-propose__row'); add(r1, '“' + (ch.words || p.words || '') + '”'); box.appendChild(r1); }
     if (arr(imp.steps).length) { var rr = add(el('p', 'dg-propose__row'), el('span', 'dg-propose__k', 'Re-runs')); refs(imp.steps).forEach(function (r) { rr.appendChild(r); }); box.appendChild(rr); }
     if (arr(imp.downstream).length) { var rd = add(el('p', 'dg-propose__row'), el('span', 'dg-propose__k', 'Further on')); refs(imp.downstream).forEach(function (r) { rd.appendChild(r); }); box.appendChild(rd); }
     var no = ch.kind === 'value' && ch.from != null ? 'Keep ' + plainNum(ch.from) : 'No, keep it';

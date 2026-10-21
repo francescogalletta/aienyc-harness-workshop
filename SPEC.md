@@ -816,9 +816,19 @@ The mechanics are ARCHITECTURE.md 12.3 to 12.5; this is the interface.
 propose_change {"kind": "value" | "plan",
                 "input": str,          value: the value's name as the last answer's runs give it
                 "value": str,          value: the new value in plain form (digits, YYYY-MM-DD, or text)
+                "changes": [{"input", "value"}],   value: several values at once, instead of input and value
                 "step": str,           plan: the step it is about, or ""
                 "words": str}          the person's words in this thread it rests on, copied exactly
 ```
+
+A value proposal is a **bundle** of one or more changes: `changes` when given
+and not empty, else the one of `input` and `value`. Every check below runs on
+each change in turn, and the first refusal refuses the whole bundle; a key
+named twice is `unknown_input`. The stored change holds the first as `input`,
+`label`, `from`, `to`, and, when there are several, all of them as `changes`
+(ARCHITECTURE.md 3.5); the impact is `impact(changes=...)`. The join saves
+every value, runs again with the bundle (12.4) and records one node, its text
+one `NODE_TEXT` per change joined by `; `.
 
 Checks, in order, each refusal the tool's error result and a
 `you.proposal_refused {thread, reason, change}`: `not_their_words` (the words,
@@ -850,18 +860,21 @@ AMBIGUOUS       = "The last answer used several values for {input}: {values}. As
 SAME            = "{input} is already {value}."
 UNKNOWN_STEP    = "There is no step {step} in the plan."
 ONE_PER_REPLY   = "One proposal per reply."
-JOINED          = "Decided on a branch: {label} is {new} (was {old}). Run again: {steps}."
-JOINED_NOTHING  = "Decided on a branch: {label} is {new} (was {old}). Nothing in the last answer used it."
+JOINED          = "Decided on a branch: {what}. Run again: {steps}."
+JOINED_NOTHING  = "Decided on a branch: {what}. Nothing in the last answer used it."
+IS              = "{label} is {new} (was {old})"        {what} in JOINED: one per change, joined by " and "
 NOT_RUN_AGAIN   = " Not run again: {steps} ({reason})."
-RERUN_EXPECTED  = "Run again by the harness: {label} is {new} (was {old})."
-JOIN_NOTE       = "[harness] On a branch the person changed {label} from {old} to {new}, in their words: \"{words}\". The harness saved it and ran again: {runs}. These are now the current results; do not run them again unless the person asks."
+RERUN_EXPECTED  = "Run again by the harness: {label} is {new} (was {old})."   one per change, joined by a space
+JOIN_NOTE       = "[harness] On a branch the person changed {what}, in their words: \"{words}\". The harness saved it and ran again: {runs}. These are now the current results; do not run them again unless the person asks."
+FROM_TO         = "{label} from {old} to {new}"         {what} in JOIN_NOTE: one per change, joined by ", "
+NODE_TEXT       = "{label}: {new} (was {old})"
 ```
 
 `{old}` is `none` when there was no old value. `{steps}` is `step 1` or `steps
 1, 2 and 5`; in `PROPOSED`, the impact's steps then ` (and {downstream} further
 down)`. `{runs}` in `JOIN_NOTE` is `{module} gives {output as JSON}` for each
 new run, joined by `; ` (never a run id). A node's `text` for a value is
-`{label}: {new} (was {old})`.
+`NODE_TEXT`, one per change joined by `; `, cut to 80 as any node's text.
 
 Expectation `branches {"joined"?, "dead"?, "nodes"?}`: `joined` and `dead`
 are the exact numbers of side branches (origin `you`) with that outcome at
