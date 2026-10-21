@@ -142,3 +142,11 @@ def test_a_layer_may_set_needs_you_and_the_core_keeps_at_most_one():
     steps = [step(id="s1", needs_you=True), step(id="s2", needs_you=True)]
     finish({"steps": steps})
     assert [s["needs_you"] for s in steps] == [True, False]
+
+
+def test_a_list_of_named_rows_is_shown_as_cases():
+    from harness.core.state import show_value
+    rows = [{"name": "low", "total": "1000"}, {"name": "high", "total": "2000"}]
+    assert show_value(rows, {"description": "one item per case: name and total"}) == "2 cases"
+    assert show_value(rows[:1], {"description": "one item per case: name and total"}) == "1 case"
+    assert show_value([{"total": "1000"}, {"total": "2000"}], {"description": "rows with total"}) == "last total 2,000"

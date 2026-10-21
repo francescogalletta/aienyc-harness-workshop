@@ -138,6 +138,10 @@ def show_value(value, output: dict | None = None) -> str:
     """A run's output on the step line (SPEC 2.4): a number as `show_number` writes it, a date as given, text cut
     to 18 characters; an object or a list as its key value with the key's name when the output's description
     makes one obvious (`key_value`), else `{n} values`."""
+    if (isinstance(value, list) and value and all(isinstance(row, dict) and isinstance(row.get("name"), str)
+                                                  for row in value)
+            and re.search(r"\bcases?\b", (output or {}).get("description") or "", re.IGNORECASE)):
+        return "1 case" if len(value) == 1 else f"{len(value)} cases"      # a step over several cases (SPEC 4.2)
     if isinstance(value, (list, dict)):
         found = key_value(value, (output or {}).get("description") or "")
         return found if found is not None else count(value)

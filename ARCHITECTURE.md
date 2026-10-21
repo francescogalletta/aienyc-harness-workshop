@@ -271,6 +271,8 @@ Change, by kind:
   plan_accepted         {}
   plan_revised          {"step": "s2" | null, "words": str, "changed": ["s2"]}
   value                 {"input": "guest_count", "label": "Guest count", "from": "120" | null, "to": "150",
+                         "changes": [{"input", "label", "from", "to"}],   only for a bundle of several: all of
+                                                                          them; input to to are then the first
                          "runs": {"r3": "r9", "r4": "r10"},        each re-run: old run -> new run
                          "failed": [{"run": "r5", "step": "s5", "reason": str}]}
   assumption_confirmed  {"assumptions": ["a3"]}
@@ -299,7 +301,8 @@ Chip     = {"kind": "value" | "assumption" | "result" | "decision",
 
 Proposal = {"id": "p2", "status": "pending" | "accepted" | "declined" | "replaced" | "failed",
             "change": {"kind": "value", "input": "guest_count", "label": "Guest count",
-                       "from": "120" | null, "to": "150"}
+                       "from": "120" | null, "to": "150",
+                       "changes": [{"input", "label", "from", "to"}]}   only for a bundle of several (as a node's)
                     | {"kind": "plan", "step": "s1" | null, "words": str},
             "words": str,             the person's words in the branch it rests on
             "text": "Guest count: 120 → 150",          one line the harness writes
@@ -698,9 +701,10 @@ is a `trunk` row, a proposal is a `proposals` row (12.8).
 
 **A proposal.** On a branch, the side assistant calls `propose_change` (SPEC
 6.6) with a fixed shape: `kind` `value` (`input`: the value's name as the
-runs give it, `value`: the new value in plain form) or `plan` (`step`), and
-`words`: the person's words in this branch it rests on. The harness, with no
-model:
+runs give it, `value`: the new value in plain form; or `changes`, several
+such pairs at once, a bundle) or `plan` (`step`), and `words`: the person's
+words in this branch it rests on. The harness, with no model, for each
+change of the bundle in turn (the first refusal refuses the bundle):
 
 1. checks the words are in a person's message of this branch;
 2. resolves the target: for `value`, `input` must be a top-level input of a
@@ -723,19 +727,19 @@ at the end of the branch: its `text`, what it touches (`impact`), Yes and No.
 
 **Yes** (`accept_proposal`): status `accepted`; a main-lane job `join` is
 queued (it waits behind an analyst turn; it is refused while a decision waits
-on the person). For a **value** the job:
+on the person). For a **value** the job, with the whole bundle at once:
 
 1. computes the runs again from the last answer as it is now (12.4);
-2. saves the value: `answers.agent.store_input(conn, key, new, note, conversation)`,
-   the note `on a branch: <words>`; the plan input's pill shows it;
+2. saves each value: `answers.agent.store_input(conn, key, new, note, conversation)`,
+   the note `on a branch: <words>`; the plan inputs' pills show them;
 3. when the branch's subject is an assumption, marks it `corrected` with the words;
 4. runs again what 12.4 says, through the gate, with progress
    `running step N again` (activity `what` `join`, `step` that step);
 5. posts the join notice in the main chat (`JOINED`, SPEC 6.6, a `harness`
    message) with private `_runs` (the new last answer: the old one without the
    replaced runs, plus the new runs) and `_chip_runs` (the new runs only);
-6. records the node: `decide(who="you", kind="value", text, change, touched,
-   branch)`: `touched.inputs` is `in:<key>` when that is a plan input,
+6. records one node: `decide(who="you", kind="value", text, change, touched,
+   branch)`: `touched.inputs` is each `in:<key>` that is a plan input,
    `touched.steps` the steps run again; the branch is `joined`;
 7. sets the message's `_node`, the proposal's `node`, records `you.joined`,
    and tells the analyst with `answers.agent.tell_analyst(session, JOIN_NOTE)`
@@ -753,36 +757,44 @@ go stale; nothing runs again.
 ### 12.4 What runs again
 
 Let `A` be the runs of the last answer (layer 3: the runs of its turn and the
-runs its figures name), oldest first; `key` the input, `old` and `new` its
-values.
+runs its figures name), oldest first, and the change a **bundle** of one or
+more `{key, old, new}`: the input, its old value and its new one. A proposal
+of one value is a bundle of one.
 
-1. A run of `A` is **direct** when its inputs have `key` at the top level with
-   a value equal to `old` (the same number as the number check reads it, or the
-   same text; with `old` null, every run of `A` with `key`).
-2. Going through `A` in order, a run is run again when it is direct, or when a
-   value anywhere in its inputs equals an old value that an earlier re-run
-   changed. Old and new outputs of each re-run are compared leaf by leaf (by
-   key path; a list by position); each leaf that differs maps its old value
-   to its new one. A run whose inputs come out unchanged is not run again and
+1. A run of `A` is **direct** for a change when its inputs have `key` at the
+   top level with a value equal to `old` (the same number as the number check
+   reads it, or the same text; with `old` null, every run of `A` with `key`).
+2. Going through `A` in order, a run is run again when it is direct for any
+   change of the bundle, or when a value anywhere in its inputs equals an old
+   value that an earlier re-run changed, **and that re-run is of a step its
+   own step needs**: a step the plan's `edges` reach this run's step from,
+   directly or through other steps. A step not in the plan (an added step, a
+   module with no step) feeds, and is fed by, any step. Old and new outputs of
+   each re-run are compared leaf by leaf (by key path; a list by position);
+   each leaf that differs maps its old value to its new one, under the step
+   that changed it. A run whose inputs come out unchanged is not run again and
    stays in the answer.
-3. Its inputs are the old ones with `key` set to `new` (direct) and each mapped
-   value replaced, written as the input was: text as the shortest plain decimal
-   (`43000`, `18500`, `0.4`) or the date as written; any other value keeps its
-   type. One old value mapped to two different new ones: that run is not run
-   again (`failed`, `a value it took is ambiguous`).
+3. Its inputs are the old ones with each direct `key` set to its `new` and
+   each mapped value replaced, written as the input was: text as the shortest
+   plain decimal (`43000`, `18500`, `0.4`) or the date as written; any other
+   value keeps its type. One old value mapped, by steps this run's step needs,
+   to two different new ones: that run is not run again (`failed`, `a value it
+   took is ambiguous`).
 4. Its assumptions are its own, less the branch's assumption subject and less
-   any sentence that holds `old` or names `key` in words. `expected` is
-   `RERUN_EXPECTED` (SPEC 6.6).
+   any sentence that holds an `old` of the bundle or names its `key` in words.
+   `expected` is one `RERUN_EXPECTED` (SPEC 6.6) per change, joined by a
+   space.
 5. It goes through `gate.call`. A refusal goes in `failed` with the gate's
    words, and the later runs that needed its output fail with `an earlier step
-   could not run again`. The join still saves the value and records the node.
+   could not run again`. The join still saves the values and records the node.
 
 **Impact** is the same walk without running: the direct runs, then each run
-of `A` holding a value an earlier listed run produced (`provenance._produced`).
-`steps` are their steps; `downstream` the steps the plan's `edges` reach from
-them that are not in `steps` (for a value no run used: the input's `steps` and
-what they reach). Downstream steps are shown as touched and not run: the
-analyst runs them when asked.
+of `A` holding a value an earlier listed run of a step it needs produced
+(`provenance._produced`). `inputs` names each plan input of the bundle;
+`steps` are the listed runs' steps; `downstream` the steps the plan's `edges`
+reach from them that are not in `steps` (for values no run used: those
+inputs' `steps` and what they reach). Downstream steps are shown as touched
+and not run: the analyst runs them when asked.
 
 ### 12.5 When a branch dies
 

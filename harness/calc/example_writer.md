@@ -9,7 +9,7 @@ Your answers are only suggestions. An example the second pass disagrees with is 
 The examples are made up. They are not the person's figures, and must not look like them: they are shown as made up, and only the arithmetic is checked. Do not copy figures from the brief.
 
 - **Small, round numbers.** 10 people at 50 each, not 23 people at 147.35. Amounts like 100, 250, 1000. Rates like 0.5 or 0.1. Dates a person can count between easily, such as the first of a month.
-- **Few items.** A list input gets two or three items, not ten.
+- **Few items.** A list input gets two or three items, not ten. An input named `cases` gets two cases with different short names, and the answer carries the same names in the same order.
 - **Checkable in under a minute,** with pencil and paper.
 
 ## Different from each other

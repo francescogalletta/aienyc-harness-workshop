@@ -31,6 +31,7 @@ FILES = ("spec.json", "golden.json", "module.py", "tests.py")
 SPEC_KEYS = ("name", "description", "step_id", "method", "formula", "inputs", "output")
 NAME = re.compile(r"^[a-z][a-z0-9_]{0,39}$")
 INPUT_NAME = re.compile(r"^[a-z][a-z0-9_]*$")
+CASES = "cases"            # the input that makes a step one over several named cases (SPEC 4.2)
 
 
 def _now() -> str:
@@ -86,7 +87,43 @@ def validate_spec(spec) -> list[str]:
     if (not isinstance(output, dict) or output.get("type") not in TYPES
             or not _text(output.get("description"))):
         errors.append("output must be an object with a type and a non-empty description")
+    cases = next((item for item in inputs if isinstance(item, dict) and item.get("name") == CASES), None)
+    if cases is not None:                                   # a step over several cases (SPEC 4.2)
+        if cases.get("type") != "list":
+            errors.append(f"input '{CASES}' must be a list, one item per case, each with a name")
+        if not isinstance(output, dict) or output.get("type") != "list":
+            errors.append(f"with an input '{CASES}', the output must be a list, one item per case")
+        elif not (re.search(r"\bname\b", str(output.get("description") or ""), re.IGNORECASE)
+                  and re.search(r"\bcases?\b", str(output.get("description") or ""), re.IGNORECASE)):
+            errors.append(f"with an input '{CASES}', the output's description must say it is one item per case, "
+                          f"each with the case's name")
     return errors
+
+
+def case_names(inputs) -> list[str] | None:
+    """The names of the cases given to a module, in order, or None when the inputs hold no `cases` list."""
+    cases = inputs.get(CASES) if isinstance(inputs, dict) else None
+    if not isinstance(cases, list):
+        return None
+    return [item.get("name") if isinstance(item, dict) else None for item in cases]
+
+
+def case_problems(inputs) -> list[str]:
+    """Why the `cases` given to a module are not named cases (SPEC 4.2); empty when they are."""
+    names = case_names(inputs)
+    if names is None:
+        return []
+    if not names:
+        return [f"input '{CASES}': give at least one case"]
+    problems = []
+    for number, (item, name) in enumerate(zip(inputs[CASES], names), start=1):
+        if not isinstance(item, dict):
+            problems.append(f"input '{CASES}': case {number} must be an object with a name")
+        elif not isinstance(name, str) or not name.strip():
+            problems.append(f"input '{CASES}': case {number} needs a name, a short text")
+    if len(set(names)) != len(names):
+        problems.append(f"input '{CASES}': each case needs a different name")
+    return problems
 
 
 def input_problems(spec: dict, inputs) -> list[str]:
@@ -102,6 +139,8 @@ def input_problems(spec: dict, inputs) -> list[str]:
                 from_json(inputs[item["name"]], item["type"])
             except ValueError as error:
                 problems.append(f"input '{item['name']}': {error}")
+    if not problems and CASES in names:
+        problems += case_problems(inputs)
     return problems
 
 

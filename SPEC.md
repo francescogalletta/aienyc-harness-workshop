@@ -142,7 +142,9 @@ gives `line`:
    text cut to 18 characters; a list or an object as its key value with the
    key's name (`shortfall 5,600`, `last balance 29,400` for a list of rows)
    when one is obvious (the only numeric key the step's output description
-   names, else the only numeric key), else `{n} values`.
+   names, else the only numeric key), else `{n} values`; a list of rows that
+   each carry a text `name`, when the output's description says "case", as
+   `{n} cases` (`1 case`).
 4. `build.status` is `built`: `{examples} examples · {passing}/{tests}`; kind
    `tested` when every test and example passes, else null.
 5. `build.status` is `stale`: `Stale · rebuild`; `not_built`: `Not built`;
@@ -394,6 +396,16 @@ its inputs. The tables `test_runs`, `modules`, `step_modules`, `calc_runs`,
   units, wording), which is recorded in `build.spec_proposed` and kept out of
   the plan check. A plain sentence counts as a departure. Empty when there are
   none. The person is not asked about the spec.
+- **A step over several cases.** A spec may take an input named `cases`.
+  `validate_spec` then requires it to be a `list`, and the output to be a
+  `list` whose description names `name` and says "case". `input_problems`
+  requires `cases` to be a non-empty list of objects, each with a non-empty
+  text `name`, the names distinct. The runner refuses a result that is not
+  one object per case carrying the case's `name`, in the order given, so a
+  module whose rows do not carry the names fails its examples and never
+  registers. Nothing else in the build changes: the prompts say when a step
+  takes this shape (one whose point is to set named cases side by side) and
+  the analyst runs such a module once for every case.
 - New table `build_steps (step_id PRIMARY KEY, status, module, spec, departures,
   departures_confirmed, examples, disagreement, reason, step_fingerprint, ts)`; `spec`,
   `departures`, `examples`, `disagreement` are JSON. New table
@@ -546,11 +558,15 @@ on the main lane.
 - System prompt: the prompt parts of the enabled layers, then `## What you
   know` and the context sections: `today`, `goal`, `particulars`, `process`
   (the plan's steps, added ones included, with their ids), `modules` (name,
-  step, spec), `saved inputs`, `notes`, then the sections of later layers.
+  step, spec), `saved inputs`, `notes`, `earlier runs in this conversation`
+  (the runs of the last answer, 5.2, and the last eight runs of the
+  conversation, oldest first, less those made in this turn), then the
+  sections of later layers.
 - The model's messages are kept in memory for the life of the `Session`. A
   person's message with a step attached is prefixed `[harness] About step {id}
   ({name}):`.
-- Up to 10 model calls per person message (`TOO_MANY` after that).
+- Up to 20 model calls per person message (`TOO_MANY` after that). A call
+  is one model response, whatever number of tool calls it carries.
 - Tools from the enabled layers. Layer 3's:
   - `run_module {module, inputs, assumptions: [str], expected: str}`: inputs
     number-checked, then `gate.call`. Never held for the person. Result:
@@ -627,8 +643,10 @@ notice), each with the text of its chips. Events: `ask.message`, `ask.reply`,
   first); `old_values(conn, conversation, key)` (the distinct values of the top-level input `key` among them, as
   written); `impact(conn, state, *, key, old) -> Impact`; `rerun(work, *, key, old, new, label, drop=()) ->
   {"replaced": {old run id: new run id}, "failed": [{"run", "step", "reason"}], "runs": [run ids]}`, where `runs` is
-  the new last answer and `drop` the assumption sentences to leave out. Both follow ARCHITECTURE.md 12.4 exactly;
-  `rerun` calls `gate.call` on `work.conn` and `work.progress` before each run, and posts nothing.
+  the new last answer and `drop` the assumption sentences to leave out. Both take, instead of `key`, `old` (and
+  `new`, `label`), a bundle `changes: [{"key", "old", "new", "label"}]`, and treat the keyword form as a bundle of
+  one. Both follow ARCHITECTURE.md 12.4 exactly, lineage by the plan's needs included; `rerun` calls `gate.call`
+  on `work.conn` and `work.progress` before each run, and posts nothing.
 
 ## 6. Layer 4: when the harness needs the person (`harness/needs_you/`)
 
@@ -810,9 +828,19 @@ The mechanics are ARCHITECTURE.md 12.3 to 12.5; this is the interface.
 propose_change {"kind": "value" | "plan",
                 "input": str,          value: the value's name as the last answer's runs give it
                 "value": str,          value: the new value in plain form (digits, YYYY-MM-DD, or text)
+                "changes": [{"input", "value"}],   value: several values at once, instead of input and value
                 "step": str,           plan: the step it is about, or ""
                 "words": str}          the person's words in this thread it rests on, copied exactly
 ```
+
+A value proposal is a **bundle** of one or more changes: `changes` when given
+and not empty, else the one of `input` and `value`. Every check below runs on
+each change in turn, and the first refusal refuses the whole bundle; a key
+named twice is `unknown_input`. The stored change holds the first as `input`,
+`label`, `from`, `to`, and, when there are several, all of them as `changes`
+(ARCHITECTURE.md 3.5); the impact is `impact(changes=...)`. The join saves
+every value, runs again with the bundle (12.4) and records one node, its text
+one `NODE_TEXT` per change joined by `; `.
 
 Checks, in order, each refusal the tool's error result and a
 `you.proposal_refused {thread, reason, change}`: `not_their_words` (the words,
@@ -844,18 +872,21 @@ AMBIGUOUS       = "The last answer used several values for {input}: {values}. As
 SAME            = "{input} is already {value}."
 UNKNOWN_STEP    = "There is no step {step} in the plan."
 ONE_PER_REPLY   = "One proposal per reply."
-JOINED          = "Decided on a branch: {label} is {new} (was {old}). Run again: {steps}."
-JOINED_NOTHING  = "Decided on a branch: {label} is {new} (was {old}). Nothing in the last answer used it."
+JOINED          = "Decided on a branch: {what}. Run again: {steps}."
+JOINED_NOTHING  = "Decided on a branch: {what}. Nothing in the last answer used it."
+IS              = "{label} is {new} (was {old})"        {what} in JOINED: one per change, joined by " and "
 NOT_RUN_AGAIN   = " Not run again: {steps} ({reason})."
-RERUN_EXPECTED  = "Run again by the harness: {label} is {new} (was {old})."
-JOIN_NOTE       = "[harness] On a branch the person changed {label} from {old} to {new}, in their words: \"{words}\". The harness saved it and ran again: {runs}. These are now the current results; do not run them again unless the person asks."
+RERUN_EXPECTED  = "Run again by the harness: {label} is {new} (was {old})."   one per change, joined by a space
+JOIN_NOTE       = "[harness] On a branch the person changed {what}, in their words: \"{words}\". The harness saved it and ran again: {runs}. These are now the current results; do not run them again unless the person asks."
+FROM_TO         = "{label} from {old} to {new}"         {what} in JOIN_NOTE: one per change, joined by ", "
+NODE_TEXT       = "{label}: {new} (was {old})"
 ```
 
 `{old}` is `none` when there was no old value. `{steps}` is `step 1` or `steps
 1, 2 and 5`; in `PROPOSED`, the impact's steps then ` (and {downstream} further
 down)`. `{runs}` in `JOIN_NOTE` is `{module} gives {output as JSON}` for each
 new run, joined by `; ` (never a run id). A node's `text` for a value is
-`{label}: {new} (was {old})`.
+`NODE_TEXT`, one per change joined by `; `, cut to 80 as any node's text.
 
 Expectation `branches {"joined"?, "dead"?, "nodes"?}`: `joined` and `dead`
 are the exact numbers of side branches (origin `you`) with that outcome at

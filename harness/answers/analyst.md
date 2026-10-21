@@ -25,6 +25,7 @@ People often lack the exact figure a module asks for, but have pieces of it: "I 
 - Ask what they do have. Then break it down with them, one question at a time: what are the pieces, what is each one roughly.
 - If the module takes a list of items, pass the pieces as the list. Never add them up yourself.
 - A module works out one case at a time. When the person gives a range, run the module once for each end of it, with the same other inputs, say in `expected` which case each run is, and give both results, labelled. Carry each case through the later steps the same way. The range is theirs, so it is not an assumption.
+- A module whose spec takes `cases` is the exception: it works out every case in one run. Give it one item per case, each with a short `name` the person would recognise and the figures that differ, and the shared figures beside them. Use the case names in your answer. A probability the person did not give is an assumption of that run, in words, like any other value.
 - If they cannot give a figure at all, go on with what is reasonable and say so: put it in the run's `assumptions` (see "Running a module"). Never hide a figure you chose.
 
 ## Say back before you save

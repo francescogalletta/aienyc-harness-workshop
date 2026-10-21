@@ -25,7 +25,8 @@ from ..grounding.revise import revise_plan
 from ..model import ToolSpec
 from .figures import figures, input_backing
 
-MAX_CALLS = 10
+MAX_CALLS = 20
+RECENT_RUNS_SHOWN = 8      # earlier runs the analyst is shown, besides those of the last answer
 
 RUN_MODULE = ToolSpec(
     name="run_module",
@@ -210,8 +211,7 @@ def sections(work, conn, runs_made: list[int]) -> dict:
     modules = {module["name"]: {"steps": module["steps"], "spec": module["spec"]} for module in list_modules(conn)}
     runs = [{"run": row["id"], "module": row["module"], "inputs": json.loads(row["inputs"]),
              "output": json.loads(row["output"])}
-            for row in conn.execute("SELECT * FROM calc_runs WHERE session_id = ? ORDER BY id DESC LIMIT 8",
-                                    (work.conversation,)) if row["id"] not in runs_made][::-1]
+            for row in _context_runs(conn, work.conversation) if row["id"] not in runs_made]
     found = {"today": today_of(work.session.memory).isoformat(),
              "goal": (brief.get("goal") or {}).get("text", ""),
              "particulars": [{key: item[key] for key in ("what", "handling", "step") if key in item}
@@ -222,6 +222,20 @@ def sections(work, conn, runs_made: list[int]) -> dict:
     if runs:
         found["earlier runs in this conversation"] = runs
     return found
+
+
+def _context_runs(conn, conversation: str) -> list:
+    """The runs the analyst is shown (SPEC 5.1): those of the last answer and the last RECENT_RUNS_SHOWN runs
+    of the conversation, oldest first."""
+    from .layer import latest_answer
+
+    recent = [row["id"] for row in conn.execute(
+        "SELECT id FROM calc_runs WHERE session_id = ? ORDER BY id DESC LIMIT ?", (conversation, RECENT_RUNS_SHOWN))]
+    wanted = sorted(set(recent) | latest_answer(conn, conversation)[1])
+    if not wanted:
+        return []
+    return conn.execute(f"SELECT * FROM calc_runs WHERE id IN ({','.join('?' * len(wanted))}) ORDER BY id",
+                        tuple(wanted)).fetchall()
 
 
 def _plan_input(item: dict) -> dict:

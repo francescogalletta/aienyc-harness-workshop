@@ -43,7 +43,23 @@ def call(spec: dict, module, inputs: dict):
         values.from_json(result, spec["output"]["type"])        # the result must fit the spec (SPEC 4.1)
     except ValueError as error:
         raise ValueError(f"the result does not fit the spec: {error}") from None
+    names = case_names(inputs)
+    if names is not None:                                       # one row per case, named as given (SPEC 4.2)
+        given = [row.get("name") if isinstance(row, dict) else None for row in result] \
+            if isinstance(result, list) else None
+        if given != names:
+            raise ValueError(f"the result does not fit the spec: it must be one object per case, each with the "
+                             f"case's name, in the order given: {names}, not {given}")
     return result
+
+
+def case_names(inputs: dict) -> list | None:
+    """The names of the `cases` given, in order, or None when there is no `cases` list (kept the same as
+    `registry.case_names`; this file runs outside the package)."""
+    cases = inputs.get("cases")
+    if not isinstance(cases, list):
+        return None
+    return [item.get("name") if isinstance(item, dict) else None for item in cases]
 
 
 def run_tests(folder: Path, spec: dict, module) -> dict:
