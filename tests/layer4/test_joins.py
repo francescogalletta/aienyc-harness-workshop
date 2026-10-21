@@ -393,6 +393,69 @@ def test_yes_is_refused_unless_pending_and_while_a_decision_waits(make):
     assert not applied
 
 
+# --- A bundle: several values in one proposal (12.3) ---
+
+BUNDLE_WORDS = "we need 50 units and the first payment is 600"
+
+
+def bundle(items=(("unit_count", "50"), ("first", "600")), words=BUNDLE_WORDS):
+    return call("propose_change", kind="value", words=words,
+                changes=[{"input": key, "value": value} for key, value in items])
+
+
+def test_a_bundle_proposal_is_pending_with_every_change_and_the_union_of_their_impact(make):
+    session = answered(make, side=[bundle(), reply("I proposed both.")])
+    state = branch(session, "No: " + BUNDLE_WORDS + ".", chip(session.state(), "value", "Unit count")["subject"])
+    found = thread_of(state)["proposal"]
+    assert found["status"] == "pending"
+    assert found["change"]["changes"] == [
+        {"input": "unit_count", "label": "Unit count", "from": "40", "to": "50"},
+        {"input": "first", "label": "First", "from": "500", "to": "600"}]
+    assert {key: found["change"][key] for key in ("kind", "input", "label", "from", "to")} == {
+        "kind": "value", "input": "unit_count", "label": "Unit count", "from": "40", "to": "50"}
+    assert "50" in found["text"] and "600" in found["text"] and "First" in found["text"]
+    assert found["impact"] == {"inputs": ["in:unit_count", "in:first"], "runs": ["r1", "r2"], "steps": ["c1", "c2"],
+                               "downstream": ["c3", "j1"]}
+    valid(state)
+
+
+def test_a_bundle_with_one_bad_change_is_refused_as_a_whole(make):
+    session = answered(make, side=[bundle(items=(("unit_count", "50"), ("first", "700"))),
+                                   reply("I cannot propose that.")])
+    state = branch(session, "No: " + BUNDLE_WORDS + ".", chip(session.state(), "value", "Unit count")["subject"])
+    assert thread_of(state)["proposal"] is None
+    assert [each["reason"] for each in events(session, "you.proposal_refused")] == ["value_unbacked"]
+    assert session.conn.execute("SELECT COUNT(*) FROM calc_runs").fetchone()[0] == 2
+
+
+def test_yes_on_a_bundle_saves_every_value_and_runs_each_reached_run_once(make):
+    session = answered(make, side=[bundle(), reply("Proposed.")], main_after=[reply("Noted.")])
+    state = branch(session, "No: " + BUNDLE_WORDS + ".", chip(session.state(), "value", "Unit count")["subject"])
+    thread = thread_of(state)["id"]
+    state = act(session, "accept_proposal", proposal=thread_of(state)["proposal"]["id"])
+    rows = session.conn.execute("SELECT module, inputs FROM calc_runs ORDER BY id").fetchall()
+    assert [(row["module"], json.loads(row["inputs"])) for row in rows[2:]] == [
+        ("total", {"unit_count": "50", "unit_price": "100"}), ("split", {"total": "5000", "first": "600"})]
+    assert state["inputs"]["in:unit_count"]["value"] == "50" and state["inputs"]["in:first"]["value"] == "600"
+    node = state["history"]["trunk"][-1]
+    assert (node["kind"], node["who"], node["branch"]) == ("value", "you", thread)
+    assert node["touched"] == {"inputs": ["in:unit_count", "in:first"], "steps": ["c1", "c2"]}
+    assert node["change"]["runs"] == {"r1": "r3", "r2": "r4"} and node["change"]["failed"] == []
+    assert [each["to"] for each in node["change"]["changes"]] == ["50", "600"]
+    assert "50" in node["text"] and "600" in node["text"] and len(node["text"]) <= 80
+    assert state["inputs"]["in:first"]["changed_by"] == node["id"]
+    notice = state["chat"][-1]
+    assert [(each["label"], each["text"]) for each in notice["chips"] if each["kind"] == "value"] == [
+        ("Unit count", "50 (was 40)"), ("First", "600 (was 500)")]
+    assert [(each["label"], each["text"]) for each in notice["chips"] if each["kind"] == "result"] == [
+        ("Total", "5,000 (was 4,000)"), ("Split", "2,200 (was 1,750)")]
+    assert "50" in notice["text"] and "600" in notice["text"]
+    act(session, "say", text="And now?")
+    told = session.models.main.calls[-1]["messages"][-1]["content"]
+    assert "[harness]" in told and "600" in told and "2200" in told
+    valid(state)
+
+
 # --- No, closing, and deaths ---
 
 def test_no_declines_and_the_branch_is_dead_with_no_node(make):
