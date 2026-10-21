@@ -546,11 +546,15 @@ on the main lane.
 - System prompt: the prompt parts of the enabled layers, then `## What you
   know` and the context sections: `today`, `goal`, `particulars`, `process`
   (the plan's steps, added ones included, with their ids), `modules` (name,
-  step, spec), `saved inputs`, `notes`, then the sections of later layers.
+  step, spec), `saved inputs`, `notes`, `earlier runs in this conversation`
+  (the runs of the last answer, 5.2, and the last eight runs of the
+  conversation, oldest first, less those made in this turn), then the
+  sections of later layers.
 - The model's messages are kept in memory for the life of the `Session`. A
   person's message with a step attached is prefixed `[harness] About step {id}
   ({name}):`.
-- Up to 10 model calls per person message (`TOO_MANY` after that).
+- Up to 20 model calls per person message (`TOO_MANY` after that). A call
+  is one model response, whatever number of tool calls it carries.
 - Tools from the enabled layers. Layer 3's:
   - `run_module {module, inputs, assumptions: [str], expected: str}`: inputs
     number-checked, then `gate.call`. Never held for the person. Result:
