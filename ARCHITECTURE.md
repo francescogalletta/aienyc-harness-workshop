@@ -753,36 +753,44 @@ go stale; nothing runs again.
 ### 12.4 What runs again
 
 Let `A` be the runs of the last answer (layer 3: the runs of its turn and the
-runs its figures name), oldest first; `key` the input, `old` and `new` its
-values.
+runs its figures name), oldest first, and the change a **bundle** of one or
+more `{key, old, new}`: the input, its old value and its new one. A proposal
+of one value is a bundle of one.
 
-1. A run of `A` is **direct** when its inputs have `key` at the top level with
-   a value equal to `old` (the same number as the number check reads it, or the
-   same text; with `old` null, every run of `A` with `key`).
-2. Going through `A` in order, a run is run again when it is direct, or when a
-   value anywhere in its inputs equals an old value that an earlier re-run
-   changed. Old and new outputs of each re-run are compared leaf by leaf (by
-   key path; a list by position); each leaf that differs maps its old value
-   to its new one. A run whose inputs come out unchanged is not run again and
+1. A run of `A` is **direct** for a change when its inputs have `key` at the
+   top level with a value equal to `old` (the same number as the number check
+   reads it, or the same text; with `old` null, every run of `A` with `key`).
+2. Going through `A` in order, a run is run again when it is direct for any
+   change of the bundle, or when a value anywhere in its inputs equals an old
+   value that an earlier re-run changed, **and that re-run is of a step its
+   own step needs**: a step the plan's `edges` reach this run's step from,
+   directly or through other steps. A step not in the plan (an added step, a
+   module with no step) feeds, and is fed by, any step. Old and new outputs of
+   each re-run are compared leaf by leaf (by key path; a list by position);
+   each leaf that differs maps its old value to its new one, under the step
+   that changed it. A run whose inputs come out unchanged is not run again and
    stays in the answer.
-3. Its inputs are the old ones with `key` set to `new` (direct) and each mapped
-   value replaced, written as the input was: text as the shortest plain decimal
-   (`43000`, `18500`, `0.4`) or the date as written; any other value keeps its
-   type. One old value mapped to two different new ones: that run is not run
-   again (`failed`, `a value it took is ambiguous`).
+3. Its inputs are the old ones with each direct `key` set to its `new` and
+   each mapped value replaced, written as the input was: text as the shortest
+   plain decimal (`43000`, `18500`, `0.4`) or the date as written; any other
+   value keeps its type. One old value mapped, by steps this run's step needs,
+   to two different new ones: that run is not run again (`failed`, `a value it
+   took is ambiguous`).
 4. Its assumptions are its own, less the branch's assumption subject and less
-   any sentence that holds `old` or names `key` in words. `expected` is
-   `RERUN_EXPECTED` (SPEC 6.6).
+   any sentence that holds an `old` of the bundle or names its `key` in words.
+   `expected` is one `RERUN_EXPECTED` (SPEC 6.6) per change, joined by a
+   space.
 5. It goes through `gate.call`. A refusal goes in `failed` with the gate's
    words, and the later runs that needed its output fail with `an earlier step
-   could not run again`. The join still saves the value and records the node.
+   could not run again`. The join still saves the values and records the node.
 
 **Impact** is the same walk without running: the direct runs, then each run
-of `A` holding a value an earlier listed run produced (`provenance._produced`).
-`steps` are their steps; `downstream` the steps the plan's `edges` reach from
-them that are not in `steps` (for a value no run used: the input's `steps` and
-what they reach). Downstream steps are shown as touched and not run: the
-analyst runs them when asked.
+of `A` holding a value an earlier listed run of a step it needs produced
+(`provenance._produced`). `inputs` names each plan input of the bundle;
+`steps` are the listed runs' steps; `downstream` the steps the plan's `edges`
+reach from them that are not in `steps` (for values no run used: those
+inputs' `steps` and what they reach). Downstream steps are shown as touched
+and not run: the analyst runs them when asked.
 
 ### 12.5 When a branch dies
 

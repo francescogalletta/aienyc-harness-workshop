@@ -631,8 +631,10 @@ notice), each with the text of its chips. Events: `ask.message`, `ask.reply`,
   first); `old_values(conn, conversation, key)` (the distinct values of the top-level input `key` among them, as
   written); `impact(conn, state, *, key, old) -> Impact`; `rerun(work, *, key, old, new, label, drop=()) ->
   {"replaced": {old run id: new run id}, "failed": [{"run", "step", "reason"}], "runs": [run ids]}`, where `runs` is
-  the new last answer and `drop` the assumption sentences to leave out. Both follow ARCHITECTURE.md 12.4 exactly;
-  `rerun` calls `gate.call` on `work.conn` and `work.progress` before each run, and posts nothing.
+  the new last answer and `drop` the assumption sentences to leave out. Both take, instead of `key`, `old` (and
+  `new`, `label`), a bundle `changes: [{"key", "old", "new", "label"}]`, and treat the keyword form as a bundle of
+  one. Both follow ARCHITECTURE.md 12.4 exactly, lineage by the plan's needs included; `rerun` calls `gate.call`
+  on `work.conn` and `work.progress` before each run, and posts nothing.
 
 ## 6. Layer 4: when the harness needs the person (`harness/needs_you/`)
 

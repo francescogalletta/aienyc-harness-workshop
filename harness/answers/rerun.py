@@ -1,11 +1,13 @@
-"""The re-run engine (SPEC 5.4, ARCHITECTURE.md 12.4): when the person changes a value, which runs of the last
-answer used it, directly or through an earlier run's result, and running them again through the gate.
+"""The re-run engine (SPEC 5.4, ARCHITECTURE.md 12.4): when the person changes one value or a bundle of them,
+which runs of the last answer used them, directly or through an earlier run's result, and running them again
+through the gate.
 
 No model is called. A run is reached by value lineage: a run of the last answer whose top-level input `key` holds
 the old value is direct; a later run is reached when a value in its inputs (at any depth, inside lists and
-objects too) equals a value an earlier re-run changed. Values compare as the number check reads them: the same
-number however it is written ("36,100", "36100.00", 36100), else the same text. `impact` is the same walk without
-running, for a proposal; `rerun` does it, for a join. Neither posts anything.
+objects too) equals a value an earlier re-run changed, and that re-run is of a step the plan's edges reach this
+run's step from (a step not in the plan feeds, and is fed by, any step). Values compare as the number check
+reads them: the same number however it is written ("36,100", "36100.00", 36100), else the same text. `impact`
+is the same walk without running, for a proposal; `rerun` does it, for a join. Neither posts anything.
 """
 import json
 from decimal import Decimal, InvalidOperation
@@ -165,6 +167,50 @@ def _step_of(conn, module: str) -> str | None:
     return (found or {}).get("spec", {}).get("step_id") or None
 
 
+# --- Changes and the plan's needs ---
+
+def _changes_of(key, old, new=None, label=None, changes=None) -> list[dict]:
+    """The bundle: `changes` as given ({key, old, new?, label?} each), else the one change of the keywords."""
+    if changes is not None:
+        return [dict(each) for each in changes]
+    return [{"key": key, "old": old, "new": new, "label": label}]
+
+
+def _ancestors(edges, steps) -> dict[str, set]:
+    """For each step, the steps the edges reach it from, transitively."""
+    parents: dict = {}
+    for edge in edges:
+        parents.setdefault(edge["to"], set()).add(edge["from"])
+    found = {}
+    for step in steps:
+        seen, todo = set(), list(parents.get(step, ()))
+        while todo:
+            here = todo.pop()
+            if here not in seen:
+                seen.add(here)
+                todo.extend(parents.get(here, ()))
+        found[step] = seen
+    return found
+
+
+def _feeds(producer: str | None, consumer: str | None, ancestors: dict) -> bool:
+    """Whether a run of step `producer` may have fed a run of step `consumer`: yes when either is not a step of
+    the plan, else when the plan's edges reach `consumer` from `producer`."""
+    if consumer not in ancestors or producer not in ancestors:
+        return True
+    return producer in ancestors[consumer]
+
+
+def _plan_edges(brief: dict | None) -> tuple[list[dict], list[str]]:
+    """The edges and step ids of a brief: each need that is a step id is an edge."""
+    if not brief:
+        return [], []
+    steps = [step["id"] for step in brief["process"]]
+    edges = [{"from": need, "to": step["id"]} for step in brief["process"] for need in step.get("needs", [])
+             if need in steps]
+    return edges, steps
+
+
 # --- Impact: the walk without running ---
 
 def _current_conversation(conn) -> str | None:
@@ -172,28 +218,34 @@ def _current_conversation(conn) -> str | None:
     return row["value"] if row else None
 
 
-def impact(conn, state: dict, *, key: str, old: str | None, conversation: str | None = None) -> dict:
-    """What changing `key` from `old` would run again (12.4): the direct runs of the last answer, then each run
-    holding a value an earlier listed run produced; their steps; and the steps the plan's edges reach from them
-    that the last answer did not run (touched, not run). For a value no run used, those are the plan input's
-    steps and what they reach. `state` needs only `inputs`, `steps` and `edges`; `conversation` defaults to the
-    current one."""
+def impact(conn, state: dict, *, key: str | None = None, old: str | None = None, changes: list | None = None,
+           conversation: str | None = None) -> dict:
+    """What changing `key` from `old` (or each change of a bundle) would run again (12.4): the direct runs of
+    the last answer, then each run holding a value an earlier listed run of a step its step needs produced;
+    their steps; and the steps the plan's edges reach from them that the last answer did not run (touched, not
+    run). For a value no run used, those are the plan input's steps and what they reach. `state` needs only
+    `inputs`, `steps` and `edges`; `conversation` defaults to the current one."""
     conversation = conversation or _current_conversation(conn)
-    listed, numbers, dates = [], set(), set()
+    wanted = _changes_of(key, old, changes=changes)
+    plan_steps = [step["id"] for step in state.get("steps", []) if step.get("in_plan", True)]
+    ancestors = _ancestors(state.get("edges", []), plan_steps)
+    listed, made = [], []                       # made: (step, numbers, dates) of each listed run
     for row in _rows(conn, conversation) if conversation else []:
         inputs = json.loads(row["inputs"])
-        if _direct(inputs, key, old) or _holds(inputs, numbers, dates):
+        step = _step_of(conn, row["module"])
+        direct = any(_direct(inputs, each["key"], each["old"]) for each in wanted)
+        fed = any(_holds(inputs, numbers, dates) for producer, numbers, dates in made
+                  if _feeds(producer, step, ancestors))
+        if direct or fed:
             listed.append(row)
-            made_numbers, made_dates = _products(row)
-            numbers |= made_numbers
-            dates |= made_dates
+            made.append((step, *_products(row)))
 
-    plan_steps = [step["id"] for step in state.get("steps", [])]
+    all_steps = [step["id"] for step in state.get("steps", [])]
     steps = list(dict.fromkeys(step for step in (_step_of(conn, row["module"]) for row in listed)
-                               if step in plan_steps))
-    input_id = f"in:{key}"
-    inputs = [input_id] if input_id in state.get("inputs", {}) else []
-    start = steps if listed else list(state.get("inputs", {}).get(input_id, {}).get("steps", []))
+                               if step in all_steps))
+    inputs = [f"in:{each['key']}" for each in wanted if f"in:{each['key']}" in state.get("inputs", {})]
+    start = steps if listed else list(dict.fromkeys(
+        step for input_id in inputs for step in state.get("inputs", {}).get(input_id, {}).get("steps", [])))
     reached, todo = set(start), list(start)
     while todo:
         here = todo.pop()
@@ -201,7 +253,7 @@ def impact(conn, state: dict, *, key: str, old: str | None, conversation: str | 
             if edge.get("from") == here and edge.get("to") not in reached:
                 reached.add(edge["to"])
                 todo.append(edge["to"])
-    downstream = [step for step in plan_steps if step in reached and step not in steps]
+    downstream = [step for step in all_steps if step in reached and step not in steps]
     return {"inputs": inputs, "runs": [f"r{row['id']}" for row in listed], "steps": steps,
             "downstream": downstream}
 
@@ -209,35 +261,40 @@ def impact(conn, state: dict, *, key: str, old: str | None, conversation: str | 
 # --- The re-run ---
 
 class _Changes:
-    """The old values earlier re-runs changed, leaf by leaf: {old: {new token: new value}}. A value one leaf
-    changed and another kept, or changed to two different values, is ambiguous."""
+    """The old values earlier re-runs changed, leaf by leaf, with the step that changed each:
+    {old token: [(step, new value)]}. For a later run, only the re-runs of steps its step needs count (`_feeds`);
+    a value they changed two different ways is ambiguous."""
 
-    def __init__(self):
+    def __init__(self, ancestors: dict):
         self.seen: dict = {}
+        self.ancestors = ancestors
 
-    def add(self, old_output, new_output) -> None:
+    def add(self, old_output, new_output, step) -> None:
         for old, new in _pairs(old_output, new_output):
-            self.seen.setdefault(_token(old), {})[_token(new)] = new
+            self.seen.setdefault(_token(old), []).append((step, new))
 
-    def find(self, value) -> tuple[bool, object]:
-        """(changed, the new value or AMBIGUOUS) for a leaf of a later run's inputs."""
+    def find(self, value, consumer) -> tuple[bool, object]:
+        """(changed, the new value or AMBIGUOUS) for a leaf of a later run's inputs, of step `consumer`."""
         token = _token(value)
-        news = self.seen.get(token)
+        news = {}
+        for producer, new in self.seen.get(token, ()):
+            if _feeds(producer, consumer, self.ancestors):
+                news[_token(new)] = new
         if not news or set(news) == {token}:
             return False, None
         if len(news) > 1:
             return True, AMBIGUOUS
         return True, next(iter(news.values()))
 
-    def replace(self, value) -> tuple[object, bool]:
+    def replace(self, value, consumer) -> tuple[object, bool]:
         """The value with each changed leaf replaced, written as it was; and whether it took an ambiguous one."""
         if isinstance(value, dict):
-            pairs = [(key, *self.replace(item)) for key, item in value.items()]
+            pairs = [(key, *self.replace(item, consumer)) for key, item in value.items()]
             return {key: item for key, item, _ in pairs}, any(flag for _, _, flag in pairs)
         if isinstance(value, list):
-            pairs = [self.replace(item) for item in value]
+            pairs = [self.replace(item, consumer) for item in value]
             return [item for item, _ in pairs], any(flag for _, flag in pairs)
-        changed, new = self.find(value)
+        changed, new = self.find(value, consumer)
         if not changed:
             return value, False
         if new is AMBIGUOUS:
@@ -269,39 +326,49 @@ def _step_numbers(work) -> dict[str, int]:
         if brief else {}
 
 
-def rerun(work, *, key: str, old: str | None, new: str, label: str, drop=()) -> dict:
-    """Run again, through the gate, the runs of the last answer the change of `key` from `old` to `new` reaches
-    (12.4), oldest first, each with the values earlier re-runs changed. Returns {"replaced": {"r3": "r9"},
+def expected_text(changes: list[dict]) -> str:
+    """What a re-run says it expects: one RERUN_EXPECTED sentence per change of the bundle."""
+    return " ".join(RERUN_EXPECTED.format(label=each.get("label") or each["key"], new=each["new"],
+                                          old="none" if each["old"] is None else each["old"]) for each in changes)
+
+
+def rerun(work, *, key: str | None = None, old: str | None = None, new: str | None = None,
+          label: str | None = None, changes: list | None = None, drop=()) -> dict:
+    """Run again, through the gate, the runs of the last answer the change of `key` from `old` to `new` (or
+    each change of the bundle `changes`, {key, old, new, label} each) reaches (12.4), oldest first, each with
+    every value of the bundle set and the values earlier re-runs changed. Returns {"replaced": {"r3": "r9"},
     "failed": [{"run": "r5", "step": "s5" | None, "reason": str}], "runs": [the new last answer, oldest first]}.
     `drop` are assumption sentences to leave out (a branch's assumption subject). Posts nothing."""
     conn, conversation = work.conn, work.conversation
+    wanted = _changes_of(key, old, new, label, changes)
     rows = _rows(conn, conversation)
     numbers = _step_numbers(work)
-    expected = RERUN_EXPECTED.format(label=label, new=new, old="none" if old is None else old)
+    edges, plan_steps = _plan_edges(plan_of(work.config))
+    ancestors = _ancestors(edges, plan_steps)
+    expected = expected_text(wanted)
     dropped = {" ".join(sentence.split()) for sentence in drop}
-    changes, broken_numbers, broken_dates = _Changes(), set(), set()
+    changed, broken = _Changes(ancestors), []           # broken: (step, numbers, dates) of each failed run
     replaced, failed, kept = {}, [], []
 
     def fail(row, step, reason):
         failed.append({"run": f"r{row['id']}", "step": step, "reason": reason})
-        made_numbers, made_dates = _products(row)
-        broken_numbers.update(made_numbers)
-        broken_dates.update(made_dates)
+        broken.append((step, *_products(row)))
         kept.append(row["id"])
 
     for row in rows:
         inputs = json.loads(row["inputs"])
         step = _step_of(conn, row["module"])
-        if _holds(inputs, broken_numbers, broken_dates):
+        if any(_holds(inputs, made_numbers, made_dates) for producer, made_numbers, made_dates in broken
+               if _feeds(producer, step, ancestors)):
             fail(row, step, UPSTREAM_FAILED)
             continue
-        direct = _direct(inputs, key, old)
-        others = {name: value for name, value in inputs.items() if name != key} if direct else inputs
-        fresh, ambiguous = changes.replace(others)
-        if direct:
-            was = inputs[key]
-            fresh = {name: (_written_as(was, new) if not isinstance(was, (list, dict)) else new) if name == key
-                     else fresh[name] for name in inputs}
+        direct = {each["key"]: each for each in wanted if _direct(inputs, each["key"], each["old"])}
+        others = {name: value for name, value in inputs.items() if name not in direct}
+        fresh, ambiguous = changed.replace(others, step)
+        for name, each in direct.items():
+            was = inputs[name]
+            fresh[name] = _written_as(was, each["new"]) if not isinstance(was, (list, dict)) else each["new"]
+        fresh = {name: fresh[name] for name in inputs}
         if ambiguous:
             fail(row, step, AMBIGUOUS)
             continue
@@ -309,7 +376,8 @@ def rerun(work, *, key: str, old: str | None, new: str, label: str, drop=()) -> 
             kept.append(row["id"])
             continue
         assumptions = [sentence for sentence in json.loads(row["assumptions"])
-                       if " ".join(sentence.split()) not in dropped and _keeps(sentence, key, old)]
+                       if " ".join(sentence.split()) not in dropped
+                       and all(_keeps(sentence, each["key"], each["old"]) for each in wanted)]
         work.progress(RUNNING_AGAIN.format(number=numbers[step]) if step in numbers
                       else f"running {row['module']} again", step=step, what="join")
         try:
@@ -321,7 +389,7 @@ def rerun(work, *, key: str, old: str | None, new: str, label: str, drop=()) -> 
         finally:
             work.changed()
         replaced[f"r{row['id']}"] = f"r{result['run_id']}"
-        changes.add(json.loads(row["output"]), result["output"])
+        changed.add(json.loads(row["output"]), result["output"], step)
 
     runs = sorted(kept + [int(each[1:]) for each in replaced.values()])
     return {"replaced": replaced, "failed": failed, "runs": runs}
