@@ -285,3 +285,60 @@ def test_a_value_no_run_used_runs_nothing_and_with_no_old_value_every_run_with_t
     every = engine.rerun(Work(session), key="unit_count", old=None, new="50", label="Unit count")
     assert list(every["replaced"]) == [f"r{low['run_id']}", f"r{high['run_id']}"]
     assert row(session, every["replaced"][f"r{low['run_id']}"])["expected"].endswith("(was none).")
+
+
+# --- Several values at once (12.4, a bundle) ---
+
+def test_a_bundle_of_changes_runs_again_once_with_every_value_replaced(session):
+    total, split, summed = chain(session)
+    answer(session, total, split, summed)
+    work = Work(session)
+    changes = [{"key": "unit_count", "old": "40", "new": "50", "label": "Unit count"},
+               {"key": "first", "old": "500", "new": "600", "label": "First"}]
+    result = engine.rerun(work, changes=changes)
+    assert result["failed"] == []
+    assert list(result["replaced"]) == [f"r{each['run_id']}" for each in (total, split, summed)]
+    new_total, new_split, new_sum = (row(session, result["replaced"][f"r{each['run_id']}"])
+                                     for each in (total, split, summed))
+    assert new_total["inputs"] == {"unit_count": "50", "unit_price": "100"}
+    assert new_split["inputs"] == {"total": "5000", "first": "600"}
+    assert new_split["output"] == {"first": "600", "rest": "2200", "last": "2200"}
+    assert new_sum["inputs"]["payments"][1] == {"name": "rest", "amount": "2200"}
+    assert new_sum["expected"] == engine.RERUN_EXPECTED.format(label="Unit count", new="50", old="40") + " " + \
+        engine.RERUN_EXPECTED.format(label="First", new="600", old="500")
+    assert session.conn.execute("SELECT COUNT(*) FROM calc_runs").fetchone()[0] == 6     # each run once
+
+
+def test_the_impact_of_a_bundle_is_the_union_and_names_every_plan_input(session):
+    total, split, summed = chain(session)
+    answer(session, total, split, summed)
+    found = engine.impact(session.conn, session.state(), changes=[{"key": "first", "old": "500"},
+                                                                  {"key": "unit_price", "old": "100"}])
+    assert found == {"inputs": ["in:first", "in:unit_price"],
+                     "runs": [f"r{each['run_id']}" for each in (total, split, summed)],
+                     "steps": ["c1", "c3", "c4"], "downstream": ["c2", "j1"]}
+
+
+# --- Lineage follows the plan's needs, not bare equality (12.4) ---
+
+def test_a_value_equal_to_a_result_of_a_step_the_run_does_not_need_is_not_remapped(session):
+    total = run(session, "total", {"unit_count": "40", "unit_price": "100"})            # 4000
+    split = run(session, "split", {"total": "4000", "first": "500"})                     # 500, 1750, 1750
+    doubled = run(session, "double", {"total": "1750"})          # c2 needs c1 only; 1750 is c3's, by chance
+    answer(session, total, split, doubled)
+    found = engine.impact(session.conn, session.state(), key="first", old="500")
+    assert found["runs"] == [f"r{split['run_id']}"]
+    result = engine.rerun(Work(session), key="first", old="500", new="300", label="First")
+    assert list(result["replaced"]) == [f"r{split['run_id']}"] and result["failed"] == []
+    assert doubled["run_id"] in result["runs"]
+
+
+def test_an_old_value_mapped_two_ways_is_read_from_the_step_the_run_needs(session):
+    total = run(session, "total", {"unit_count": "5", "unit_price": "100"})             # 500, from c1
+    split = run(session, "split", {"total": "1500", "first": "500"})                     # 500, 500, 500 from c3
+    doubled = run(session, "double", {"total": "500"})                                   # c2 needs c1
+    answer(session, total, split, doubled)
+    result = engine.rerun(Work(session), key="unit_count", old="5", new="6", label="Unit count")
+    assert result["failed"] == []
+    assert row(session, result["replaced"][f"r{doubled['run_id']}"])["inputs"] == {"total": "600"}
+    assert row(session, result["replaced"][f"r{doubled['run_id']}"])["output"] == "1200"
